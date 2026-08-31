@@ -1,0 +1,35 @@
+name: startup-bus-realtest-run
+
+services:
+  bus-realtest-run:
+    image: startup-bus-realtest:v1
+    build:
+      context: .
+    environment:
+      # Confirmed working on 2026-08-31 after the reverse-proxy hostname was
+      # corrected from ...-77 to ...-78; /health, /db-check and
+      # /bus/v1/status all answered over this URL.
+      BUS_REALTEST_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      KARL_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_karl
+      THORSTEN_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_thorsten
+    volumes:
+      - ./secrets:/run/startup-bus-secrets:ro
+    networks:
+      # Same isolated-subnet + fixed-address pattern that DEC-025 already
+      # validated for the tokenless network check, so exactly one /32 has to
+      # be allowed through the DSM firewall on TCP 8443 for the test window.
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29

@@ -1,0 +1,46 @@
+name: startup-telegram-run2
+
+services:
+  telegram-ceo-connector2:
+    image: startup-telegram-ceo-connector:v2-candidate
+    build:
+      context: .
+    restart: "no"
+    env_file:
+      - telegram-realtest-2.env
+    secrets:
+      - telegram_bot_token
+      - workforce_bus_token
+    volumes:
+      - telegram_realtest_state_v2:/var/lib/startup-telegram
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "/app/telegram_connector.py", "--check-config"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29
+
+volumes:
+  telegram_realtest_state_v2:
+
+secrets:
+  telegram_bot_token:
+    file: ./secrets/telegram_bot_token
+  workforce_bus_token:
+    file: ./secrets/workforce_bus_token

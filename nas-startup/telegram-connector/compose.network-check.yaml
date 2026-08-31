@@ -1,0 +1,27 @@
+name: startup-telegram-network-check
+
+services:
+  workforce-network-check:
+    image: startup-telegram-ceo-connector:v2-candidate
+    build:
+      context: .
+    entrypoint: ["python", "/app/network_probe.py"]
+    environment:
+      WORKFORCE_API_BASE_URL: https://192-168-68-77.k30068872219.direct.quickconnect.to:8443
+      WORKFORCE_EXPECTED_CHANNEL_STATUS: DISABLED
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29

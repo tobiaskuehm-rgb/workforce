@@ -1,0 +1,32 @@
+name: startup-bus-realtest-prepare
+
+services:
+  bus-realtest-prepare:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      BUS_REALTEST_SOURCE_REF: "DEC-027/ENG-003"
+      KARL_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_karl
+      THORSTEN_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_thorsten
+      GENERATE_BUS_TOKENS_IF_MISSING: "true"
+    volumes:
+      - ./secrets:/run/startup-bus-secrets
+      - ./prepare_realtest_once.sh:/opt/startup-bus-realtest/prepare_realtest_once.sh:ro
+      - ./bus_realtest_prepare.sql:/opt/startup-bus-realtest/bus_realtest_prepare.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-bus-realtest/prepare_realtest_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend

@@ -1,0 +1,27 @@
+name: startup-bus-realtest-cleanup
+
+services:
+  bus-realtest-cleanup:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+    volumes:
+      - ./cleanup_realtest_once.sh:/opt/startup-bus-realtest/cleanup_realtest_once.sh:ro
+      - ./bus_realtest_cleanup.sql:/opt/startup-bus-realtest/bus_realtest_cleanup.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-bus-realtest/cleanup_realtest_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend

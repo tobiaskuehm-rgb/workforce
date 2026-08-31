@@ -1,0 +1,26 @@
+# Secrets - never commit. The NAS holds the real values; only .example files
+# belong in version control.
+secrets/
+*.env
+!*.env.example
+!telegram.env.example
+!telegram-realtest.env.example
+!telegram-realtest-2.env.example
+!bus-realtest.env.example
+*token*
+!test_*token*
+*.key
+*.pem
+
+# Deployment archives - large, regenerable, and historically contained
+# copies of the whole tree including config.
+*.zip
+*.tar
+*.tar.gz
+Versionen/
+
+# Local scratch
+.DS_Store
+__pycache__/
+*.pyc
+.venv/

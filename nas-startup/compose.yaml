@@ -1,0 +1,130 @@
+name: startup
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - startup.env
+    volumes:
+      - workforce_database_v1:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+      - ./postgres-tests:/opt/startup/tests:ro
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+  registry-migrate:
+    image: postgres:17-alpine
+    restart: "no"
+    env_file:
+      - startup.env
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        : "$${POSTGRES_USER:?startup.env lacks POSTGRES_USER}"
+        : "$${POSTGRES_DB:?startup.env lacks POSTGRES_DB}"
+        : "$${POSTGRES_PASSWORD:?startup.env lacks POSTGRES_PASSWORD}"
+        export PGHOST="db"
+        export PGUSER="$$POSTGRES_USER"
+        export PGDATABASE="$$POSTGRES_DB"
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        migration_table="$$(psql -tAc "SELECT to_regclass('workforce.schema_migrations')")"
+        if [ "$$migration_table" != "workforce.schema_migrations" ]; then
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/001_employee_registry.sql
+          echo "Employee Registry migration applied."
+        else
+          registry_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '001_employee_registry'")"
+          if [ "$$registry_count" != "1" ]; then
+            echo "Registry schema exists without migration marker; refusing to continue."
+            exit 1
+          fi
+          echo "Employee Registry migration already applied."
+        fi
+        bus_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '002_workforce_bus'")"
+        if [ "$$bus_count" = "0" ]; then
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/002_workforce_bus.sql
+          echo "Workforce Bus migration applied; channel remains DISABLED."
+        elif [ "$$bus_count" = "1" ]; then
+          echo "Workforce Bus migration already applied."
+        else
+          echo "Unexpected Workforce Bus migration marker count; refusing to continue."
+          exit 1
+        fi
+        trigger_fix_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '003_workforce_bus_trigger_fix'")"
+        if [ "$$trigger_fix_count" = "0" ]; then
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/003_workforce_bus_trigger_fix.sql
+          echo "Workforce Bus credential trigger fix applied."
+        elif [ "$$trigger_fix_count" = "1" ]; then
+          echo "Workforce Bus credential trigger fix already applied."
+        else
+          echo "Unexpected Workforce Bus trigger fix marker count; refusing to continue."
+          exit 1
+        fi
+    volumes:
+      - ./postgres-init:/opt/startup/migrations:ro
+    networks:
+      - backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  workforce-api:
+    image: startup-workforce-api:v6
+    build:
+      context: ./workforce-api
+    restart: unless-stopped
+    env_file:
+      - startup.env
+    environment:
+      DB_HOST: db
+      BUS_REQUIRE_HTTPS: "true"
+      # Synology Reverse Proxy reaches the published port through the
+      # current startup_frontend bridge gateway. Keep this host-only.
+      BUS_TRUSTED_PROXY_CIDRS: "172.20.0.1/32"
+    depends_on:
+      db:
+        condition: service_healthy
+      registry-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+      - frontend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  backend:
+    internal: true
+  frontend:
+
+volumes:
+  workforce_database_v1:

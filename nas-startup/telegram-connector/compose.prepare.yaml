@@ -1,0 +1,30 @@
+name: startup-telegram-prepare
+
+services:
+  telegram-realtest-prepare:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      WORKFORCE_BUS_TOKEN_FILE: /run/startup-telegram-secrets/workforce_bus_token
+      GENERATE_WORKFORCE_BUS_TOKEN_IF_MISSING: "true"
+    volumes:
+      - ./secrets:/run/startup-telegram-secrets
+      - ./prepare_realtest_once.sh:/opt/startup-telegram/prepare_realtest_once.sh:ro
+      - ./realtest_prepare.sql:/opt/startup-telegram/realtest_prepare.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-telegram/prepare_realtest_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend

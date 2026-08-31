@@ -1,0 +1,10 @@
+FROM python:3.13-alpine
+
+RUN addgroup -S startup && adduser -S -G startup -u 10001 startup
+
+WORKDIR /app
+COPY bus_realtest_run.py /app/bus_realtest_run.py
+
+USER 10001:10001
+
+CMD ["python", "/app/bus_realtest_run.py"]

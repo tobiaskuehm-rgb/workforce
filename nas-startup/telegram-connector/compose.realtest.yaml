@@ -1,0 +1,117 @@
+name: startup-telegram-realtest
+
+services:
+  telegram-identity-probe:
+    image: startup-telegram-ceo-connector:v1
+    build:
+      context: .
+    profiles:
+      - identity
+    entrypoint: ["python", "/app/identity_probe.py"]
+    environment:
+      TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
+    secrets:
+      - telegram_bot_token
+    networks:
+      - outbound
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  telegram-realtest-prepare:
+    image: postgres:17-alpine
+    profiles:
+      - prepare
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      WORKFORCE_BUS_TOKEN_FILE: /run/startup-telegram-secrets/workforce_bus_token
+      GENERATE_WORKFORCE_BUS_TOKEN_IF_MISSING: "true"
+    volumes:
+      - ./secrets:/run/startup-telegram-secrets
+      - ./prepare_realtest_once.sh:/opt/startup-telegram/prepare_realtest_once.sh:ro
+      - ./realtest_prepare.sql:/opt/startup-telegram/realtest_prepare.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-telegram/prepare_realtest_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  telegram-ceo-connector:
+    image: startup-telegram-ceo-connector:v1
+    build:
+      context: .
+    profiles:
+      - run
+    restart: "no"
+    env_file:
+      - telegram-realtest.env
+    secrets:
+      - telegram_bot_token
+      - workforce_bus_token
+    volumes:
+      - telegram_realtest_state_v1:/var/lib/startup-telegram
+    networks:
+      - outbound
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "/app/telegram_connector.py", "--check-config"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  telegram-realtest-cleanup:
+    image: postgres:17-alpine
+    profiles:
+      - cleanup
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      WORKFORCE_BUS_TOKEN_FILE: /run/startup-telegram-secrets/workforce_bus_token
+    volumes:
+      - ./secrets:/run/startup-telegram-secrets
+      - ./cleanup_realtest_once.sh:/opt/startup-telegram/cleanup_realtest_once.sh:ro
+      - ./realtest_cleanup.sql:/opt/startup-telegram/realtest_cleanup.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-telegram/cleanup_realtest_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend
+  outbound:
+
+volumes:
+  telegram_realtest_state_v1:
+
+secrets:
+  telegram_bot_token:
+    file: ./secrets/telegram_bot_token
+  workforce_bus_token:
+    file: ./secrets/workforce_bus_token

@@ -1,0 +1,27 @@
+name: startup-telegram-preflight2
+
+services:
+  telegram-realtest2-preflight:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+    volumes:
+      - ./preflight_realtest2_once.sh:/opt/startup-telegram/preflight_realtest2_once.sh:ro
+      - ./realtest2_preflight.sql:/opt/startup-telegram/realtest2_preflight.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-telegram/preflight_realtest2_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend
