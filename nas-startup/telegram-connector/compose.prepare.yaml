@@ -3,8 +3,13 @@ name: startup-telegram-prepare
 services:
   telegram-realtest-prepare:
     image: postgres:17-alpine
+    # startup.db.env carries the three database values and nothing else
+    # (workforce-agent/derive_db_env_once.sh). These helper containers never
+    # need WORKFORCE_API_KEY or the Telegram token, so they no longer receive
+    # them (review finding G-017). Values still appear in `docker inspect`
+    # here, unchanged - env_file works that way; only the blast radius shrank.
     env_file:
-      - ../startup.env
+      - ../startup.db.env
     environment:
       DB_HOST: db
       WORKFORCE_BUS_TOKEN_FILE: /run/startup-telegram-secrets/workforce_bus_token

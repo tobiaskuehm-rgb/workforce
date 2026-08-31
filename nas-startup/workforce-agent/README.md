@@ -86,6 +86,25 @@ python3 -m unittest discover -q
 
 Kein Netzwerk, kein API-Schlüssel, keine Kosten. Braucht Python 3.11 oder neuer.
 
+## Secret-Zuführung der Hilfscontainer
+
+Alle Einmalcontainer dieses Pakets — Prepare, Cleanup, Identity, Audit — brauchen genau drei Werte: `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD`. Sie bekommen deshalb nicht `startup.env` (fünf Werte), sondern die daraus abgeleitete `startup.db.env`:
+
+```bash
+sudo sh workforce-agent/derive_db_env_once.sh
+```
+
+Einmal auf der NAS, in `/volume1/docker/Startup`, und erneut nach jeder Änderung an `startup.env`. Die Datei wird `root:users` mit `660` angelegt — genau wie `startup.env`, damit die Container sie als Eigentümer lesen können; `cap_drop: ALL` nimmt ihnen `CAP_DAC_OVERRIDE`.
+
+**Der `run`-Container des Core-Roundtrips bekommt gar keine Secret-Datei.** Er ist der einzige mit einer Route nach draußen und fasst die Datenbank nie an; er liest nur die drei kurzlebigen Token unter `./secrets`. Das war Review-Befund `G-017`: Vorher lag dort die vollständige `startup.env` — nicht in `docker inspect`, aber sehr wohl im Dateisystem.
+
+Zwei Prüfungen halten das fest:
+
+| Prüfung | Wo | Was |
+|---|---|---|
+| `test_compose_secrets.py` | lokal, ohne Netz | keine Compose-Datei mountet `startup.env`; kein Dienst am `outbound`-Netz trägt überhaupt eine geteilte Secret-Datei |
+| `verify_secret_isolation_once.sh` | NAS | dasselbe am laufenden Container, gegen Umgebung **und** lesbares Dateisystem — ohne je einen Wert auszugeben |
+
 ## Vor einem echten Lauf
 
 Nicht ausführen, bevor das nicht steht:

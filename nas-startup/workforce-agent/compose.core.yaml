@@ -26,7 +26,7 @@ services:
       CORE_RUN_SUFFIX: "20260831-CORE1"
       CORE_SECRET_DIR: /run/startup-core-secrets
     volumes:
-      - ../startup.env:/run/startup.env:ro
+      - ../startup.db.env:/run/startup.db.env:ro
       - ./secrets:/run/startup-core-secrets
       - ./prepare_core_once.sh:/opt/startup-core/prepare_core_once.sh:ro
       - ./core_prepare.sql:/opt/startup-core/core_prepare.sql:ro
@@ -59,7 +59,10 @@ services:
       CORE_RUN_ID: "20260831CORE1"
       CORE_SOURCE_REF: "DEC-027/ENG-008"
     volumes:
-      - ../startup.env:/run/startup.env:ro
+      # Only the three short-lived bus tokens. This container never touches the
+      # database, so no database secret is mounted - and because nothing else
+      # is mounted either, WORKFORCE_API_KEY is genuinely unreachable from the
+      # one container that has a route to the outside (review finding G-017).
       - ./secrets:/run/startup-core-secrets:ro
     networks:
       outbound:
@@ -81,23 +84,24 @@ services:
       DB_HOST: db
       CORE_RUN_ID: "20260831CORE1"
     volumes:
-      - ../startup.env:/run/startup.env:ro
+      - ../startup.db.env:/run/startup.db.env:ro
       - ./core_audit.sql:/opt/startup-core/core_audit.sql:ro
     entrypoint:
       - /bin/sh
       - -ec
       - |
-        # Only the three database values are needed here. Reading them from a
-        # mounted file rather than inheriting the whole startup.env keeps
-        # WORKFORCE_API_KEY out of this container entirely, and keeps every
-        # secret off `docker inspect` (review finding G-010).
+        # startup.db.env is derived from startup.env and holds nothing but the
+        # three database values (derive_db_env_once.sh). Mounting the full
+        # startup.env kept WORKFORCE_API_KEY off `docker inspect` but still
+        # readable inside the container - the mount limits the environment, not
+        # the file system (review findings G-010, G-017).
         export PGHOST="$${DB_HOST:-db}"
-        export PGUSER="$$(sed -n 's/^POSTGRES_USER=//p' /run/startup.env)"
-        export PGDATABASE="$$(sed -n 's/^POSTGRES_DB=//p' /run/startup.env)"
-        export PGPASSWORD="$$(sed -n 's/^POSTGRES_PASSWORD=//p' /run/startup.env)"
-        : "$${PGUSER:?startup.env lacks POSTGRES_USER}"
-        : "$${PGDATABASE:?startup.env lacks POSTGRES_DB}"
-        : "$${PGPASSWORD:?startup.env lacks POSTGRES_PASSWORD}"
+        export PGUSER="$$(sed -n 's/^POSTGRES_USER=//p' /run/startup.db.env)"
+        export PGDATABASE="$$(sed -n 's/^POSTGRES_DB=//p' /run/startup.db.env)"
+        export PGPASSWORD="$$(sed -n 's/^POSTGRES_PASSWORD=//p' /run/startup.db.env)"
+        : "$${PGUSER:?startup.db.env lacks POSTGRES_USER}"
+        : "$${PGDATABASE:?startup.db.env lacks POSTGRES_DB}"
+        : "$${PGPASSWORD:?startup.db.env lacks POSTGRES_PASSWORD}"
         psql -v ON_ERROR_STOP=1 -v run_id="$$CORE_RUN_ID" -f /opt/startup-core/core_audit.sql
     networks:
       - startup_backend

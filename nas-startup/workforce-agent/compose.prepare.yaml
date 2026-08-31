@@ -17,7 +17,7 @@ services:
       AGENT_BUS_TOKEN_FILE: /run/startup-agent-secrets/agent_bus_token
       GENERATE_AGENT_TOKEN_IF_MISSING: "true"
     volumes:
-      - ../startup.env:/run/startup.env:ro
+      - ../startup.db.env:/run/startup.db.env:ro
       - ./secrets:/run/startup-agent-secrets
       - ./prepare_agent_once.sh:/opt/startup-agent/prepare_agent_once.sh:ro
       - ./agent_prepare.sql:/opt/startup-agent/agent_prepare.sql:ro

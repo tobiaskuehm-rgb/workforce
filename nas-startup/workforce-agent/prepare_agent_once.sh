@@ -2,19 +2,21 @@
 set -eu
 
 # Only the three database values are needed. If they are not in the
-# environment, read them from a mounted startup.env - that keeps
-# WORKFORCE_API_KEY out of this container and every secret off
-# `docker inspect` (review finding G-010).
-startup_env="${STARTUP_ENV_FILE:-/run/startup.env}"
-if [ -r "$startup_env" ]; then
-    POSTGRES_USER="${POSTGRES_USER:-$(sed -n 's/^POSTGRES_USER=//p' "$startup_env")}"
-    POSTGRES_DB="${POSTGRES_DB:-$(sed -n 's/^POSTGRES_DB=//p' "$startup_env")}"
-    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(sed -n 's/^POSTGRES_PASSWORD=//p' "$startup_env")}"
+# environment, read them from the mounted startup.db.env, which is derived
+# from startup.env and contains nothing else (derive_db_env_once.sh). The
+# mount keeps every secret off `docker inspect`; the derived file is what
+# keeps WORKFORCE_API_KEY out of the container's file system
+# (review findings G-010, G-017).
+db_env="${DB_ENV_FILE:-/run/startup.db.env}"
+if [ -r "$db_env" ]; then
+    POSTGRES_USER="${POSTGRES_USER:-$(sed -n 's/^POSTGRES_USER=//p' "$db_env")}"
+    POSTGRES_DB="${POSTGRES_DB:-$(sed -n 's/^POSTGRES_DB=//p' "$db_env")}"
+    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(sed -n 's/^POSTGRES_PASSWORD=//p' "$db_env")}"
 fi
 
-: "${POSTGRES_USER:?startup.env lacks POSTGRES_USER}"
-: "${POSTGRES_DB:?startup.env lacks POSTGRES_DB}"
-: "${POSTGRES_PASSWORD:?startup.env lacks POSTGRES_PASSWORD}"
+: "${POSTGRES_USER:?startup.db.env lacks POSTGRES_USER}"
+: "${POSTGRES_DB:?startup.db.env lacks POSTGRES_DB}"
+: "${POSTGRES_PASSWORD:?startup.db.env lacks POSTGRES_PASSWORD}"
 : "${AGENT_SOURCE_REF:?set AGENT_SOURCE_REF (e.g. a DEC-.../ENG-... reference) before running}"
 : "${AGENT_RUN_SUFFIX:?set AGENT_RUN_SUFFIX (credential ids must be unique: a REVOKED credential can never be reactivated)}"
 
