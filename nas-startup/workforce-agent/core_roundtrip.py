@@ -87,6 +87,87 @@ def expect_refusal(
     transcript.fail(step, detail="NOT_REFUSED", payload_keys=sorted(payload) if isinstance(payload, dict) else None)
 
 
+
+# --- Resumability -----------------------------------------------------------
+# DEC-027 requires "Persistenz über Neustart". The runner holds no state of its
+# own and does not need to: every id it uses is derived from the run id, so a
+# restart addresses exactly the same task, handoff and messages. What was
+# missing was that each step assumed it had to *do* something. A step that has
+# already happened must be recognised, not repeated - the bus answers a repeat
+# with an idempotency conflict, which would abort a resumed run at its first
+# already-finished step.
+
+# How far a record has come. A step whose target is at or below the current
+# position is already done.
+TASK_ORDER = ("PENDING", "OPEN", "IN_PROGRESS", "REVIEW", "DONE")
+HANDOFF_ORDER = ("PENDING", "OPEN", "ACCEPTED")
+
+
+def _reached(order: tuple[str, ...], current: str | None, target: str) -> bool:
+    if current is None or current not in order or target not in order:
+        return False
+    return order.index(current) >= order.index(target)
+
+
+def find_task(client, task_id: str, scope: str = "OWNED") -> dict[str, Any] | None:
+    for task in client.tasks(scope=scope):
+        if task.get("task_id") == task_id:
+            return task
+    return None
+
+
+def find_handoff(client, handoff_id: str, scope: str = "INBOX") -> dict[str, Any] | None:
+    for handoff in client.handoffs(scope=scope):
+        if handoff.get("handoff_id") == handoff_id:
+            return handoff
+    return None
+
+
+def ensure_task_status(
+    transcript: Transcript, step: str, client, task_id: str, *,
+    target: str, request_id: str, scope: str = "OWNED",
+    completion_evidence: str | None = None,
+) -> dict[str, Any] | None:
+    """Move the task to target, or note that it is already there."""
+    current = find_task(client, task_id, scope=scope)
+    if current is not None and _reached(TASK_ORDER, current.get("task_status"), target):
+        transcript.ok(step, task_status=current.get("task_status"), resumed=True)
+        return current
+    try:
+        moved = client.transition_task(
+            task_id, new_status=target, request_id=request_id,
+            completion_evidence=completion_evidence,
+        )
+    except bus_client.BusError as error:
+        transcript.fail(step, detail=error.detail, status=error.status)
+        return None
+    transcript.ok(step, task_status=moved.get("task_status"))
+    return moved
+
+
+def ensure_handoff_status(
+    transcript: Transcript, step: str, client, handoff_id: str, *,
+    target: str, request_id: str, scope: str = "INBOX",
+    response_note: str | None = None,
+) -> dict[str, Any] | None:
+    current = find_handoff(client, handoff_id, scope=scope)
+    if current is not None and _reached(
+        HANDOFF_ORDER, current.get("handoff_status"), target
+    ):
+        transcript.ok(step, handoff_status=current.get("handoff_status"), resumed=True)
+        return current
+    try:
+        moved = client.transition_handoff(
+            handoff_id, new_status=target, request_id=request_id,
+            response_note=response_note,
+        )
+    except bus_client.BusError as error:
+        transcript.fail(step, detail=error.detail, status=error.status)
+        return None
+    transcript.ok(step, handoff_status=moved.get("handoff_status"))
+    return moved
+
+
 def run_core_roundtrip(
     clients: dict[str, Any],
     *,
@@ -120,7 +201,15 @@ def run_core_roundtrip(
     transcript.ok("channel_open", channel_status=status.get("channel_status"))
 
     # --- 1. Karl creates the task for Gerd --------------------------------
-    try:
+    # On a resumed run the task exists and has moved past PENDING. Replaying
+    # the create would then be a stale request, answered with 409 - so look
+    # first and only create what is not there.
+    task = find_task(karl, task_id, scope="CREATED")
+    if task is not None:
+        transcript.ok("karl_creates_task", task_id=task_id,
+                      task_status=task.get("task_status"), resumed=True)
+    else:
+      try:
         task = karl.create_task(
             task_id=task_id,
             owner_id="AI-ENG-001",
@@ -130,17 +219,18 @@ def run_core_roundtrip(
             request_id=request_id("TASK-CREATE"),
             idempotency_key=idem("TASK"),
         )
-    except bus_client.BusError as error:
+      except bus_client.BusError as error:
         transcript.fail("karl_creates_task", detail=error.detail, status=error.status)
         return _result(transcript, task_id, handoff_id)
-    transcript.ok("karl_creates_task", task_id=task_id,
-                  task_status=task.get("task_status"), owner=task.get("owner_id"))
+      transcript.ok("karl_creates_task", task_id=task_id,
+                    task_status=task.get("task_status"), owner=task.get("owner_id"))
 
     # Replay immediately, while the stored record still matches what we send.
     # The bus compares the current task against the replayed payload, so this
     # has to happen before any transition - afterwards it is a stale request,
     # not a duplicate, and 409 would be the correct answer.
-    try:
+    if task.get("task_status") == "PENDING":
+      try:
         replay = karl.create_task(
             task_id=task_id,
             owner_id="AI-ENG-001",
@@ -152,9 +242,12 @@ def run_core_roundtrip(
         )
         transcript.ok("task_replay_is_idempotent",
                       same_task=replay.get("task_id") == task_id)
-    except bus_client.BusError as error:
+      except bus_client.BusError as error:
         transcript.fail("task_replay_is_idempotent",
                         detail=error.detail, status=error.status)
+    else:
+        transcript.ok("task_replay_is_idempotent", resumed=True,
+                      detail="TASK_ALREADY_ADVANCED")
 
     # --- 2. Gerd (A) takes it and works it --------------------------------
     owned = gerd.tasks(scope="OWNED")
@@ -166,24 +259,15 @@ def run_core_roundtrip(
     # The bus grants PENDING -> OPEN to SAO-001 only, and only for the three
     # named owners (002_workforce_bus.sql, bus_transition_task). The owner
     # cannot lift his own task out of PENDING - coordination stays with Karl.
-    if task.get("task_status") == "PENDING":
-        try:
-            opened = karl.transition_task(
-                task_id, new_status="OPEN", request_id=request_id("TASK-OPEN")
-            )
-        except bus_client.BusError as error:
-            transcript.fail("karl_opens_task", detail=error.detail, status=error.status)
-            return _result(transcript, task_id, handoff_id)
-        transcript.ok("karl_opens_task", task_status=opened.get("task_status"))
-
-    try:
-        working = gerd.transition_task(
-            task_id, new_status="IN_PROGRESS", request_id=request_id("TASK-INPROGRESS")
-        )
-    except bus_client.BusError as error:
-        transcript.fail("gerd_starts_work", detail=error.detail, status=error.status)
+    if ensure_task_status(transcript, "karl_opens_task", karl, task_id,
+                          target="OPEN", scope="CREATED",
+                          request_id=request_id("TASK-OPEN")) is None:
         return _result(transcript, task_id, handoff_id)
-    transcript.ok("gerd_starts_work", task_status=working.get("task_status"))
+
+    if ensure_task_status(transcript, "gerd_starts_work", gerd, task_id,
+                          target="IN_PROGRESS",
+                          request_id=request_id("TASK-INPROGRESS")) is None:
+        return _result(transcript, task_id, handoff_id)
 
     # --- 3. Gerd's result, as a message back to Karl ----------------------
     try:
@@ -201,7 +285,12 @@ def run_core_roundtrip(
     transcript.ok("gerd_reports_result", message_id=result_message.get("message_id"))
 
     # --- 4. Handoff Gerd → Anastasia (B) ----------------------------------
-    try:
+    handoff = find_handoff(gerd, handoff_id, scope="OUTBOX")
+    if handoff is not None:
+        transcript.ok("gerd_creates_handoff", handoff_id=handoff_id,
+                      handoff_status=handoff.get("handoff_status"), resumed=True)
+    else:
+      try:
         handoff = gerd.create_handoff(
             handoff_id=handoff_id,
             recipient_id="PEO-001",
@@ -212,25 +301,20 @@ def run_core_roundtrip(
             request_id=request_id("HANDOFF-CREATE"),
             idempotency_key=idem("HANDOFF"),
         )
-    except bus_client.BusError as error:
-        transcript.fail("gerd_creates_handoff", detail=error.detail, status=error.status)
+      except bus_client.BusError as error:
+        transcript.fail("gerd_creates_handoff", detail=error.detail,
+                        status=error.status)
         return _result(transcript, task_id, handoff_id)
-    transcript.ok("gerd_creates_handoff", handoff_id=handoff_id,
-                  handoff_status=handoff.get("handoff_status"))
+      transcript.ok("gerd_creates_handoff", handoff_id=handoff_id,
+                    handoff_status=handoff.get("handoff_status"))
 
     # A handoff is born PENDING and only its sender may move it to OPEN
     # (002_workforce_bus.sql, bus_transition_handoff). The recipient decides
     # only once it is OPEN - the sender finalises, then the other side rules.
-    if handoff.get("handoff_status") == "PENDING":
-        try:
-            handoff = gerd.transition_handoff(
-                handoff_id, new_status="OPEN",
-                request_id=request_id("HANDOFF-OPEN"),
-            )
-        except bus_client.BusError as error:
-            transcript.fail("gerd_opens_handoff", detail=error.detail, status=error.status)
-            return _result(transcript, task_id, handoff_id)
-        transcript.ok("gerd_opens_handoff", handoff_status=handoff.get("handoff_status"))
+    if ensure_handoff_status(transcript, "gerd_opens_handoff", gerd, handoff_id,
+                             target="OPEN", scope="OUTBOX",
+                             request_id=request_id("HANDOFF-OPEN")) is None:
+        return _result(transcript, task_id, handoff_id)
 
     # --- 5. Anastasia accepts --------------------------------------------
     inbox = anastasia.handoffs(scope="INBOX")
@@ -239,18 +323,12 @@ def run_core_roundtrip(
         return _result(transcript, task_id, handoff_id)
     transcript.ok("anastasia_sees_handoff")
 
-    try:
-        accepted = anastasia.transition_handoff(
-            handoff_id, new_status="ACCEPTED",
-            request_id=request_id("HANDOFF-ACCEPT"),
-            response_note="Uebernommen zur organisatorischen Einordnung.",
-        )
-    except bus_client.BusError as error:
-        transcript.fail("anastasia_accepts_handoff",
-                        detail=error.detail, status=error.status)
+    if ensure_handoff_status(transcript, "anastasia_accepts_handoff", anastasia,
+                             handoff_id, target="ACCEPTED",
+                             request_id=request_id("HANDOFF-ACCEPT"),
+                             response_note="Uebernommen zur organisatorischen Einordnung."
+                             ) is None:
         return _result(transcript, task_id, handoff_id)
-    transcript.ok("anastasia_accepts_handoff",
-                  handoff_status=accepted.get("handoff_status"))
 
     # --- 6. Anastasia's result -------------------------------------------
     try:
@@ -269,40 +347,36 @@ def run_core_roundtrip(
     transcript.ok("anastasia_reports_result", message_id=peo_result.get("message_id"))
 
     # --- 7. Owner to REVIEW, creator closes as DONE -----------------------
-    try:
-        reviewed = gerd.transition_task(
-            task_id, new_status="REVIEW", request_id=request_id("TASK-REVIEW")
-        )
-    except bus_client.BusError as error:
-        transcript.fail("gerd_moves_task_review",
-                        detail=error.detail, status=error.status)
+    if ensure_task_status(transcript, "gerd_moves_task_review", gerd, task_id,
+                          target="REVIEW",
+                          request_id=request_id("TASK-REVIEW")) is None:
         return _result(transcript, task_id, handoff_id)
-    transcript.ok("gerd_moves_task_review", task_status=reviewed.get("task_status"))
 
     # DONE without evidence must be refused - the error-state case from the
     # DEC-027 gate, checked here rather than as an afterthought.
-    expect_refusal(
-        transcript, "done_without_evidence_refused",
-        lambda: karl.transition_task(
-            task_id, new_status="DONE", request_id=request_id("TASK-DONE-NOEV")
-        ),
-        expected_status=400,
-        expected_details=("BUS_TASK_COMPLETION_EVIDENCE_REQUIRED",),
-    )
-
-    try:
-        done = karl.transition_task(
-            task_id, new_status="DONE",
-            request_id=request_id("TASK-DONE"),
-            completion_evidence=(
-                f"Core-Roundtrip {run_id}: Vorpruefung durch AI-ENG-001, "
-                f"Handoff {handoff_id} durch PEO-001 angenommen und beantwortet."
+    current_task = find_task(karl, task_id, scope="CREATED")
+    if current_task is not None and current_task.get("task_status") == "REVIEW":
+        expect_refusal(
+            transcript, "done_without_evidence_refused",
+            lambda: karl.transition_task(
+                task_id, new_status="DONE", request_id=request_id("TASK-DONE-NOEV")
             ),
+            expected_status=400,
+            expected_details=("BUS_TASK_COMPLETION_EVIDENCE_REQUIRED",),
         )
-    except bus_client.BusError as error:
-        transcript.fail("karl_closes_task", detail=error.detail, status=error.status)
+    else:
+        transcript.ok("done_without_evidence_refused", resumed=True,
+                      detail="TASK_ALREADY_CLOSED")
+
+    if ensure_task_status(
+        transcript, "karl_closes_task", karl, task_id, target="DONE",
+        scope="CREATED", request_id=request_id("TASK-DONE"),
+        completion_evidence=(
+            f"Core-Roundtrip {run_id}: Vorpruefung durch AI-ENG-001, "
+            f"Handoff {handoff_id} durch PEO-001 angenommen und beantwortet."
+        ),
+    ) is None:
         return _result(transcript, task_id, handoff_id)
-    transcript.ok("karl_closes_task", task_status=done.get("task_status"))
 
     # --- 8. Negative cases ------------------------------------------------
     _negative_cases(transcript, clients, run_id, source_ref, handoff_id, request_id, idem)
@@ -318,45 +392,54 @@ def _negative_cases(transcript, clients, run_id, source_ref, handoff_id, request
 
     # REJECTED: a second handoff that B turns down.
     reject_id = f"HO-CORE-{run_id}-REJ"
-    try:
-        gerd.create_handoff(
-            handoff_id=reject_id,
-            recipient_id="PEO-001",
-            input_summary="Zweite Uebergabe, bewusst zur Ablehnung.",
-            expected_output="Ablehnung mit Begruendung.",
-            source_ref=source_ref,
-            request_id=request_id("HANDOFF-REJ-CREATE"),
-            idempotency_key=idem("HANDOFF-REJ"),
-        )
-    except bus_client.BusError as error:
-        transcript.fail("handoff_for_rejection_created",
-                        detail=error.detail, status=error.status)
-        return
-    transcript.ok("handoff_for_rejection_created", handoff_id=reject_id)
 
-    try:
-        gerd.transition_handoff(
-            reject_id, new_status="OPEN", request_id=request_id("HANDOFF-REJ-OPEN")
-        )
-    except bus_client.BusError as error:
-        transcript.fail("handoff_for_rejection_opened",
-                        detail=error.detail, status=error.status)
-        return
-    transcript.ok("handoff_for_rejection_opened")
+    # REJECTED is a terminal state outside the PENDING → OPEN → ACCEPTED line,
+    # so it needs its own resume check: a rejected handoff cannot be reopened,
+    # and on a repeated run both steps are simply already done.
+    existing_rejection = find_handoff(gerd, reject_id, scope="OUTBOX")
+    if existing_rejection is not None \
+            and existing_rejection.get("handoff_status") == "REJECTED":
+        transcript.ok("handoff_for_rejection_created", handoff_id=reject_id, resumed=True)
+        transcript.ok("handoff_for_rejection_opened", resumed=True)
+        transcript.ok("anastasia_rejects_handoff", handoff_status="REJECTED", resumed=True)
+    else:
+        if existing_rejection is not None:
+            transcript.ok("handoff_for_rejection_created", handoff_id=reject_id,
+                          resumed=True)
+        else:
+            try:
+                gerd.create_handoff(
+                    handoff_id=reject_id,
+                    recipient_id="PEO-001",
+                    input_summary="Zweite Uebergabe, bewusst zur Ablehnung.",
+                    expected_output="Ablehnung mit Begruendung.",
+                    source_ref=source_ref,
+                    request_id=request_id("HANDOFF-REJ-CREATE"),
+                    idempotency_key=idem("HANDOFF-REJ"),
+                )
+            except bus_client.BusError as error:
+                transcript.fail("handoff_for_rejection_created",
+                                detail=error.detail, status=error.status)
+                return
+            transcript.ok("handoff_for_rejection_created", handoff_id=reject_id)
 
-    try:
-        rejected = anastasia.transition_handoff(
-            reject_id, new_status="REJECTED",
-            request_id=request_id("HANDOFF-REJ"),
-            response_note="Ausserhalb des organisatorischen Scopes.",
-        )
-        transcript.ok("anastasia_rejects_handoff",
-                      handoff_status=rejected.get("handoff_status"))
-    except bus_client.BusError as error:
-        transcript.fail("anastasia_rejects_handoff",
-                        detail=error.detail, status=error.status)
+        if ensure_handoff_status(transcript, "handoff_for_rejection_opened", gerd,
+                                 reject_id, target="OPEN", scope="OUTBOX",
+                                 request_id=request_id("HANDOFF-REJ-OPEN")) is None:
+            return
 
-    # Missing permission: only the recipient may decide a handoff.
+        try:
+            rejected = anastasia.transition_handoff(
+                reject_id, new_status="REJECTED",
+                request_id=request_id("HANDOFF-REJ"),
+                response_note="Ausserhalb des organisatorischen Scopes.",
+            )
+            transcript.ok("anastasia_rejects_handoff",
+                          handoff_status=rejected.get("handoff_status"))
+        except bus_client.BusError as error:
+            transcript.fail("anastasia_rejects_handoff",
+                            detail=error.detail, status=error.status)
+
     # REJECTED, not ACCEPTED: the handoff is already ACCEPTED, and asking for
     # the status it already has is answered as an idempotency conflict before
     # permissions are looked at. A negative case has to reach the check it
