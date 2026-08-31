@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-08-31, 18:55 — von Claude Code
+**Zuletzt aktualisiert:** 2026-08-31, spät — von Claude Code
 
 ## Wie die Zusammenarbeit läuft
 
@@ -100,6 +100,39 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 | F8 Ratenbegrenzung / Kostenlimit | behoben, fünf Decken in `budget.py` |
 | Rückrichtung Bus → Telegram | konfigurierbar, Voreinstellung unverändert `METADATA_ONLY` |
 | Freigabeentscheidung (`DEC-`Nummer) für Modellbetrieb | fehlt |
+
+---
+
+## Hier weitermachen
+
+**Stand:** Gerds zweite Prüfrunde ist eingegangen (Befunde `G-012` bis `G-019` in `REVIEW_GERD.md`). **Alle acht treffen zu.** Drei sind abgearbeitet, fünf offen.
+
+### Erledigt aus Runde zwei
+
+- **G-015** — `CORE PASS` war zu stark und ist zurückgenommen. Der Nachweis trägt jetzt `BUS LIFECYCLE PASS`, das Gate steht auf **`CORE ITERATE`**. `core_roundtrip.py` steuert Bus-Clients direkt und benutzt weder `agent_worker.py` noch `state_store.py`, Claim oder Retry — genau das verlangt `ENG-008` aber.
+- **G-012** — `record_reply()` fehlte im `EXHAUSTED`-Zweig. Beim Testen zeigte sich mehr: Der Übergang nach `EXHAUSTED` wurde vom auslösenden Lauf verbraucht; starb der, ging die Schlussmeldung nie raus. `EXHAUSTED` bleibt jetzt beanspruchbar, bis die Meldung verbucht ist.
+- **G-013** — Der Claim wird bis zum dauerhaften Ergebnis gehalten, nicht schon beim Providerfehler freigegeben.
+
+### Offen, in dieser Reihenfolge
+
+| # | Was | NAS nötig |
+|---|---|---|
+| **G-017** | `startup.env` wird komplett gemountet; der nach außen vernetzte `core.run`-Container liest DB-Passwort und API-Schlüssel, **obwohl er die Datenbank gar nicht anfasst**. Mein Kommentar behauptet das Gegenteil. | nein |
+| **G-014** | Der Contract-Test zählt **jeden** `BusError` als korrekte Ablehnung — ein 401 oder 500 bestünde. „107/107" ist eine einseitige Ablehnungsmatrix, keine Übereinstimmung. | nein |
+| **G-016** | Der Abo-Provider startet die CLI **im Worker-Container** — mit Bus-Token, State-Mount und Bus-Route. Sein eigener Docstring verlangt einen Container ohne all das. | nein |
+| **G-018** | `bus_events` enthält nur erfolgreiche Vorgänge; die Audit-Rekonstruktion deckt Ablehnungen nicht ab. | nein |
+| **G-019** | Provenienz widersprüchlich: Entwürfe sind keine Entscheidungen, deployter Commit-Hash nicht dokumentiert. | teils CEO |
+
+**Ein Muster, das beim Weiterarbeiten zählt:** G-014, G-016 und G-017 sind alle vom Typ *„Kommentar behauptet eine Absicherung, die der Code nicht herstellt"*. Das ist gefährlicher als ein Bug — ein solcher Kommentar hält den nächsten Leser vom Nachprüfen ab.
+
+### Danach
+
+Gerds Empfehlung, der ich zustimme: **nicht** ein echter Modell- oder Telegram-Lauf, sondern ein **integrierter Worker-Core-Test** mit Echo-Provider, echten Claim-/Retry-Fehlern, Neustart und vollständigem Audit. Erst danach den begonnenen `chain-test/` fertigbauen.
+
+### Beim CEO
+
+- `DEC-028` und `DEC-029` aus `DEC_ENTWUERFE_2026-08-31.md` prüfen und ins Log übernehmen — bis dahin bleibt das Gate formal offen
+- sudo-Regel `/etc/sudoers.d/tobkum-docker` entfernen, wenn nicht gebraucht (faktisch Root)
 
 ---
 
