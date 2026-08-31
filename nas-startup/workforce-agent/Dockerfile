@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir "anthropic==1.4.0" \
+RUN pip install --no-cache-dir "anthropic==1.2.0" \
     && addgroup -S startup && adduser -S -G startup -u 10001 startup
 
 COPY --chown=startup:startup agent_worker.py bus_client.py data_boundary.py providers.py /app/
