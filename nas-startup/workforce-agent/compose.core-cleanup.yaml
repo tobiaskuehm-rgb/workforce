@@ -1,0 +1,37 @@
+name: startup-core-roundtrip-cleanup
+
+services:
+  core-cleanup:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      # Must match the prepare step.
+      CORE_RUN_SUFFIX: "20260831-CORE1"
+    volumes:
+      - ./core_cleanup.sql:/opt/startup-core/core_cleanup.sql:ro
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export PGHOST="$${DB_HOST:-db}"
+        export PGUSER="$$POSTGRES_USER"
+        export PGDATABASE="$$POSTGRES_DB"
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        psql -v ON_ERROR_STOP=1 -v run_suffix="$$CORE_RUN_SUFFIX" -f /opt/startup-core/core_cleanup.sql
+        echo "Reminder: delete ./secrets/core_token_* by hand now that the credentials are revoked."
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend

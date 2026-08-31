@@ -1,0 +1,113 @@
+name: startup-core-roundtrip
+
+# The ENG-008 core gate: Task -> Gerd -> Ergebnis -> Handoff -> Anastasia ->
+# ACCEPTED -> Bearbeitung -> Ergebnis -> DONE -> Audit, plus REJECTED, missing
+# permission, error state and idempotency.
+#
+# Three services in order:
+#   prepare   issues three short-lived credentials, opens the channel
+#   run       drives the roundtrip over the real HTTPS API
+#   audit     rebuilds the run from workforce.bus_events alone
+#
+# No model is involved. ENG-008 forbids an external paid service, and this
+# gate is about the runtime, not about answer quality.
+#
+# Needs the temporary DSM firewall rule for 172.31.254.2/32 on TCP 8443 for
+# the run service only - prepare and audit talk to the database directly.
+
+services:
+  prepare:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      CORE_SOURCE_REF: "DEC-027/ENG-008"
+      # Bump per run. Cleanup must use the same value; a REVOKED credential
+      # can never be reactivated.
+      CORE_RUN_SUFFIX: "20260831-CORE1"
+      CORE_SECRET_DIR: /run/startup-core-secrets
+    volumes:
+      - ./secrets:/run/startup-core-secrets
+      - ./prepare_core_once.sh:/opt/startup-core/prepare_core_once.sh:ro
+      - ./core_prepare.sql:/opt/startup-core/core_prepare.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-core/prepare_core_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+
+  run:
+    image: startup-core-roundtrip:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.core
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+    environment:
+      CORE_BUS_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      KARL_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_karl
+      GERD_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_gerd
+      ANASTASIA_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_anastasia
+      CORE_RUN_ID: "20260831CORE1"
+      CORE_SOURCE_REF: "DEC-027/ENG-008"
+    volumes:
+      - ./secrets:/run/startup-core-secrets:ro
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  audit:
+    image: postgres:17-alpine
+    depends_on:
+      run:
+        condition: service_completed_successfully
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      CORE_RUN_ID: "20260831CORE1"
+    volumes:
+      - ./core_audit.sql:/opt/startup-core/core_audit.sql:ro
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export PGHOST="$${DB_HOST:-db}"
+        export PGUSER="$$POSTGRES_USER"
+        export PGDATABASE="$$POSTGRES_DB"
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        psql -v ON_ERROR_STOP=1 -v run_id="$$CORE_RUN_ID" -f /opt/startup-core/core_audit.sql
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29
