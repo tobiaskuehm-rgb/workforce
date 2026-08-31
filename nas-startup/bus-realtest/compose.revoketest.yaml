@@ -1,0 +1,72 @@
+name: startup-bus-realtest-revoketest
+
+# Runs between the negative tests (step 4b) and the cleanup (step 5), while the
+# channel is still TESTING. Closes activation-gate item 6 completely
+# (security review 2026-08-31, F7).
+#
+# Two services in order: `revoke` takes away Thorsten's credential over the
+# backend network, then `verify` checks the effect over the real HTTPS path.
+# The regular cleanup afterwards revokes what is left and disables the channel,
+# so this step needs no cleanup of its own.
+
+services:
+  revoke:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+    volumes:
+      - ./bus_revoketest.sql:/opt/startup-bus-realtest/bus_revoketest.sql:ro
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export PGHOST="$${DB_HOST:-db}"
+        export PGUSER="$$POSTGRES_USER"
+        export PGDATABASE="$$POSTGRES_DB"
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        psql -v ON_ERROR_STOP=1 -f /opt/startup-bus-realtest/bus_revoketest.sql
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  verify:
+    image: startup-bus-revoketest:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.revoketest
+    depends_on:
+      revoke:
+        condition: service_completed_successfully
+    environment:
+      BUS_REVOKETEST_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      KARL_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_karl
+      THORSTEN_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_thorsten
+    volumes:
+      - ./secrets:/run/startup-bus-secrets:ro
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29

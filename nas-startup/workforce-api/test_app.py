@@ -55,7 +55,7 @@ def test_bus_status_reports_missing_migration_without_credentials(monkeypatch):
     response = TestClient(workforce_app.app).get("/bus/v1/status")
     assert response.status_code == 200
     assert response.json() == {
-        "api_version": "v6",
+        "api_version": "v7",
         "project_id": "START-UP",
         "migration": "missing",
         "channel_status": "MISSING",
@@ -203,3 +203,46 @@ def test_no_bus_admin_or_external_action_endpoint_exists():
     assert "/bus/v1/credentials" not in paths
     assert "/bus/v1/email" not in paths
     assert "/bus/v1/whatsapp" not in paths
+
+
+# --- Cleartext transport for credential-bearing endpoints ------------------
+# Security review 2026-08-31, F2: the bus already refused plain HTTP, but the
+# legacy registry endpoints and the web UI did not, so WORKFORCE_API_KEY and all
+# document content travelled in the clear over the published port 8080.
+
+
+def test_legacy_endpoint_refuses_cleartext_before_checking_the_api_key():
+    response = TestClient(workforce_app.app).get(
+        "/workers", headers={"X-API-Key": os.environ["WORKFORCE_API_KEY"]}
+    )
+    assert response.status_code == 503
+    assert response.json() == {"detail": "HTTPS_REQUIRED"}
+
+
+def test_web_ui_refuses_cleartext():
+    response = TestClient(workforce_app.app).get("/")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "HTTPS_REQUIRED"}
+
+
+def test_web_ui_is_served_over_https():
+    response = TestClient(workforce_app.app, base_url="https://testserver").get("/")
+    assert response.status_code == 200
+    assert "Workforce Kernel" in response.text
+
+
+def test_legacy_endpoint_still_rejects_a_wrong_api_key_over_https():
+    response = TestClient(workforce_app.app, base_url="https://testserver").get(
+        "/workers", headers={"X-API-Key": "wrong-key"}
+    )
+    assert response.status_code == 401
+
+
+def test_health_and_db_check_stay_reachable_over_cleartext(monkeypatch):
+    # The container healthcheck calls /health on loopback without a forwarded
+    # proto header, and the tokenless network probe relies on both endpoints.
+    # Neither exposes a credential or any content.
+    monkeypatch.setattr(workforce_app, "connection", lambda: FakeConnection([(1,)]))
+    client = TestClient(workforce_app.app)
+    assert client.get("/health").status_code == 200
+    assert client.get("/db-check").status_code == 200

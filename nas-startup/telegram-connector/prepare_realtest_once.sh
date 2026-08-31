@@ -13,7 +13,13 @@ if [ ! -e "$token_file" ] && [ "${GENERATE_WORKFORCE_BUS_TOKEN_IF_MISSING:-false
     temporary_token_file="${token_file}.tmp.$$"
     head -c 48 /dev/urandom | base64 | tr -d '\r\n' > "$temporary_token_file"
     mv "$temporary_token_file" "$token_file"
-    echo "PASS: short-lived workforce token created in the local secret directory."
+    # umask alone is not enough on the DSM share: its default ACL re-opens the
+    # mode on creation. 600 alone would lock out the connector container, which
+    # reads this file as UID 10001, so hand the file to that UID rather than
+    # widening the mode. This step runs as root.
+    chown 10001:10001 "$token_file" 2>/dev/null || true
+    chmod 600 "$token_file"
+    echo "PASS: short-lived workforce token created in the local secret directory (mode 600, owner 10001)."
 fi
 
 if [ ! -r "$token_file" ]; then

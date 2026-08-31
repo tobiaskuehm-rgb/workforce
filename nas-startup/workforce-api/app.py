@@ -111,6 +111,25 @@ def require_bus_transport(request: Request) -> None:
     raise HTTPException(status_code=503, detail="BUS_HTTPS_REQUIRED")
 
 
+def require_https_transport(request: Request) -> None:
+    """Refuse cleartext for every endpoint that carries a credential.
+
+    The bus already enforced this; the legacy registry endpoints and the web UI
+    did not, so WORKFORCE_API_KEY and all document content travelled in the
+    clear over the published port 8080 (security review 2026-08-31, F2).
+
+    /health and /db-check deliberately stay reachable over plain HTTP: the
+    container healthcheck calls them on loopback without a forwarded-proto
+    header, and the documented tokenless network probe relies on them. Neither
+    exposes a credential or any content.
+    """
+    if not BUS_REQUIRE_HTTPS:
+        return
+    if request.url.scheme == "https" or trusted_https_proxy(request):
+        return
+    raise HTTPException(status_code=503, detail="HTTPS_REQUIRED")
+
+
 def require_bus_ready() -> None:
     try:
         with connection() as conn:
@@ -282,7 +301,8 @@ async function loadDocument(id){let d=await api('/documents/'+id);$('docTitle').
 </script></body></html>"""
 
 
-def require_api_key(x_api_key: str = Header(default="")) -> None:
+def require_api_key(request: Request, x_api_key: str = Header(default="")) -> None:
+    require_https_transport(request)
     if not hmac.compare_digest(x_api_key, API_KEY):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid API key")
 
@@ -389,7 +409,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, dependencies=[Depends(require_https_transport)])
 def user_interface() -> str:
     return UI_HTML
 
@@ -410,7 +430,7 @@ def bus_status() -> dict:
         with connection() as conn:
             if conn.execute("SELECT to_regclass('workforce.bus_channels')").fetchone()[0] is None:
                 return {
-                    "api_version": "v6",
+                    "api_version": "v7",
                     "project_id": BUS_PROJECT_ID,
                     "migration": "missing",
                     "channel_status": "MISSING",
@@ -436,13 +456,13 @@ def bus_status() -> dict:
 
     if row is None:
         return {
-            "api_version": "v6",
+            "api_version": "v7",
             "project_id": BUS_PROJECT_ID,
             "migration": "missing",
             "channel_status": "MISSING",
         }
     return {
-        "api_version": "v6",
+        "api_version": "v7",
         "project_id": BUS_PROJECT_ID,
         "migration": "002_workforce_bus" if row[3] else "missing",
         "channel_status": row[0],
