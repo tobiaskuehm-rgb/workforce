@@ -174,6 +174,7 @@ def handle_message(
 
     sent: dict[str, Any] | None = None
     refused = False
+    provider_error: str | None = None
 
     # A previous run already put the reply on the bus and only failed to
     # acknowledge. Skip straight to that - the model has been paid for once.
@@ -189,7 +190,18 @@ def handle_message(
             "Diese Anfrage konnte nach mehreren Versuchen nicht bearbeitet "
             "werden und wird nicht weiter versucht. Bitte manuell pruefen."
         )
-        sent = _send_reply(client, message, sender_id, message_id, body)
+        try:
+            sent = _send_reply(client, message, sender_id, message_id, body)
+        except bus_client.BusError as error:
+            log("reply_failed", message_id=message_id, detail=error.detail)
+            return {"message_id": message_id, "result": "REPLY_FAILED",
+                    "detail": error.detail}
+        # Record it, exactly like the normal path. Without this a failed
+        # acknowledgement below leaves the message DELIVERED in the bus and
+        # EXHAUSTED locally - and claim() returns None for EXHAUSTED, so no
+        # later run would ever look at it again (review finding G-012).
+        if state is not None:
+            state.record_reply(message_id, str(sent.get("message_id", "")))
         refused = True
     else:
         # 1. Reduce to what may leave the NAS, and record what that was.
@@ -223,8 +235,13 @@ def handle_message(
                 )
             except providers.ProviderError as error:
                 log("provider_failed", message_id=message_id, detail=str(error))
-                if state is not None:
-                    state.record_failure(message_id, str(error))
+                # Deliberately *not* releasing the claim here (review finding
+                # G-013). record_failure() sets claimed_at = 0 and makes the
+                # message claimable at once - a second worker could take it and
+                # call the provider again before this failure reply is even
+                # out. The claim is released only if the reply itself fails,
+                # below, where there is genuinely nothing durable to protect.
+                provider_error = str(error)
                 reply_text = (
                     "Diese Anfrage konnte technisch nicht bearbeitet werden "
                     f"({error}). Sie bleibt offen und braucht eine manuelle Pruefung."
@@ -250,8 +267,12 @@ def handle_message(
             )
         except bus_client.BusError as error:
             log("reply_failed", message_id=message_id, detail=error.detail)
+            # Nothing durable was produced, so hand the message back for a
+            # retry. This is the only place the claim is released early.
             if state is not None:
-                state.record_failure(message_id, error.detail)
+                state.record_failure(
+                    message_id, provider_error or error.detail
+                )
             return {"message_id": message_id, "result": "REPLY_FAILED",
                     "detail": error.detail}
 

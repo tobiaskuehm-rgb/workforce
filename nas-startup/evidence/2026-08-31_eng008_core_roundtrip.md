@@ -3,10 +3,35 @@
 **Datum:** 2026-08-31
 **Quellreferenz:** `DEC-027/ENG-008`, Lauf-ID `20260831CORE4`, Suffix `20260831-CORE1`
 **Beteiligte:** Karl (`SAO-001`), Gerd (`AI-ENG-001`), Anastasia (`PEO-001`)
-**Ergebnis:** **`CORE PASS`** — 20 von 20 Schritten, Audit-Rekonstruktion 10 von 10 Prüfungen
+**Ergebnis:** **`BUS LIFECYCLE PASS`** — 20 von 20 Schritten, Audit des Erfolgspfads 10 von 10
+**Gate-Einstufung:** **`CORE ITERATE`** — siehe Korrektur unten
 **Git-Commit des ausgeführten Stands:** siehe Abschnitt „Deployter Stand"
 
-Der von `DEC-027` geforderte Core-Roundtrip. Kein Modell beteiligt: `ENG-008` untersagt einen externen kostenpflichtigen Dienst, und das Gate prüft die Runtime, nicht Antwortqualität.
+> **Korrektur, nachgetragen 2026-08-31 (Review-Befunde G-015 und G-018).**
+> Dieser Nachweis war ursprünglich mit **`CORE PASS`** überschrieben. **Das war
+> zu stark, und die Einstufung ist zurückgenommen.**
+>
+> Was der Lauf belegt: den **Bus-Lebenszyklus** — Task- und Handoff-Semantik,
+> Berechtigungen, Reihenfolge, Idempotenz, Fehlerzustand des Busses. Das ist
+> reale Evidenz und bleibt gültig.
+>
+> Was er **nicht** belegt: eine arbeitende Employee Runtime. `core_roundtrip.py`
+> steuert drei `BusClient`-Instanzen mit fest verdrahteten Identitäten und
+> Texten. Es verwendet weder `agent_worker.py` noch das Provider-Routing, noch
+> `state_store.py`, Claim, Lease, Worker-Retry oder einen Worker-Fehlerzustand.
+> `ENG-008` verlangt genau das, und `DEC-027` sagt ausdrücklich, dass der
+> Roundtrip diesen Nachweis nicht ersetzt.
+>
+> Auch die Audit-Rekonstruktion ist enger als behauptet: `bus_events` enthält
+> nur erfolgreiche Vorgänge. Abgewiesene Transaktionen hinterlassen dort keine
+> Zeile, also rekonstruiert die Abfrage weder `DONE` ohne Evidenz noch die
+> beiden Berechtigungs-Ablehnungen. „Audit 10/10" gilt für den Erfolgspfad.
+>
+> **Gate-Einstufung ist damit `CORE ITERATE`, nicht `CORE PASS`.** Der Text
+> darunter bleibt unverändert, damit nachvollziehbar bleibt, was ursprünglich
+> behauptet wurde.
+
+Kein Modell beteiligt: `ENG-008` untersagt einen externen kostenpflichtigen Dienst, und das Gate prüft die Runtime, nicht Antwortqualität.
 
 ## Warum der bisherige Bus-Realtest nicht genügte
 

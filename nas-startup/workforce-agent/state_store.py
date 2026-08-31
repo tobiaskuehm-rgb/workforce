@@ -131,8 +131,15 @@ class AgentStateStore:
                 return Claim(message_id, "REPLIED", attempts, reply_message_id)
 
             if state == "EXHAUSTED":
+                # Deliberately still claimable. The transition into EXHAUSTED
+                # is consumed by whichever run triggers it; if that run dies
+                # before its final notice is out, returning None here would
+                # mean the notice never goes out at all and the message stays
+                # DELIVERED in the bus forever - the G-001 class one step
+                # further along. Recording the notice moves the row to REPLIED,
+                # which is what actually ends the retries.
                 cursor.execute("COMMIT")
-                return None
+                return Claim(message_id, "EXHAUSTED", attempts)
 
             # IN_PROGRESS: someone holds it. Only take it over once the lease
             # has run out, otherwise a slow model call would be duplicated.

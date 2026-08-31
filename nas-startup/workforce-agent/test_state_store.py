@@ -62,7 +62,14 @@ class StoreTest(unittest.TestCase):
             if claim is not None and claim.state == "EXHAUSTED":
                 break
         self.assertEqual("EXHAUSTED", claim.state)
-        self.assertIsNone(self.store.claim("MSG-1"), "exhausted stays exhausted")
+        # Still claimable: the final notice has not been recorded yet, and a
+        # run that died before sending it must not silence the message.
+        again = self.store.claim("MSG-1")
+        self.assertEqual("EXHAUSTED", again.state)
+        self.assertFalse(again.needs_model, "no further model calls, though")
+        # Recording the notice is what ends it.
+        self.store.record_reply("MSG-1", "MSG-FINAL")
+        self.assertEqual("REPLIED", self.store.claim("MSG-1").state)
 
     def test_failure_makes_the_message_claimable_again_at_once(self):
         self.store.claim("MSG-1")
@@ -163,3 +170,94 @@ class CrashRecoveryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ClaimLifecycleTest(unittest.TestCase):
+    """Findings G-012 and G-013: the claim must outlive the work, not the try."""
+
+    def setUp(self):
+        import tempfile
+        from pathlib import Path
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.path = Path(self.tempdir.name) / "state.sqlite3"
+
+    def tearDown(self):
+        self.tempdir.cleanup()
+
+    def _store(self, **kwargs):
+        return state_store.AgentStateStore(self.path, **kwargs)
+
+    def test_an_exhausted_message_is_not_lost_when_the_ack_fails(self):
+        # G-012, exactly the case Gerd asked for: attempts exceeded, final
+        # reply lands, acknowledgement fails, restart must acknowledge without
+        # a second reply and end DONE.
+        store = self._store(max_attempts=1, lease_seconds=0)
+        store.claim("MSG-X")               # first attempt
+        store.claim("MSG-X")               # second → EXHAUSTED
+        store.close()
+
+        bus, provider = FakeBus(), ScriptedProvider()
+
+        def failing_ack(*args, **kwargs):
+            raise bus_client.BusError("AGENT_BUS_TIMEOUT")
+
+        bus.acknowledge = failing_ack
+        store = self._store(max_attempts=1, lease_seconds=0)
+        agent_worker.handle_message(bus, provider, message(message_id="MSG-X"),
+                                    policy="BODY", state=store)
+        store.close()
+        self.assertEqual(1, len(bus.sent), "the final failure notice goes out")
+
+        # Restart with a working bus.
+        bus2, provider2 = FakeBus(), ScriptedProvider()
+        store = self._store(max_attempts=1, lease_seconds=0)
+        result = agent_worker.handle_message(bus2, provider2,
+                                             message(message_id="MSG-X"),
+                                             policy="BODY", state=store)
+        store.close()
+
+        self.assertEqual([], bus2.sent, "no second reply")
+        self.assertEqual([], provider2.seen, "no second model call")
+        self.assertEqual(1, len(bus2.acks), "the message is acknowledged at last")
+        self.assertEqual("ANSWERED", result["result"])
+
+    def test_a_provider_error_keeps_the_claim_until_the_reply_is_out(self):
+        # G-013: a second worker sharing the store must not be able to take the
+        # message while the first is still writing its failure reply.
+        store = self._store()
+        bus = FakeBus()
+        provider = ScriptedProvider(error="AGENT_PROVIDER_UNREACHABLE")
+
+        second = self._store()
+        stolen: list[object] = []
+        original_send = bus.send_message
+
+        def send_and_probe(**kwargs):
+            # At this moment the provider has already failed. A competing
+            # worker must still be locked out.
+            stolen.append(second.claim("MSG-" + "A" * 32))
+            return original_send(**kwargs)
+
+        bus.send_message = send_and_probe
+        agent_worker.handle_message(bus, provider, message(), policy="BODY",
+                                    state=store)
+        store.close()
+        second.close()
+
+        self.assertEqual([None], stolen,
+                         "the claim must still be held while the reply is written")
+
+    def test_a_failed_reply_does_hand_the_message_back(self):
+        # The one case where releasing early is right: nothing durable exists.
+        store = self._store()
+        bus = FakeBus()
+        bus.fail_send_with = "AGENT_BUS_UNREACHABLE"
+        agent_worker.handle_message(bus, ScriptedProvider(), message(),
+                                    policy="BODY", state=store)
+        store.close()
+
+        retry = self._store()
+        claim = retry.claim("MSG-" + "A" * 32)
+        retry.close()
+        self.assertIsNotNone(claim, "a run that produced nothing must be retryable")
+        self.assertEqual("IN_PROGRESS", claim.state)
