@@ -11,7 +11,7 @@ WORKDIR /app
 RUN pip install --no-cache-dir "anthropic==1.2.0" \
     && addgroup -S startup && adduser -S -G startup -u 10001 startup
 
-COPY --chown=startup:startup agent_worker.py budget.py bus_client.py data_boundary.py providers.py /app/
+COPY --chown=startup:startup agent_worker.py budget.py bus_client.py data_boundary.py providers.py state_store.py /app/
 
 USER 10001:10001
 

@@ -34,6 +34,11 @@ services:
       AGENT_MAX_TOKENS: "100000"
       AGENT_MAX_COST_USD: "0"
       AGENT_MAX_RUNTIME_SECONDS: "300"
+      AGENT_STATE_PATH: /var/lib/startup-agent/state.sqlite3
+    volumes:
+      # Crash-recovery state. Without a durable volume a restart re-pays for
+      # every model call it had already made (review finding G-001).
+      - agent_state_v1:/var/lib/startup-agent
     secrets:
       - agent_bus_token
     networks:
@@ -46,6 +51,9 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+
+volumes:
+  agent_state_v1:
 
 networks:
   outbound:

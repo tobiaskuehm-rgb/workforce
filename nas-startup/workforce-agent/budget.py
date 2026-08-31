@@ -128,10 +128,21 @@ class Budget:
     def record_message(self) -> None:
         self.messages_handled += 1
 
-    def record_provider_call(
+    def reserve_provider_call(self) -> None:
+        """Count an attempt before it is made.
+
+        Review finding G-004: counting only successful returns let failures and
+        SDK-internal retries pass unbilled against the ceiling, although they
+        cost load and can cost money. A reserved attempt is never given back -
+        an attempt that failed still happened.
+        """
+        self.provider_calls += 1
+
+    def record_provider_usage(
         self, *, model: str, input_tokens: int | None, output_tokens: int | None
     ) -> None:
-        self.provider_calls += 1
+        """Book what a returned call actually consumed. Does not count the call
+        again - reserve_provider_call() did that before it was made."""
         used_in = input_tokens or 0
         used_out = output_tokens or 0
         self.input_tokens += used_in

@@ -405,7 +405,9 @@ class OutboundDataBoundaryTest(unittest.TestCase):
             }
         ]
         settings = Settings(**{**self.base, **overrides})
-        return TelegramConnector(settings, self.store, telegram, workforce), telegram
+        connector = TelegramConnector(settings, self.store, telegram, workforce)
+        connector.workforce = workforce
+        return connector, telegram
 
     def test_default_policy_never_forwards_the_body(self):
         connector, telegram = self._connector()
@@ -414,6 +416,23 @@ class OutboundDataBoundaryTest(unittest.TestCase):
         self.assertIn("MSG-", sent)
         self.assertIn("Re: Bitte pruefen", sent)
         self.assertNotIn("Die fachliche Antwort", sent)
+
+    def test_body_is_withheld_when_the_task_is_not_allowlisted(self):
+        # Review finding G-003: without this, BODY would carry the content of
+        # any message reaching the connector identity into the private chat,
+        # including work never approved for this channel.
+        connector, telegram = self._connector(outbound_policy="BODY")
+        connector.workforce.inbox[0]["task_ref"] = "FIN-GEHEIM-001"
+        connector.publish_inbox_notifications()
+        sent = telegram.sent[0][1]
+        self.assertIn("MSG-", sent, "metadata still goes out")
+        self.assertNotIn("Die fachliche Antwort", sent, "body must be withheld")
+
+    def test_body_is_withheld_when_there_is_no_task_reference(self):
+        connector, telegram = self._connector(outbound_policy="BODY")
+        connector.workforce.inbox[0].pop("task_ref")
+        connector.publish_inbox_notifications()
+        self.assertNotIn("Die fachliche Antwort", telegram.sent[0][1])
 
     def test_body_policy_forwards_a_shortened_body(self):
         connector, telegram = self._connector(outbound_policy="BODY")

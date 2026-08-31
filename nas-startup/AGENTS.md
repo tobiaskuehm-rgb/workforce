@@ -43,13 +43,27 @@ Diese ergeben sich aus dem Security-Review (`nas-startup/evidence/2026-08-31_sec
 
 Jedes Paket hat lokale Tests, die ohne Netzwerk, ohne Zugangsdaten und ohne Kosten laufen:
 
+**Erforderlich: Python 3.11 oder neuer.** Auf dem Mac dieses Projekts ist `python3` derzeit 3.9.6; damit laufen zwei der vier Suiten nicht (Befund G-011).
+
+| Suite | Lokal ausführbar | Warum nicht |
+|---|---|---|
+| `workforce-agent` | ✅ nur Standardbibliothek | — |
+| `bus-realtest` | ✅ nur Standardbibliothek | — |
+| `telegram-connector` | ❌ braucht 3.11+ | `from datetime import UTC` |
+| `workforce-api` | ❌ braucht FastAPI | Abhängigkeiten |
+
 ```bash
-cd nas-startup/workforce-agent   && python3 -m unittest discover -q   # 27 Tests
-cd nas-startup/bus-realtest      && python3 -m unittest discover -q   # 15 Tests
-cd nas-startup/telegram-connector && python3 -m unittest discover -q  # 25 Tests
+cd nas-startup/workforce-agent && python3 -m unittest discover -q
+cd nas-startup/bus-realtest    && python3 -m unittest discover -q
 ```
 
-Die API-Tests brauchen FastAPI und laufen deshalb in einem Container auf der NAS, nicht lokal.
+Die übrigen beiden laufen in einem Wegwerf-Container auf der NAS:
+
+```bash
+ssh synology "sudo docker run --rm -v /volume1/docker/Startup/telegram-connector:/src:ro -w /tmp python:3.13-alpine sh -c 'cp /src/*.py /tmp/ && python -m unittest discover -q'"
+```
+
+Testzahlen stehen bewusst nicht hier — sie waren zweimal veraltet, bevor jemand sie gelesen hat.
 
 Ein Muster, das sich bewährt hat: Testsuiten prüfen nicht nur den Gutfall, sondern schwächen gezielt einzelne Sicherheitskontrollen ab und verlangen, dass der Test das bemerkt. Siehe `test_weakened_control_is_detected` und `test_injected_instructions_cannot_redirect_the_reply`.
 

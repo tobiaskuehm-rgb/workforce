@@ -21,14 +21,14 @@ class BudgetTest(unittest.TestCase):
 
     def test_provider_call_ceiling_stops_the_run(self):
         b = budget_module.Budget(max_provider_calls=1)
-        b.record_provider_call(model="claude-opus-5", input_tokens=10, output_tokens=10)
+        b.reserve_provider_call(); b.record_provider_usage(model="claude-opus-5", input_tokens=10, output_tokens=10)
         with self.assertRaises(budget_module.BudgetExhausted) as caught:
             b.check_message()
         self.assertEqual("provider_calls", caught.exception.limit_name)
 
     def test_token_ceiling_stops_the_run(self):
         b = budget_module.Budget(max_tokens=100)
-        b.record_provider_call(model="claude-opus-5", input_tokens=60, output_tokens=60)
+        b.reserve_provider_call(); b.record_provider_usage(model="claude-opus-5", input_tokens=60, output_tokens=60)
         with self.assertRaises(budget_module.BudgetExhausted) as caught:
             b.check_message()
         self.assertEqual("tokens", caught.exception.limit_name)
@@ -36,26 +36,26 @@ class BudgetTest(unittest.TestCase):
     def test_cost_ceiling_stops_the_run(self):
         b = budget_module.Budget(max_cost_usd=0.01, max_tokens=10_000_000)
         # 1M input tokens at $5/1M = $5.00, well past a one-cent ceiling.
-        b.record_provider_call(model="claude-opus-5", input_tokens=1_000_000, output_tokens=0)
+        b.reserve_provider_call(); b.record_provider_usage(model="claude-opus-5", input_tokens=1_000_000, output_tokens=0)
         with self.assertRaises(budget_module.BudgetExhausted) as caught:
             b.check_message()
         self.assertEqual("cost_usd", caught.exception.limit_name)
 
     def test_cost_is_computed_from_the_price_table(self):
         b = budget_module.Budget()
-        b.record_provider_call(model="claude-opus-5", input_tokens=1_000_000, output_tokens=1_000_000)
+        b.reserve_provider_call(); b.record_provider_usage(model="claude-opus-5", input_tokens=1_000_000, output_tokens=1_000_000)
         self.assertAlmostEqual(30.00, b.cost_usd, places=4)  # 5 + 25
 
     def test_unknown_model_uses_the_fallback_price_instead_of_zero(self):
         # A model missing from the table must not silently cost nothing -
         # that would make the ceiling unreachable.
         b = budget_module.Budget()
-        b.record_provider_call(model="some-future-model", input_tokens=1_000_000, output_tokens=0)
+        b.reserve_provider_call(); b.record_provider_usage(model="some-future-model", input_tokens=1_000_000, output_tokens=0)
         self.assertAlmostEqual(5.00, b.cost_usd, places=4)
 
     def test_missing_usage_counts_as_zero_tokens_but_still_counts_the_call(self):
         b = budget_module.Budget()
-        b.record_provider_call(model="claude-opus-5", input_tokens=None, output_tokens=None)
+        b.reserve_provider_call(); b.record_provider_usage(model="claude-opus-5", input_tokens=None, output_tokens=None)
         self.assertEqual(1, b.provider_calls)
         self.assertEqual(0, b.total_tokens)
 
@@ -65,12 +65,12 @@ class BudgetTest(unittest.TestCase):
         # dry run under a zero ceiling has to work.
         b = budget_module.Budget(max_cost_usd=0.0)
         b.check_message()
-        b.record_provider_call(model="echo-v1", input_tokens=None, output_tokens=None)
+        b.reserve_provider_call(); b.record_provider_usage(model="echo-v1", input_tokens=None, output_tokens=None)
         b.check_message()
 
     def test_zero_cost_ceiling_trips_on_the_first_paid_call(self):
         b = budget_module.Budget(max_cost_usd=0.0)
-        b.record_provider_call(model="claude-opus-5", input_tokens=1000, output_tokens=100)
+        b.reserve_provider_call(); b.record_provider_usage(model="claude-opus-5", input_tokens=1000, output_tokens=100)
         with self.assertRaises(budget_module.BudgetExhausted) as caught:
             b.check_message()
         self.assertEqual("cost_usd", caught.exception.limit_name)
@@ -259,3 +259,27 @@ class PollFailureBackoffTest(unittest.TestCase):
         agent_worker.run(bus, ScriptedProvider(), poll_seconds=1,
                          max_cycles=5, sleep=lambda _: None)
         self.assertGreater(bus.calls, agent_worker.MAX_CONSECUTIVE_POLL_FAILURES - 2)
+
+
+class ReservedCallTest(unittest.TestCase):
+    """Review finding G-004: a failed attempt still happened."""
+
+    def test_a_failing_provider_still_counts_against_the_ceiling(self):
+        bus = FakeBus()
+        b = budget_module.Budget(max_provider_calls=2)
+        for _ in range(2):
+            agent_worker.handle_message(
+                bus, ScriptedProvider(error="AGENT_PROVIDER_UNREACHABLE"),
+                message(message_id="MSG-" + "B" * 32), policy="BODY", budget=b,
+            )
+        self.assertEqual(2, b.provider_calls, "failures must be counted")
+        with self.assertRaises(budget_module.BudgetExhausted) as caught:
+            b.check_message()
+        self.assertEqual("provider_calls", caught.exception.limit_name)
+
+    def test_usage_booking_does_not_count_the_call_twice(self):
+        b = budget_module.Budget()
+        b.reserve_provider_call()
+        b.record_provider_usage(model="claude-opus-5", input_tokens=100, output_tokens=50)
+        self.assertEqual(1, b.provider_calls)
+        self.assertEqual(150, b.total_tokens)

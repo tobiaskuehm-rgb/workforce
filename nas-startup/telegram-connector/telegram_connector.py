@@ -860,9 +860,29 @@ class TelegramConnector:
         Returns None under METADATA_ONLY - not an empty string - so callers can
         tell "not permitted" apart from "permitted but empty". This is the only
         place a bus body can reach Telegram.
+
+        The task allowlist applies here too (review finding G-003). Without it
+        the BODY policy would carry the content of *any* message reaching the
+        connector identity into the private chat, including work whose task was
+        never approved for this channel. The allowlist governed only inbound
+        commands before, which made the outbound boundary fail-open on scope.
         """
         if self.settings.outbound_policy != "BODY":
             return None
+
+        task_ref = message.get("task_ref")
+        if not isinstance(task_ref, str) or task_ref not in self.settings.allowed_task_ids:
+            self.store.audit(
+                "WORKFORCE_BODY_WITHHELD",
+                "DENY",
+                update_id=None,
+                metadata={
+                    "message_id": str(message.get("message_id", "")),
+                    "reason": "TASK_NOT_ALLOWLISTED",
+                },
+            )
+            return None
+
         raw = message.get("body")
         if not isinstance(raw, str):
             return None

@@ -18,6 +18,10 @@ services:
     restart: "no"
     env_file:
       - workforce-agent.env
+    volumes:
+      # Crash-recovery state. Without a durable volume a restart re-pays for
+      # every model call it had already made (review finding G-001).
+      - agent_state_v1:/var/lib/startup-agent
     secrets:
       - agent_bus_token
       - anthropic_api_key
@@ -31,6 +35,9 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+
+volumes:
+  agent_state_v1:
 
 networks:
   outbound:

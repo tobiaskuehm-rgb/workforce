@@ -39,6 +39,7 @@ import budget as budget_module
 import bus_client
 import data_boundary
 import providers
+import state_store
 
 POLL_SECONDS_DEFAULT = 20
 MAX_REPLY_CHARS = 8000
@@ -96,6 +97,24 @@ def derived_key(message_id: str, purpose: str) -> str:
     return digest.upper()[:24]
 
 
+def _with_marker(answer: str) -> str:
+    """Prepend the provenance marker, leaving room for it first."""
+    text = (answer or "").strip() or "Der Agent hat keine verwertbare Antwort erzeugt."
+    room = MAX_REPLY_CHARS - len(PROVENANCE_MARKER) - 2
+    return f"{PROVENANCE_MARKER}\n\n{text[:room]}"
+
+
+def _send_reply(client, message, sender_id, message_id, body) -> dict[str, Any]:
+    return client.send_message(
+        recipient_id=sender_id,
+        subject=reply_subject(str(message.get("subject", ""))),
+        body=body,
+        parent_message_id=message_id,
+        request_id=f"{REQUEST_PREFIX}-REPLY-{derived_key(message_id, 'reply')}",
+        idempotency_key=f"IDEM-{REQUEST_PREFIX}-{derived_key(message_id, 'reply')}",
+    )
+
+
 def reply_subject(inbound_subject: str) -> str:
     subject = (inbound_subject or "Anfrage").strip()
     if subject.lower().startswith("re:"):
@@ -110,16 +129,23 @@ def handle_message(
     *,
     policy: data_boundary.Policy | None = None,
     budget: budget_module.Budget | None = None,
+    state: state_store.AgentStateStore | None = None,
 ) -> dict[str, Any]:
-    """Process exactly one inbound message. Never raises for expected failures."""
+    """Process exactly one inbound message. Never raises for expected failures.
+
+    Order matters and was wrong before (review finding G-001): work, reply,
+    *then* acknowledge. A crash anywhere before the acknowledgement leaves the
+    message DELIVERED, so the next run still sees it. Acknowledging first made
+    a crashed run lose the message for good, because poll_once() only ever
+    looks at DELIVERED.
+    """
     message_id = str(message.get("message_id", ""))
     sender_id = str(message.get("sender_id", ""))
     if not message_id or not sender_id:
         return {"message_id": message_id, "result": "SKIPPED_INCOMPLETE"}
 
-    # Budget is checked before the acknowledgement, never after. An exhausted
-    # budget must leave the message DELIVERED so a later run still sees it -
-    # acknowledging and then refusing to work would swallow it silently.
+    # Budget is checked before anything is spent or written. An exhausted
+    # budget must leave the message untouched so a later run still sees it.
     if budget is not None:
         try:
             budget.check_message()
@@ -129,80 +155,112 @@ def handle_message(
             raise
         budget.record_message()
 
-    # 1. Confirm receipt first. If anything below fails, the sender still sees
-    #    that the message arrived, and gets an explicit failure reply.
+    # Claim the message. Without a store every run starts from scratch, which
+    # is correct but pays for the model again after a crash.
+    claim = None
+    if state is not None:
+        claim = state.claim(message_id)
+        if claim is None:
+            log("already_handled", message_id=message_id)
+            return {"message_id": message_id, "result": "ALREADY_HANDLED"}
+        log("claimed", message_id=message_id, state=claim.state, attempts=claim.attempts)
+
+    sent: dict[str, Any] | None = None
+    refused = False
+
+    # A previous run already put the reply on the bus and only failed to
+    # acknowledge. Skip straight to that - the model has been paid for once.
+    if claim is not None and claim.state == "REPLIED":
+        log("resuming_at_acknowledgement", message_id=message_id,
+            reply_message_id=claim.reply_message_id)
+        sent = {"message_id": claim.reply_message_id}
+    elif claim is not None and claim.state == "EXHAUSTED":
+        # Too many failed attempts. Say so once and stop retrying, rather than
+        # leaving the message to circle forever.
+        log("attempts_exhausted", message_id=message_id, attempts=claim.attempts)
+        body = _with_marker(
+            "Diese Anfrage konnte nach mehreren Versuchen nicht bearbeitet "
+            "werden und wird nicht weiter versucht. Bitte manuell pruefen."
+        )
+        sent = _send_reply(client, message, sender_id, message_id, body)
+        refused = True
+    else:
+        # 1. Reduce to what may leave the NAS, and record what that was.
+        try:
+            outbound = data_boundary.prepare_outbound(message, policy=policy)
+        except data_boundary.DataBoundaryError as error:
+            log("data_boundary_refused", message_id=message_id, detail=str(error))
+            reply_text = (
+                "Diese Anfrage konnte nicht bearbeitet werden, weil sie die "
+                f"geltende Datengrenze verletzt ({error}). Bitte fachlich pruefen."
+            )
+            refused = True
+        else:
+            log("outbound_prepared", **outbound.disclosure.as_log_record())
+            # 2. Ask the model. The attempt is counted before it is made, so a
+            #    failure or an SDK-internal retry cannot slip past the ceiling.
+            if budget is not None:
+                budget.reserve_provider_call()
+            try:
+                reply = provider.complete(
+                    system=SYSTEM_PROMPT,
+                    content=data_boundary.render_for_prompt(outbound),
+                )
+            except providers.ProviderError as error:
+                log("provider_failed", message_id=message_id, detail=str(error))
+                if state is not None:
+                    state.record_failure(message_id, str(error))
+                reply_text = (
+                    "Diese Anfrage konnte technisch nicht bearbeitet werden "
+                    f"({error}). Sie bleibt offen und braucht eine manuelle Pruefung."
+                )
+                refused = True
+            else:
+                log("provider_replied", message_id=message_id, **reply.as_log_record())
+                if budget is not None:
+                    budget.record_provider_usage(
+                        model=reply.model,
+                        input_tokens=reply.input_tokens,
+                        output_tokens=reply.output_tokens,
+                    )
+                    log("budget", **budget.as_log_record())
+                reply_text = reply.text
+                refused = reply.refused
+
+        # 3. Write the answer back to the original sender. The recipient comes
+        #    from the bus record, never from model output.
+        try:
+            sent = _send_reply(
+                client, message, sender_id, message_id, _with_marker(reply_text)
+            )
+        except bus_client.BusError as error:
+            log("reply_failed", message_id=message_id, detail=error.detail)
+            if state is not None:
+                state.record_failure(message_id, error.detail)
+            return {"message_id": message_id, "result": "REPLY_FAILED",
+                    "detail": error.detail}
+
+        if state is not None:
+            state.record_reply(message_id, str(sent.get("message_id", "")))
+
+    # 4. Only now acknowledge. Everything above is done and durable; a failure
+    #    here leaves the message DELIVERED and the store at REPLIED, so the
+    #    next run resumes at exactly this step without paying again.
     try:
         client.acknowledge(
             message_id,
             decision="ACCEPTED",
-            note="Vom Agenten zur Bearbeitung uebernommen.",
+            note="Vom Agenten bearbeitet und beantwortet.",
             request_id=f"{REQUEST_PREFIX}-ACK-{derived_key(message_id, 'ack')}",
         )
     except bus_client.BusError as error:
-        # Already acknowledged is fine - a previous run got this far.
-        if error.detail not in {"BUS_ACK_ALREADY_FINAL"}:
+        if error.detail != "BUS_ACK_ALREADY_FINAL":
             log("acknowledge_failed", message_id=message_id, detail=error.detail)
-            return {"message_id": message_id, "result": "ACK_FAILED", "detail": error.detail}
+            return {"message_id": message_id, "result": "ACK_FAILED",
+                    "detail": error.detail}
 
-    # 2. Reduce to what may leave the NAS, and record what that was.
-    try:
-        outbound = data_boundary.prepare_outbound(message, policy=policy)
-    except data_boundary.DataBoundaryError as error:
-        log("data_boundary_refused", message_id=message_id, detail=str(error))
-        reply_text = (
-            "Diese Anfrage konnte nicht bearbeitet werden, weil sie die "
-            f"geltende Datengrenze verletzt ({error}). Bitte fachlich pruefen."
-        )
-        refused = True
-    else:
-        log("outbound_prepared", **outbound.disclosure.as_log_record())
-        # 3. Ask the model.
-        try:
-            reply = provider.complete(
-                system=SYSTEM_PROMPT,
-                content=data_boundary.render_for_prompt(outbound),
-            )
-        except providers.ProviderError as error:
-            log("provider_failed", message_id=message_id, detail=str(error))
-            reply_text = (
-                "Diese Anfrage konnte technisch nicht bearbeitet werden "
-                f"({error}). Sie bleibt offen und braucht eine manuelle Pruefung."
-            )
-            refused = True
-        else:
-            log("provider_replied", message_id=message_id, **reply.as_log_record())
-            if budget is not None:
-                budget.record_provider_call(
-                    model=reply.model,
-                    input_tokens=reply.input_tokens,
-                    output_tokens=reply.output_tokens,
-                )
-                log("budget", **budget.as_log_record())
-            reply_text = reply.text
-            refused = reply.refused
-
-    # 4. Write the answer back to the original sender. The recipient comes from
-    #    the bus record, never from model output.
-    answer = reply_text.strip()
-    if not answer:
-        answer = "Der Agent hat keine verwertbare Antwort erzeugt."
-    # The marker is prepended after truncation of the answer, so a long answer
-    # can never push it out of the message.
-    room = MAX_REPLY_CHARS - len(PROVENANCE_MARKER) - 2
-    body = f"{PROVENANCE_MARKER}\n\n{answer[:room]}"
-
-    try:
-        sent = client.send_message(
-            recipient_id=sender_id,
-            subject=reply_subject(str(message.get("subject", ""))),
-            body=body,
-            parent_message_id=message_id,
-            request_id=f"{REQUEST_PREFIX}-REPLY-{derived_key(message_id, 'reply')}",
-            idempotency_key=f"IDEM-{REQUEST_PREFIX}-{derived_key(message_id, 'reply')}",
-        )
-    except bus_client.BusError as error:
-        log("reply_failed", message_id=message_id, detail=error.detail)
-        return {"message_id": message_id, "result": "REPLY_FAILED", "detail": error.detail}
+    if state is not None:
+        state.record_done(message_id)
 
     log(
         "reply_sent",
@@ -224,6 +282,7 @@ def poll_once(
     *,
     policy: data_boundary.Policy | None = None,
     budget: budget_module.Budget | None = None,
+    state: state_store.AgentStateStore | None = None,
     limit: int = 25,
 ) -> list[dict[str, Any]]:
     """One pass over the inbox. Returns a result per message handled.
@@ -244,7 +303,8 @@ def poll_once(
     for item in pending:
         try:
             results.append(
-                handle_message(client, provider, item, policy=policy, budget=budget)
+                handle_message(client, provider, item, policy=policy,
+                               budget=budget, state=state)
             )
         except budget_module.BudgetExhausted:
             log("poll_stopped_on_budget", handled=len(results),
@@ -261,6 +321,7 @@ def run(
     max_cycles: int | None = None,
     policy: data_boundary.Policy | None = None,
     budget: budget_module.Budget | None = None,
+    state: state_store.AgentStateStore | None = None,
     sleep=time.sleep,
 ) -> int:
     cycles = 0
@@ -268,7 +329,8 @@ def run(
     consecutive_failures = 0
     while max_cycles is None or cycles < max_cycles:
         try:
-            results = poll_once(client, provider, policy=policy, budget=budget)
+            results = poll_once(client, provider, policy=policy, budget=budget,
+                                state=state)
             handled += len(results)
             consecutive_failures = 0
         except bus_client.BusError as error:
@@ -328,8 +390,17 @@ def main() -> int:
         poll_seconds=poll_seconds, max_cycles=max_cycles, **budget.as_log_record())
 
     client = bus_client.BusClient(base_url=base_url, token=token)
-    handled = run(client, provider, poll_seconds=poll_seconds,
-                  max_cycles=max_cycles, policy=policy, budget=budget)
+    store = state_store.AgentStateStore(
+        os.environ.get("AGENT_STATE_PATH", "/var/lib/startup-agent/state.sqlite3"),
+        max_attempts=int(os.environ.get("AGENT_MAX_ATTEMPTS",
+                                        state_store.DEFAULT_MAX_ATTEMPTS)),
+    )
+    try:
+        handled = run(client, provider, poll_seconds=poll_seconds,
+                      max_cycles=max_cycles, policy=policy, budget=budget,
+                      state=store)
+    finally:
+        store.close()
     log("stopped", handled=handled, **budget.as_log_record())
     return 0
 
