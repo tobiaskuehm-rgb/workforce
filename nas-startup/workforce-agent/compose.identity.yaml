@@ -1,0 +1,44 @@
+name: startup-workforce-agent-identity
+
+# Creates the dedicated agent identity AGENT-ENG-001 (security review A1).
+#
+# Unlike prepare/cleanup this is a PERMANENT change to the employee registry,
+# not a short-lived credential - hence its own file that has to be invoked
+# deliberately. Run once.
+
+services:
+  agent-identity:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      # Honest provenance: a chat approval, explicitly not a decision-log
+      # entry. To be superseded by a real DEC number once the decision log is
+      # available (review finding G-006).
+      AGENT_SOURCE_REF: "CEO-CHAT-2026-08-31/PENDING-DEC"
+    volumes:
+      - ./agent_identity_create.sql:/opt/startup-agent/agent_identity_create.sql:ro
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export PGHOST="$${DB_HOST:-db}"
+        export PGUSER="$$POSTGRES_USER"
+        export PGDATABASE="$$POSTGRES_DB"
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        psql -v ON_ERROR_STOP=1 -v source_ref="$$AGENT_SOURCE_REF" -f /opt/startup-agent/agent_identity_create.sql
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend

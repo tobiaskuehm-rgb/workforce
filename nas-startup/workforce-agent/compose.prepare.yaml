@@ -7,7 +7,12 @@ services:
       - ../startup.env
     environment:
       DB_HOST: db
-      AGENT_SOURCE_REF: "DEC-028/ENG-008"
+      # Honest provenance. There is no DEC-028 - an earlier version of this
+      # file invented one, which put a fabricated authorisation into the audit
+      # trail (review finding G-006). A chat approval is a real approval, but
+      # it is not a decision-log entry and must not be dressed up as one.
+      # Replace with the actual DEC number once the decision log is available.
+      AGENT_SOURCE_REF: "CEO-CHAT-2026-08-31/PENDING-DEC"
       # Bump for every run. The cleanup step must use the same value, and a
       # REVOKED credential can never be reactivated.
       AGENT_RUN_SUFFIX: "20260831-DRY1"

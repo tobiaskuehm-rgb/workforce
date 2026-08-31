@@ -2,9 +2,13 @@
 
 -- Issues one short-lived ACCEPTANCE credential for the agent identity and
 -- opens the channel for the test window. Creates no identity, membership,
--- capability or route: AI-ENG-001 (Gerd) already has all of them from
--- 002_workforce_bus.sql, including ACTIVE MESSAGE routes to EAC-001, PEO-001,
--- RAS-001 and SAO-001, and can_send = true. This script only verifies that.
+-- capability or route - agent_identity_create.sql did that once, permanently.
+-- This script only verifies they are in place.
+--
+-- The identity is AGENT-ENG-001, not AI-ENG-001. Borrowing Gerd's credential
+-- made every machine answer look like a message from a person on probation
+-- (security review A1); the dedicated identity carries role_code SYSTEM_AGENT
+-- and a role_title that says "not an employee" outright.
 --
 -- Credential ids carry a per-run suffix. A REVOKED credential can never be
 -- reactivated (trigger bus_guard_credential_update), so a fixed id would make
@@ -47,7 +51,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM workforce.active_project_members
-        WHERE project_id = 'START-UP' AND employee_id = 'AI-ENG-001'
+        WHERE project_id = 'START-UP' AND employee_id = 'AGENT-ENG-001'
     ) THEN
         RAISE EXCEPTION 'AGENT_PREPARE_IDENTITY_NOT_ACTIVE';
     END IF;
@@ -56,7 +60,7 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM workforce.bus_member_capabilities
         WHERE project_id = 'START-UP'
-          AND employee_id = 'AI-ENG-001'
+          AND employee_id = 'AGENT-ENG-001'
           AND capability_status = 'ACTIVE'
           AND can_send
     ) THEN
@@ -66,7 +70,7 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM workforce.bus_route_allowlist
         WHERE project_id = 'START-UP'
-          AND sender_id = 'AI-ENG-001'
+          AND sender_id = 'AGENT-ENG-001'
           AND route_kind = 'MESSAGE'
           AND route_status = 'ACTIVE'
     ) THEN
@@ -90,7 +94,7 @@ INSERT INTO workforce.bus_credentials (
 ) VALUES (
     ('CRED-ACCEPT-AGENT-' || current_setting('agent.run_suffix')),
     'START-UP',
-    'AI-ENG-001',
+    'AGENT-ENG-001',
     :'agent_token_hash',
     'ACCEPTANCE',
     'ACTIVE',
@@ -117,7 +121,7 @@ SELECT
     (
         SELECT count(*)::integer
         FROM workforce.bus_messages
-        WHERE recipient_id = 'AI-ENG-001'
+        WHERE recipient_id = 'AGENT-ENG-001'
           AND project_id = 'START-UP'
           AND delivery_status = 'DELIVERED'
     ) AS pending_inbox_messages

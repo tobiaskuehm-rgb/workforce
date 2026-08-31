@@ -279,3 +279,56 @@ class ApiKeyTest(unittest.TestCase):
 
     def test_no_key_configured_returns_none_for_sdk_resolution(self):
         self.assertIsNone(providers.read_api_key({}))
+
+
+class PerSenderCeilingTest(unittest.TestCase):
+    """Sensitivity belongs to the sender, not to the run that picks it up."""
+
+    OVERRIDES = {"FIN-001": "METADATA_ONLY", "LEGAL-001": "BODY"}
+
+    def test_sender_ceiling_narrows_a_permissive_run(self):
+        out = data_boundary.prepare_outbound(
+            message(sender_id="FIN-001", task_ref="FIN-TASK-1"),
+            policy="FULL", overrides=self.OVERRIDES,
+        )
+        self.assertNotIn("body", out.payload)
+        self.assertNotIn("task_ref", out.payload)
+        self.assertEqual("METADATA_ONLY", out.disclosure.policy)
+        self.assertEqual("FULL", out.disclosure.run_policy)
+        self.assertTrue(out.disclosure.as_log_record()["data_policy_narrowed"])
+
+    def test_sender_without_a_ceiling_gets_the_run_policy(self):
+        out = data_boundary.prepare_outbound(
+            message(sender_id="RAS-001"), policy="FULL", overrides=self.OVERRIDES
+        )
+        self.assertIn("body", out.payload)
+        self.assertEqual("FULL", out.disclosure.policy)
+        self.assertFalse(out.disclosure.as_log_record()["data_policy_narrowed"])
+
+    def test_a_ceiling_can_never_widen_the_run_policy(self):
+        # LEGAL-001 is allowed BODY, but the run only permits METADATA_ONLY.
+        # The override must not lift the run's own restriction.
+        out = data_boundary.prepare_outbound(
+            message(sender_id="LEGAL-001"),
+            policy="METADATA_ONLY", overrides=self.OVERRIDES,
+        )
+        self.assertNotIn("body", out.payload)
+        self.assertEqual("METADATA_ONLY", out.disclosure.policy)
+
+    def test_stricter_picks_the_narrower_policy(self):
+        self.assertEqual("BODY", data_boundary.stricter("FULL", "BODY"))
+        self.assertEqual("METADATA_ONLY", data_boundary.stricter("METADATA_ONLY", "FULL"))
+        self.assertEqual("FULL", data_boundary.stricter("FULL", "FULL"))
+
+    def test_overrides_are_parsed_case_insensitively(self):
+        parsed = data_boundary.parse_overrides(" fin-001 : body , RAS-001:FULL ")
+        self.assertEqual({"FIN-001": "BODY", "RAS-001": "FULL"}, parsed)
+
+    def test_malformed_override_is_refused(self):
+        for bad in ["FIN-001", "FIN-001:GEHEIM", ":BODY"]:
+            with self.subTest(entry=bad):
+                with self.assertRaises(data_boundary.DataBoundaryError):
+                    data_boundary.parse_overrides(bad)
+
+    def test_empty_override_string_means_no_ceilings(self):
+        self.assertEqual({}, data_boundary.parse_overrides(""))

@@ -6,8 +6,9 @@ provider directly. That is the whole purpose of this module: the question
 "what exactly leaves my NAS?" has exactly one answer, in one file, and
 changing that answer is a configuration change rather than a rewrite.
 
-The security review of 2026-08-31 left this decision open. Until it is made,
-the policy is selected by `AGENT_DATA_POLICY`:
+Two settings decide it together, and the stricter one always wins.
+
+`AGENT_DATA_POLICY` sets the ceiling for the run:
 
   METADATA_ONLY  subject, action class and identifiers - never the body.
                  Safe default: the provider learns what kind of request this
@@ -15,6 +16,12 @@ the policy is selected by `AGENT_DATA_POLICY`:
   BODY           subject plus the message body. Needed for a model to actually
                  work on the request.
   FULL           BODY plus task and handoff references.
+
+`AGENT_DATA_POLICY_OVERRIDES` sets a ceiling per sender, e.g.
+`FIN-001:METADATA_ONLY,LEGAL-001:BODY`. Sensitivity belongs to whoever wrote
+the message, not to the run that happens to pick it up: "finance content must
+not leave the house" has to hold no matter how permissive a given run is
+configured. An override can only narrow, never widen.
 
 There is deliberately no policy that forwards credentials, employee memory or
 anything outside the single message being handled - those are not reachable
@@ -35,8 +42,44 @@ from typing import Any, Literal
 
 Policy = Literal["METADATA_ONLY", "BODY", "FULL"]
 
+# Ordered from strictest to most permissive. The order is the semantics: it is
+# what "the stricter one wins" is resolved against.
 POLICIES: tuple[Policy, ...] = ("METADATA_ONLY", "BODY", "FULL")
 DEFAULT_POLICY: Policy = "METADATA_ONLY"
+
+
+def stricter(first: Policy, second: Policy) -> Policy:
+    """The narrower of two policies."""
+    return POLICIES[min(POLICIES.index(first), POLICIES.index(second))]
+
+
+def parse_overrides(raw: str) -> dict[str, Policy]:
+    """Per-sender ceilings, as `SAO-001:BODY,FIN-001:METADATA_ONLY`.
+
+    The sensitivity of a message is a property of who wrote it, not of the run
+    that happens to process it. A run-wide policy is therefore the wrong place
+    to express "finance messages must not leave the house" - that belongs to
+    the finance identity and has to hold no matter which run picks the message
+    up. These overrides are a ceiling: they can only narrow what the run
+    allows, never widen it.
+
+    This is the interim home. The permanent one is a column next to the other
+    per-identity capabilities in the bus schema - see
+    `agent_data_policy_migration.sql`. Until that migration is decided, the
+    ceilings live in configuration so the control exists at all.
+    """
+    overrides: dict[str, Policy] = {}
+    for item in raw.split(","):
+        entry = item.strip()
+        if not entry:
+            continue
+        identity, separator, policy = entry.partition(":")
+        identity = identity.strip().upper()
+        policy = policy.strip().upper()
+        if not separator or not identity or policy not in POLICIES:
+            raise DataBoundaryError(f"AGENT_DATA_POLICY_OVERRIDE_INVALID:{entry}")
+        overrides[identity] = policy  # type: ignore[assignment]
+    return overrides
 
 # Hard ceiling on what may leave, independent of policy. The bus itself caps a
 # body at max_body_chars (8000 today), so this is a second, local limit: a
@@ -69,6 +112,7 @@ class Disclosure:
     """An auditable record of what left, without the content itself."""
 
     policy: Policy
+    run_policy: Policy
     message_id: str
     fields: tuple[str, ...]
     total_chars: int
@@ -78,6 +122,8 @@ class Disclosure:
     def as_log_record(self) -> dict[str, Any]:
         return {
             "data_policy": self.policy,
+            "data_policy_run": self.run_policy,
+            "data_policy_narrowed": self.policy != self.run_policy,
             "message_id": self.message_id,
             "fields_sent": list(self.fields),
             "chars_sent": self.total_chars,
@@ -105,16 +151,46 @@ def active_policy(environment: dict[str, str] | None = None) -> Policy:
     return raw  # type: ignore[return-value]
 
 
+def active_overrides(environment: dict[str, str] | None = None) -> dict[str, Policy]:
+    env = os.environ if environment is None else environment
+    return parse_overrides(env.get("AGENT_DATA_POLICY_OVERRIDES", ""))
+
+
+def effective_policy(
+    sender_id: str,
+    run_policy: Policy,
+    overrides: dict[str, Policy] | None = None,
+) -> Policy:
+    """The policy that actually applies to one message.
+
+    The stricter of the run policy and the sender's ceiling. A sender ceiling
+    can only narrow - raising the run policy can never lift a restriction
+    somebody deliberately placed on an identity.
+    """
+    if not overrides:
+        return run_policy
+    ceiling = overrides.get(sender_id.strip().upper())
+    if ceiling is None:
+        return run_policy
+    return stricter(run_policy, ceiling)
+
+
 def prepare_outbound(
     message: dict[str, Any],
     *,
     policy: Policy | None = None,
     environment: dict[str, str] | None = None,
+    overrides: dict[str, Policy] | None = None,
 ) -> Outbound:
     """Reduce one bus message to exactly what may reach a model provider."""
     resolved = active_policy(environment) if policy is None else policy
     if resolved not in POLICIES:
         raise DataBoundaryError(f"AGENT_DATA_POLICY_INVALID:{resolved}")
+
+    if overrides is None:
+        overrides = active_overrides(environment)
+    run_policy = resolved
+    resolved = effective_policy(str(message.get("sender_id", "")), resolved, overrides)
 
     message_id = str(message.get("message_id", "")).strip()
     if not message_id:
@@ -145,6 +221,7 @@ def prepare_outbound(
         payload=payload,
         disclosure=Disclosure(
             policy=resolved,
+            run_policy=run_policy,
             message_id=message_id,
             fields=tuple(sorted(payload)),
             total_chars=total,
