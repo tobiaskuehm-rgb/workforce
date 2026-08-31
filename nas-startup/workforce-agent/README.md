@@ -106,7 +106,11 @@ Zwei Eigenschaften, die dabei zählen:
 
 **Geprüft wird vor der Bestätigung, nie danach.** Ein erschöpftes Budget lässt die Nachricht unberührt auf `DELIVERED` stehen, damit ein späterer Lauf sie noch sieht. Bestätigen und dann die Arbeit verweigern würde sie stillschweigend verschlucken.
 
-**Die Kostendecke ist rückblickend.** Kosten stehen erst fest, wenn ein Aufruf zurückkommt — sie kann also um einen Aufruf überschritten werden. Die Aufruf- und Tokendecken begrenzen vorausschauend; Geld ist der Rückhalt dahinter. Eine Decke von `0` bedeutet deshalb „dieser Lauf darf nichts kosten" und nicht „dieser Lauf darf nicht stattfinden": Der Echo-Provider läuft weiter, der erste bezahlte Aufruf löst aus.
+**Die Kostendecke ist rückblickend — mit einer Ausnahme.** Kosten stehen erst fest, wenn ein Aufruf zurückkommt; die Decke kann also um einen Aufruf überschritten werden. Die Aufruf- und Tokendecken begrenzen deshalb vorausschauend, Geld ist der Rückhalt dahinter.
+
+Die Ausnahme ist die Decke `0`. Jeder Provider deklariert über `is_paid`, ob er Geld kostet, und ein kostenpflichtiger Provider wird unter einer Nulldecke **vor** dem ersten Aufruf abgewiesen — nicht danach. Ein Provider, der die Angabe vergisst, gilt als kostenpflichtig; die Voreinstellung irrt in Richtung Ablehnung. Der Echo-Provider läuft unter `0` weiter, weil er nichts kostet.
+
+Damit heißt eine Decke von `0` genau das, wonach es aussieht: „dieser Lauf darf nichts kosten".
 
 Die Laufzeitdecke gibt es, weil die anderen vier Arbeit begrenzen, nicht Zeit. Ein `ACCEPTANCE`-Zugang gilt 30 Minuten; ohne Zeitdecke liefe ein Lauf an seinem eigenen Credential vorbei.
 

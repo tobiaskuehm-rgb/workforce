@@ -60,7 +60,9 @@ Trifft zu; meine Formulierung „fünf harte Decken" war für Aufrufzahl und Kos
 
 **Nicht umgesetzt und bewusst so:** SDK-interne Wiederholungen bleiben unsichtbar. Der Client meldet sie nicht, und sie mitzuzählen hieße, `max_retries` auf 0 zu setzen und die Wiederholungslogik selbst zu bauen. Die Decke zählt also *logische* Aufrufe, im ungünstigsten Fall mit dem Faktor `max_retries + 1` an echten API-Aufrufen dahinter. Das steht jetzt so im Modul, statt es als „hart" zu verkaufen.
 
-Zur Kostendecke `0`: Ein bezahlter Provider wird damit weiterhin erst nach dem ersten Aufruf gestoppt, weil Kosten vorher nicht bekannt sind. Vorausschauend begrenzen Aufruf- und Tokendecke. Wenn du „vor dem ersten bezahlten Aufruf blockieren" willst, wäre der saubere Weg ein Provider-Attribut „kostenpflichtig ja/nein" — sag Bescheid, dann baue ich das.
+**Nachtrag, umgesetzt:** Deine Forderung „Bei Kostendecke `0` muss ein bezahlter Provider vor dem ersten Aufruf blockiert werden" ist erfüllt. Jeder Provider deklariert über `is_paid`, ob er Geld kostet; `Budget.check_provider()` weist einen kostenpflichtigen Provider unter einer Nulldecke ab, **bevor** er gefragt wird. Ein Provider ohne Angabe gilt als kostenpflichtig — die Voreinstellung irrt in Richtung Ablehnung.
+
+Fünf Tests, darunter `test_zero_ceiling_blocks_a_paid_provider_before_the_call` (Modell wird nicht gefragt, nichts wird bestätigt) und `test_an_undeclared_provider_is_treated_as_paid`.
 
 ### G-005 — Kein `ENG-008`-Core-Roundtrip → **Übernommen, vollständig bestätigt**
 

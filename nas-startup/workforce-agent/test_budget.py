@@ -6,6 +6,7 @@ import unittest
 
 import agent_worker
 import budget as budget_module
+import providers
 from test_agent_worker import FakeBus, ScriptedProvider, message
 
 
@@ -283,3 +284,60 @@ class ReservedCallTest(unittest.TestCase):
         b.record_provider_usage(model="claude-opus-5", input_tokens=100, output_tokens=50)
         self.assertEqual(1, b.provider_calls)
         self.assertEqual(150, b.total_tokens)
+
+
+class PaidProviderGateTest(unittest.TestCase):
+    """G-004 remainder: a zero cost ceiling must stop a paid provider *before*
+    the first call, not after the bill arrives."""
+
+    class PaidProvider(ScriptedProvider):
+        name = "paid"
+        is_paid = True
+
+    class FreeProvider(ScriptedProvider):
+        name = "free"
+        is_paid = False
+
+    def test_zero_ceiling_blocks_a_paid_provider_before_the_call(self):
+        bus = FakeBus()
+        provider = self.PaidProvider()
+        with self.assertRaises(budget_module.BudgetExhausted):
+            agent_worker.handle_message(
+                bus, provider, message(), policy="BODY",
+                budget=budget_module.Budget(max_cost_usd=0.0),
+            )
+        self.assertEqual([], provider.seen, "the model must not be asked at all")
+        self.assertEqual([], bus.acks, "and nothing may be acknowledged")
+
+    def test_zero_ceiling_still_allows_a_free_provider(self):
+        bus = FakeBus()
+        result = agent_worker.handle_message(
+            bus, self.FreeProvider(), message(), policy="BODY",
+            budget=budget_module.Budget(max_cost_usd=0.0),
+        )
+        self.assertEqual("ANSWERED", result["result"])
+
+    def test_a_positive_ceiling_lets_a_paid_provider_start(self):
+        bus = FakeBus()
+        result = agent_worker.handle_message(
+            bus, self.PaidProvider(), message(), policy="BODY",
+            budget=budget_module.Budget(max_cost_usd=1.0),
+        )
+        self.assertEqual("ANSWERED", result["result"])
+
+    def test_an_undeclared_provider_is_treated_as_paid(self):
+        # Safer default: a provider that forgets to declare itself is assumed
+        # to cost money, so a zero ceiling errs towards refusing.
+        class Undeclared(ScriptedProvider):
+            name = "undeclared"
+
+        bus = FakeBus()
+        with self.assertRaises(budget_module.BudgetExhausted):
+            agent_worker.handle_message(
+                bus, Undeclared(), message(), policy="BODY",
+                budget=budget_module.Budget(max_cost_usd=0.0),
+            )
+
+    def test_declared_paid_flags_match_the_providers(self):
+        self.assertFalse(providers.EchoProvider().is_paid)
+        self.assertTrue(providers.ClaudeProvider.is_paid)

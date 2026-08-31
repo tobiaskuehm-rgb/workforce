@@ -99,6 +99,17 @@ class Budget:
     def elapsed_seconds(self) -> float:
         return self.clock() - self._started_at
 
+    def check_provider(self, *, is_paid: bool) -> None:
+        """Call before asking a provider that might cost money.
+
+        A cost ceiling is retrospective by nature - spend is only known once a
+        call returns - so a ceiling of 0.00 could otherwise not stop a paid
+        provider before its first call. Declaring paid-ness closes that gap
+        (review finding G-004).
+        """
+        if is_paid and self.max_cost_usd <= 0:
+            raise BudgetExhausted("cost_usd", 0.0, self.max_cost_usd)
+
     def check_message(self) -> None:
         """Call before touching the next message - before the acknowledgement."""
         if self.elapsed_seconds >= self.max_runtime_seconds:

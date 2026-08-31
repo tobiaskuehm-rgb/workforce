@@ -200,6 +200,14 @@ def handle_message(
             # 2. Ask the model. The attempt is counted before it is made, so a
             #    failure or an SDK-internal retry cannot slip past the ceiling.
             if budget is not None:
+                try:
+                    # Refuse a paid provider under a zero ceiling *before* the
+                    # call, not after the bill arrives.
+                    budget.check_provider(is_paid=getattr(provider, "is_paid", True))
+                except budget_module.BudgetExhausted as stop:
+                    log("provider_blocked_by_budget", message_id=message_id,
+                        limit=stop.limit_name, ceiling=stop.ceiling)
+                    raise
                 budget.reserve_provider_call()
             try:
                 reply = provider.complete(

@@ -55,6 +55,11 @@ class Reply:
 
 class Provider(Protocol):
     name: str
+    # Whether asking this provider costs money. Declared rather than inferred,
+    # so a cost ceiling can be enforced *before* the first call instead of
+    # after it (review finding G-004). Cost is only known once a call returns,
+    # so without this a ceiling of 0.00 could not stop a paid provider at all.
+    is_paid: bool
 
     def complete(self, *, system: str, content: str) -> Reply:
         """Answer one request. Must not raise for ordinary model refusals."""
@@ -69,6 +74,7 @@ class EchoProvider:
     """
 
     name = "echo"
+    is_paid = False
 
     def __init__(self, model: str = "echo-v1") -> None:
         self.model = model
@@ -91,6 +97,7 @@ class ClaudeProvider:
     """Anthropic API via the official SDK."""
 
     name = "claude"
+    is_paid = True
 
     def __init__(
         self,
