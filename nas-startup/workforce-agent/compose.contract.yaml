@@ -1,0 +1,48 @@
+name: startup-bus-contract-test
+
+# Asks the running bus whether it answers the way bus_rules.py claims.
+#
+# bus_rules.py is a transcription of 002_workforce_bus.sql, and a
+# transcription can drift: change the migration and the local suite keeps
+# passing while being wrong. This is the only check that closes that gap.
+#
+# Footprint: one task and one handoff, both left in a clean final state
+# (DONE / ACCEPTED). The denial matrix costs nothing extra because a denial
+# changes nothing - which matters here, since the bus deliberately refuses to
+# cancel anything past PENDING and litter could not be cleaned up afterwards.
+#
+# Uses the credentials the core prepare step issues, so run it inside the same
+# window: compose.core.yaml prepare -> this -> compose.core-cleanup.yaml.
+# Needs the temporary DSM firewall rule for 172.31.254.2/32 on TCP 8443.
+
+services:
+  contract:
+    image: startup-bus-contract:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.contract
+    environment:
+      CORE_BUS_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      KARL_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_karl
+      GERD_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_gerd
+      ANASTASIA_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_anastasia
+      # Bump per run: the task and handoff ids derive from this.
+      CORE_RUN_ID: "20260831CONTRACT1"
+    volumes:
+      - ./secrets:/run/startup-core-secrets:ro
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29

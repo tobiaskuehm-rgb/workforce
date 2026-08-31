@@ -1,0 +1,13 @@
+FROM python:3.13-alpine
+
+LABEL org.opencontainers.image.title="Start UP Bus Contract Test" \
+      org.opencontainers.image.version="v1"
+
+RUN addgroup -S startup && adduser -S -G startup -u 10001 startup
+
+WORKDIR /app
+COPY bus_client.py bus_rules.py contract_test.py /app/
+
+USER 10001:10001
+
+CMD ["python", "/app/contract_test.py"]
