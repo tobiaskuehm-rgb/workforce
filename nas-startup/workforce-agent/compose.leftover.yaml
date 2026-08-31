@@ -1,0 +1,46 @@
+name: startup-bus-leftover-cleanup
+
+# Closes records left behind by the aborted core-roundtrip attempts of
+# 2026-08-31, through the bus's own rules rather than by database surgery.
+#
+# The bus grants CANCELLED only out of PENDING, so an abandoned IN_PROGRESS
+# task has to go through REVIEW and DONE with evidence. The evidence text says
+# plainly that this was an aborted test and produced no work - dressing it up
+# as completed would be worse than leaving the mess.
+#
+# Uses the credentials from the core prepare step; run it inside the same
+# window. Needs the temporary firewall rule for 172.31.254.2/32 on TCP 8443.
+
+services:
+  leftover:
+    image: startup-bus-leftover:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.leftover
+    environment:
+      CORE_BUS_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      KARL_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_karl
+      GERD_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_gerd
+      CORE_RUN_ID: "20260831LEFTOVER1"
+      # The records the failed attempts left behind. CORE3 and CORE4 completed
+      # and are deliberately not listed - they are evidence.
+      LEFTOVER_TASK_IDS: "ENG-CORE-20260831CORE1,ENG-CORE-20260831CORE2"
+      LEFTOVER_HANDOFF_IDS: "HO-CORE-20260831CORE1,HO-CORE-20260831CORE2"
+    volumes:
+      - ./secrets:/run/startup-core-secrets:ro
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29

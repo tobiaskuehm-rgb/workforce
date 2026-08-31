@@ -1,0 +1,10 @@
+FROM python:3.13-alpine
+
+RUN addgroup -S startup && adduser -S -G startup -u 10001 startup
+
+WORKDIR /app
+COPY bus_client.py bus_rules.py leftover_cleanup.py /app/
+
+USER 10001:10001
+
+CMD ["python", "/app/leftover_cleanup.py"]
