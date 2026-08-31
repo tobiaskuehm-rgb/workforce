@@ -11,6 +11,7 @@ from __future__ import annotations
 import unittest
 
 import bus_client
+import bus_rules
 import core_roundtrip
 
 KARL, GERD, ANASTASIA = "SAO-001", "AI-ENG-001", "PEO-001"
@@ -67,24 +68,17 @@ class FakeBus:
         if task is None:
             raise bus_client.BusError("BUS_TASK_NOT_FOUND", status=404)
 
-        # Mirrors bus_transition_task in 002_workforce_bus.sql:
-        #   PENDING -> OPEN            only SAO-001 (Karl), for named owners
-        #   OPEN/IN_PROGRESS -> ...    the owner, up to REVIEW
-        #   REVIEW -> DONE             the creator
+        # Permissions come from bus_rules, which is transcribed from the
+        # migration - not from what this double's author remembers.
         current = task["task_status"]
-        if current == "PENDING" and new_status == "OPEN":
-            allowed = KARL
-        elif current == "REVIEW" and new_status in ("DONE", "IN_PROGRESS"):
-            allowed = task["creator_id"]
-        elif current in ("OPEN", "IN_PROGRESS", "BLOCKED", "HOLD"):
-            allowed = task["owner_id"]
-        else:
-            raise bus_client.BusError("BUS_TASK_TRANSITION_DENIED", status=403)
-        if self.identity != allowed:
-            raise bus_client.BusError("BUS_TASK_TRANSITION_DENIED", status=403)
-        if new_status == current:
+        if bus_rules.SAME_STATUS_IS_CONFLICT and new_status == current:
             raise bus_client.BusError("BUS_TASK_IDEMPOTENCY_CONFLICT", status=409)
-        if new_status == "DONE" and not completion_evidence:
+        if not bus_rules.may_transition_task(
+            self.identity, creator_id=task["creator_id"],
+            owner_id=task["owner_id"], current=current, target=new_status,
+        ):
+            raise bus_client.BusError("BUS_TASK_TRANSITION_DENIED", status=403)
+        if new_status in bus_rules.TASK_EVIDENCE_REQUIRED_FOR and not completion_evidence:
             raise bus_client.BusError("BUS_TASK_COMPLETION_EVIDENCE_REQUIRED", status=400)
 
         task["task_status"] = new_status
@@ -118,19 +112,16 @@ class FakeBus:
         handoff = self.world["handoffs"].get(handoff_id)
         if handoff is None:
             raise bus_client.BusError("BUS_HANDOFF_NOT_FOUND", status=404)
-        # Mirrors bus_transition_handoff: the sender opens a PENDING handoff,
-        # the recipient decides an OPEN one.
         current = handoff["handoff_status"]
-        if new_status == current:
+        if bus_rules.SAME_STATUS_IS_CONFLICT and new_status == current:
             raise bus_client.BusError("BUS_HANDOFF_IDEMPOTENCY_CONFLICT", status=409)
-        if current == "PENDING" and new_status in ("OPEN", "CANCELLED"):
-            allowed = handoff["sender_id"]
-        elif current == "OPEN" and new_status in ("ACCEPTED", "REJECTED"):
-            allowed = handoff["recipient_id"]
-        else:
+        if not bus_rules.may_transition_handoff(
+            self.identity, sender_id=handoff["sender_id"],
+            recipient_id=handoff["recipient_id"], current=current, target=new_status,
+        ):
             raise bus_client.BusError("BUS_HANDOFF_TRANSITION_DENIED", status=403)
-        if self.identity != allowed:
-            raise bus_client.BusError("BUS_HANDOFF_TRANSITION_DENIED", status=403)
+        if new_status in bus_rules.HANDOFF_NOTE_REQUIRED_FOR and not response_note:
+            raise bus_client.BusError("BUS_HANDOFF_REJECTION_REASON_REQUIRED", status=400)
         handoff["handoff_status"] = new_status
         self.world["events"].append(
             {"type": "HANDOFF", "key": handoff_id, "actor": self.identity,

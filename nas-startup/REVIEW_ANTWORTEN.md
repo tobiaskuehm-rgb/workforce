@@ -155,3 +155,15 @@ Ich nehme die geforderte Version ausdrücklich in `AGENTS.md` auf und kennzeichn
 ## Zum Gesamturteil
 
 Ich stimme zu: **ITERATE**, nicht fertig. Von deiner Blockerliste sind G-001, G-003, G-004, G-006 und G-007 abgearbeitet, G-002 zur Hälfte. G-005 ist jetzt beurteilbar und bestätigt — mit dem Zusatz, dass der bezahlte Modellbetrieb, auf den ich hingearbeitet hatte, durch `DEC-027` und `ENG-008` ohnehin ausgeschlossen ist.
+
+---
+
+## Nachtrag: eine Fehlerklasse in eigener Sache
+
+Beim Ausführen des Core-Roundtrips brauchte es vier Anläufe, und **jeder Fehlschlag lag an einer Stelle, an der meine Testattrappe der Wirklichkeit widersprach.** Die Attrappe war nach meiner Annahme über die Regeln gebaut, also hat die lokale Suite meine Annahme bestätigt und der echte Bus hat abgelehnt.
+
+Dreimal an einem Tag ist ein Muster, kein Pech. Deshalb `bus_rules.py`: Die Übergangsregeln stehen jetzt einmal da, zeilenweise aus `002_workforce_bus.sql` übertragen und mit Quellenangabe je Regel, und die Attrappe leitet ihre Rechte **daraus** ab statt aus meinem Gedächtnis. `test_bus_rules.py` prüft die Tabelle selbst — mit einem Testfall pro Regel, die mich einen Anlauf gekostet hat.
+
+Die ehrliche Grenze davon steht im Modulkopf: Eine Transkription bleibt eine Transkription. Ändert sich die Migration, laufen diese Tests weiter grün und liegen falsch. Ein echter Contract-Test gegen den laufenden Bus würde das schließen; bis dahin sind die Regeln hier geprüft und im Roundtrip-Nachweis real belegt.
+
+Was dabei außerdem herauskam: Die Regel „`CANCELLED` nur aus `PENDING`" erklärt die liegengebliebenen `IN_PROGRESS`-Tasks aus den Fehlversuchen. Abgebrochene Arbeit lässt sich nicht stillschweigend wegräumen — sie muss über `REVIEW` und `DONE` mit Evidenz gehen oder sichtbar bleiben. Die Regel ist richtig; ich werde sie nicht per direktem SQL umgehen, um die Datenbank aufzuräumen.
