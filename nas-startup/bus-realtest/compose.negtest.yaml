@@ -1,0 +1,40 @@
+name: startup-bus-realtest-negtest
+
+# Runs inside the SAME short TESTING window as compose.run.yaml, directly after
+# the positive realtest and before compose.cleanup.yaml. It reuses the two
+# ACCEPTANCE tokens from the prepare step, so no additional credential is
+# issued and no extra firewall rule is needed: the container reuses the same
+# fixed source address 172.31.254.2 that the run step already relies on.
+
+services:
+  bus-negtest-run:
+    image: startup-bus-negtest:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.negtest
+    environment:
+      BUS_NEGTEST_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      KARL_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_karl
+      THORSTEN_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_thorsten
+      # Every case derives its request ids and idempotency keys from this value.
+      # Bump it before any repeat run so a retry cannot collide with the
+      # messages a previous run already stored.
+      BUS_NEGTEST_RUN_ID: "001"
+    volumes:
+      - ./secrets:/run/startup-bus-secrets:ro
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29
