@@ -18,6 +18,9 @@ services:
     restart: "no"
     env_file:
       - workforce-agent.env
+    environment:
+      # Not negotiable on the NAS: a key may only come from a file.
+      AGENT_STRICT_SECRETS: "true"
     volumes:
       # Crash-recovery state. Without a durable volume a restart re-pays for
       # every model call it had already made (review finding G-001).

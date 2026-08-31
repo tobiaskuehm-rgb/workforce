@@ -186,7 +186,14 @@ def read_api_key(environment: dict[str, str]) -> str | None:
     Same pattern the rest of this project uses for the bus and bot tokens: a
     secret in a file cannot be read out of `docker inspect` or a process
     listing the way an environment variable can.
+
+    `AGENT_STRICT_SECRETS=true` removes the environment fallback entirely and
+    refuses to start rather than accept a key that way (review finding G-010).
+    The NAS profiles set it; local experiments outside Docker do not, which is
+    the only place the fallback is worth having.
     """
+    strict = environment.get("AGENT_STRICT_SECRETS", "").strip().lower() == "true"
+
     key_file = environment.get("ANTHROPIC_API_KEY_FILE", "").strip()
     if key_file:
         with open(key_file, encoding="utf-8") as handle:
@@ -194,7 +201,17 @@ def read_api_key(environment: dict[str, str]) -> str | None:
         if not key:
             raise ProviderError(f"AGENT_PROVIDER_KEY_FILE_EMPTY:{key_file}")
         return key
-    return environment.get("ANTHROPIC_API_KEY") or None
+
+    if environment.get("ANTHROPIC_API_KEY"):
+        if strict:
+            # Refusing to start beats starting with a secret that any
+            # `docker inspect` can read back.
+            raise ProviderError("AGENT_PROVIDER_KEY_FROM_ENVIRONMENT_REFUSED")
+        return environment["ANTHROPIC_API_KEY"]
+
+    if strict:
+        raise ProviderError("AGENT_PROVIDER_KEY_FILE_REQUIRED")
+    return None
 
 
 def build_provider(environment: dict[str, str] | None = None) -> Provider:

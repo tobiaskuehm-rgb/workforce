@@ -332,3 +332,41 @@ class PerSenderCeilingTest(unittest.TestCase):
 
     def test_empty_override_string_means_no_ceilings(self):
         self.assertEqual({}, data_boundary.parse_overrides(""))
+
+
+class StrictSecretsTest(unittest.TestCase):
+    """Review finding G-010: on the NAS a key may only come from a file."""
+
+    def test_strict_mode_refuses_a_key_from_the_environment(self):
+        with self.assertRaises(providers.ProviderError) as caught:
+            providers.read_api_key({
+                "AGENT_STRICT_SECRETS": "true",
+                "ANTHROPIC_API_KEY": "sk-ant-from-env",
+            })
+        self.assertIn("REFUSED", str(caught.exception))
+
+    def test_strict_mode_still_accepts_a_key_file(self):
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            key_file = Path(tempdir) / "key"
+            key_file.write_text("sk-ant-from-file\n", encoding="utf-8")
+            key = providers.read_api_key({
+                "AGENT_STRICT_SECRETS": "true",
+                "ANTHROPIC_API_KEY_FILE": str(key_file),
+            })
+        self.assertEqual("sk-ant-from-file", key)
+
+    def test_strict_mode_refuses_when_no_key_file_is_configured(self):
+        # Failing to start is the point: a silent None would let the SDK fall
+        # back to its own credential discovery, which is exactly the
+        # uncontrolled second path the rule forbids.
+        with self.assertRaises(providers.ProviderError):
+            providers.read_api_key({"AGENT_STRICT_SECRETS": "true"})
+
+    def test_without_strict_mode_the_fallback_still_works(self):
+        self.assertEqual(
+            "sk-ant-from-env",
+            providers.read_api_key({"ANTHROPIC_API_KEY": "sk-ant-from-env"}),
+        )
