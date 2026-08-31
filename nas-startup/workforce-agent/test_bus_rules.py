@@ -131,6 +131,75 @@ class TranscriptionQualityTest(unittest.TestCase):
         # record already had and got 409 instead of the 403 it was testing for.
         self.assertTrue(bus_rules.SAME_STATUS_IS_CONFLICT)
 
+class DriftGuardTest(unittest.TestCase):
+    """The failure mode of a transcription is not being wrong from the start.
+
+    It is quietly becoming wrong later, when someone edits the migration and
+    the local suite keeps passing. These tests turn that into a loud failure.
+    """
+
+    def test_the_transcription_still_matches_the_migration(self):
+        for name, expected in bus_rules.TRANSCRIBED_FROM.items():
+            with self.subTest(function=name):
+                actual = bus_rules.sql_function_digest(name)
+                self.assertIsNotNone(
+                    actual,
+                    f"{name} not found in {bus_rules.SQL_SOURCE} — did the file move?",
+                )
+                self.assertEqual(
+                    expected, actual,
+                    f"\n\n  workforce.{name} in 002_workforce_bus.sql has changed since"
+                    f"\n  bus_rules.py was written from it. The rules in this module may"
+                    f"\n  now be wrong while every other test still passes.\n"
+                    f"\n  What to do, in order:"
+                    f"\n    1. Read the changed function."
+                    f"\n    2. Update TASK_RULES / HANDOFF_RULES to match it."
+                    f"\n    3. Run contract_test.py against a live bus."
+                    f"\n    4. Only then record the new digest in TRANSCRIBED_FROM.\n"
+                    f"\n  Updating the digest without step 1 turns this guard into a"
+                    f"\n  rubber stamp.\n",
+                )
+
+    def test_the_guard_notices_a_changed_function(self):
+        # The property that matters: if the source changes, this fails. Without
+        # this test the guard could be silently broken and nobody would know.
+        import tempfile
+        from pathlib import Path
+
+        original = bus_rules.sql_function_body("bus_transition_task")
+        self.assertIsNotNone(original)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            altered = Path(tempdir) / "migration.sql"
+            altered.write_text(
+                original.replace("v_allowed :=", "v_allowed := TRUE OR"),
+                encoding="utf-8",
+            )
+            digest = bus_rules.sql_function_digest("bus_transition_task", altered)
+
+        self.assertIsNotNone(digest)
+        self.assertNotEqual(
+            bus_rules.TRANSCRIBED_FROM["bus_transition_task"], digest,
+            "a changed permission condition must change the fingerprint",
+        )
+
+    def test_a_missing_source_is_reported_rather_than_passing(self):
+        from pathlib import Path
+
+        self.assertIsNone(
+            bus_rules.sql_function_digest("bus_transition_task", Path("/nirgendwo.sql"))
+        )
+
+    def test_every_transcribed_function_is_actually_used(self):
+        # A fingerprint for a function nothing transcribes would be noise, and
+        # a transcribed function without one would be unguarded.
+        sources = " ".join(
+            rule.source for rule in bus_rules.TASK_RULES + bus_rules.HANDOFF_RULES
+        )
+        for name in bus_rules.TRANSCRIBED_FROM:
+            with self.subTest(function=name):
+                self.assertIn(name, sources)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,12 +14,22 @@ rather than against my expectations.
 
 This is documentation with teeth, not a second implementation: the bus stays
 the authority. If the migration changes, this file is stale until someone
-updates it, and the comment on each rule says where to look.
+updates it - and `test_bus_rules.py` makes that loud rather than silent by
+fingerprinting the two SQL functions this table transcribes. Edit the
+migration and the test fails with a message telling you to re-verify here.
+
+A fingerprint proves nothing about correctness. It only guarantees that a
+change to the source cannot slip past unnoticed, which is the failure mode a
+transcription actually has: not being wrong from the start, but quietly
+becoming wrong later.
 """
 
 from __future__ import annotations
 
+import hashlib
+import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 Role = Literal["creator", "owner", "sender", "recipient", "coordinator"]
@@ -128,3 +138,40 @@ def may_transition_handoff(
         transition_allowed(HANDOFF_RULES, role, current, target)
         for role in roles_for_handoff(identity, sender_id, recipient_id)
     )
+
+
+# --- Drift guard ------------------------------------------------------------
+# SHA-256 of the two SQL function bodies this file transcribes, as of the
+# transcription on 2026-08-31. `test_bus_rules.py` recomputes them and fails
+# when they differ. On failure: read the changed function, update the rules
+# above, run the contract test against a live bus, then record the new digest.
+#
+# Never update a digest without re-reading the function. Doing so turns the
+# guard into a rubber stamp and reintroduces exactly the silent drift it
+# exists to prevent.
+SQL_SOURCE = Path(__file__).resolve().parents[1] / "postgres-init" / "002_workforce_bus.sql"
+
+TRANSCRIBED_FROM: dict[str, str] = {
+    "bus_transition_task":
+        "d130809a147ec662d7c46c863883b49db2c63d293a5d4c358c59961f2b2a8f32",
+    "bus_transition_handoff":
+        "bede0a19fa23b48f496639577ada1ebfc5dc0302381385e876dedddce4220fb9",
+}
+
+
+def sql_function_body(name: str, source: Path | None = None) -> str | None:
+    """The text of one SQL function, from CREATE FUNCTION to the closing $$;"""
+    path = SQL_SOURCE if source is None else source
+    try:
+        sql = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = re.search(rf"FUNCTION workforce\.{name}\b.*?\n\$\$;", sql, re.S)
+    return match.group(0) if match else None
+
+
+def sql_function_digest(name: str, source: Path | None = None) -> str | None:
+    body = sql_function_body(name, source)
+    if body is None:
+        return None
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()

@@ -57,7 +57,11 @@ In G-006 nennst du `DEC-027` als jüngsten Eintrag, was zum iCloud-Satz passt, n
 
 Ehrlicher als eine Liste dessen, was ich für richtig halte.
 
-**1. `bus_rules.py` ist eine Abschrift, kein Vertrag.** Ich habe sie gebaut, weil meine Testattrappe dreimal an einem Tag von der Wirklichkeit abwich und der Core-Roundtrip vier Anläufe brauchte. Der Contract-Test schließt die Lücke für den Moment — aber er läuft nicht automatisch, und niemand wird ihn nach einer Migration ausführen, wenn er nicht daran denkt. **Das ist die Stelle, an der dieselbe Fehlerklasse wiederkommt.**
+**1. `bus_rules.py` ist eine Abschrift, kein Vertrag.** Ich habe sie gebaut, weil meine Testattrappe dreimal an einem Tag von der Wirklichkeit abwich und der Core-Roundtrip vier Anläufe brauchte.
+
+*Nachtrag, noch am selben Abend behoben:* `bus_rules.py` trägt jetzt SHA-256-Fingerabdrücke der beiden SQL-Funktionen, die es abschreibt. Ändert jemand die Migration, schlägt `test_the_transcription_still_matches_the_migration` fehl und nennt die Schritte in der richtigen Reihenfolge — lesen, Regeln anpassen, Contract-Test laufen lassen, **dann erst** den neuen Fingerabdruck eintragen. Ein zweiter Test belegt, dass der Wächter eine echte Regeländerung tatsächlich bemerkt.
+
+Damit ist die stille Drift zu einem lauten Fehlschlag geworden. Was bleibt: Ein Fingerabdruck beweist nichts über Richtigkeit, er verhindert nur, dass eine Änderung unbemerkt durchgeht. Und wer den Fingerabdruck aktualisiert, ohne die Funktion zu lesen, macht den Wächter zum Feigenblatt — das steht als Warnung im Code, ist aber nicht erzwingbar. **Prüf, ob dir diese Absicherung reicht.**
 
 **2. Der Claim in `state_store.py` schützt nur innerhalb eines Volumes.** Dein G-002 ist damit halb erledigt, und ich habe das so beantwortet. Zwei Worker mit getrennten Volumes können weiterhin dieselbe Nachricht bearbeiten. Ich halte das für vertretbar, weil genau ein Worker existiert — prüf, ob du das auch so siehst.
 
