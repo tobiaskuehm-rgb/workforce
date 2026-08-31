@@ -1,6 +1,6 @@
 # Workforce Agent
 
-**Status:** gebaut und lokal getestet (27 Tests), noch nie auf der NAS ausgeführt. Kein Dauerbetrieb freigegeben.
+**Status:** gebaut, lokal getestet und im Echo-Trockenlauf auf der NAS bewährt. Betrieb mit einem echten Modell ist **nicht** freigegeben — `DEC-027` und `ENG-008` untersagen einen externen kostenpflichtigen Dienst.
 
 Das fehlende Glied in der Kette. Bisher:
 
@@ -64,30 +64,37 @@ Jeder Fehlerpfad endet mit einer Antwort im Bus — nie mit stillem Verschlucken
 
 - Provider nicht erreichbar → Antwort nennt den Fehlercode und bittet um manuelle Prüfung
 - Datengrenze verletzt → Antwort nennt die Verletzung; **nichts** erreicht den Provider
-- Bereits bestätigte Nachricht → kein Fehler, der vorherige Lauf kam bis hierher
+- Budget erschöpft → Nachricht bleibt unberührt auf `DELIVERED`, ein späterer Lauf sieht sie
+- Zu viele Fehlversuche → eine abschließende Antwort, danach kein weiterer Versuch
 - Antwort zu lang → auf das Buslimit gekürzt
 
-Bestätigt wird **vor** der Bearbeitung. Scheitert danach etwas, sieht der Absender trotzdem, dass die Nachricht angekommen ist, und bekommt eine erklärende Antwort.
+## Reihenfolge und Wiederaufsetzen
 
-Request-IDs und Idempotenzschlüssel werden deterministisch aus der Nachrichten-ID abgeleitet. Da der Bus seine `message_id` aus dem Idempotenzschlüssel bildet, erzeugt dieselbe eingehende Nachricht immer dieselbe ausgehende — ein Neustart nach Absturz antwortet nicht doppelt.
+**Erst bearbeiten, antworten, dann bestätigen.** Das war einmal andersherum, und das war ein Fehler (Review-Befund G-001): Weil `poll_once()` nur `DELIVERED`-Nachrichten sieht, war eine Nachricht nach einem Absturz zwischen Bestätigung und Antwort dauerhaft verloren. Jetzt lässt ein Absturz an jeder Stelle davor die Nachricht `DELIVERED`, und der nächste Lauf sieht sie wieder.
+
+Damit ein Wiederholungslauf nicht erneut für ein Modell bezahlt, führt `state_store.py` lokalen Zustand in SQLite: `IN_PROGRESS → REPLIED → DONE`, dazu `EXHAUSTED` nach zu vielen Versuchen. Steht eine Nachricht auf `REPLIED`, setzt der nächste Lauf direkt beim Bestätigen auf. Der Claim ist atomar (`BEGIN IMMEDIATE`) und hat eine Lease, damit ein abgestürzter Lauf nicht dauerhaft blockiert.
+
+Das ist **kein** Audit — der Bus ist die verbindliche Aufzeichnung. Geht dieser Zustand verloren, kostet das höchstens einen wiederholten Modellaufruf.
+
+Request-IDs und Idempotenzschlüssel werden deterministisch aus der Nachrichten-ID abgeleitet. Da der Bus seine `message_id` aus dem Idempotenzschlüssel bildet, erzeugt dieselbe eingehende Nachricht immer dieselbe ausgehende.
 
 ## Lokale Prüfung ohne Netzwerk
 
 ```text
-python3 -m unittest discover -v
+python3 -m unittest discover -q
 ```
 
-27 Tests, keine Netzwerkverbindung, kein API-Schlüssel, keine Kosten.
+Kein Netzwerk, kein API-Schlüssel, keine Kosten. Braucht Python 3.11 oder neuer.
 
 ## Vor einem echten Lauf
 
 Nicht ausführen, bevor das nicht steht:
 
-1. Eine Bus-Identität für den Agenten und ein kurzlebiges `ACCEPTANCE`-Credential — analog zum Realtest-Paket. Der Agent hat heute **kein** eigenes Prepare-Skript.
-2. Eine ausdrückliche Freigabeentscheidung mit engem Scope, wie bei `DEC-026` und `DEC-027`.
-3. Entscheidung über `AGENT_DATA_POLICY`. Voreinstellung ist `METADATA_ONLY`; für echte fachliche Arbeit braucht es `BODY`, und das ist die Entscheidung, die im Security-Review offengeblieben ist.
-4. Ein eigenes Security-Review für die Agentenschicht.
-5. Erster Lauf mit `AGENT_PROVIDER=echo` und `AGENT_MAX_CYCLES=1` — belegt den gesamten Bus-Weg, ohne dass ein einziges Byte die NAS verlässt.
+1. ~~Bus-Identität und Credential~~ — erledigt: `AGENT-ENG-001` existiert, `compose.prepare.yaml` gibt den Zugang aus.
+2. ~~Eigenes Security-Review~~ — erledigt: `evidence/2026-08-31_security_review_agent.md`.
+3. ~~Erster Trockenlauf mit `echo`~~ — erledigt: `evidence/2026-08-31_agent_dryrun.md`.
+4. **Eine Entscheidung, die den kostenpflichtigen Modellbetrieb überhaupt erlaubt.** `DEC-027` und `ENG-008` untersagen ihn ausdrücklich („keine neuen kostenpflichtigen externen Dienste", „kein externer kostenpflichtiger Dienst"). Ohne neue CEO-Entscheidung ist `AGENT_PROVIDER=claude` gesperrt.
+5. Entscheidung über `AGENT_DATA_POLICY` und gegebenenfalls `AGENT_DATA_POLICY_OVERRIDES`.
 6. Temporäre Firewall-Regel für `172.31.254.2/32` auf TCP 8443, danach wieder entfernen.
 
 ## Harte Grenzen für einen Lauf
@@ -126,7 +133,7 @@ Bewusst **nicht** über den System-Prompt: Was das Modell schreiben soll, kann d
 
 ## Noch offen
 
-- **Der Agent handelt unter der Identität eines Menschen** (Security-Review A1, blockierend). Er nutzt das Credential von `AI-ENG-001` — „Gerd", `AI Engineer`, `PROBATION`. Antworten erscheinen im Bus als Nachrichten einer Person. `agent_identity_create.sql` legt `AGENT-ENG-001` nach dem Muster von `CEO-TG-002` an, ist aber **noch nicht ausgeführt**: eine dauerhafte Registry-Änderung braucht eine Freigabeentscheidung.
-- **Entscheidung zur Datengrenze.** Voreinstellung `METADATA_ONLY`; fachliche Arbeit braucht `BODY`.
-- **Freigabeentscheidung** (`DEC-`Nummer) für den Modellbetrieb.
+- **Kein Claim über die Bus-API** (Review-Befund G-002, halb erledigt). Der Claim in `state_store.py` ist atomar, aber an ein Volume gebunden — zwei Worker mit getrennten Volumes könnten dieselbe Nachricht bearbeiten. Der saubere Endzustand wäre ein Claim auf API-Ebene, was einen neuen Endpunkt und eine Migration bedeutet. Heute existiert genau ein Worker.
+- **Kein dauerhafter Ausführungsnachweis** (G-009, für den Agenten offen). Provider, Modell, Policy und Versuch stehen nur im stdout-Protokoll; nach Containerrückbau sind sie weg. Für den Core-Roundtrip ist die Audit-Rekonstruktion gelöst, für den Agenten nicht.
+- **Freigabeentscheidung** (`DEC-`Nummer) für den Modellbetrieb — siehe oben, derzeit ausdrücklich untersagt.
 - **Die Rückrichtung zu Telegram** ist jetzt über `TELEGRAM_OUTBOUND_POLICY` konfigurierbar, steht aber weiter auf `METADATA_ONLY` — eine Agentenantwort würde per Telegram nur angekündigt, nicht lesbar zugestellt. Auch das ist eine Entscheidung, keine Voreinstellung.
