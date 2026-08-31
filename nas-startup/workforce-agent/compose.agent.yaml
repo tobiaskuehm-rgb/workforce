@@ -1,0 +1,45 @@
+name: startup-workforce-agent
+
+# One bounded agent run. Same isolated-subnet + fixed-address pattern the bus
+# realtest and the Telegram connector already use, so exactly one /32 has to be
+# allowed through the DSM firewall on TCP 8443 for the test window.
+#
+# The container needs two kinds of outbound reach:
+#   - the NAS API on 8443, which the firewall rule covers
+#   - api.anthropic.com, only when AGENT_PROVIDER=claude
+# With AGENT_PROVIDER=echo it needs neither a key nor the internet, which makes
+# the first dry run genuinely free of external contact.
+
+services:
+  workforce-agent:
+    image: startup-workforce-agent:v1
+    build:
+      context: .
+    restart: "no"
+    env_file:
+      - workforce-agent.env
+    secrets:
+      - agent_bus_token
+      - anthropic_api_key
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29
+
+secrets:
+  agent_bus_token:
+    file: ./secrets/agent_bus_token
+  anthropic_api_key:
+    file: ./secrets/anthropic_api_key
