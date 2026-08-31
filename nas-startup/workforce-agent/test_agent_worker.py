@@ -370,3 +370,99 @@ class StrictSecretsTest(unittest.TestCase):
             "sk-ant-from-env",
             providers.read_api_key({"ANTHROPIC_API_KEY": "sk-ant-from-env"}),
         )
+
+
+class SubscriptionProviderTest(unittest.TestCase):
+    """A CLI behind the narrow provider interface, driven by a subscription."""
+
+    def _provider(self, script: str, **kwargs):
+        # A tiny python program stands in for the CLI, so these tests need no
+        # CLI installed and no subscription.
+        import sys
+        return providers.SubscriptionProvider(
+            [sys.executable, "-c", script], **kwargs
+        )
+
+    def test_stdout_becomes_the_reply(self):
+        reply = self._provider(
+            "import sys; sys.stdin.read(); print('Fachliche Antwort der CLI.')"
+        ).complete(system="s", content="c")
+        self.assertEqual("Fachliche Antwort der CLI.", reply.text)
+        self.assertEqual("subscription", reply.provider)
+
+    def test_the_prompt_reaches_the_process(self):
+        reply = self._provider(
+            "import sys; print(sys.stdin.read().strip()[-7:])"
+        ).complete(system="SYS", content="INHALT!")
+        self.assertEqual("INHALT!", reply.text)
+
+    def test_a_placeholder_is_substituted_instead_of_stdin(self):
+        import sys
+        provider = providers.SubscriptionProvider(
+            [sys.executable, "-c", "import sys; print(sys.argv[1][-7:])", "{prompt}"]
+        )
+        self.assertEqual("INHALT!", provider.complete(system="S", content="INHALT!").text)
+
+    def test_a_nonzero_exit_is_reported_by_code_not_by_message(self):
+        # stderr may carry a rate-limit notice; its wording is not stable, so
+        # only the exit code travels into the error.
+        with self.assertRaises(providers.ProviderError) as caught:
+            self._provider(
+                "import sys; sys.stderr.write('irgendein Text'); sys.exit(7)"
+            ).complete(system="s", content="c")
+        self.assertIn("EXIT_7", str(caught.exception))
+        self.assertNotIn("irgendein Text", str(caught.exception))
+
+    def test_empty_output_is_an_error_not_an_empty_answer(self):
+        with self.assertRaises(providers.ProviderError):
+            self._provider("import sys; sys.stdin.read()").complete(system="s", content="c")
+
+    def test_a_hanging_cli_is_cut_off(self):
+        with self.assertRaises(providers.ProviderError) as caught:
+            self._provider("import time; time.sleep(30)", timeout=0.5).complete(
+                system="s", content="c"
+            )
+        self.assertIn("TIMEOUT", str(caught.exception))
+
+    def test_a_missing_command_is_reported_clearly(self):
+        with self.assertRaises(providers.ProviderError) as caught:
+            providers.SubscriptionProvider(["definitely-not-a-command"]).complete(
+                system="s", content="c"
+            )
+        self.assertIn("NOT_FOUND", str(caught.exception))
+
+    def test_the_process_does_not_inherit_this_environment(self):
+        # The worker's environment holds bus tokens and possibly an API key.
+        # A CLI has no business seeing them.
+        import os
+        os.environ["AGENT_BUS_TOKEN_FILE"] = "/run/secrets/agent_bus_token"
+        try:
+            reply = self._provider(
+                "import os, sys; sys.stdin.read();"
+                " print(os.environ.get('AGENT_BUS_TOKEN_FILE', 'NICHT_GEERBT'))"
+            ).complete(system="s", content="c")
+        finally:
+            os.environ.pop("AGENT_BUS_TOKEN_FILE", None)
+        self.assertEqual("NICHT_GEERBT", reply.text)
+
+    def test_it_counts_as_free_because_no_money_changes_hands(self):
+        # Quota is consumed, money is not - and the budget's cost ceiling can
+        # only see money.
+        self.assertFalse(providers.SubscriptionProvider(["x"]).is_paid)
+
+    def test_build_provider_refuses_a_missing_or_malformed_command(self):
+        for env in ({"AGENT_PROVIDER": "subscription"},
+                    {"AGENT_PROVIDER": "subscription",
+                     "AGENT_SUBSCRIPTION_COMMAND": "claude -p"},
+                    {"AGENT_PROVIDER": "subscription",
+                     "AGENT_SUBSCRIPTION_COMMAND": '{"not": "a list"}'}):
+            with self.subTest(env=env):
+                with self.assertRaises(providers.ProviderError):
+                    providers.build_provider(env)
+
+    def test_build_provider_accepts_a_json_argv(self):
+        provider = providers.build_provider({
+            "AGENT_PROVIDER": "subscription",
+            "AGENT_SUBSCRIPTION_COMMAND": '["claude", "-p"]',
+        })
+        self.assertEqual(["claude", "-p"], provider.command)

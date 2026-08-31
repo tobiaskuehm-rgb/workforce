@@ -8,12 +8,14 @@ Adding a provider means implementing `complete()` and registering it in
 `build_provider()`. Nothing else in the package changes.
 
 Available today:
-  claude  the Anthropic API via the official SDK (default)
-  echo    deterministic, no network, no credentials - for tests and dry runs
+  claude        the Anthropic API via the official SDK (default)
+  subscription  a CLI authenticated by a Claude or ChatGPT subscription
+  echo          deterministic, no network, no credentials - for tests
 """
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -180,6 +182,89 @@ class ClaudeProvider:
         return Reply(text=text, **common)
 
 
+class SubscriptionProvider:
+    """A CLI authenticated by a subscription rather than by an API key.
+
+    Both Codex CLI and Claude Code can sign in with the corresponding
+    consumer subscription, and their use counts against that plan instead of
+    per-token billing. That makes them attractive here: an exhausted plan is a
+    wait, not an invoice.
+
+    **The danger is the opposite of the API providers'.** Those CLIs exist to
+    *act* - read files, run shell commands, reach the network. Handing agent
+    work to one would give a model a shell on the NAS and demolish the reason
+    this agent is safe to point at untrusted message content. So:
+
+    1. **Isolation, not flags.** This provider must run in a container with no
+       mounts, no route to the bus and nothing worth reaching. A flag that
+       disables tools is welcome, but it is not the control - the control is
+       that there is nothing to act on. The exact flags differ per CLI and per
+       version, which is why the command is configured rather than hardcoded
+       here: an invented flag would be worse than none.
+    2. **Text in, text out.** Whatever the CLI writes to stdout is treated as
+       the answer, exactly like any other provider's reply, and is used for
+       nothing but the body of a bus message.
+
+    Configure with:
+      AGENT_SUBSCRIPTION_COMMAND   argv, JSON list, e.g. ["claude", "-p"]
+      AGENT_SUBSCRIPTION_TIMEOUT   seconds, default 180
+
+    The prompt is written to the process's stdin. If your CLI expects it as an
+    argument instead, append a placeholder `{prompt}` to the argv and it will
+    be substituted.
+    """
+
+    name = "subscription"
+    # No money changes hands - but the plan's quota does get consumed, and it
+    # is the same quota the humans use interactively. The budget's cost
+    # ceiling cannot see that, so the run log says it out loud.
+    is_paid = False
+
+    def __init__(self, command: list[str], *, timeout: float = 180.0,
+                 model: str = "subscription-cli") -> None:
+        if not command:
+            raise ProviderError("AGENT_SUBSCRIPTION_COMMAND_MISSING")
+        self.command = command
+        self.timeout = timeout
+        self.model = model
+
+    def complete(self, *, system: str, content: str) -> Reply:
+        import subprocess
+
+        prompt = f"{system}\n\n{content}"
+        argv = [part.replace("{prompt}", prompt) for part in self.command]
+        stdin_input = None if any("{prompt}" in part for part in self.command) else prompt
+
+        try:
+            finished = subprocess.run(
+                argv,
+                input=stdin_input,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                # Nothing inherited: the CLI gets its credentials from its own
+                # config, and passing this process's environment could hand it
+                # bus tokens or an API key it has no business seeing.
+                env={"HOME": os.environ.get("HOME", "/home/startup"),
+                     "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin")},
+            )
+        except FileNotFoundError as exc:
+            raise ProviderError("AGENT_SUBSCRIPTION_COMMAND_NOT_FOUND") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise ProviderError("AGENT_SUBSCRIPTION_TIMEOUT") from exc
+
+        if finished.returncode != 0:
+            # stderr may carry a rate-limit message; the code is stable, the
+            # text is not, so only the code travels.
+            raise ProviderError(f"AGENT_SUBSCRIPTION_EXIT_{finished.returncode}")
+
+        text = (finished.stdout or "").strip()
+        if not text:
+            raise ProviderError("AGENT_SUBSCRIPTION_EMPTY_REPLY")
+
+        return Reply(text=text, provider=self.name, model=self.model)
+
+
 def read_api_key(environment: dict[str, str]) -> str | None:
     """Prefer a key file over an environment variable.
 
@@ -220,6 +305,21 @@ def build_provider(environment: dict[str, str] | None = None) -> Provider:
 
     if name == "echo":
         return EchoProvider()
+    if name == "subscription":
+        raw = env.get("AGENT_SUBSCRIPTION_COMMAND", "").strip()
+        if not raw:
+            raise ProviderError("AGENT_SUBSCRIPTION_COMMAND_MISSING")
+        try:
+            command = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ProviderError("AGENT_SUBSCRIPTION_COMMAND_INVALID") from exc
+        if not isinstance(command, list) or not all(isinstance(p, str) for p in command):
+            raise ProviderError("AGENT_SUBSCRIPTION_COMMAND_INVALID")
+        try:
+            timeout = float(env.get("AGENT_SUBSCRIPTION_TIMEOUT", "180"))
+        except ValueError as exc:
+            raise ProviderError("AGENT_SUBSCRIPTION_TIMEOUT_INVALID") from exc
+        return SubscriptionProvider(command, timeout=timeout)
     if name == "claude":
         try:
             api_key = read_api_key(env)
