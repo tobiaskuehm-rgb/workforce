@@ -134,14 +134,24 @@ Keiner davon kostet Geld, keiner braucht ein Modell. Alle brauchen **eine Freiga
 2. **API `v8` bauen und ausrollen.** Sie schreibt die Ablehnungen; ohne sie bleibt `bus_denials` leer.
 3. **Contract-Test in der neuen Fassung gegen den echten Bus.** Erwartung: `deny` vollständig, `allow` 17/17 und 5/5, `wrong_reason` 0.
 4. **`verify_secret_isolation_once.sh`** — braucht keine Firewall-Regel und keine Zugangsdaten.
+5. **Der Worker-Core-Lauf** (`compose.workercore.yaml`) — setzt `AGENT-ENG-001` in der Registry, Migration `004` und API `v8` voraus; `workercore_prepare.sql` prüft alle drei und bricht ab, statt halb zu laufen.
 
-Vorher auf der NAS einmalig: `sudo sh workforce-agent/derive_db_env_once.sh` in `/volume1/docker/Startup`. Ohne `startup.db.env` startet kein Hilfscontainer mehr.
+**Erledigt:** `startup.db.env` liegt auf der NAS — `root:users` mit `660`, genau drei Schlüssel, kein API-Schlüssel darin. `startup.env` unverändert.
 
-### Der eigentliche nächste Arbeitsschritt
+Eine Lehre dabei, die in den Runbooks steht: `sudo docker` scheitert über eine **nicht-interaktive** SSH-Sitzung, weil die NOPASSWD-Regel auf `/usr/local/bin/docker` lautet und `docker` dort nicht im `PATH` liegt. Mit vollem Pfad läuft es. `sudo sh …` geht gar nicht — die passwortlose Regel gilt nur für Docker.
 
-Gerds Empfehlung, der ich zustimme: **ein integrierter Worker-Core-Test** — `agent_worker.py` mit Echo-Provider, echte Claim-/Retry-Fehler injiziert, Prozessneustart mittendrin, vollständiges Audit hinterher. Das ist der Nachweis, den `ENG-008` verlangt und den der Core-Roundtrip **nicht** erbringt (`G-015`). Danach den begonnenen `chain-test/` fertigbauen.
+### Der Worker-Core-Test ist gebaut
 
-Er lässt sich mit den vier Punkten oben in einem Fenster fahren.
+`worker_core_test.py` — die echte Laufzeit unter Last: `agent_worker.poll_once()`, echter `AgentStateStore` auf echter Datei, echte Datengrenze, echtes Budget. Sechs Szenarien: Gutfall, Absturz vor der Bestätigung mit Neustart, wiederholbarer Fehler, Erschöpfung inklusive verworfener Schlussmeldung (`G-012`), verlorenes State-Volume, verbotene Route. Lokal grün, `test_worker_core_test.py`.
+
+Auf der NAS sind `phase1` und `phase2` **zwei Container** über demselben Volume — ein echter Neustart, kein neues Objekt im selben Prozess. Paket: `compose.workercore.yaml`, `workercore_prepare.sql`, `workercore_cleanup.sql`, `workercore_audit.sql`, `Dockerfile.workercore`. **Geschrieben, nicht gelaufen.**
+
+Zwei Funde beim Bauen, beide vom Typ „die Prüfung sah nicht hin":
+
+1. Die erste Fassung der Suite ließ einen absichtlich **nicht-idempotenten Bus** durchgehen. Bei intakter State-Datei sendet der Worker nie zweimal, also wurde die Bus-Idempotenz nie erreicht — die Einmaligkeit trug allein der State Store. Szenario E (verlorenes Volume) belastet die zweite Linie und benennt nebenbei die Kosten: ein wiederholter Modellaufruf je Nachricht in Arbeit.
+2. Der Compose-Scanner las **YAML-Anker** nicht und hätte `phase1`/`phase2` als leere Dienste durchgewunken. Ein Wächter, der nicht sieht, meldet `PASS`. Er scheitert jetzt an Ankern; die Compose-Datei kommt ohne aus.
+
+Danach: den begonnenen `chain-test/` fertigbauen.
 
 ### Beim CEO
 
