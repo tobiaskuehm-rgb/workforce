@@ -74,12 +74,19 @@ Alle Läufe endeten mit vollständigem Rückbau: Zugänge widerrufen, Kanal `DIS
 
 **Verbraucht sich:** Diese Freigabe ist nach einem Lauf aufgebraucht — unabhängig davon, ob er gelingt. Ein weiterer Lauf braucht eine neue Entscheidung.
 
+**Kostengrundsatz (gilt über diesen Lauf hinaus):** Ausgaben für Modellaufrufe werden **einzeln und vorab vom CEO freigegeben**, niemals automatisch und niemals als Dauerfreigabe. Es gibt bewusst keinen Zustand, in dem der Agent von selbst Geld ausgibt: Voreinstellung ist der kostenlose Echo-Provider, und eine Kostendecke von `0` weist einen kostenpflichtigen Provider bereits vor dem ersten Aufruf ab.
+
+Hintergrund: Wo Arbeit auch über die vorhandenen Pro-Abos möglich ist, hat das Vorrang — dort sind die Kosten bereits getragen und ein erschöpftes Limit ist eine Wartezeit, keine Rechnung. Der CEO entscheidet je Fall, ob er auf ein zurückgesetztes Limit wartet oder Kosten freigibt.
+
+**Wichtige Abgrenzung:** Die Pro-Abos (Claude Pro, ChatGPT Pro) gelten für die Chat-Oberflächen und decken **keinen** API-Zugang. Der Workforce-Agent auf der NAS kann sie nicht nutzen; er spricht über die API und wird pro Token getrennt abgerechnet. Für ihn gibt es daher nur zwei Zustände: kostenloser Echo-Provider oder ausdrücklich freigegebener, kostenpflichtiger Lauf. Eine „erst Abo, dann API"-Abstufung existiert für den Agenten nicht.
+
 ---
 
 ## Was von dir noch fehlt
 
 1. **Beide Einträge prüfen** und in `03_DECISION_LOG.txt` übernehmen — oder mir sagen, was zu ändern ist.
 2. **Datengrenze für den Einmallauf** festlegen: `BODY` oder `FULL`.
-3. **Einen Anthropic-API-Schlüssel** anlegen (console.anthropic.com) und auf der NAS ablegen. Wie beim Bot-Token: **nicht** in den Chat, sondern direkt in die Datei. Den Befehl dafür gebe ich dir, wenn es soweit ist.
+3. **Entscheiden, ob `DEC-029` überhaupt jetzt gebraucht wird.** Der Agent ist gebaut, getestet und im Trockenlauf bewährt; was ein bezahlter Lauf zusätzlich beweist, ist ausschließlich die Antwortqualität eines echten Modells. Das ist ein echter Nachweis, aber kein dringender — der Core ist gerade erst durchs Gate, und `DEC-027` stellt die Reihenfolge `CORE → THORSTEN → FINANCE` auf. Ein Aufschub kostet nichts.
+4. Nur falls `DEC-029` kommt: **einen Anthropic-API-Schlüssel** anlegen (console.anthropic.com, eigenes Guthaben — das Pro-Abo deckt das nicht) und auf der NAS ablegen. Wie beim Bot-Token: **nicht** in den Chat, sondern direkt in die Datei.
 
 Erst danach baue ich das Runbook für den Lauf.
