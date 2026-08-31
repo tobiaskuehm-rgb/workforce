@@ -27,6 +27,12 @@ services:
       AGENT_POLL_SECONDS: "5"
       # Exactly one pass over the inbox, then the container exits by itself.
       AGENT_MAX_CYCLES: "1"
+      # Ceilings apply even to the echo provider, so the dry run exercises
+      # the budget path too. Echo costs nothing, hence the zero cost cap.
+      AGENT_MAX_MESSAGES: "10"
+      AGENT_MAX_PROVIDER_CALLS: "10"
+      AGENT_MAX_TOKENS: "100000"
+      AGENT_MAX_COST_USD: "0"
     secrets:
       - agent_bus_token
     networks:

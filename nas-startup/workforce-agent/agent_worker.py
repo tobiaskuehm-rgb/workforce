@@ -35,6 +35,7 @@ import sys
 import time
 from typing import Any
 
+import budget as budget_module
 import bus_client
 import data_boundary
 import providers
@@ -96,12 +97,25 @@ def handle_message(
     message: dict[str, Any],
     *,
     policy: data_boundary.Policy | None = None,
+    budget: budget_module.Budget | None = None,
 ) -> dict[str, Any]:
     """Process exactly one inbound message. Never raises for expected failures."""
     message_id = str(message.get("message_id", ""))
     sender_id = str(message.get("sender_id", ""))
     if not message_id or not sender_id:
         return {"message_id": message_id, "result": "SKIPPED_INCOMPLETE"}
+
+    # Budget is checked before the acknowledgement, never after. An exhausted
+    # budget must leave the message DELIVERED so a later run still sees it -
+    # acknowledging and then refusing to work would swallow it silently.
+    if budget is not None:
+        try:
+            budget.check_message()
+        except budget_module.BudgetExhausted as stop:
+            log("budget_exhausted", message_id=message_id, limit=stop.limit_name,
+                used=stop.used, ceiling=stop.ceiling)
+            raise
+        budget.record_message()
 
     # 1. Confirm receipt first. If anything below fails, the sender still sees
     #    that the message arrived, and gets an explicit failure reply.
@@ -145,6 +159,13 @@ def handle_message(
             refused = True
         else:
             log("provider_replied", message_id=message_id, **reply.as_log_record())
+            if budget is not None:
+                budget.record_provider_call(
+                    model=reply.model,
+                    input_tokens=reply.input_tokens,
+                    output_tokens=reply.output_tokens,
+                )
+                log("budget", **budget.as_log_record())
             reply_text = reply.text
             refused = reply.refused
 
@@ -186,9 +207,14 @@ def poll_once(
     provider: providers.Provider,
     *,
     policy: data_boundary.Policy | None = None,
+    budget: budget_module.Budget | None = None,
     limit: int = 25,
 ) -> list[dict[str, Any]]:
-    """One pass over the inbox. Returns a result per message handled."""
+    """One pass over the inbox. Returns a result per message handled.
+
+    Stops early and cleanly when the budget runs out; the messages not reached
+    stay DELIVERED and are picked up by a later run.
+    """
     status = client.status()
     if status.get("channel_status") not in {"TESTING", "ACTIVE"}:
         log("channel_not_open", channel_status=status.get("channel_status"))
@@ -198,7 +224,17 @@ def poll_once(
     pending = [m for m in messages if m.get("delivery_status") == "DELIVERED"]
     log("polled", total=len(messages), pending=len(pending))
 
-    return [handle_message(client, provider, m, policy=policy) for m in pending]
+    results: list[dict[str, Any]] = []
+    for item in pending:
+        try:
+            results.append(
+                handle_message(client, provider, item, policy=policy, budget=budget)
+            )
+        except budget_module.BudgetExhausted:
+            log("poll_stopped_on_budget", handled=len(results),
+                left_untouched=len(pending) - len(results))
+            break
+    return results
 
 
 def run(
@@ -208,16 +244,24 @@ def run(
     poll_seconds: int,
     max_cycles: int | None = None,
     policy: data_boundary.Policy | None = None,
+    budget: budget_module.Budget | None = None,
     sleep=time.sleep,
 ) -> int:
     cycles = 0
     handled = 0
     while max_cycles is None or cycles < max_cycles:
         try:
-            results = poll_once(client, provider, policy=policy)
+            results = poll_once(client, provider, policy=policy, budget=budget)
             handled += len(results)
         except bus_client.BusError as error:
             log("poll_failed", detail=error.detail)
+
+        # A spent budget ends the run, not just the pass. Continuing would burn
+        # poll cycles that can no longer do any work.
+        if budget is not None and budget.exhausted:
+            log("run_stopped_on_budget", **budget.as_log_record())
+            break
+
         cycles += 1
         if max_cycles is not None and cycles >= max_cycles:
             break
@@ -238,6 +282,7 @@ def main() -> int:
         token = bus_client.read_token(os.environ["AGENT_BUS_TOKEN_FILE"])
         policy = data_boundary.active_policy()
         provider = providers.build_provider()
+        budget = budget_module.build_budget()
     except (ValueError, KeyError, OSError, providers.ProviderError,
             data_boundary.DataBoundaryError) as error:
         log("blocked", reason=str(error))
@@ -248,12 +293,12 @@ def main() -> int:
     max_cycles = int(raw_cycles) if raw_cycles else None
 
     log("starting", provider=provider.name, data_policy=policy,
-        poll_seconds=poll_seconds, max_cycles=max_cycles)
+        poll_seconds=poll_seconds, max_cycles=max_cycles, **budget.as_log_record())
 
     client = bus_client.BusClient(base_url=base_url, token=token)
     handled = run(client, provider, poll_seconds=poll_seconds,
-                  max_cycles=max_cycles, policy=policy)
-    log("stopped", handled=handled)
+                  max_cycles=max_cycles, policy=policy, budget=budget)
+    log("stopped", handled=handled, **budget.as_log_record())
     return 0
 
 

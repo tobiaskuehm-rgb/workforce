@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from telegram_connector import (
+    MAX_OUTBOUND_BODY_CHARS,
     AuditStore,
     ConfigurationError,
     ConnectorError,
@@ -359,3 +360,128 @@ class ConfigurationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class OutboundDataBoundaryTest(unittest.TestCase):
+    """The second data boundary: what of a bus message reaches Telegram.
+
+    Telegram bot chats are cloud chats, not end-to-end encrypted. The default
+    must stay metadata-only; forwarding a body is an explicit operator choice.
+    """
+
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.state_path = Path(self.tempdir.name) / "state.sqlite3"
+        self.base = dict(
+            enabled=True,
+            kill_switch=False,
+            telegram_bot_token=BOT_TOKEN,
+            allowed_chat_id=111,
+            allowed_user_id=222,
+            allowed_recipient_ids=frozenset({"AI-ENG-001"}),
+            allowed_task_ids=frozenset({"CEO-TG-TEST-001"}),
+            workforce_base_url="https://nas.example.test:8443",
+            workforce_bus_token=BUS_TOKEN,
+            state_path=self.state_path,
+            poll_timeout_seconds=1,
+        )
+        self.store = AuditStore(self.state_path)
+
+    def tearDown(self):
+        self.store.close()
+        self.tempdir.cleanup()
+
+    def _connector(self, **overrides):
+        telegram = FakeTelegram()
+        workforce = FakeWorkforce()
+        workforce.inbox = [
+            {
+                "message_id": "MSG-" + "A" * 32,
+                "sender_id": "AI-ENG-001",
+                "subject": "Re: Bitte pruefen",
+                "body": "Die fachliche Antwort des Agenten mit Details.",
+                "task_ref": "CEO-TG-TEST-001",
+                "delivery_status": "DELIVERED",
+            }
+        ]
+        settings = Settings(**{**self.base, **overrides})
+        return TelegramConnector(settings, self.store, telegram, workforce), telegram
+
+    def test_default_policy_never_forwards_the_body(self):
+        connector, telegram = self._connector()
+        connector.publish_inbox_notifications()
+        sent = "\n".join(text for _, text in telegram.sent)
+        self.assertIn("MSG-", sent)
+        self.assertIn("Re: Bitte pruefen", sent)
+        self.assertNotIn("Die fachliche Antwort", sent)
+
+    def test_body_policy_forwards_a_shortened_body(self):
+        connector, telegram = self._connector(outbound_policy="BODY")
+        connector.publish_inbox_notifications()
+        sent = "\n".join(text for _, text in telegram.sent)
+        self.assertIn("Die fachliche Antwort des Agenten mit Details.", sent)
+
+    def test_body_is_truncated_to_the_configured_length(self):
+        connector, telegram = self._connector(
+            outbound_policy="BODY", outbound_body_chars=20
+        )
+        connector.publish_inbox_notifications()
+        body_line = telegram.sent[0][1].split("\n\n", 1)[1]
+        self.assertLessEqual(len(body_line), 20)
+        self.assertTrue(body_line.endswith("…"))
+
+    def test_hard_ceiling_wins_over_a_larger_configured_value(self):
+        connector, telegram = self._connector(
+            outbound_policy="BODY", outbound_body_chars=99999
+        )
+        connector.publish_inbox_notifications()
+        body_line = telegram.sent[0][1].split("\n\n", 1)[1]
+        self.assertLessEqual(len(body_line), MAX_OUTBOUND_BODY_CHARS)
+
+    def test_one_notification_per_message_even_across_a_policy_change(self):
+        # Deduplication is keyed on the bus message, not on how it is rendered.
+        # Turning the policy on must not re-announce everything already sent -
+        # that would be a notification storm. The new policy applies to what
+        # arrives after it.
+        metadata_only, first = self._connector()
+        metadata_only.publish_inbox_notifications()
+        with_body, second = self._connector(outbound_policy="BODY")
+        with_body.publish_inbox_notifications()
+        self.assertEqual(1, len(first.sent))
+        self.assertEqual(0, len(second.sent), "already announced, must stay silent")
+        self.assertNotIn("Die fachliche Antwort", first.sent[0][1])
+
+    def test_a_new_message_under_the_body_policy_carries_the_body(self):
+        connector, telegram = self._connector(outbound_policy="BODY")
+        connector.publish_inbox_notifications()
+        self.assertEqual(1, len(telegram.sent))
+        self.assertIn("Die fachliche Antwort", telegram.sent[0][1])
+
+    def test_invalid_policy_is_refused_at_configuration_time(self):
+        with self.assertRaises(ConfigurationError):
+            Settings.from_env({
+                "TELEGRAM_CONNECTOR_ENABLED": "true",
+                "TELEGRAM_KILL_SWITCH": "false",
+                "TELEGRAM_BOT_TOKEN": BOT_TOKEN,
+                "WORKFORCE_BUS_TOKEN": BUS_TOKEN,
+                "WORKFORCE_API_BASE_URL": "https://nas.example.test:8443",
+                "TELEGRAM_ALLOWED_CHAT_ID": "111",
+                "TELEGRAM_ALLOWED_USER_ID": "222",
+                "TELEGRAM_ALLOWED_RECIPIENT_IDS": "AI-ENG-001",
+                "TELEGRAM_ALLOWED_TASK_IDS": "CEO-TG-TEST-001",
+                "TELEGRAM_OUTBOUND_POLICY": "EVERYTHING",
+            })
+
+    def test_default_from_environment_is_metadata_only(self):
+        settings = Settings.from_env({
+            "TELEGRAM_CONNECTOR_ENABLED": "true",
+            "TELEGRAM_KILL_SWITCH": "false",
+            "TELEGRAM_BOT_TOKEN": BOT_TOKEN,
+            "WORKFORCE_BUS_TOKEN": BUS_TOKEN,
+            "WORKFORCE_API_BASE_URL": "https://nas.example.test:8443",
+            "TELEGRAM_ALLOWED_CHAT_ID": "111",
+            "TELEGRAM_ALLOWED_USER_ID": "222",
+            "TELEGRAM_ALLOWED_RECIPIENT_IDS": "AI-ENG-001",
+            "TELEGRAM_ALLOWED_TASK_IDS": "CEO-TG-TEST-001",
+        })
+        self.assertEqual("METADATA_ONLY", settings.outbound_policy)

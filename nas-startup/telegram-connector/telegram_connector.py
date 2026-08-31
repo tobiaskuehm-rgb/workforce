@@ -31,6 +31,24 @@ from typing import Any, Mapping, Protocol, Sequence
 EMPLOYEE_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9-]{2,63}$")
 TASK_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9-]{2,63}$")
 SOURCE_REF_PATTERN = re.compile(r"^DEC-[0-9]{3}/ENG-[0-9]{3}$")
+
+# What may be forwarded from the bus into the Telegram chat.
+#
+#   METADATA_ONLY  ids, sender, task reference, delivery status, subject.
+#                  Never the message body. The long-standing default and the
+#                  only behaviour this connector had before 2026-08-31.
+#   BODY           adds a shortened message body, so an answer is actually
+#                  readable in Telegram instead of only announced.
+#
+# Telegram bot chats are cloud chats, not end-to-end encrypted secret chats.
+# Moving to BODY means the content of internal work messages is stored on
+# Telegram's servers. That is a deliberate decision to be taken by the
+# operator, not a default - hence the switch rather than a rewrite.
+OUTBOUND_POLICIES = ("METADATA_ONLY", "BODY")
+
+# Hard ceiling regardless of configuration. Telegram itself accepts far more,
+# but a short summary is the point: the bus stays the system of record.
+MAX_OUTBOUND_BODY_CHARS = 1500
 HELP_TEXT = (
     "START-UP Telegram-Pilot\n"
     "/status – technischen Busstatus lesen\n"
@@ -123,6 +141,14 @@ class Settings:
     allowed_task_ids: frozenset[str] = field(default_factory=frozenset)
     source_ref: str = "DEC-023/ENG-007"
     poll_timeout_seconds: int = 25
+    # What of an inbound bus message may be forwarded into the Telegram chat.
+    # This is the second data boundary in the chain: the first governs what
+    # reaches a model provider (workforce-agent/data_boundary.py), this one
+    # governs what reaches Telegram. Telegram bot chats are cloud chats, not
+    # end-to-end encrypted, so the default stays metadata-only - exactly the
+    # behaviour this connector has always had.
+    outbound_policy: str = "METADATA_ONLY"
+    outbound_body_chars: int = 500
     telegram_bot_token: str = field(default="", repr=False)
     workforce_bus_token: str = field(default="", repr=False)
 
@@ -174,6 +200,19 @@ class Settings:
         if not 1 <= poll_timeout <= 50:
             raise ConfigurationError("POLL_TIMEOUT_INVALID")
 
+        outbound_policy = values.get(
+            "TELEGRAM_OUTBOUND_POLICY", "METADATA_ONLY"
+        ).strip().upper()
+        if outbound_policy not in OUTBOUND_POLICIES:
+            raise ConfigurationError("TELEGRAM_OUTBOUND_POLICY_INVALID")
+
+        try:
+            outbound_body_chars = int(values.get("TELEGRAM_OUTBOUND_BODY_CHARS", "500"))
+        except ValueError as exc:
+            raise ConfigurationError("TELEGRAM_OUTBOUND_BODY_CHARS_INVALID") from exc
+        if not 1 <= outbound_body_chars <= MAX_OUTBOUND_BODY_CHARS:
+            raise ConfigurationError("TELEGRAM_OUTBOUND_BODY_CHARS_INVALID")
+
         return cls(
             enabled=enabled,
             kill_switch=kill_switch,
@@ -192,6 +231,8 @@ class Settings:
                 )
             ),
             poll_timeout_seconds=poll_timeout,
+            outbound_policy=outbound_policy,
+            outbound_body_chars=outbound_body_chars,
         )
 
 
@@ -813,6 +854,26 @@ class TelegramConnector:
         self.publish_inbox_notifications()
         return handled
 
+    def _outbound_body(self, message: Mapping[str, Any]) -> str | None:
+        """The message body, if and only if the policy allows forwarding it.
+
+        Returns None under METADATA_ONLY - not an empty string - so callers can
+        tell "not permitted" apart from "permitted but empty". This is the only
+        place a bus body can reach Telegram.
+        """
+        if self.settings.outbound_policy != "BODY":
+            return None
+        raw = message.get("body")
+        if not isinstance(raw, str):
+            return None
+        collapsed = " ".join(raw.split())
+        if not collapsed:
+            return ""
+        limit = min(self.settings.outbound_body_chars, MAX_OUTBOUND_BODY_CHARS)
+        if len(collapsed) <= limit:
+            return collapsed
+        return collapsed[: limit - 1].rstrip() + "…"
+
     def publish_inbox_notifications(self) -> int:
         if not self.settings.enabled or self.settings.kill_switch:
             return 0
@@ -839,6 +900,14 @@ class TelegramConnector:
                 "delivery_status": delivery_status,
                 "subject": subject,
             }
+            # The fingerprint identifies the bus message, not how it is
+            # rendered - so the body excerpt stays out of it deliberately.
+            # One bus message yields at most one Telegram notification, ever.
+            # Including the rendering would make a policy change re-notify
+            # every already-announced message at once, which is a notification
+            # storm, not a feature. A changed policy applies to what comes
+            # after it.
+            body_excerpt = self._outbound_body(message)
             payload_hash = hashlib.sha256(
                 json.dumps(safe_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
             ).hexdigest()
@@ -851,15 +920,16 @@ class TelegramConnector:
                     metadata={"message_id": message_id, "reason": claim},
                 )
                 continue
+            notification = (
+                f"NACHRICHT {message_id} von {sender_id}\n"
+                f"Task={task_ref} · Status={delivery_status}\n"
+                f"Betreff: {subject}"
+            )
+            if body_excerpt:
+                notification += f"\n\n{body_excerpt}"
+
             try:
-                self.telegram.send_message(
-                    self.settings.allowed_chat_id,
-                    (
-                        f"NACHRICHT {message_id} von {sender_id}\n"
-                        f"Task={task_ref} · Status={delivery_status}\n"
-                        f"Betreff: {subject}"
-                    ),
-                )
+                self.telegram.send_message(self.settings.allowed_chat_id, notification)
             except ConnectorError:
                 self.store.finish_notification(message_id, "FAILED")
                 self.store.audit(
