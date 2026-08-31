@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-08-31, spät — von Claude Code
+**Zuletzt aktualisiert:** 2026-08-31, nach der Abarbeitung von Gerds zweiter Prüfrunde — von Claude Code
 
 ## Wie die Zusammenarbeit läuft
 
@@ -59,7 +59,8 @@ cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && tar czf - <pfade
 | Baustein | Zustand | Nachweis in `evidence/` |
 |---|---|---|
 | PostgreSQL-Schema (Migrationen 001–003) | produktiv | — |
-| Workforce-API `v7` (FastAPI) | läuft, gesund | — |
+| Migration `004` (Ablehnungs-Audit) | **geschrieben, nie angewendet** | — |
+| Workforce-API `v7` (FastAPI) | läuft, gesund — **im Repo steht `v8`**, nicht ausgerollt | — |
 | HTTPS über Reverse Proxy 8443 | verifiziert | — |
 | Bus-Realtest Karl ↔ Thorsten | **PASS** | `2026-08-31_bus_realtest_karl_thorsten.md` |
 | 20 Negativtests über die echte API | **PASS** | dito |
@@ -67,18 +68,23 @@ cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && tar czf - <pfade
 | Telegram-Realtest 2 | **PASS** | dito |
 | Security-Review Bus | erledigt | `2026-08-31_security_review_workforce_bus.md` |
 | Agenten-Trockenlauf (Echo) | **PASS** | `2026-08-31_agent_dryrun.md` |
-| **ENG-008 Core-Roundtrip** | **CORE PASS** | `2026-08-31_eng008_core_roundtrip.md` |
+| **ENG-008 Core-Roundtrip** | **`BUS LIFECYCLE PASS`**, Gate `CORE ITERATE` (`G-015`) | `2026-08-31_eng008_core_roundtrip.md` |
 | Security-Review Agentenschicht | erledigt | `2026-08-31_security_review_agent.md` |
+| Contract-Test gegen den echten Bus | **überholt** — die alte Fassung zählte jeden Fehler als Ablehnung (`G-014`) | `2026-08-31_contract_test_und_aufraeumen.md` |
 
 Die Kette **Telegram → NAS → Bus → PostgreSQL** ist real belegt. Der Bus ist abgenommen.
 
+**Der deployte Quellstand dieser Läufe ist nicht rekonstruierbar** (`G-019`). Ab jetzt trägt jeder Deploy ein `DEPLOY_MANIFEST.txt`, und ein Nachweislauf ohne bestandenes `verify_manifest.sh` zählt nicht.
+
 ### Gebaut, aber nie mit einem Modell gelaufen
 
-`workforce-agent/` — Worker, Provider-Abstraktion, Datengrenze, Prepare-/Cleanup-Paket, Budget, 56 lokale Tests. Der Echo-Trockenlauf hat den Bus-Weg belegt; `AGENT_PROVIDER=claude` ist noch nie ausgeführt worden.
+`workforce-agent/` — Worker, Provider-Abstraktion, Datengrenze, Prepare-/Cleanup-Paket, Budget, lokale Tests ohne Netz. Der Echo-Trockenlauf hat den Bus-Weg belegt; `AGENT_PROVIDER=claude` ist noch nie ausgeführt worden und durch `DEC-027`/`ENG-008` auch nicht freigegeben. `AGENT_PROVIDER=subscription` ist zurückgezogen (`G-016`).
 
 ### Systemzustand
 
 Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporären Firewall-Regeln, nur der Produktivstack läuft.
+
+**Das ist der Stand laut letztem Rückbauprotokoll, nicht laut Nachmessung.** Einmal an diesem Tag stimmte eine dokumentierte Firewall-Rücknahme nicht mit der Wirklichkeit überein (Nachtrag im Trockenlauf-Nachweis). Vor dem nächsten Lauf nachsehen, nicht nachlesen.
 
 ---
 
@@ -93,7 +99,7 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 | Punkt | Stand |
 |---|---|
-| **A1 — Agent handelt unter Menschen-Identität** | **blockiert den Modellbetrieb.** `agent_identity_create.sql` liegt bereit, nicht ausgeführt |
+| **A1 — Agent handelt unter Menschen-Identität** | **blockiert den Modellbetrieb.** `agent_identity_create.sql` liegt bereit. Ob `AGENT-ENG-001` auf der NAS existiert, ist **nicht belegt** — der Trockenlauf lief unter `AI-ENG-001`, `agent_prepare.sql` setzt die neue Identität inzwischen voraus. Vor dem nächsten Lauf in der Registry nachsehen |
 | A2 Herkunftsvermerk | behoben |
 | A3 Laufzeitgrenze | behoben |
 | A5 Rückzug bei Busausfall | behoben |
@@ -105,38 +111,59 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 ## Hier weitermachen
 
-**Stand:** Gerds zweite Prüfrunde ist eingegangen (Befunde `G-012` bis `G-019` in `REVIEW_GERD.md`). **Alle acht treffen zu.** Drei sind abgearbeitet, fünf offen.
+**Stand:** Gerds Befunde `G-012` bis `G-019` sind **alle abgearbeitet**, einzeln beantwortet in `REVIEW_ANTWORTEN.md`. Das Gate bleibt **`CORE ITERATE`** — nicht weil noch Befunde offen wären, sondern weil vier der Korrekturen **nur gegen Attrappen geprüft** sind.
 
-### Erledigt aus Runde zwei
+### Was in dieser Runde geschlossen wurde
 
-- **G-015** — `CORE PASS` war zu stark und ist zurückgenommen. Der Nachweis trägt jetzt `BUS LIFECYCLE PASS`, das Gate steht auf **`CORE ITERATE`**. `core_roundtrip.py` steuert Bus-Clients direkt und benutzt weder `agent_worker.py` noch `state_store.py`, Claim oder Retry — genau das verlangt `ENG-008` aber.
-- **G-012** — `record_reply()` fehlte im `EXHAUSTED`-Zweig. Beim Testen zeigte sich mehr: Der Übergang nach `EXHAUSTED` wurde vom auslösenden Lauf verbraucht; starb der, ging die Schlussmeldung nie raus. `EXHAUSTED` bleibt jetzt beanspruchbar, bis die Meldung verbucht ist.
-- **G-013** — Der Claim wird bis zum dauerhaften Ergebnis gehalten, nicht schon beim Providerfehler freigegeben.
-
-### Offen, in dieser Reihenfolge
-
-| # | Was | NAS nötig |
+| # | Was | Wo |
 |---|---|---|
-| **G-017** | `startup.env` wird komplett gemountet; der nach außen vernetzte `core.run`-Container liest DB-Passwort und API-Schlüssel, **obwohl er die Datenbank gar nicht anfasst**. Mein Kommentar behauptet das Gegenteil. | nein |
-| **G-014** | Der Contract-Test zählt **jeden** `BusError` als korrekte Ablehnung — ein 401 oder 500 bestünde. „107/107" ist eine einseitige Ablehnungsmatrix, keine Übereinstimmung. | nein |
-| **G-016** | Der Abo-Provider startet die CLI **im Worker-Container** — mit Bus-Token, State-Mount und Bus-Route. Sein eigener Docstring verlangt einen Container ohne all das. | nein |
-| **G-018** | `bus_events` enthält nur erfolgreiche Vorgänge; die Audit-Rekonstruktion deckt Ablehnungen nicht ab. | nein |
-| **G-019** | Provenienz widersprüchlich: Entwürfe sind keine Entscheidungen, deployter Commit-Hash nicht dokumentiert. | teils CEO |
+| `G-012` | `EXHAUSTED` bleibt beanspruchbar, bis die Schlussmeldung verbucht ist | `agent_worker.py`, `state_store.py` |
+| `G-013` | Claim wird bis zum dauerhaften Ergebnis gehalten | `agent_worker.py` |
+| `G-014` | Ablehnung mit falschem Grund fällt durch; jedes erlaubte Paar wird positiv ausgeführt (17/17, 5/5) | `contract_test.py` |
+| `G-015` | `CORE PASS` zurückgenommen → `BUS LIFECYCLE PASS`, Gate `CORE ITERATE` | Evidenz |
+| `G-016` | Abo-Provider zurückgezogen, nicht scheinbar isoliert | `providers.py` |
+| `G-017` | Runner mit Außenroute bekommt keine Secret-Datei; DB-Helfer lesen `startup.db.env` | Compose-Dateien, `derive_db_env_once.sh` |
+| `G-018` | Migration `004`: append-only `bus_denials`; Audit prüft exakte Ids und volle Reihenfolge | `postgres-init/`, `workforce-api/`, `core_audit.sql` |
+| `G-019` | Deploy-Manifest mit Prüfsummen; „nicht belegt" heißt jetzt so | `deploy_manifest.sh`, `verify_manifest.sh` |
 
-**Ein Muster, das beim Weiterarbeiten zählt:** G-014, G-016 und G-017 sind alle vom Typ *„Kommentar behauptet eine Absicherung, die der Code nicht herstellt"*. Das ist gefährlicher als ein Bug — ein solcher Kommentar hält den nächsten Leser vom Nachprüfen ab.
+### Vier Nachweise, die noch fehlen — alle im selben Fenster einsammelbar
 
-### Danach
+Keiner davon kostet Geld, keiner braucht ein Modell. Alle brauchen **eine Freigabe im Chat** und die temporäre Firewall-Regel:
 
-Gerds Empfehlung, der ich zustimme: **nicht** ein echter Modell- oder Telegram-Lauf, sondern ein **integrierter Worker-Core-Test** mit Echo-Provider, echten Claim-/Retry-Fehlern, Neustart und vollständigem Audit. Erst danach den begonnenen `chain-test/` fertigbauen.
+1. **Migration `004` anwenden.** Der Produktivstack zieht sie beim nächsten `up` selbst. Danach `postgres-tests/004_bus_denial_audit_acceptance.sql`. **Die SQL ist auf diesem Mac nie gelaufen** — hier gibt es weder `psql` noch Docker.
+2. **API `v8` bauen und ausrollen.** Sie schreibt die Ablehnungen; ohne sie bleibt `bus_denials` leer.
+3. **Contract-Test in der neuen Fassung gegen den echten Bus.** Erwartung: `deny` vollständig, `allow` 17/17 und 5/5, `wrong_reason` 0.
+4. **`verify_secret_isolation_once.sh`** — braucht keine Firewall-Regel und keine Zugangsdaten.
+
+Vorher auf der NAS einmalig: `sudo sh workforce-agent/derive_db_env_once.sh` in `/volume1/docker/Startup`. Ohne `startup.db.env` startet kein Hilfscontainer mehr.
+
+### Der eigentliche nächste Arbeitsschritt
+
+Gerds Empfehlung, der ich zustimme: **ein integrierter Worker-Core-Test** — `agent_worker.py` mit Echo-Provider, echte Claim-/Retry-Fehler injiziert, Prozessneustart mittendrin, vollständiges Audit hinterher. Das ist der Nachweis, den `ENG-008` verlangt und den der Core-Roundtrip **nicht** erbringt (`G-015`). Danach den begonnenen `chain-test/` fertigbauen.
+
+Er lässt sich mit den vier Punkten oben in einem Fenster fahren.
 
 ### Beim CEO
 
 - `DEC-028` und `DEC-029` aus `DEC_ENTWUERFE_2026-08-31.md` prüfen und ins Log übernehmen — bis dahin bleibt das Gate formal offen
 - sudo-Regel `/etc/sudoers.d/tobkum-docker` entfernen, wenn nicht gebraucht (faktisch Root)
+- Firewall- und Containerzustand nach erneuter DSM-Anmeldung nachprüfen (`G-019`)
 
 ---
 
 ## Was zuletzt passiert ist
+
+### 2026-08-31, spät — Claude Code
+
+Gerds zweite Prüfrunde vollständig abgearbeitet, `G-012` bis `G-019`.
+
+**Die interessanteste Erkenntnis** war nicht einer der Befunde, sondern das Muster hinter dreien davon. `G-014`, `G-016` und `G-017` sind derselbe Fehler: Ein Kommentar behauptet eine Absicherung, die der Code daneben nicht herstellt. In allen drei Fällen hatte ich die Anforderung **richtig aufgeschrieben** und dann etwas anderes gebaut — die Absicht blieb als Text stehen, während die Umsetzung woanders hinging. Der Kommentar wurde damit zur Absichtserklärung im Gewand einer Zusicherung, und die ist schlimmer als gar keine: Sie hält den nächsten Leser vom Nachprüfen ab.
+
+Jede der drei Stellen hat jetzt eine Prüfung, die scheitert, wenn die Zusicherung nicht mehr gilt. Wo sich eine Zusicherung nicht prüfen lässt, steht hin, dass sie nicht belegt ist.
+
+Neu dazugekommen: `startup.db.env` mit drei statt fünf Werten, `test_compose_secrets.py` als Drift-Wächter über alle Compose-Dateien, Migration `004` mit `workforce.bus_denials`, API `v8`, Deploy-Manifest mit Prüfsummen.
+
+**Ehrliche Grenze dieser Runde:** Vier Korrekturen sind gegen Attrappen grün und **nie gegen die NAS gelaufen**. Auf diesem Mac gibt es weder `psql` noch Docker; die neue SQL ist gelesen, nicht ausgeführt.
 
 ### 2026-08-31 — Claude Code
 

@@ -167,3 +167,111 @@ Dreimal an einem Tag ist ein Muster, kein Pech. Deshalb `bus_rules.py`: Die Übe
 Die ehrliche Grenze davon steht im Modulkopf: Eine Transkription bleibt eine Transkription. Ändert sich die Migration, laufen diese Tests weiter grün und liegen falsch. Ein echter Contract-Test gegen den laufenden Bus würde das schließen; bis dahin sind die Regeln hier geprüft und im Roundtrip-Nachweis real belegt.
 
 Was dabei außerdem herauskam: Die Regel „`CANCELLED` nur aus `PENDING`" erklärt die liegengebliebenen `IN_PROGRESS`-Tasks aus den Fehlversuchen. Abgebrochene Arbeit lässt sich nicht stillschweigend wegräumen — sie muss über `REVIEW` und `DONE` mit Evidenz gehen oder sichtbar bleiben. Die Regel ist richtig; ich werde sie nicht per direktem SQL umgehen, um die Datenbank aufzuräumen.
+
+---
+
+# Antwort auf die zweite Prüfrunde (`G-012` bis `G-019`)
+
+**Alle acht treffen zu.** Keiner ist zurückgewiesen. Drei stammen aus derselben Fehlerklasse, die ich zuerst benenne, weil sie mehr über meine Arbeitsweise sagt als die einzelnen Befunde.
+
+## Die Fehlerklasse: der Kommentar, der eine Absicherung behauptet
+
+`G-014`, `G-016` und `G-017` sind derselbe Fehler an drei Stellen. Jedes Mal beschreibt ein Kommentar eine Kontrolle, die der Code daneben nicht herstellt:
+
+| Der Kommentar sagte | Der Code tat |
+|---|---|
+| „`WORKFORCE_API_KEY` erreicht diesen Container gar nicht erst" | mountete die vollständige `startup.env` |
+| „muss in einem Container ohne Mounts und ohne Busroute laufen" | startete die CLI im Worker-Container |
+| „107 von 107 Prüfungen bestanden" | zählte jeden `BusError` als korrekte Ablehnung |
+
+**Das ist gefährlicher als ein Bug**, und zwar aus dem Grund, den du nennst: Ein solcher Kommentar hält den nächsten Leser vom Nachprüfen ab. Ein fehlender Kommentar lädt zum Nachsehen ein, ein falscher schließt die Frage.
+
+Was daran auffällt: In allen drei Fällen habe ich die Anforderung **richtig** formuliert und dann etwas anderes gebaut. Die Absicht war jeweils korrekt und ist als Text stehengeblieben, während die Umsetzung woanders hinging. Der Kommentar wurde damit zur Absichtserklärung im Gewand einer Zusicherung.
+
+Gegenmaßnahme, soweit sie mechanisierbar ist: Jede der drei Stellen hat jetzt eine Prüfung, die scheitert, wenn die Zusicherung nicht mehr gilt — `test_compose_secrets.py`, `test_it_cannot_be_selected_at_all`, und die getrennte `WRONG_REASON`-Zählung im Contract-Test. Wo eine Zusicherung nicht prüfbar ist, steht jetzt hin, dass sie nicht belegt ist.
+
+---
+
+### G-012 — `EXHAUSTED` konnte eine zugestellte Nachricht festsetzen → **Übernommen**
+
+Stimmt, und beim Nachbauen kam mehr heraus als du beschrieben hast: Der Übergang nach `EXHAUSTED` wurde vom auslösenden Lauf **verbraucht**. Starb dieser Lauf zwischen Zustandswechsel und Schlussmeldung, ging die Meldung nie raus und kein späterer Lauf holte sie nach.
+
+**Umgesetzt:** Die finale Fehlermeldung wird wie jede andere Antwort mit `record_reply()` verbucht, und `EXHAUSTED` bleibt beanspruchbar, bis die Meldung verbucht ist. Test: Maximalversuche überschritten → finale Antwort raus → ACK fällt aus → Neustart bestätigt, ohne zweite Antwort, Ende `DONE`.
+
+### G-013 — Providerfehler gab den Claim zu früh frei → **Übernommen**
+
+**Umgesetzt:** Der Claim wird bis zum dauerhaften Ergebnis gehalten. Bei einem Providerfehler wird erst gesendet, dann `record_reply()`, dann ACK; nur wenn auch das Senden scheitert, geht die Nachricht atomar in einen retrybaren Zustand. Nebenläufigkeitstest ergänzt: ein zweiter Claim unmittelbar nach `ProviderError` bekommt nichts.
+
+### G-014 — Der Contract-Test zählte technische Fehler als Ablehnung → **Übernommen**
+
+Vollständig zutreffend. `107/107` belegte eine große **einseitige** Ablehnungsmatrix. Ein `401`, ein `500` oder ein geschlossener Kanal hätte dieselbe Zahl erzeugt.
+
+**Umgesetzt, beide Hälften getrennt ausgewiesen:**
+
+- **DENY** — jede Ablehnung muss als genau der Statuscode **und** die Fehlerkennung ankommen, die die Migration wirft (`BUS_TASK_TRANSITION_DENIED` / `BUS_HANDOFF_TRANSITION_DENIED`, 403). Alles andere zählt als `WRONG_REASON` und lässt den Lauf durchfallen.
+- **ALLOW** — jedes laut Tabelle erlaubte Übergangspaar wird mindestens einmal positiv ausgeführt: **17/17** bei Tasks, **5/5** bei Handoffs. Ein nicht abgedecktes Paar ist ein Fehlschlag, kein stiller Verzicht.
+- Ausgabe: `deny {checked, matched, wrongly_allowed, wrong_reason}`, `allow {checked, matched, pairs_covered}`, `uncovered_allow`.
+
+Der Fußabdruck wächst auf fünf Tasks und vier Handoffs. Der Grund ist strukturell: Nach `OPEN` führt nichts zurück, also braucht jede `OPEN → x`-Regel einen eigenen Task. Alle neun Datensätze enden in einem Endzustand (`DONE`, `CANCELLED`, `ACCEPTED`, `REJECTED`), es bleibt nichts zum Aufräumen.
+
+Vier neue Tests decken die drei Abweichungsarten ab — Bus zu großzügig, Bus lehnt mit falschem Grund ab, Bus lehnt Erlaubtes ab — plus die Lücke: ein verkürzter Plan lässt den Lauf durchfallen, statt eine Teilmatrix als vollständig zu melden.
+
+**Offen:** Der neue Contract-Test ist gegen die Attrappe grün, **nicht gegen den echten Bus** gelaufen. Das braucht ein Fenster mit Freigabe.
+
+### G-015 — `CORE PASS` war zu stark → **Übernommen, Einstufung zurückgenommen**
+
+Der Nachweis trägt jetzt `BUS LIFECYCLE PASS`, das Gate steht auf **`CORE ITERATE`**. Deine Beobachtung ist genau richtig: `core_roundtrip.py` steuert Bus-Clients direkt und benutzt weder `agent_worker.py` noch `state_store.py`, Claim, Lease oder Retry — also gerade das nicht, was `ENG-008` verlangt.
+
+Der von dir vorgeschlagene integrierte Worker-Core-Test mit Echo-Provider, injiziertem retrybarem Fehler, Claim-Beleg und Neustart auf der NAS ist der nächste Arbeitsschritt und in `HANDOVER.md` als solcher eingetragen.
+
+### G-016 — Der Abo-Provider war nicht isoliert → **Übernommen, Provider zurückgezogen**
+
+Ich habe die Isolation als Anforderung aufgeschrieben und dann `subprocess.run()` im Worker-Container aufgerufen — mit Bus-Token, State-Mount und Route zum Bus. Das Leeren der geerbten Umgebung nimmt Variablen weg, nicht das Dateisystem und nicht das Netz.
+
+**Umgesetzt:** `build_provider()` weist `AGENT_PROVIDER=subscription` ab, mit einer Fehlerkennung, die den Befund nennt. Die Klasse bleibt als **Spezifikation** stehen; ihr Docstring listet die fünf Bedingungen für eine Reaktivierung. `is_paid` ist von `False` auf `True` korrigiert — ein geteiltes Abo-Kontingent ist eine Kostengröße, auch ohne Rechnung, und vorher kam der Provider an der Nulldecke vorbei.
+
+Deine Empfehlung „bis zu echter Isolation nicht freigeben" ist damit umgesetzt, ohne die Arbeit wegzuwerfen. Der `DEC-029`-Entwurf ist ohnehin strenger: für den Agenten gibt es zwei Zustände, Echo oder ausdrücklich freigegebener bezahlter Lauf.
+
+### G-017 — `startup.env` erreichte die Container vollständig → **Übernommen**
+
+**Umgesetzt:**
+
+- Der `core.run`-Container mountet nur noch `./secrets`. Er fasst die Datenbank nie an und ist der einzige mit Route nach draußen.
+- Alle DB-Hilfscontainer lesen `startup.db.env` — drei Werte, abgeleitet von `derive_db_env_once.sh`, `root:users` mit `660` wie das Original (die `600`-Falle aus dem Contract-Test-Fenster wiederholt sich damit nicht).
+- Auch `bus-realtest` und `telegram-connector` zeigen auf die kleinere Datei. Der **Produktivstack bleibt bewusst unverändert**: `db` und `workforce-api` brauchen die vollständige Datei, und `registry-migrate` mitzuändern hieße, einen laufenden Stack für einen Randgewinn anzufassen. Das ist eine Entscheidung, keine Lücke — `test_compose_secrets.py` führt die drei Dienste namentlich auf, ein vierter würde den Test brechen.
+- Die falschen Kommentare sind korrigiert.
+
+**Nachweis in zwei Stufen:** `test_compose_secrets.py` liest alle Compose-Dateien des Repos und verlangt, dass kein Dienst am `outbound`-Netz überhaupt eine geteilte Secret-Datei trägt. `verify_secret_isolation_once.sh` prüft dasselbe am laufenden Container, gegen Umgebung **und** lesbares Dateisystem, ohne je einen Wert auszugeben. **Letzteres ist geschrieben, nicht ausgeführt** — es braucht eine Freigabe.
+
+### G-018 — Der Audit deckte Ablehnungen nicht ab → **Übernommen**
+
+Zutreffend, und die Ursache ist strukturell: Eine abgelehnte Operation rollt ihre Transaktion zurück und nimmt jede darin geschriebene Auditzeile mit. `bus_events` **kann** Ablehnungen nicht enthalten.
+
+**Umgesetzt:** Migration `004_bus_denial_audit` legt `workforce.bus_denials` an — append-only, geschrieben von der API **nach** dem Fehlschlag auf einer frischen Verbindung, der einzigen Stelle, an der es möglich ist. Was hineindarf, erzwingen `CHECK`-Bedingungen statt eines Versprechens: Ein Nachrichtentext ist weder eine gültige Operation noch ein gültiger Fehlercode, ein Record-Key ist auf Bezeichnerlänge begrenzt, der Token-Hash wird zur Identität aufgelöst und nie gespeichert. `postgres-tests/004_bus_denial_audit_acceptance.sql` versucht jede dieser Verletzungen und verlangt, dass sie scheitert.
+
+Alle neun Bus-Aufrufstellen der API tragen ihren Audit-Kontext; ein AST-Test fällt durch, sobald eine ihn vergisst. Ein kaputtes Audit macht aus einer `403` nie eine `500`.
+
+`core_audit.sql` ist neu gefasst: elf Positivschritte, jeder an die **exakte** Datensatz-Id, den Akteur, Sender/Empfänger und die Task-Referenz gebunden, plus die **vollständige** Reihenfolge statt zweier Stichproben; die drei geforderten Ablehnungen kommen aus `bus_denials` mit Akteur, Fehlercode und HTTP-Status. Positiv- und Negativ-Audit werden getrennt ausgewiesen. Fehlt die Migration, bricht die Abfrage ab, statt eine leere Menge als Bestehen zu melden.
+
+**Ehrliche Grenze:** Migration, API-Änderung (`v8`) und die neue Audit-Abfrage sind auf diesem Mac **nicht gegen ein echtes PostgreSQL gelaufen** — hier gibt es weder `psql` noch Docker. Sie sind gelesen, nicht ausgeführt. Das ist genau die Sorte Zusicherung, die ich nach der Fehlerklasse oben nicht mehr als belegt hinschreibe.
+
+Nicht abgedeckt bleiben Ablehnungen **vor** der Datenbank: ein fehlerhafter Bearer-Header wird mit `401` abgewiesen, bevor eine Identität feststeht. Das gehört in ein Zugriffsprotokoll des Reverse Proxy, nicht in ein Bus-Audit.
+
+### G-019 — Provenienz widersprüchlich → **Übernommen**
+
+**Umgesetzt, was ohne den CEO geht:**
+
+- **Der deployte Stand des `ENG-008`-Laufs gilt als nicht belegt.** „Commit `3686c76` plus drei unbenannte Änderungen" ist keine reproduzierbare Angabe, und welche Dateien in jenem Fenster auf der NAS lagen, ist nachträglich nicht feststellbar. Das steht jetzt so im Nachweis, statt als Verweis auf die Commit-Historie.
+- `deploy_manifest.sh` schreibt vor jedem Deploy ein `DEPLOY_MANIFEST.txt` mit Commit-Hash, Dirty-Kennzeichen und SHA-256 je Datei; `verify_manifest.sh` prüft auf der NAS, dass der Stand noch derselbe ist. **Ein Nachweislauf ohne bestandenes `verify_manifest.sh` ist ab sofort keiner.**
+- Das README des Agenten behauptete, `AGENT-ENG-001` existiere. Der Trockenlauf lief nachweislich unter `AI-ENG-001`, und `HANDOVER.md` führte dieselbe Identität als nicht angelegt. Die Zeile sagt jetzt: **nicht belegt**, vor dem nächsten Lauf gegen die Registry nachsehen, nicht gegen die Dokumentation.
+- `BERICHT_FUER_GERD.md` hat einen Überholt-Vermerk bekommen statt einer stillen Korrektur.
+
+**Beim CEO, unverändert offen:** `DEC-028` und `DEC-029` als Entscheidung ins Log — bis dahin bleiben Platzhalter und Gate offen. Ebenso die Nachprüfung des Firewall- und Containerzustands nach erneuter DSM-Anmeldung; ohne Freigabe fasse ich die NAS nicht an.
+
+---
+
+## Zum Gesamturteil der zweiten Runde
+
+Ich stimme zu: **`CORE ITERATE`**. `G-012` bis `G-019` sind abgearbeitet, aber vier der Korrekturen sind **gegen Attrappen geprüft und nicht gegen die NAS gelaufen** — der Contract-Test, die Secret-Isolation, die Migration `004` und die neue Audit-Abfrage. Solange das so ist, ist der Stand besser begründet, aber nicht besser belegt.
+
+Dein nächster Schritt ist auch meiner: der integrierte Worker-Core-Test mit Echo-Provider, echten Claim-/Retry-Fehlern, Neustart und vollständigem Audit — kostenlos, ohne Modell, und er würde alle vier offenen Nachweise in einem Fenster einsammeln.
