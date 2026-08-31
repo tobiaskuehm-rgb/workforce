@@ -1,0 +1,38 @@
+name: startup-workforce-agent-prepare
+
+services:
+  agent-prepare:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      AGENT_SOURCE_REF: "DEC-028/ENG-008"
+      # Bump for every run. The cleanup step must use the same value, and a
+      # REVOKED credential can never be reactivated.
+      AGENT_RUN_SUFFIX: "20260831-DRY1"
+      AGENT_BUS_TOKEN_FILE: /run/startup-agent-secrets/agent_bus_token
+      GENERATE_AGENT_TOKEN_IF_MISSING: "true"
+    volumes:
+      - ./secrets:/run/startup-agent-secrets
+      - ./prepare_agent_once.sh:/opt/startup-agent/prepare_agent_once.sh:ro
+      - ./agent_prepare.sql:/opt/startup-agent/agent_prepare.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-agent/prepare_agent_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    cap_add:
+      # Handing the token to UID 10001, which the agent container runs as,
+      # needs CAP_CHOWN. cap_drop ALL removes it.
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend

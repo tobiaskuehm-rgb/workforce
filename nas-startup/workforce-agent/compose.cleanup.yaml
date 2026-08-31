@@ -1,0 +1,38 @@
+name: startup-workforce-agent-cleanup
+
+services:
+  agent-cleanup:
+    image: postgres:17-alpine
+    env_file:
+      - ../startup.env
+    environment:
+      DB_HOST: db
+      # Must match the value the prepare step used, otherwise this revokes
+      # nothing and the run leaves a live credential behind.
+      AGENT_RUN_SUFFIX: "20260831-DRY1"
+    volumes:
+      - ./agent_cleanup.sql:/opt/startup-agent/agent_cleanup.sql:ro
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export PGHOST="$${DB_HOST:-db}"
+        export PGUSER="$$POSTGRES_USER"
+        export PGDATABASE="$$POSTGRES_DB"
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        psql -v ON_ERROR_STOP=1 -v run_suffix="$$AGENT_RUN_SUFFIX" -f /opt/startup-agent/agent_cleanup.sql
+        echo "Reminder: delete ./secrets/agent_bus_token by hand now that the credential is revoked."
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend
