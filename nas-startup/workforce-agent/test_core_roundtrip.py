@@ -44,10 +44,15 @@ class FakeBus:
                     priority="MEDIUM"):
         existing = self.world["tasks"].get(task_id)
         if existing:
-            return existing  # idempotent replay
+            # The real bus compares the stored record against the replayed
+            # payload; a task that has moved on is a stale request, not a
+            # duplicate.
+            if existing["task_status"] != task_status:
+                raise bus_client.BusError("BUS_TASK_IDEMPOTENCY_CONFLICT", status=409)
+            return existing
         task = {
             "task_id": task_id, "creator_id": self.identity, "owner_id": owner_id,
-            "task_status": "OPEN" if self.identity == KARL else task_status,
+            "task_status": task_status,
             "title": title, "completion_evidence": None,
         }
         self.world["tasks"][task_id] = task
@@ -62,12 +67,23 @@ class FakeBus:
         if task is None:
             raise bus_client.BusError("BUS_TASK_NOT_FOUND", status=404)
 
-        # Owner drives up to REVIEW; only the creator closes as DONE.
-        allowed = task["owner_id"] if new_status != "DONE" else task["creator_id"]
+        # Mirrors bus_transition_task in 002_workforce_bus.sql:
+        #   PENDING -> OPEN            only SAO-001 (Karl), for named owners
+        #   OPEN/IN_PROGRESS -> ...    the owner, up to REVIEW
+        #   REVIEW -> DONE             the creator
+        current = task["task_status"]
+        if current == "PENDING" and new_status == "OPEN":
+            allowed = KARL
+        elif current == "REVIEW" and new_status in ("DONE", "IN_PROGRESS"):
+            allowed = task["creator_id"]
+        elif current in ("OPEN", "IN_PROGRESS", "BLOCKED", "HOLD"):
+            allowed = task["owner_id"]
+        else:
+            raise bus_client.BusError("BUS_TASK_TRANSITION_DENIED", status=403)
         if self.identity != allowed:
             raise bus_client.BusError("BUS_TASK_TRANSITION_DENIED", status=403)
-        if new_status == task["task_status"]:
-            raise bus_client.BusError("BUS_TASK_TRANSITION_DENIED", status=403)
+        if new_status == current:
+            raise bus_client.BusError("BUS_TASK_IDEMPOTENCY_CONFLICT", status=409)
         if new_status == "DONE" and not completion_evidence:
             raise bus_client.BusError("BUS_TASK_COMPLETION_EVIDENCE_REQUIRED", status=400)
 
@@ -102,8 +118,18 @@ class FakeBus:
         handoff = self.world["handoffs"].get(handoff_id)
         if handoff is None:
             raise bus_client.BusError("BUS_HANDOFF_NOT_FOUND", status=404)
-        # Only the recipient decides.
-        if self.identity != handoff["recipient_id"]:
+        # Mirrors bus_transition_handoff: the sender opens a PENDING handoff,
+        # the recipient decides an OPEN one.
+        current = handoff["handoff_status"]
+        if new_status == current:
+            raise bus_client.BusError("BUS_HANDOFF_IDEMPOTENCY_CONFLICT", status=409)
+        if current == "PENDING" and new_status in ("OPEN", "CANCELLED"):
+            allowed = handoff["sender_id"]
+        elif current == "OPEN" and new_status in ("ACCEPTED", "REJECTED"):
+            allowed = handoff["recipient_id"]
+        else:
+            raise bus_client.BusError("BUS_HANDOFF_TRANSITION_DENIED", status=403)
+        if self.identity != allowed:
             raise bus_client.BusError("BUS_HANDOFF_TRANSITION_DENIED", status=403)
         handoff["handoff_status"] = new_status
         self.world["events"].append(
@@ -158,8 +184,11 @@ class CoreRoundtripTest(unittest.TestCase):
         for required in [
             "karl_creates_task",           # Task
             "gerd_sees_task",              # → Mitarbeiter A
+            "karl_opens_task",
+            "gerd_starts_work",
             "gerd_reports_result",         # → Ergebnis
             "gerd_creates_handoff",        # → Handoff
+            "gerd_opens_handoff",
             "anastasia_sees_handoff",      # → Mitarbeiter B
             "anastasia_accepts_handoff",   # → ACCEPTED
             "anastasia_reports_result",    # → Bearbeitung, Ergebnis

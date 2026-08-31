@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-08-31, 18:20 — von Claude Code
+**Zuletzt aktualisiert:** 2026-08-31, 18:55 — von Claude Code
 
 ## Wie die Zusammenarbeit läuft
 
@@ -67,6 +67,7 @@ cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && tar czf - <pfade
 | Telegram-Realtest 2 | **PASS** | dito |
 | Security-Review Bus | erledigt | `2026-08-31_security_review_workforce_bus.md` |
 | Agenten-Trockenlauf (Echo) | **PASS** | `2026-08-31_agent_dryrun.md` |
+| **ENG-008 Core-Roundtrip** | **CORE PASS** | `2026-08-31_eng008_core_roundtrip.md` |
 | Security-Review Agentenschicht | erledigt | `2026-08-31_security_review_agent.md` |
 
 Die Kette **Telegram → NAS → Bus → PostgreSQL** ist real belegt. Der Bus ist abgenommen.
