@@ -120,6 +120,122 @@ class BusClient:
             request_id=request_id,
         )
 
+    # -- Tasks -------------------------------------------------------------
+    # ENG-008 needs the full lifecycle, not just messages. The API already
+    # exposes these; the client simply never used them.
+
+    def tasks(self, scope: str = "OWNED", limit: int = 50) -> list[dict[str, Any]]:
+        return self._call("GET", f"/bus/v1/tasks?scope={scope}&limit={limit}")
+
+    def create_task(
+        self,
+        *,
+        task_id: str,
+        owner_id: str,
+        title: str,
+        expected_output: str,
+        source_ref: str,
+        request_id: str,
+        idempotency_key: str,
+        task_status: str = "PENDING",
+        priority: str = "MEDIUM",
+    ) -> dict[str, Any]:
+        return self._call(
+            "POST",
+            "/bus/v1/tasks",
+            body={
+                "task_id": task_id,
+                "owner_id": owner_id,
+                "task_status": task_status,
+                "priority": priority,
+                "title": title,
+                "expected_output": expected_output,
+                "source_ref": source_ref,
+            },
+            request_id=request_id,
+            idempotency_key=idempotency_key,
+        )
+
+    def transition_task(
+        self,
+        task_id: str,
+        *,
+        new_status: str,
+        request_id: str,
+        completion_evidence: str | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {"new_status": new_status}
+        if completion_evidence is not None:
+            # DONE without evidence is refused by the bus itself
+            # (BUS_TASK_COMPLETION_EVIDENCE_REQUIRED); passing it only when
+            # present keeps that check where it belongs.
+            body["completion_evidence"] = completion_evidence[:8000]
+        return self._call(
+            "POST",
+            f"/bus/v1/tasks/{task_id}/transition",
+            body=body,
+            request_id=request_id,
+        )
+
+    # -- Handoffs ----------------------------------------------------------
+
+    def handoffs(self, scope: str = "INBOX", limit: int = 50) -> list[dict[str, Any]]:
+        return self._call("GET", f"/bus/v1/handoffs?scope={scope}&limit={limit}")
+
+    def create_handoff(
+        self,
+        *,
+        handoff_id: str,
+        recipient_id: str,
+        input_summary: str,
+        expected_output: str,
+        source_ref: str,
+        request_id: str,
+        idempotency_key: str,
+        task_ref: str | None = None,
+        handoff_status: str = "PENDING",
+        risks_and_assumptions: str | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "handoff_id": handoff_id,
+            "recipient_id": recipient_id,
+            "handoff_status": handoff_status,
+            "input_summary": input_summary,
+            "expected_output": expected_output,
+            "source_ref": source_ref,
+        }
+        if task_ref:
+            body["task_ref"] = task_ref
+        if risks_and_assumptions:
+            body["risks_and_assumptions"] = risks_and_assumptions
+        return self._call(
+            "POST",
+            "/bus/v1/handoffs",
+            body=body,
+            request_id=request_id,
+            idempotency_key=idempotency_key,
+        )
+
+    def transition_handoff(
+        self,
+        handoff_id: str,
+        *,
+        new_status: str,
+        request_id: str,
+        response_note: str | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {"new_status": new_status}
+        if response_note is not None:
+            body["response_note"] = response_note[:4000]
+        return self._call(
+            "POST",
+            f"/bus/v1/handoffs/{handoff_id}/transition",
+            body=body,
+            request_id=request_id,
+        )
+
+    # -- Messages ----------------------------------------------------------
+
     def send_message(
         self,
         *,
