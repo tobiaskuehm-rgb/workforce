@@ -9,13 +9,16 @@ Adding a provider means implementing `complete()` and registering it in
 
 Available today:
   claude        the Anthropic API via the official SDK (default)
-  subscription  a CLI authenticated by a Claude or ChatGPT subscription
   echo          deterministic, no network, no credentials - for tests
+
+Withdrawn:
+  subscription  a CLI authenticated by a Claude or ChatGPT subscription. The
+                class is still here; build_provider() refuses to return it.
+                See SubscriptionProvider for what has to exist first.
 """
 
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -183,29 +186,44 @@ class ClaudeProvider:
 
 
 class SubscriptionProvider:
-    """A CLI authenticated by a subscription rather than by an API key.
+    """WITHDRAWN. A CLI authenticated by a subscription rather than an API key.
 
-    Both Codex CLI and Claude Code can sign in with the corresponding
-    consumer subscription, and their use counts against that plan instead of
-    per-token billing. That makes them attractive here: an exhausted plan is a
-    wait, not an invoice.
+    `build_provider()` refuses to hand this out. The class stays here because
+    the work is worth keeping and the requirements below are the specification
+    for bringing it back - not because it is usable today.
 
-    **The danger is the opposite of the API providers'.** Those CLIs exist to
-    *act* - read files, run shell commands, reach the network. Handing agent
-    work to one would give a model a shell on the NAS and demolish the reason
-    this agent is safe to point at untrusted message content. So:
+    **Why it was withdrawn (review finding G-016).** The docstring this
+    replaces demanded "a container with no mounts, no route to the bus and
+    nothing worth reaching" and then ran `subprocess.run()` inside the worker
+    container, which has the bus token, the persistent state mount, a route to
+    the bus and, during a model run, a route to the internet. Clearing the
+    inherited environment removes variables; it does not remove the file system
+    or the network. The control the comment described did not exist.
 
-    1. **Isolation, not flags.** This provider must run in a container with no
-       mounts, no route to the bus and nothing worth reaching. A flag that
-       disables tools is welcome, but it is not the control - the control is
-       that there is nothing to act on. The exact flags differ per CLI and per
-       version, which is why the command is configured rather than hardcoded
-       here: an invented flag would be worse than none.
-    2. **Text in, text out.** Whatever the CLI writes to stdout is treated as
-       the answer, exactly like any other provider's reply, and is used for
-       nothing but the body of a bus message.
+    That gap is worse than a missing control. These CLIs exist to *act* - read
+    files, run commands, reach the network - and the whole argument for
+    pointing this agent at untrusted message content is that a successful
+    prompt injection has nothing to act on. A comment claiming isolation that
+    is not there tells the next reader not to check.
 
-    Configure with:
+    **What it would take to reinstate:**
+
+    1. A provider container of its own, short-lived, with no bus token, no
+       state mount, no project mount and no route to the NAS bus - only the
+       one external destination the CLI needs.
+    2. A text-in/text-out channel between worker and that container, narrow
+       enough that a compromised CLI can return a string and nothing else.
+    3. Hard output and runtime ceilings enforced outside the CLI.
+    4. `is_paid = True` (below): a shared subscription quota is a cost even
+       when no invoice follows.
+    5. A decision that permits the path at all. DEC-027 and ENG-008 rule out
+       an external paid service; whether a subscription is one is the CEO's
+       call, not this file's.
+
+    Isolation, not flags. A flag that disables tools is welcome, but it is not
+    the control - the control is that there is nothing to act on.
+
+    Configure with (once reinstated):
       AGENT_SUBSCRIPTION_COMMAND   argv, JSON list, e.g. ["claude", "-p"]
       AGENT_SUBSCRIPTION_TIMEOUT   seconds, default 180
 
@@ -215,10 +233,15 @@ class SubscriptionProvider:
     """
 
     name = "subscription"
-    # No money changes hands - but the plan's quota does get consumed, and it
-    # is the same quota the humans use interactively. The budget's cost
-    # ceiling cannot see that, so the run log says it out loud.
-    is_paid = False
+    # No invoice follows, but the plan's quota is consumed - the same quota the
+    # humans use interactively. `is_paid = False` let it past a 0.00 cost
+    # ceiling, which is the one gate that can stop a provider before its first
+    # call (review findings G-004, G-016). A metered shared resource is a cost.
+    is_paid = True
+
+    # Refuses to be selected. Kept as a constant so the test that pins the
+    # withdrawal and the error the operator sees cannot drift apart.
+    WITHDRAWN_REASON = "AGENT_PROVIDER_SUBSCRIPTION_WITHDRAWN_G016"
 
     def __init__(self, command: list[str], *, timeout: float = 180.0,
                  model: str = "subscription-cli") -> None:
@@ -306,20 +329,10 @@ def build_provider(environment: dict[str, str] | None = None) -> Provider:
     if name == "echo":
         return EchoProvider()
     if name == "subscription":
-        raw = env.get("AGENT_SUBSCRIPTION_COMMAND", "").strip()
-        if not raw:
-            raise ProviderError("AGENT_SUBSCRIPTION_COMMAND_MISSING")
-        try:
-            command = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            raise ProviderError("AGENT_SUBSCRIPTION_COMMAND_INVALID") from exc
-        if not isinstance(command, list) or not all(isinstance(p, str) for p in command):
-            raise ProviderError("AGENT_SUBSCRIPTION_COMMAND_INVALID")
-        try:
-            timeout = float(env.get("AGENT_SUBSCRIPTION_TIMEOUT", "180"))
-        except ValueError as exc:
-            raise ProviderError("AGENT_SUBSCRIPTION_TIMEOUT_INVALID") from exc
-        return SubscriptionProvider(command, timeout=timeout)
+        # Fail closed and say why. Selecting it used to start a tool-capable
+        # CLI inside the worker container - see SubscriptionProvider for what
+        # has to exist before this line may come back.
+        raise ProviderError(SubscriptionProvider.WITHDRAWN_REASON)
     if name == "claude":
         try:
             api_key = read_api_key(env)

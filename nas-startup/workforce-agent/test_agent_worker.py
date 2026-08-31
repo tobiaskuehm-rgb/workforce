@@ -373,7 +373,13 @@ class StrictSecretsTest(unittest.TestCase):
 
 
 class SubscriptionProviderTest(unittest.TestCase):
-    """A CLI behind the narrow provider interface, driven by a subscription."""
+    """A CLI behind the narrow provider interface, driven by a subscription.
+
+    The provider is withdrawn (review finding G-016) and cannot be selected.
+    These tests still run against the class directly, because the class is the
+    specification for reinstating it: if the mechanics rot while it sits on the
+    shelf, whoever picks it up inherits a broken starting point.
+    """
 
     def _provider(self, script: str, **kwargs):
         # A tiny python program stands in for the CLI, so these tests need no
@@ -445,27 +451,32 @@ class SubscriptionProviderTest(unittest.TestCase):
             os.environ.pop("AGENT_BUS_TOKEN_FILE", None)
         self.assertEqual("NICHT_GEERBT", reply.text)
 
-    def test_it_counts_as_free_because_no_money_changes_hands(self):
-        # Quota is consumed, money is not - and the budget's cost ceiling can
-        # only see money.
-        self.assertFalse(providers.SubscriptionProvider(["x"]).is_paid)
+    def test_a_consumed_quota_counts_as_a_cost(self):
+        # It used to declare itself free because no invoice follows. That let
+        # it past the 0.00 cost ceiling, which is the only gate able to stop a
+        # provider before its first call (findings G-004, G-016). The quota is
+        # shared with the humans who use the plan interactively.
+        self.assertTrue(providers.SubscriptionProvider(["x"]).is_paid)
 
-    def test_build_provider_refuses_a_missing_or_malformed_command(self):
+    def test_it_cannot_be_selected_at_all(self):
+        # The withdrawal is the finding's remedy: the class ran a tool-capable
+        # CLI inside the worker container, which holds the bus token, the state
+        # mount and a route to the bus. No configuration may bring that back
+        # by accident.
         for env in ({"AGENT_PROVIDER": "subscription"},
                     {"AGENT_PROVIDER": "subscription",
-                     "AGENT_SUBSCRIPTION_COMMAND": "claude -p"},
-                    {"AGENT_PROVIDER": "subscription",
-                     "AGENT_SUBSCRIPTION_COMMAND": '{"not": "a list"}'}):
+                     "AGENT_SUBSCRIPTION_COMMAND": '["claude", "-p"]'},
+                    {"AGENT_PROVIDER": "SUBSCRIPTION",
+                     "AGENT_SUBSCRIPTION_COMMAND": '["claude", "-p"]'}):
             with self.subTest(env=env):
-                with self.assertRaises(providers.ProviderError):
+                with self.assertRaises(providers.ProviderError) as caught:
                     providers.build_provider(env)
+                self.assertEqual(providers.SubscriptionProvider.WITHDRAWN_REASON,
+                                 str(caught.exception))
 
-    def test_build_provider_accepts_a_json_argv(self):
-        provider = providers.build_provider({
-            "AGENT_PROVIDER": "subscription",
-            "AGENT_SUBSCRIPTION_COMMAND": '["claude", "-p"]',
-        })
-        self.assertEqual(["claude", "-p"], provider.command)
+    def test_the_refusal_names_the_finding(self):
+        # An operator who hits this needs to find the reasoning, not guess.
+        self.assertIn("G016", providers.SubscriptionProvider.WITHDRAWN_REASON)
 
 
 class TaskReferenceOnReplyTest(unittest.TestCase):

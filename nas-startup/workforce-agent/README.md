@@ -53,8 +53,13 @@ Jeder Aufruf erzeugt eine `Disclosure`: Feldnamen, Zeichenzahl und ein SHA-256-F
 |---|---|
 | `echo` | Deterministisch, kein Netzwerk, kein Schlüssel, keine Kosten. Für Tests und den ersten Trockenlauf. |
 | `claude` | Anthropic-API über das offizielle SDK, Modell `claude-opus-5`. |
+| ~~`subscription`~~ | **Zurückgezogen** (Befund `G-016`). |
 
 Ein weiterer Provider braucht nur `complete()` und einen Eintrag in `build_provider()`. Sonst ändert sich nichts.
+
+**Warum `subscription` zurückgezogen ist.** Der Provider startete eine werkzeugfähige CLI mit `subprocess.run()` — im Worker-Container, also genau dort, wo das Bus-Token, der State-Mount und die Route zum Bus liegen. Sein eigener Docstring verlangte einen Container ohne all das. Das Leeren der geerbten Umgebung nimmt Variablen weg, nicht das Dateisystem und nicht das Netz.
+
+Ein Kommentar, der eine Absicherung behauptet, die es nicht gibt, ist schlimmer als eine fehlende Absicherung: Er hält den nächsten Leser vom Nachprüfen ab. `build_provider()` weist `AGENT_PROVIDER=subscription` deshalb ab. Die Klasse bleibt als Spezifikation stehen — was für eine Reaktivierung existieren muss, steht in ihrem Docstring.
 
 Der Claude-Provider behandelt eine Modell-Ablehnung (`stop_reason: refusal`) als regulären Fall und schreibt eine erklärende Antwort in den Bus, statt abzustürzen. Server-seitige Fallbacks sind aktiviert, damit ein Grenzfall nicht stumm im Bus liegen bleibt.
 
