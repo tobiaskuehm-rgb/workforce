@@ -102,7 +102,13 @@ Audit (`workforce.bus_events`), beide mit Akteur `CEO-TG-002`:
  PASS | DISABLED | Credential=REVOKED | Capability=REVOKED | Membership=REVOKED | Identity=REVOKED | aktive Credentials=0
 ```
 
-Zusätzlich: Connector gestoppt, Schalter zurück auf `ENABLED=false` / `KILL_SWITCH=true`, alle v2-Projekte und das Volume `telegram_realtest_state_v2` entfernt, Workforce- und Bot-Token-Datei gelöscht. Endprüfung: API `v7` gesund, Kanal `DISABLED`, 0 aktive Credentials, Produktivstack durchgehend `Up (healthy)` ohne Neustart.
+Zusätzlich: Connector gestoppt, Schalter zurück auf `ENABLED=false` / `KILL_SWITCH=true`, alle v2-Projekte und das Volume `telegram_realtest_state_v2` entfernt, Workforce- und Bot-Token-Datei gelöscht.
+
+Bot-seitig ging der Rückbau über die Vorgabe hinaus: Das Runbook verlangt in Schritt 5.7 nur einen Widerruf, tatsächlich wurden **sämtliche Testbots bei BotFather gelöscht**. Ein widerrufener Bot existiert weiter und erhält beim Widerruf sogar ein frisches Token; ein gelöschter kann nicht versehentlich reaktiviert werden. Ein künftiger Telegram-Lauf braucht daher einen neu angelegten Bot.
+
+Die temporäre Firewallregel für `172.31.254.2/32` auf TCP 8443 wurde entfernt und die Sperre anschließend nachgewiesen: derselbe tokenfreie Probe-Container, der vor dem Test alle drei Endpunkte erreichte, läuft jetzt wieder in einen Timeout.
+
+Endprüfung: API `v7` gesund, Kanal `DISABLED`, 0 aktive Credentials, unverschlüsselter Zugriff weiterhin mit `HTTPS_REQUIRED` abgewiesen, Secrets-Verzeichnisse leer, Produktivstack durchgehend `Up (healthy)` ohne Neustart.
 
 Das Volume `startup-telegram-run_telegram_realtest_state_v1` aus dem abgebrochenen `DEC-024`-Versuch bleibt absichtlich erhalten — das README verlangt, dass die `…-001`-Belege unverändert bleiben.
 
