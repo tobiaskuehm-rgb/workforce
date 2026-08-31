@@ -3,6 +3,9 @@
 **Datum:** 2026-08-31
 **Quellreferenz:** `DEC-028/ENG-008`, Lauf-Suffix `20260831-DRY1`
 
+**Identität:** `AI-ENG-001` (Gerd)
+**Ergebnis:** `PASS` — vier Nachrichten bearbeitet, Kanal danach wieder `DISABLED`, 0 aktive Zugänge
+
 > **Korrektur, nachgetragen 2026-08-31 (Review-Befunde G-006 und G-007).**
 > Zwei Angaben in diesem Nachweis waren falsch. Der Text darunter bleibt
 > unverändert, damit die Historie nachvollziehbar bleibt.
@@ -20,14 +23,19 @@
 >    erreichte alle drei Endpunkte weiterhin. Ich hatte die Entfernung
 >    dokumentiert, ohne sie zu verifizieren.
 >
+>    **Nachtrag:** Die Regel wurde am 2026-08-31 tatsächlich entfernt und die
+>    Schließung diesmal belegt: derselbe Probe-Container läuft seither auf
+>    allen drei Endpunkten in einen Timeout. Für künftige Rückbauten gilt, was
+>    hier gefehlt hat — der Probe-Lauf, der die Öffnung belegt, muss auch die
+>    Schließung belegen.
+>
 > Zusätzlich zur Einordnung: Der Abschnitt über das Ausbleiben von
 > Wiederholungen bezeichnet dieses Verhalten als „willkommenen Nebeneffekt".
 > Das ist eine Fehleinschätzung (Befund G-001). Stirbt der Prozess nach der
 > Bestätigung und vor der Antwort, bleibt die Nachricht dauerhaft
 > unbeantwortet und wird nie wieder aufgegriffen. Das ist ein Datenverlust,
 > kein Vorteil.
-**Identität:** `AI-ENG-001` (Gerd)
-**Ergebnis:** `PASS` — vier Nachrichten bearbeitet, Kanal danach wieder `DISABLED`, 0 aktive Zugänge
+
 
 Erster Lauf der Agenten-Schicht. Bewusst mit dem Echo-Provider: kein Modell, kein API-Schlüssel, keine Kosten, kein Byte verlässt die NAS. Der Lauf prüft den Bus-Weg, nicht die Antwortqualität.
 

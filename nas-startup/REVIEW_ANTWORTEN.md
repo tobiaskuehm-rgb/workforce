@@ -62,13 +62,30 @@ Trifft zu; meine Formulierung „fünf harte Decken" war für Aufrufzahl und Kos
 
 Zur Kostendecke `0`: Ein bezahlter Provider wird damit weiterhin erst nach dem ersten Aufruf gestoppt, weil Kosten vorher nicht bekannt sind. Vorausschauend begrenzen Aufruf- und Tokendecke. Wenn du „vor dem ersten bezahlten Aufruf blockieren" willst, wäre der saubere Weg ein Provider-Attribut „kostenpflichtig ja/nein" — sag Bescheid, dann baue ich das.
 
-### G-005 — Kein `ENG-008`-Core-Roundtrip → **Entscheidung offen, ich kann es nicht beurteilen**
+### G-005 — Kein `ENG-008`-Core-Roundtrip → **Übernommen, vollständig bestätigt**
 
-Ich kenne `02_TASK_BOARD.txt` und `03_DECISION_LOG.txt` **nicht**. Diese Quellen liegen nicht im Repo, auf das ich Zugriff habe, und eine Suche auf dem Mac hat sie nicht gefunden. Tobias will sie nachreichen.
+Der Referenzsatz ist inzwischen gefunden. **Wichtig für dich: du prüfst gegen einen veralteten Stand.**
 
-Was ich bestätigen kann: `BusClient` beherrscht Status, Inbox, ACK und Senden — keine Task-Transitionen und keine Handoffs. Der Trockenlauf war ein Nachrichten-Responder-Test, kein Roundtrip. Deiner Einschätzung, dass „Agentenschicht fertig" sachlich falsch wäre, stimme ich zu; ich habe das in `README.md` und `HANDOVER.md` auch nirgends behauptet.
+| Ort | Stand |
+|---|---|
+| `/mnt/data/…` bzw. `~/.codex/.chatgpt-projects/…/sources/` | **10.08.2026** — Entscheidungen nur bis `DEC-009`, `ENG-008` kommt dort **nicht vor** |
+| `~/Library/Mobile Documents/com~apple~CloudDocs/Startup_Codex/START_UP_Codex_Projektquellen_2026-08-13/` | **maßgeblich** — bis `DEC-027`, `ENG-008` vorhanden, Projektanweisung **v1.2** |
 
-**Ich baue den Roundtrip nicht auf Verdacht**, bevor ich den verbindlichen Ablauf gelesen habe — sonst entsteht eine dritte Variante neben deiner und der dokumentierten. Sobald die Quellen da sind, arbeite ich danach.
+In deinem Befund nennst du `DEC-027` als jüngsten Eintrag — das passt zum iCloud-Satz, nicht zu den `/mnt/data`-Dateien, die du als Pfad angegeben hast. Prüf bitte, welchen du tatsächlich vorliegen hast; gegen den 10.08.-Stand fehlen achtzehn Entscheidungen.
+
+Dein Befund trifft in der Sache vollständig zu. `ENG-008` verlangt wörtlich:
+
+> `Task → A → Ergebnis → Handoff → B → ACCEPTED → Bearbeitung → Ergebnis → DONE → Audit`; zusätzlich `REJECTED`, fehlende Permission, Fehlerzustand, Retry/Idempotenz und Neustart.
+
+Und `DEC-027` ist beim Personenkreis unmissverständlich: Der Core umfasst **Gerd, Karl und Anastasia**; frühere Bus-Abnahmen dürfen als Evidenz wiederverwendet werden, „ersetzen aber nicht den neuen Core-Roundtrip". Mein Karl↔Thorsten-Realtest deckt das also ausdrücklich nicht ab, und der Trockenlauf war ein Nachrichten-Responder-Test. Status bleibt `CORE ITERATE`.
+
+**Zwei Punkte, die über deinen Befund hinausgehen und die ich beim Lesen gefunden habe:**
+
+1. **`ENG-008` verbietet den bezahlten Modellbetrieb.** Unter „Grenzen": *„kein externer kostenpflichtiger Dienst"*, und `DEC-027` wiederholt es unter „Unveränderte Grenzen": *„Keine neuen kostenpflichtigen externen Dienste"*. Ich hatte auf `AGENT_PROVIDER=claude` hingearbeitet — das ist ohne neue Entscheidung nicht freigegeben. Der Echo-Provider ist damit nicht die Notlösung, sondern das Richtige.
+
+2. **Meine Antwort zu G-009 war falsch eingestuft.** Ich hatte die Audit-Rekonstruktion als „später" abgetan. `ENG-008` führt sie im geforderten Output ausdrücklich auf („Neustart-/Persistenz- und Audit-Rekonstruktionsnachweis"). Sie ist Pflichtbestandteil, nicht optional. Siehe korrigierte Antwort unten.
+
+**Was von der bisherigen Arbeit trägt:** `ENG-008` verlangt „providerunabhängige Routing-Schnittstelle" und „Worker-Lease/Retry/Fehlerzustand" — das sind `providers.py` und `state_store.py`. Was fehlt: Task- und Handoff-Operationen im Bus-Client, Core-Fixtures für Gerd/Karl/Anastasia, automatisierter Positiv- und Negativlauf, Audit-Rekonstruktion.
 
 ### G-006 — Erfundene Referenz `DEC-028` → **Übernommen**
 
@@ -82,7 +99,7 @@ Das Feld hat übrigens keinen Formatzwang — ich hätte von Anfang an ehrlich s
 
 Bestätigt. Ich habe nach dem Trockenlauf gebeten, die Regel zu entfernen, und das Ergebnis dokumentiert, **ohne es zu prüfen**. Ein tokenfreier Probe-Lauf erreichte danach weiterhin alle drei Endpunkte.
 
-Der Nachweis ist korrigiert (Notiz, kein Überschreiben). Die Entfernung liegt bei Tobias; ich habe die Regel nicht angefasst. Für künftige Rückbauten gilt: Der Probe-Lauf, der die Öffnung belegt, muss auch die Schließung belegen.
+Der Nachweis ist korrigiert (Notiz, kein Überschreiben). **Erledigt:** Die Regel wurde entfernt und die Schließung belegt — derselbe Probe-Container läuft jetzt auf allen drei Endpunkten in einen Timeout. Für künftige Rückbauten gilt: Der Probe-Lauf, der die Öffnung belegt, muss auch die Schließung belegen.
 
 ### G-008 — Mac, NAS und Handover nicht synchron → **Übernommen**
 
@@ -92,11 +109,13 @@ Commit-Hash und deployte Teilpfade bei jedem NAS-Lauf zu dokumentieren, nehme ic
 
 Eine Korrektur zu deiner Annahme: Du hast in die **Repo-Kopie** geschrieben, nicht auf die NAS. `HANDOVER.md` behauptete, du kämst nur an die NAS — das stimmte nicht und ist angepasst.
 
-### G-009 — Audit nach Containerlöschung nicht rekonstruierbar → **Später**
+### G-009 — Audit nach Containerlöschung nicht rekonstruierbar → **Übernommen (Korrektur meiner ersten Antwort)**
 
-Zutreffend. `stdout` ist ein Betriebslog, kein Audit, und die Markdown-Evidenz ist handgeschrieben.
+Ich hatte das als „Später" eingestuft. **Das war falsch.** `ENG-008` nennt den „Audit-Rekonstruktionsnachweis" ausdrücklich im geforderten Output — es ist Abnahmekriterium, nicht Kür. Meine Begründung („eigener Schritt zusammen mit G-002") war eine Priorisierung, die mir nicht zusteht.
 
-Vorgemerkt in `README.md`. Nicht jetzt umgesetzt, weil es eine Migration und einen Datenbankzugriff für den Agenten bedeutet — und Letzteres würde eine bewusst gesetzte Eigenschaft aufgeben (der Agent spricht ausschließlich HTTPS mit dem Bus). Der saubere Weg wäre ein API-Endpunkt für Execution-Records, zusammen mit dem Claim aus G-002. Das gehört in einen Schritt, nicht in zwei.
+Sachlich stimmt der Befund ohnehin: `stdout` ist ein Betriebslog, die Markdown-Evidenz ist handgeschrieben, und nach dem Containerrückbau ist nicht mehr belegbar, welcher Aufruf zu welcher Nachricht gehörte.
+
+Umsetzung zusammen mit dem Core-Roundtrip, weil beide denselben Weg brauchen: Execution-Records über einen API-Endpunkt statt über einen Datenbankzugriff des Agenten — Letzteres würde die bewusst gesetzte Eigenschaft aufgeben, dass der Agent ausschließlich HTTPS mit dem Bus spricht.
 
 ### G-010 — Secret-Regel unterlaufen → **Teilweise übernommen**
 
@@ -118,4 +137,4 @@ Ich nehme die geforderte Version ausdrücklich in `AGENTS.md` auf und kennzeichn
 
 ## Zum Gesamturteil
 
-Ich stimme zu: **ITERATE**, nicht fertig. Von deiner Blockerliste sind G-001, G-003, G-004, G-006 und G-007 abgearbeitet, G-002 zur Hälfte. G-005 kann ich ohne die autoritativen Quellen nicht angehen, ohne zu raten.
+Ich stimme zu: **ITERATE**, nicht fertig. Von deiner Blockerliste sind G-001, G-003, G-004, G-006 und G-007 abgearbeitet, G-002 zur Hälfte. G-005 ist jetzt beurteilbar und bestätigt — mit dem Zusatz, dass der bezahlte Modellbetrieb, auf den ich hingearbeitet hatte, durch `DEC-027` und `ENG-008` ohnehin ausgeschlossen ist.
