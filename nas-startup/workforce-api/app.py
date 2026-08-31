@@ -2,9 +2,10 @@ import hashlib
 import hmac
 import ipaddress
 import os
+import sys
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Literal
+from typing import Literal, NamedTuple
 
 import psycopg
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Query, Request, status
@@ -179,24 +180,87 @@ def require_idempotency_key(
     return value
 
 
-def execute_bus_one(sql: str, parameters: tuple) -> dict:
+class BusAudit(NamedTuple):
+    """Everything the denial log is allowed to know about one call.
+
+    Identifiers and nothing else: no subject, no body, no note, no token. The
+    table's CHECK constraints refuse anything wider, so this is a shape, not a
+    promise.
+    """
+
+    operation: str
+    record_type: str
+    token_hash: str
+    # The read endpoints carry no X-Request-ID header, so they pass a marker of
+    # the form READ:<scope> instead. It is not a request id and does not
+    # pretend to be one - it says why there is none.
+    request_id: str
+    record_key: str | None = None
+
+
+def record_denial(audit: BusAudit, error: HTTPException) -> None:
+    """Write one refused operation to the append-only denial log.
+
+    Review finding G-018: workforce.bus_events only holds successful changes,
+    because a refused call rolls its transaction back and takes any audit row
+    with it. The write therefore happens here, on a *fresh* connection after
+    the failure - which is the only place it can happen at all.
+
+    Never raises. An audit that can turn a clean 403 into a 500 would be worse
+    than the gap it closes; a failure to record is reported on stderr and the
+    original error travels on untouched.
+    """
+    try:
+        with connection() as conn:
+            conn.execute(
+                "SELECT workforce.bus_record_denial(%s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    BUS_PROJECT_ID,
+                    audit.token_hash,
+                    audit.request_id,
+                    audit.operation,
+                    audit.record_type,
+                    audit.record_key,
+                    str(error.detail),
+                    int(error.status_code),
+                ),
+            )
+    except (psycopg.Error, ValueError, TypeError) as exc:
+        print(
+            f"BUS_DENIAL_AUDIT_FAILED operation={audit.operation} "
+            f"request_id={audit.request_id} reason={type(exc).__name__}",
+            file=sys.stderr,
+            flush=True,
+        )
+
+
+def execute_bus_one(sql: str, parameters: tuple, *, audit: BusAudit | None = None) -> dict:
     try:
         with connection() as conn:
             cursor = conn.execute(sql, parameters)
             return row_as_dict(cursor)
-    except HTTPException:
+    except HTTPException as exc:
+        if audit is not None:
+            record_denial(audit, exc)
         raise
     except psycopg.Error as exc:
-        raise bus_error(exc) from exc
+        error = bus_error(exc)
+        if audit is not None:
+            record_denial(audit, error)
+        raise error from exc
 
 
-def execute_bus_many(sql: str, parameters: tuple) -> list[dict]:
+def execute_bus_many(sql: str, parameters: tuple,
+                     *, audit: BusAudit | None = None) -> list[dict]:
     try:
         with connection() as conn:
             cursor = conn.execute(sql, parameters)
             return rows_as_dicts(cursor)
     except psycopg.Error as exc:
-        raise bus_error(exc) from exc
+        error = bus_error(exc)
+        if audit is not None:
+            record_denial(audit, error)
+        raise error from exc
 
 
 def initialize_database() -> None:
@@ -430,7 +494,7 @@ def bus_status() -> dict:
         with connection() as conn:
             if conn.execute("SELECT to_regclass('workforce.bus_channels')").fetchone()[0] is None:
                 return {
-                    "api_version": "v7",
+                    "api_version": "v8",
                     "project_id": BUS_PROJECT_ID,
                     "migration": "missing",
                     "channel_status": "MISSING",
@@ -456,13 +520,13 @@ def bus_status() -> dict:
 
     if row is None:
         return {
-            "api_version": "v7",
+            "api_version": "v8",
             "project_id": BUS_PROJECT_ID,
             "migration": "missing",
             "channel_status": "MISSING",
         }
     return {
-        "api_version": "v7",
+        "api_version": "v8",
         "project_id": BUS_PROJECT_ID,
         "migration": "002_workforce_bus" if row[3] else "missing",
         "channel_status": row[0],
@@ -480,6 +544,7 @@ def bus_list_messages(
     return execute_bus_many(
         "SELECT * FROM workforce.bus_list_messages(%s, %s, %s, %s)",
         (token_hash, BUS_PROJECT_ID, scope, limit),
+        audit=BusAudit("MESSAGE_LIST", "MESSAGE", token_hash, f"READ:{scope}"),
     )
 
 
@@ -513,6 +578,7 @@ def bus_send_message(
             item.handoff_ref,
             item.parent_message_id,
         ),
+        audit=BusAudit("MESSAGE_SEND", "MESSAGE", token_hash, request_id, message_id),
     )
 
 
@@ -537,6 +603,7 @@ def bus_acknowledge_message(
             item.decision,
             item.note,
         ),
+        audit=BusAudit("MESSAGE_ACK", "MESSAGE", token_hash, request_id, message_id),
     )
 
 
@@ -549,6 +616,7 @@ def bus_list_tasks(
     return execute_bus_many(
         "SELECT * FROM workforce.bus_list_tasks(%s, %s, %s, %s)",
         (token_hash, BUS_PROJECT_ID, scope, limit),
+        audit=BusAudit("TASK_LIST", "TASK", token_hash, f"READ:{scope}"),
     )
 
 
@@ -577,6 +645,7 @@ def bus_create_task(
             item.source_ref,
             item.review_at,
         ),
+        audit=BusAudit("TASK_CREATE", "TASK", token_hash, request_id, item.task_id),
     )
 
 
@@ -601,6 +670,7 @@ def bus_transition_task(
             item.new_status,
             item.completion_evidence,
         ),
+        audit=BusAudit("TASK_TRANSITION", "TASK", token_hash, request_id, task_id),
     )
 
 
@@ -613,6 +683,7 @@ def bus_list_handoffs(
     return execute_bus_many(
         "SELECT * FROM workforce.bus_list_handoffs(%s, %s, %s, %s)",
         (token_hash, BUS_PROJECT_ID, scope, limit),
+        audit=BusAudit("HANDOFF_LIST", "HANDOFF", token_hash, f"READ:{scope}"),
     )
 
 
@@ -642,6 +713,8 @@ def bus_create_handoff(
             item.risks_and_assumptions,
             item.trigger_or_due,
         ),
+        audit=BusAudit("HANDOFF_CREATE", "HANDOFF", token_hash, request_id,
+                       item.handoff_id),
     )
 
 
@@ -666,6 +739,8 @@ def bus_transition_handoff(
             item.new_status,
             item.response_note,
         ),
+        audit=BusAudit("HANDOFF_TRANSITION", "HANDOFF", token_hash, request_id,
+                       handoff_id),
     )
 
 

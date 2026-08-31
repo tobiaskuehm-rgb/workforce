@@ -55,7 +55,7 @@ def test_bus_status_reports_missing_migration_without_credentials(monkeypatch):
     response = TestClient(workforce_app.app).get("/bus/v1/status")
     assert response.status_code == 200
     assert response.json() == {
-        "api_version": "v7",
+        "api_version": "v8",
         "project_id": "START-UP",
         "migration": "missing",
         "channel_status": "MISSING",
@@ -246,3 +246,73 @@ def test_health_and_db_check_stay_reachable_over_cleartext(monkeypatch):
     client = TestClient(workforce_app.app)
     assert client.get("/health").status_code == 200
     assert client.get("/db-check").status_code == 200
+
+
+# --- Denial audit (review finding G-018) ------------------------------------
+
+
+def test_every_bus_call_carries_its_audit_context():
+    """No bus operation may be refused without leaving a record.
+
+    An AST check rather than a runtime one: the gap G-018 describes is a call
+    site that simply forgets the argument, and that is invisible until the day
+    somebody looks for the missing denial in the audit trail. This fails at
+    test time instead.
+    """
+    import ast
+    import pathlib
+
+    tree = ast.parse(pathlib.Path(workforce_app.__file__).read_text(encoding="utf-8"))
+    missing = [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in {"execute_bus_one", "execute_bus_many"}
+        and not any(keyword.arg == "audit" for keyword in node.keywords)
+    ]
+    assert missing == [], f"bus calls without audit context at lines {missing}"
+
+
+def test_a_refused_call_is_recorded_once_with_identifiers_only(monkeypatch):
+    import psycopg
+
+    recorded = []
+
+    def failing_connection():
+        raise psycopg.errors.InsufficientPrivilege("BUS_TASK_TRANSITION_DENIED")
+
+    monkeypatch.setattr(workforce_app, "connection", failing_connection)
+    monkeypatch.setattr(
+        workforce_app, "record_denial",
+        lambda audit, error: recorded.append((audit, error)),
+    )
+
+    audit = workforce_app.BusAudit(
+        "TASK_TRANSITION", "TASK", "hash", "REQ-1", "ENG-TEST-1"
+    )
+    with pytest.raises(Exception):
+        workforce_app.execute_bus_one("SELECT 1", (), audit=audit)
+
+    assert len(recorded) == 1
+    written, error = recorded[0]
+    assert written.record_key == "ENG-TEST-1"
+    assert written.operation == "TASK_TRANSITION"
+    # The token hash stays in the tuple but never reaches the table: the SQL
+    # function resolves it to an employee id and stores that instead.
+    assert error.status_code in {400, 401, 403, 404, 409, 413, 422, 503}
+
+
+def test_a_broken_audit_never_turns_a_denial_into_a_server_error(monkeypatch):
+    import psycopg
+
+    def failing_connection():
+        raise psycopg.OperationalError("audit database unreachable")
+
+    monkeypatch.setattr(workforce_app, "connection", failing_connection)
+    audit = workforce_app.BusAudit("TASK_TRANSITION", "TASK", "hash", "REQ-2", "ENG-2")
+
+    # Must return, not raise. The original 403 has to reach the caller intact.
+    workforce_app.record_denial(
+        audit, workforce_app.HTTPException(status_code=403, detail="BUS_X_DENIED")
+    )

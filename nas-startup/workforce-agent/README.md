@@ -110,6 +110,25 @@ Zwei Prüfungen halten das fest:
 | `test_compose_secrets.py` | lokal, ohne Netz | keine Compose-Datei mountet `startup.env`; kein Dienst am `outbound`-Netz trägt überhaupt eine geteilte Secret-Datei |
 | `verify_secret_isolation_once.sh` | NAS | dasselbe am laufenden Container, gegen Umgebung **und** lesbares Dateisystem — ohne je einen Wert auszugeben |
 
+## Was der Audit belegt — und was nicht
+
+`workforce.bus_events` enthält ausschließlich **erfolgreiche** Vorgänge. Eine abgelehnte Bus-Operation wirft, ihre Transaktion rollt zurück und nimmt jede darin geschriebene Audit-Zeile mit. Die drei geforderten Ablehnungen des Core-Roundtrips lebten deshalb nur in stdout und in handgeschriebenem Markdown — beides weg, sobald der Container weg ist (Befund `G-018`).
+
+Migration `004_bus_denial_audit` schließt das mit `workforce.bus_denials`: append-only, geschrieben von der API **nach** dem Fehlschlag auf einer frischen Verbindung — der einzigen Stelle, an der es überhaupt möglich ist.
+
+Was dort landen darf, ist eng: Identitäten, Bezeichner, stabiler Fehlercode, HTTP-Status. Kein Betreff, kein Nachrichtentext, keine Notiz, kein Token. Das erzwingen `CHECK`-Bedingungen — ein Nachrichtentext ist weder ein gültiger Fehlercode noch eine gültige Operation. `postgres-tests/004_bus_denial_audit_acceptance.sql` versucht genau das und verlangt, dass es scheitert.
+
+`core_audit.sql` weist seither zwei Hälften getrennt aus:
+
+| Hälfte | Quelle | Was geprüft wird |
+|---|---|---|
+| Positiv | `bus_events` | elf Schritte, jeder an die exakte Datensatz-Id, den Akteur, Sender/Empfänger und die Task-Referenz gebunden — plus die **vollständige** Reihenfolge, nicht zwei Stichproben |
+| Negativ | `bus_denials` | die drei geforderten Ablehnungen mit Akteur, Fehlercode und HTTP-Status |
+
+Fehlt die Migration, bricht das Negativ-Audit ab, statt eine leere Menge als Bestehen zu melden.
+
+**Noch nicht ausgeführt.** Migration, API-Änderung (`v8`) und die neue Audit-Abfrage sind auf diesem Mac nicht gegen ein echtes PostgreSQL gelaufen — hier gibt es weder `psql` noch Docker. Das braucht einen Lauf auf der NAS mit Freigabe.
+
 ## Vor einem echten Lauf
 
 Nicht ausführen, bevor das nicht steht:

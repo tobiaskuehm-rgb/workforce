@@ -37,7 +37,7 @@ class DemoWorkforce:
     def get_status(self):
         return {
             "project_id": "START-UP",
-            "api_version": "v7",
+            "api_version": "v8",
             "channel_status": "SIMULATED",
         }
 

@@ -39,7 +39,7 @@ class FakeWorkforce:
         self.inbox = []
         self.status = {
             "project_id": "START-UP",
-            "api_version": "v7",
+            "api_version": "v8",
             "channel_status": "TESTING",
             "secret_field": "must-not-be-returned",
         }
