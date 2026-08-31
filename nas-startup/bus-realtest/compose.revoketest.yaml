@@ -16,6 +16,8 @@ services:
       - ../startup.env
     environment:
       DB_HOST: db
+      # Must match the prepare step, otherwise there is nothing to revoke.
+      BUS_REALTEST_RUN_SUFFIX: "20260831-F7"
     volumes:
       - ./bus_revoketest.sql:/opt/startup-bus-realtest/bus_revoketest.sql:ro
     entrypoint:
@@ -26,7 +28,7 @@ services:
         export PGUSER="$$POSTGRES_USER"
         export PGDATABASE="$$POSTGRES_DB"
         export PGPASSWORD="$$POSTGRES_PASSWORD"
-        psql -v ON_ERROR_STOP=1 -f /opt/startup-bus-realtest/bus_revoketest.sql
+        psql -v ON_ERROR_STOP=1 -v run_suffix="$$BUS_REALTEST_RUN_SUFFIX" -f /opt/startup-bus-realtest/bus_revoketest.sql
     networks:
       - startup_backend
     read_only: true

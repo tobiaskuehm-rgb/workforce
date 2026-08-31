@@ -8,6 +8,12 @@ services:
     environment:
       DB_HOST: db
       BUS_REALTEST_SOURCE_REF: "DEC-027/ENG-003"
+      # Credential ids must be unique per run. A REVOKED credential can never
+      # be reactivated (trigger bus_guard_credential_update,
+      # BUS_CREDENTIAL_REVOCATION_FINAL), so reusing a suffix makes the prepare
+      # step fail on the primary key. Bump this for every run; the cleanup step
+      # must use the same value.
+      BUS_REALTEST_RUN_SUFFIX: "20260831-F7"
       KARL_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_karl
       THORSTEN_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_thorsten
       GENERATE_BUS_TOKENS_IF_MISSING: "true"
@@ -23,6 +29,11 @@ services:
       - /tmp:size=16m,mode=1777
     cap_drop:
       - ALL
+    cap_add:
+      # Handing the fresh token files to UID 10001, which the run and negtest
+      # containers use, needs CAP_CHOWN. Without it the chown fails silently
+      # and those containers cannot read their own credentials.
+      - CHOWN
     security_opt:
       - no-new-privileges:true
 

@@ -5,6 +5,7 @@ set -eu
 : "${POSTGRES_DB:?startup.env lacks POSTGRES_DB}"
 : "${POSTGRES_PASSWORD:?startup.env lacks POSTGRES_PASSWORD}"
 : "${BUS_REALTEST_SOURCE_REF:?set BUS_REALTEST_SOURCE_REF (e.g. a DEC-.../ENG-003 reference) before running}"
+: "${BUS_REALTEST_RUN_SUFFIX:?set BUS_REALTEST_RUN_SUFFIX (credential ids must be unique: a REVOKED credential can never be reactivated)}"
 
 karl_token_file="${KARL_BUS_TOKEN_FILE:-/run/startup-bus-secrets/bus_token_karl}"
 thorsten_token_file="${THORSTEN_BUS_TOKEN_FILE:-/run/startup-bus-secrets/bus_token_thorsten}"
@@ -21,13 +22,8 @@ generate_token_if_missing() {
         # umask alone is not enough here: the DSM share carries a default ACL
         # that re-opens the mode on creation, so the 2026-08-31 realtest wrote
         # both token files as rwxrwxrwx despite the umask above.
-        #
-        # 600 alone would lock out the run and negtest containers, which read
-        # these files as UID 10001. This step runs as root, so hand the file to
-        # that UID instead of widening the mode.
-        chown 10001:10001 "$token_file" 2>/dev/null || true
         chmod 600 "$token_file"
-        echo "PASS: short-lived token created at $token_file (mode 600, owner 10001)."
+        echo "PASS: short-lived token created at $token_file (mode 600)."
     fi
 }
 
@@ -53,6 +49,20 @@ generate_token_if_missing "$thorsten_token_file"
 karl_hash="$(hash_token "$karl_token_file")"
 thorsten_hash="$(hash_token "$thorsten_token_file")"
 
+# Only now hand both files to UID 10001, the user the run and negtest
+# containers execute as. This has to happen after hashing: this container runs
+# as root but with cap_drop ALL, so once a file belongs to 10001 it can no
+# longer read it (no CAP_DAC_OVERRIDE) nor change its mode (no CAP_FOWNER).
+# Widening the mode instead would put the raw tokens back within reach of every
+# account on the NAS.
+for token_file in "$karl_token_file" "$thorsten_token_file"; do
+    if ! chown 10001:10001 "$token_file" 2>/dev/null; then
+        echo "BLOCKED: cannot hand $token_file to UID 10001. The container needs CAP_CHOWN; cap_drop ALL removes it." >&2
+        exit 2
+    fi
+done
+echo "PASS: both token files handed to UID 10001 (mode 600)."
+
 export PGHOST="${DB_HOST:-db}"
 export PGUSER="$POSTGRES_USER"
 export PGDATABASE="$POSTGRES_DB"
@@ -63,6 +73,7 @@ psql \
     -v karl_token_hash="$karl_hash" \
     -v thorsten_token_hash="$thorsten_hash" \
     -v source_ref="$BUS_REALTEST_SOURCE_REF" \
+    -v run_suffix="$BUS_REALTEST_RUN_SUFFIX" \
     -f /opt/startup-bus-realtest/bus_realtest_prepare.sql
 
 unset karl_hash thorsten_hash PGPASSWORD

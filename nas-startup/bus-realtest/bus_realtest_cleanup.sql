@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SELECT set_config('bus.run_suffix', :'run_suffix', false);
+
 DO $$
 BEGIN
     IF EXISTS (
@@ -25,7 +27,7 @@ UPDATE workforce.bus_credentials
 SET credential_status = 'REVOKED',
     revoked_at = clock_timestamp(),
     revocation_reason = 'Bus realtest Karl/Thorsten completed or stopped'
-WHERE credential_id IN ('CRED-ACCEPT-KARL-001', 'CRED-ACCEPT-THORSTEN-001')
+WHERE credential_id IN (('CRED-ACCEPT-KARL-' || current_setting('bus.run_suffix')), ('CRED-ACCEPT-THORSTEN-' || current_setting('bus.run_suffix')))
   AND credential_status <> 'REVOKED';
 
 UPDATE workforce.bus_channels
@@ -69,6 +71,6 @@ SELECT
 FROM workforce.bus_channels AS ch
 JOIN workforce.bus_credentials AS cred
   ON cred.project_id = ch.project_id
- AND cred.credential_id IN ('CRED-ACCEPT-KARL-001', 'CRED-ACCEPT-THORSTEN-001')
+ AND cred.credential_id IN (('CRED-ACCEPT-KARL-' || current_setting('bus.run_suffix')), ('CRED-ACCEPT-THORSTEN-' || current_setting('bus.run_suffix')))
 WHERE ch.project_id = 'START-UP'
 ORDER BY cred.employee_id;

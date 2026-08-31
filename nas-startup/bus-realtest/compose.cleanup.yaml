@@ -7,6 +7,9 @@ services:
       - ../startup.env
     environment:
       DB_HOST: db
+      # Must match the value the prepare step used, otherwise this revokes
+      # nothing and the run leaves live credentials behind.
+      BUS_REALTEST_RUN_SUFFIX: "20260831-F7"
     volumes:
       - ./cleanup_realtest_once.sh:/opt/startup-bus-realtest/cleanup_realtest_once.sh:ro
       - ./bus_realtest_cleanup.sql:/opt/startup-bus-realtest/bus_realtest_cleanup.sql:ro

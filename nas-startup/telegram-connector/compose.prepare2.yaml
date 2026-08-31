@@ -21,6 +21,11 @@ services:
       - /tmp:size=16m,mode=1777
     cap_drop:
       - ALL
+    cap_add:
+      # Handing the fresh workforce token to UID 10001, which the connector
+      # container runs as, needs CAP_CHOWN. cap_drop ALL removes it, and the
+      # chown then fails without the connector being able to read its token.
+      - CHOWN
     security_opt:
       - no-new-privileges:true
 

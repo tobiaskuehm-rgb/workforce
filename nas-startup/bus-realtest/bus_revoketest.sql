@@ -11,6 +11,8 @@
 
 BEGIN;
 
+SELECT set_config('bus.run_suffix', :'run_suffix', false);
+
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -22,7 +24,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM workforce.bus_credentials
-        WHERE credential_id = 'CRED-ACCEPT-THORSTEN-001'
+        WHERE credential_id = ('CRED-ACCEPT-THORSTEN-' || current_setting('bus.run_suffix'))
           AND credential_status = 'ACTIVE'
           AND (expires_at IS NULL OR expires_at > clock_timestamp())
     ) THEN
@@ -31,7 +33,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM workforce.bus_credentials
-        WHERE credential_id = 'CRED-ACCEPT-KARL-001'
+        WHERE credential_id = ('CRED-ACCEPT-KARL-' || current_setting('bus.run_suffix'))
           AND credential_status = 'ACTIVE'
           AND (expires_at IS NULL OR expires_at > clock_timestamp())
     ) THEN
@@ -47,14 +49,14 @@ UPDATE workforce.bus_credentials
 SET credential_status = 'REVOKED',
     revoked_at = clock_timestamp(),
     revocation_reason = 'Revocation negative test: prove a revoked credential is refused while the channel is still TESTING'
-WHERE credential_id = 'CRED-ACCEPT-THORSTEN-001'
+WHERE credential_id = ('CRED-ACCEPT-THORSTEN-' || current_setting('bus.run_suffix'))
   AND credential_status = 'ACTIVE';
 
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM workforce.bus_credentials
-        WHERE credential_id = 'CRED-ACCEPT-THORSTEN-001'
+        WHERE credential_id = ('CRED-ACCEPT-THORSTEN-' || current_setting('bus.run_suffix'))
           AND credential_status = 'REVOKED'
     ) THEN
         RAISE EXCEPTION 'BUS_REVOKETEST_REVOCATION_DID_NOT_APPLY';
@@ -64,7 +66,7 @@ BEGIN
     -- revocation apart from a channel-wide outage.
     IF NOT EXISTS (
         SELECT 1 FROM workforce.bus_credentials
-        WHERE credential_id = 'CRED-ACCEPT-KARL-001'
+        WHERE credential_id = ('CRED-ACCEPT-KARL-' || current_setting('bus.run_suffix'))
           AND credential_status = 'ACTIVE'
     ) THEN
         RAISE EXCEPTION 'BUS_REVOKETEST_KARL_CREDENTIAL_LOST';
@@ -90,6 +92,6 @@ SELECT
 FROM workforce.bus_channels AS ch
 JOIN workforce.bus_credentials AS cred
   ON cred.project_id = ch.project_id
- AND cred.credential_id IN ('CRED-ACCEPT-KARL-001', 'CRED-ACCEPT-THORSTEN-001')
+ AND cred.credential_id IN (('CRED-ACCEPT-KARL-' || current_setting('bus.run_suffix')), ('CRED-ACCEPT-THORSTEN-' || current_setting('bus.run_suffix')))
 WHERE ch.project_id = 'START-UP'
 ORDER BY cred.employee_id;

@@ -14,12 +14,9 @@ if [ ! -e "$token_file" ] && [ "${GENERATE_WORKFORCE_BUS_TOKEN_IF_MISSING:-false
     head -c 48 /dev/urandom | base64 | tr -d '\r\n' > "$temporary_token_file"
     mv "$temporary_token_file" "$token_file"
     # umask alone is not enough on the DSM share: its default ACL re-opens the
-    # mode on creation. 600 alone would lock out the connector container, which
-    # reads this file as UID 10001, so hand the file to that UID rather than
-    # widening the mode. This step runs as root.
-    chown 10001:10001 "$token_file" 2>/dev/null || true
+    # mode on creation, so set the mode explicitly.
     chmod 600 "$token_file"
-    echo "PASS: short-lived workforce token created in the local secret directory (mode 600, owner 10001)."
+    echo "PASS: short-lived workforce token created in the local secret directory (mode 600)."
 fi
 
 if [ ! -r "$token_file" ]; then
@@ -36,6 +33,17 @@ fi
 
 token_hash="$(printf '%s' "$raw_token" | sha256sum | cut -d ' ' -f 1)"
 unset raw_token
+
+# Only now hand the file to UID 10001, the user the connector container runs
+# as. This has to happen after reading: this container runs as root but with
+# cap_drop ALL, so once the file belongs to 10001 it can neither read it
+# (no CAP_DAC_OVERRIDE) nor change its mode (no CAP_FOWNER). Widening the mode
+# instead would put the raw token back within reach of every account on the NAS.
+if ! chown 10001:10001 "$token_file" 2>/dev/null; then
+    echo "BLOCKED: cannot hand $token_file to UID 10001. The container needs CAP_CHOWN; cap_drop ALL removes it." >&2
+    exit 2
+fi
+echo "PASS: workforce token handed to UID 10001 (mode 600)."
 
 export PGHOST="${DB_HOST:-db}"
 export PGUSER="$POSTGRES_USER"
