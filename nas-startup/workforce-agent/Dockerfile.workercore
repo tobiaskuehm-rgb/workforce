@@ -1,0 +1,16 @@
+FROM python:3.13-alpine
+
+LABEL org.opencontainers.image.title="Start UP Worker Core Gate" \
+      org.opencontainers.image.version="v1"
+
+RUN addgroup -S startup && adduser -S -G startup -u 10001 startup
+
+WORKDIR /app
+# The real runtime, not a copy of it: the whole point of this gate is that
+# agent_worker.py and state_store.py are the code under test.
+COPY bus_client.py agent_worker.py state_store.py providers.py \
+     data_boundary.py budget.py worker_core_test.py /app/
+
+USER 10001:10001
+
+CMD ["python", "/app/worker_core_test.py"]

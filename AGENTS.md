@@ -60,8 +60,10 @@ cd nas-startup/bus-realtest    && python3 -m unittest discover -q
 Die übrigen beiden laufen in einem Wegwerf-Container auf der NAS:
 
 ```bash
-ssh synology "sudo docker run --rm -v /volume1/docker/Startup/telegram-connector:/src:ro -w /tmp python:3.13-alpine sh -c 'cp /src/*.py /tmp/ && python -m unittest discover -q'"
+ssh synology "sudo /usr/local/bin/docker run --rm -v /volume1/docker/Startup/telegram-connector:/src:ro -w /tmp python:3.13-alpine sh -c 'cp /src/*.py /tmp/ && python -m unittest discover -q'"
 ```
+
+Der volle Pfad ist nicht kosmetisch: Die passwortlose sudo-Regel lautet auf `/usr/local/bin/docker`, und in einer nicht-interaktiven SSH-Sitzung liegt `docker` nicht im `PATH`. Ohne den Pfad fragt `sudo` nach dem Passwort und der Befehl scheitert.
 
 Testzahlen stehen bewusst nicht hier — sie waren zweimal veraltet, bevor jemand sie gelesen hat.
 

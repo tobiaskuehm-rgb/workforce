@@ -15,6 +15,7 @@ service - a silent empty result would turn the guard into a rubber stamp.
 from __future__ import annotations
 
 import pathlib
+import re
 from dataclasses import dataclass, field
 
 
@@ -37,7 +38,34 @@ def scan(path: pathlib.Path) -> dict[str, Service]:
     current: Service | None = None
     current_key: str | None = None
 
-    for raw in path.read_text().splitlines():
+    text = path.read_text()
+    # YAML anchors and merge keys would make a service look empty here, and an
+    # empty service passes every check in test_compose_secrets.py. Refuse to
+    # read what this parser cannot resolve rather than reporting a service with
+    # no mounts and no networks - that would turn the guard into a rubber
+    # stamp, which is the exact failure mode it exists to prevent.
+    for marker in ("<<:", "&", "*"):
+        for number, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                continue
+            if marker == "&" and re.search(r":\s+&\w", line):
+                raise ValueError(
+                    f"{path}:{number}: YAML anchor - this scanner cannot resolve "
+                    "anchors; write the service out in full"
+                )
+            if marker == "*" and re.search(r":\s+\*\w", line):
+                raise ValueError(
+                    f"{path}:{number}: YAML alias - this scanner cannot resolve "
+                    "aliases; write the service out in full"
+                )
+            if marker == "<<:" and stripped.startswith("<<:"):
+                raise ValueError(
+                    f"{path}:{number}: YAML merge key - this scanner cannot "
+                    "resolve merges; write the service out in full"
+                )
+
+    for raw in text.splitlines():
         line = raw.rstrip()
         if not line.strip() or line.lstrip().startswith("#"):
             continue

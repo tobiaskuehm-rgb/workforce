@@ -1,0 +1,180 @@
+name: startup-worker-core
+
+# The runtime gate ENG-008 asks for, and core_roundtrip.py does not provide
+# (review finding G-015).
+#
+# Unlike the core roundtrip, the work here is done by the real worker:
+# agent_worker.poll_once(), the real AgentStateStore on a persistent volume,
+# the real data boundary, the real budget. Only the model is a stand-in, and
+# that is the requirement - DEC-027 and ENG-008 forbid an external paid
+# service, so the echo provider is what belongs here.
+#
+# Four services in order:
+#   prepare  issues two short-lived credentials, opens the channel
+#   phase1   answers A, and leaves C answered but unacknowledged
+#   phase2   a SEPARATE container over the same state volume - this is the
+#            restart the gate is about - resumes C without asking the model
+#            again, then runs B, D and E
+#   audit    rebuilds the run from the database alone
+#
+# phase1 and phase2 are two containers on purpose. Splitting the run inside one
+# process would prove that a new object reads the file, not that a restarted
+# container resumes the work.
+#
+# Needs the temporary DSM firewall rule for 172.31.254.2/32 on TCP 8443 for
+# phase1 and phase2 - prepare and audit talk to the database directly.
+
+# Written out in full rather than shared through a YAML anchor. The secret
+# footprint guard (test_compose_secrets.py) reads these files with a small
+# hand-rolled parser that cannot resolve anchors - and it refuses to read a
+# file containing one, because a service it could not parse would silently
+# pass every check. Duplication here buys a guard that actually looks.
+
+services:
+  prepare:
+    image: postgres:17-alpine
+    environment:
+      DB_HOST: db
+      # Honest provenance: a chat approval, explicitly not a decision-log
+      # entry (review finding G-006).
+      WC_SOURCE_REF: "CEO-CHAT-2026-08-31/PENDING-DEC"
+      WC_RUN_SUFFIX: "20260831-WC1"
+      WC_SECRET_DIR: /run/startup-workercore-secrets
+    volumes:
+      - ../startup.db.env:/run/startup.db.env:ro
+      - ./secrets:/run/startup-workercore-secrets
+      - ./prepare_workercore_once.sh:/opt/startup-workercore/prepare_workercore_once.sh:ro
+      - ./workercore_prepare.sql:/opt/startup-workercore/workercore_prepare.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-workercore/prepare_workercore_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    cap_add:
+      # Handing the tokens to UID 10001 needs CAP_CHOWN; cap_drop ALL took it.
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+
+  phase1:
+    image: startup-worker-core:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.workercore
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+    environment:
+      CORE_BUS_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      AGENT_BUS_TOKEN_FILE: /run/startup-workercore-secrets/wc_token_agent
+      KARL_BUS_TOKEN_FILE: /run/startup-workercore-secrets/wc_token_karl
+      AGENT_IDENTITY: AGENT-ENG-001
+      AGENT_STATE_PATH: /var/lib/startup-agent/worker_core.sqlite3
+      AGENT_DATA_POLICY: METADATA_ONLY
+      # Bump per run. The record ids derive from this, and cleanup must use the
+      # matching suffix.
+      CORE_RUN_ID: "20260831WC1"
+      WORKER_CORE_PHASE: "1"
+    volumes:
+      - ./secrets:/run/startup-workercore-secrets:ro
+      # The state volume is the subject of the test: it is what has to survive
+      # the gap between phase1 and phase2.
+      - worker_core_state_v1:/var/lib/startup-agent
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  phase2:
+    image: startup-worker-core:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.workercore
+    depends_on:
+      phase1:
+        condition: service_completed_successfully
+    environment:
+      CORE_BUS_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      AGENT_BUS_TOKEN_FILE: /run/startup-workercore-secrets/wc_token_agent
+      KARL_BUS_TOKEN_FILE: /run/startup-workercore-secrets/wc_token_karl
+      AGENT_IDENTITY: AGENT-ENG-001
+      AGENT_STATE_PATH: /var/lib/startup-agent/worker_core.sqlite3
+      AGENT_DATA_POLICY: METADATA_ONLY
+      # Bump per run. The record ids derive from this, and cleanup must use the
+      # matching suffix.
+      CORE_RUN_ID: "20260831WC1"
+      WORKER_CORE_PHASE: "2"
+    volumes:
+      - ./secrets:/run/startup-workercore-secrets:ro
+      # The state volume is the subject of the test: it is what has to survive
+      # the gap between phase1 and phase2.
+      - worker_core_state_v1:/var/lib/startup-agent
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  audit:
+    image: postgres:17-alpine
+    depends_on:
+      phase2:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: db
+      CORE_RUN_ID: "20260831WC1"
+      AGENT_IDENTITY: AGENT-ENG-001
+    volumes:
+      - ../startup.db.env:/run/startup.db.env:ro
+      - ./workercore_audit.sql:/opt/startup-workercore/workercore_audit.sql:ro
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        # startup.db.env carries the three database values and nothing else
+        # (derive_db_env_once.sh). See review findings G-010 and G-017.
+        export PGHOST="$${DB_HOST:-db}"
+        export PGUSER="$$(sed -n 's/^POSTGRES_USER=//p' /run/startup.db.env)"
+        export PGDATABASE="$$(sed -n 's/^POSTGRES_DB=//p' /run/startup.db.env)"
+        export PGPASSWORD="$$(sed -n 's/^POSTGRES_PASSWORD=//p' /run/startup.db.env)"
+        : "$${PGUSER:?startup.db.env lacks POSTGRES_USER}"
+        : "$${PGDATABASE:?startup.db.env lacks POSTGRES_DB}"
+        : "$${PGPASSWORD:?startup.db.env lacks POSTGRES_PASSWORD}"
+        psql -v ON_ERROR_STOP=1 -v run_id="$$CORE_RUN_ID" \
+             -v agent_id="$$AGENT_IDENTITY" \
+             -f /opt/startup-workercore/workercore_audit.sql
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  worker_core_state_v1:
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29

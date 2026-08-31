@@ -161,6 +161,29 @@ class WeakenedControlIsDetectedTest(unittest.TestCase):
             outbound_offenders(tree),
         )
 
+    def test_a_compose_file_the_scanner_cannot_read_is_refused(self) -> None:
+        # A service assembled through a YAML anchor would come back empty, and
+        # an empty service passes every check above. The scanner has to refuse
+        # the file instead - a guard that cannot see is worse than none,
+        # because it reports PASS.
+        import pathlib as _pathlib
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = _pathlib.Path(directory) / "compose.anchored.yaml"
+            path.write_text(
+                "name: t\n"
+                "x-base: &base\n"
+                "  image: x\n"
+                "services:\n"
+                "  a:\n"
+                "    <<: *base\n"
+                "    volumes:\n"
+                "      - ../startup.env:/run/startup.env:ro\n"
+            )
+            with self.assertRaises(ValueError):
+                compose_scan.scan(path)
+
     def test_the_guard_says_nothing_about_a_clean_tree(self) -> None:
         tree = {
             pathlib.Path("workforce-agent/compose.core.yaml"): {

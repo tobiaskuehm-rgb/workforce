@@ -110,6 +110,33 @@ Zwei Prüfungen halten das fest:
 | `test_compose_secrets.py` | lokal, ohne Netz | keine Compose-Datei mountet `startup.env`; kein Dienst am `outbound`-Netz trägt überhaupt eine geteilte Secret-Datei |
 | `verify_secret_isolation_once.sh` | NAS | dasselbe am laufenden Container, gegen Umgebung **und** lesbares Dateisystem — ohne je einen Wert auszugeben |
 
+## Der Worker-Core-Test
+
+Der Nachweis, den `ENG-008` verlangt und den `core_roundtrip.py` **nicht** erbringt (Befund `G-015`): Dort steuern drei Bus-Clients den Ablauf direkt — `agent_worker.py` und `state_store.py` kommen gar nicht vor.
+
+`worker_core_test.py` lässt die echte Laufzeit arbeiten: `agent_worker.poll_once()`, den echten `AgentStateStore` auf einer echten Datei, die echte Datengrenze, das echte Budget. Einziger Platzhalter ist das Modell — und das ist die Anforderung, nicht die Abkürzung: `DEC-027` und `ENG-008` schließen einen externen kostenpflichtigen Dienst aus.
+
+| Szenario | Was es beansprucht |
+|---|---|
+| **A** Gutfall | beantwortet, bestätigt, `DONE` |
+| **C** Absturz vor der Bestätigung | Antwort liegt im Bus, ACK fällt aus, **Prozess startet neu** und setzt fort — bewiesen durch einen Provider, der beim Aufruf laut scheitert |
+| **B** wiederholbarer Fehler | zwei verworfene Antworten, dann Erfolg — am Ende genau **eine** Antwort im Bus |
+| **D** Erschöpfung | Antworten scheitern über `max_attempts` hinaus, **und die Schlussmeldung scheitert auch**. Der Lauf, der den Übergang nach `EXHAUSTED` verbraucht, ist der, der stirbt — genau der Fall aus `G-012` |
+| **E** verlorener Zustand | die State-Datei wird zwischen zwei Läufen gelöscht. Der Store kann nichts mehr verhindern; die **Bus-Idempotenz** muss die Antwort einzeln halten |
+| **F** verbotene Route | der Bus lehnt eine Nachricht des Agenten an sich selbst ab — die Kontrolle, auf der das ganze Injection-Argument ruht |
+
+**Szenario E kam nachträglich dazu, und der Grund ist der interessante Teil.** Die erste Fassung der Suite ließ einen absichtlich kaputten, nicht-idempotenten Bus durchgehen. Sie bestand, weil der Worker bei intakter State-Datei ohnehin nie zweimal sendet — die Bus-Idempotenz wurde nie erreicht. Die Einmaligkeit in A bis D trägt der State Store; E ist das Szenario, das die zweite Verteidigungslinie tatsächlich belastet. Nebenbei benennt es die echten Kosten eines verlorenen Volumes: ein wiederholter Modellaufruf je Nachricht in Arbeit — keine verlorene und keine doppelte Antwort.
+
+**Wie die Fehler eingespeist werden.** Ein wiederholbarer Fehler lässt sich vom echten Bus nicht bestellen, also injiziert ihn ein Client-Wrapper. Der wirft **vor** dem Delegieren: Die Anfrage erreicht den Bus nie, was genau dem Bild einer abgebrochenen Verbindung entspricht. Er tut nie so, als hätte der Bus etwas abgelehnt, das er angenommen hat, und jeder verworfene Aufruf steht im Protokoll.
+
+**Der Neustart ist auf der NAS ein echter.** `compose.workercore.yaml` fährt `phase1` und `phase2` als **zwei Container** über demselben State-Volume. Phase 2 bekommt von Phase 1 nichts außer dem Bus und dem Volume: Sie sendet dieselben Anfragen mit denselben Idempotenzschlüsseln erneut und bekommt dieselben Nachrichten-Ids zurück. Lokal entspricht dem ein frischer Store über derselben Datei — das, was ein neuer Prozess vorfindet.
+
+```bash
+cd nas-startup/workforce-agent && python3 -m unittest test_worker_core_test -v
+```
+
+**Noch nicht auf der NAS gelaufen.** Der Lauf braucht `AGENT-ENG-001` in der Registry, die Migration `004`, die API `v8`, zwei kurzlebige Zugänge und die temporäre Firewall-Regel. `workercore_prepare.sql` prüft jede dieser Voraussetzungen und bricht ab, statt halb zu laufen.
+
 ## Was der Audit belegt — und was nicht
 
 `workforce.bus_events` enthält ausschließlich **erfolgreiche** Vorgänge. Eine abgelehnte Bus-Operation wirft, ihre Transaktion rollt zurück und nimmt jede darin geschriebene Audit-Zeile mit. Die drei geforderten Ablehnungen des Core-Roundtrips lebten deshalb nur in stdout und in handgeschriebenem Markdown — beides weg, sobald der Container weg ist (Befund `G-018`).
