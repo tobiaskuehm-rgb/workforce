@@ -35,6 +35,8 @@ Nützlich, aber nicht Pflicht: ein Fehlerszenario, das den Befund greifbar macht
 
 ## Wo es sich zu schauen lohnt
 
+**Fang mit `BERICHT_FUER_GERD.md` an.** Dort steht, was sich seit deinem letzten Prüfstand geändert hat, wo es liegt und wo Claude selbst Zweifel hat — damit dein Kontingent ins Prüfen geht und nicht ins Suchen.
+
 Der aktuelle Stand steht in `HANDOVER.md`, der Projektkontext in `AGENTS.md`. Die neueste und am wenigsten erprobte Komponente ist `workforce-agent/` — die ist noch nie mit einem echten Modell gelaufen.
 
 Besonders interessant:
