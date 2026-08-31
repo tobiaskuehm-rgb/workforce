@@ -34,6 +34,18 @@ from typing import Literal
 
 Role = Literal["creator", "owner", "sender", "recipient", "coordinator"]
 
+# Every status the schema permits. Transcribed from the CHECK constraints, not
+# from the transition functions: a target the bus would reject with a
+# constraint violation is a different answer than one it rejects on
+# permissions, and the contract test has to tell them apart.
+# 002_workforce_bus.sql, bus_tasks_status / bus_handoffs_status.
+TASK_STATUSES: tuple[str, ...] = (
+    "PENDING", "OPEN", "IN_PROGRESS", "BLOCKED", "HOLD", "REVIEW", "DONE", "CANCELLED",
+)
+HANDOFF_STATUSES: tuple[str, ...] = (
+    "PENDING", "OPEN", "ACCEPTED", "REJECTED", "CANCELLED",
+)
+
 # The one identity the bus names explicitly rather than by role.
 COORDINATOR = "SAO-001"
 # Owners the coordinator may lift out of PENDING.
@@ -99,6 +111,21 @@ def transition_allowed(
         rule.role == role and current in rule.from_status and target in rule.to_status
         for rule in rules
     )
+
+
+def allowed_pairs(rules: tuple[Rule, ...]) -> set[tuple[str, str]]:
+    """Every (from, to) pair the table permits for at least one role.
+
+    Same-status pairs are left out: the bus answers those as an idempotency
+    conflict before it ever looks at permissions, so they are not transitions.
+    """
+    return {
+        (current, target)
+        for rule in rules
+        for current in rule.from_status
+        for target in rule.to_status
+        if current != target
+    }
 
 
 def roles_for_task(identity: str, creator_id: str, owner_id: str) -> set[Role]:

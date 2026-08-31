@@ -6,10 +6,17 @@ name: startup-bus-contract-test
 # transcription can drift: change the migration and the local suite keeps
 # passing while being wrong. This is the only check that closes that gap.
 #
-# Footprint: one task and one handoff, both left in a clean final state
-# (DONE / ACCEPTED). The denial matrix costs nothing extra because a denial
-# changes nothing - which matters here, since the bus deliberately refuses to
-# cancel anything past PENDING and litter could not be cleaned up afterwards.
+# Two halves, reported apart (review finding G-014). DENY: every refusal the
+# table predicts, checked against the exact status and error identifier the
+# migration raises - a 401 or a 500 is a failure, not a refusal. ALLOW: every
+# permitted (from, to) pair executed positively at least once; an uncovered
+# pair fails the run.
+#
+# Footprint: five tasks and four handoffs, all left in a final state (DONE,
+# CANCELLED, ACCEPTED, REJECTED). More records than before because nothing
+# leads back to OPEN, so each OPEN -> x rule needs its own task. Nothing to
+# clean up afterwards, which matters since the bus refuses to cancel anything
+# past PENDING.
 #
 # Uses the credentials the core prepare step issues, so run it inside the same
 # window: compose.core.yaml prepare -> this -> compose.core-cleanup.yaml.

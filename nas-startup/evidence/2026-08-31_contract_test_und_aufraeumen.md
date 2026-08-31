@@ -8,6 +8,16 @@ Zwei Vorgänge in einem Fenster. Kein Modell beteiligt.
 
 ---
 
+## Nachtrag 2026-08-31, nach Prüfbefund `G-014`
+
+**Die Zahl 107/107 trägt weniger, als sie klingt.** Der hier protokollierte Lauf hat gezählt, ob überhaupt ein `BusError` zurückkam — nicht, *welcher*. Ein `401`, ein `500` oder ein geschlossener Kanal hätte in dieser Fassung ebenfalls als korrekte Ablehnung gezählt. Und die 107 Prüfungen waren fast ausschließlich Ablehnungen: von den erlaubten Übergängen lief nur der Durchlauf selbst, vier von siebzehn.
+
+Was hier steht, bleibt als Aufzeichnung des damaligen Laufs stehen. Es belegt eine große **einseitige** Ablehnungsmatrix, keine vollständige Übereinstimmung.
+
+Die überarbeitete Fassung von `contract_test.py` prüft je Ablehnung Statuscode **und** Fehlerkennung, führt jedes erlaubte Übergangspaar mindestens einmal positiv aus (17/17 Task, 5/5 Handoff) und weist `DENY`, `ALLOW` und `WRONG_REASON` getrennt aus. Sie ist **noch nicht gegen den echten Bus gelaufen** — das braucht ein Fenster mit Freigabe. Bis dahin gilt für die Abschrift: gegen die Attrappe geprüft, gegen den Bus offen.
+
+---
+
 ## Teil 1 — Contract-Test
 
 ### Warum
