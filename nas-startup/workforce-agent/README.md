@@ -133,7 +133,7 @@ Fehlt die Migration, bricht das Negativ-Audit ab, statt eine leere Menge als Bes
 
 Nicht ausführen, bevor das nicht steht:
 
-1. ~~Bus-Identität und Credential~~ — erledigt: `AGENT-ENG-001` existiert, `compose.prepare.yaml` gibt den Zugang aus.
+1. **Bus-Identität und Credential** — `agent_identity_create.sql` legt `AGENT-ENG-001` an, und `agent_prepare.sql` setzt voraus, dass es die Identität gibt. **Ob sie auf der NAS existiert, ist nicht belegt.** Eine frühere Fassung dieser Zeile behauptete „erledigt"; der Trockenlauf lief nachweislich unter `AI-ENG-001`, und `HANDOVER.md` führt `agent_identity_create.sql` als nicht ausgeführt. Vor dem nächsten Lauf gegen die Registry nachsehen, nicht gegen die Dokumentation (Befund `G-019`).
 2. ~~Eigenes Security-Review~~ — erledigt: `evidence/2026-08-31_security_review_agent.md`.
 3. ~~Erster Trockenlauf mit `echo`~~ — erledigt: `evidence/2026-08-31_agent_dryrun.md`.
 4. **Eine Entscheidung, die den kostenpflichtigen Modellbetrieb überhaupt erlaubt.** `DEC-027` und `ENG-008` untersagen ihn ausdrücklich („keine neuen kostenpflichtigen externen Dienste", „kein externer kostenpflichtiger Dienst"). Ohne neue CEO-Entscheidung ist `AGENT_PROVIDER=claude` gesperrt.

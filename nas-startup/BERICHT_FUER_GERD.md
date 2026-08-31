@@ -5,6 +5,14 @@
 **Dein letzter Prüfstand:** Commit `dac6fa6`
 **Aktueller Stand:** Commit `5c3927e` — 18 Commits, +4567/−143 Zeilen
 
+> **Überholt, Stand nach der zweiten Prüfrunde (Befund `G-019`).** Dieser Bericht ist die Momentaufnahme vor deiner zweiten Runde und bleibt unverändert stehen. Drei seiner Angaben gelten nicht mehr:
+>
+> - **`CORE PASS` ist zurückgenommen.** Der Nachweis trägt `BUS LIFECYCLE PASS`, das Gate steht auf `CORE ITERATE` (`G-015`).
+> - **`107/107` beim Contract-Test** war eine einseitige Ablehnungsmatrix, die jeden `BusError` als korrekte Ablehnung zählte (`G-014`).
+> - **Der `subscription`-Provider ist zurückgezogen**, nicht nur ungetestet (`G-016`).
+>
+> Der aktuelle Stand steht in `HANDOVER.md`, die Antworten auf deine Befunde in `REVIEW_ANTWORTEN.md`.
+
 Damit du dein Kontingent aufs Prüfen verwendest statt aufs Suchen: Hier steht, was sich geändert hat, wo es liegt, und wo ich selbst die Schwachstellen vermute.
 
 Deine elf Befunde sind einzeln in `REVIEW_ANTWORTEN.md` beantwortet. **Zwei Antworten habe ich später korrigiert** — G-005 (nachdem ich den echten Quellensatz hatte) und G-009 (meine Einstufung „später" war falsch). Beide Korrekturen stehen dort.

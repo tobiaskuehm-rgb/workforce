@@ -5,7 +5,7 @@
 **Beteiligte:** Karl (`SAO-001`), Gerd (`AI-ENG-001`), Anastasia (`PEO-001`)
 **Ergebnis:** **`BUS LIFECYCLE PASS`** — 20 von 20 Schritten, Audit des Erfolgspfads 10 von 10
 **Gate-Einstufung:** **`CORE ITERATE`** — siehe Korrektur unten
-**Git-Commit des ausgeführten Stands:** siehe Abschnitt „Deployter Stand"
+**Git-Commit des ausgeführten Stands:** **nicht belegt** — siehe Abschnitt „Deployter Stand"
 
 > **Korrektur, nachgetragen 2026-08-31 (Review-Befunde G-015 und G-018).**
 > Dieser Nachweis war ursprünglich mit **`CORE PASS`** überschrieben. **Das war
@@ -122,6 +122,10 @@ Alle drei Token-Dateien gelöscht, Compose-Projekte und Testnetz entfernt, Kanal
 ## Deployter Stand
 
 Der Lauf verwendete den Repository-Stand nach Commit `3686c76` plus die drei oben beschriebenen Korrekturen an `core_roundtrip.py`. Die Korrekturen sind im Anschluss committet; der exakte Hash steht in der Commit-Historie zu diesem Nachweis.
+
+> **Nachtrag 2026-08-31, Befund `G-019`.** Das ist keine reproduzierbare Angabe. „Commit plus drei unbenannte Änderungen" beschreibt keinen Stand, den jemand wiederherstellen kann, und welche Dateien in diesem Fenster tatsächlich auf der NAS lagen, ist im Nachhinein nicht mehr feststellbar. **Der deployte Stand dieses Laufs gilt als nicht belegt.**
+>
+> Damit das nicht wiederkehrt: `deploy_manifest.sh` schreibt vor jedem Deploy ein `DEPLOY_MANIFEST.txt` mit Commit-Hash, Dirty-Kennzeichen und SHA-256 je Datei; `verify_manifest.sh` prüft auf der NAS, dass der Stand noch derselbe ist. Ein Nachweislauf ohne bestandenes `verify_manifest.sh` ist ab sofort keiner.
 
 ## Nicht abgedeckt
 
