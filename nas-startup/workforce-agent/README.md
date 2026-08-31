@@ -90,9 +90,39 @@ Nicht ausführen, bevor das nicht steht:
 5. Erster Lauf mit `AGENT_PROVIDER=echo` und `AGENT_MAX_CYCLES=1` — belegt den gesamten Bus-Weg, ohne dass ein einziges Byte die NAS verlässt.
 6. Temporäre Firewall-Regel für `172.31.254.2/32` auf TCP 8443, danach wieder entfernen.
 
+## Harte Grenzen für einen Lauf
+
+`budget.py`, fünf voneinander unabhängige Decken. Jede einzelne beendet den Lauf:
+
+| Decke | Voreinstellung | Wozu |
+|---|---:|---|
+| `AGENT_MAX_MESSAGES` | 25 | wie viele Nachrichten überhaupt bearbeitet werden |
+| `AGENT_MAX_PROVIDER_CALLS` | 25 | wie oft ein Modell gefragt wird |
+| `AGENT_MAX_TOKENS` | 200 000 | Ein- und Ausgabetoken zusammen |
+| `AGENT_MAX_COST_USD` | 1,00 | geschätzte Ausgaben |
+| `AGENT_MAX_RUNTIME_SECONDS` | 900 | Laufzeit |
+
+Zwei Eigenschaften, die dabei zählen:
+
+**Geprüft wird vor der Bestätigung, nie danach.** Ein erschöpftes Budget lässt die Nachricht unberührt auf `DELIVERED` stehen, damit ein späterer Lauf sie noch sieht. Bestätigen und dann die Arbeit verweigern würde sie stillschweigend verschlucken.
+
+**Die Kostendecke ist rückblickend.** Kosten stehen erst fest, wenn ein Aufruf zurückkommt — sie kann also um einen Aufruf überschritten werden. Die Aufruf- und Tokendecken begrenzen vorausschauend; Geld ist der Rückhalt dahinter. Eine Decke von `0` bedeutet deshalb „dieser Lauf darf nichts kosten" und nicht „dieser Lauf darf nicht stattfinden": Der Echo-Provider läuft weiter, der erste bezahlte Aufruf löst aus.
+
+Die Laufzeitdecke gibt es, weil die anderen vier Arbeit begrenzen, nicht Zeit. Ein `ACCEPTANCE`-Zugang gilt 30 Minuten; ohne Zeitdecke liefe ein Lauf an seinem eigenen Credential vorbei.
+
+## Herkunftsvermerk
+
+Jede Antwort beginnt mit einer festen Zeile, die der Worker voranstellt:
+
+```text
+[Maschinell erzeugte Antwort. Vor Verwendung fachlich pruefen.]
+```
+
+Bewusst **nicht** über den System-Prompt: Was das Modell schreiben soll, kann das Modell auch weglassen. Eine überlange Antwort kann den Vermerk nicht verdrängen — er wird nach dem Kürzen gesetzt.
+
 ## Noch offen
 
-- **Kein Prepare-/Cleanup-Paket.** Bus-Identität und Credential müssen noch angelegt werden.
-- **Keine Ratenbegrenzung.** Befund F8 aus dem Security-Review wiegt hier schwerer als beim menschlichen Betrieb: Ein fehlgeleiteter Agent wird nicht müde. `AGENT_MAX_CYCLES` ist eine Notbremse, keine Begrenzung.
-- **Kein Kostenlimit.** Jeder Lauf mit `AGENT_PROVIDER=claude` kostet Geld. `AGENT_MAX_CYCLES` begrenzt die Zyklen, nicht die Nachrichten pro Zyklus.
-- **Die Rückrichtung zu Telegram** ist im Connector angelegt, aber mit dieser Kette noch nie zusammen erprobt.
+- **Der Agent handelt unter der Identität eines Menschen** (Security-Review A1, blockierend). Er nutzt das Credential von `AI-ENG-001` — „Gerd", `AI Engineer`, `PROBATION`. Antworten erscheinen im Bus als Nachrichten einer Person. `agent_identity_create.sql` legt `AGENT-ENG-001` nach dem Muster von `CEO-TG-002` an, ist aber **noch nicht ausgeführt**: eine dauerhafte Registry-Änderung braucht eine Freigabeentscheidung.
+- **Entscheidung zur Datengrenze.** Voreinstellung `METADATA_ONLY`; fachliche Arbeit braucht `BODY`.
+- **Freigabeentscheidung** (`DEC-`Nummer) für den Modellbetrieb.
+- **Die Rückrichtung zu Telegram** ist jetzt über `TELEGRAM_OUTBOUND_POLICY` konfigurierbar, steht aber weiter auf `METADATA_ONLY` — eine Agentenantwort würde per Telegram nur angekündigt, nicht lesbar zugestellt. Auch das ist eine Entscheidung, keine Voreinstellung.

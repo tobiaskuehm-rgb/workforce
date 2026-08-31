@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-08-31, 16:15 — von Claude Code
+**Zuletzt aktualisiert:** 2026-08-31, 17:05 — von Claude Code
 
 ## Wie die Zusammenarbeit läuft
 
@@ -51,12 +51,13 @@ cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && tar czf - <pfade
 | Telegram-Realtest 2 | **PASS** | dito |
 | Security-Review Bus | erledigt | `2026-08-31_security_review_workforce_bus.md` |
 | Agenten-Trockenlauf (Echo) | **PASS** | `2026-08-31_agent_dryrun.md` |
+| Security-Review Agentenschicht | erledigt | `2026-08-31_security_review_agent.md` |
 
 Die Kette **Telegram → NAS → Bus → PostgreSQL** ist real belegt. Der Bus ist abgenommen.
 
 ### Gebaut, aber nie mit einem Modell gelaufen
 
-`workforce-agent/` — Worker, Provider-Abstraktion, Datengrenze, Prepare-/Cleanup-Paket, 27 lokale Tests. Der Echo-Trockenlauf hat den Bus-Weg belegt; `AGENT_PROVIDER=claude` ist noch nie ausgeführt worden.
+`workforce-agent/` — Worker, Provider-Abstraktion, Datengrenze, Prepare-/Cleanup-Paket, Budget, 56 lokale Tests. Der Echo-Trockenlauf hat den Bus-Weg belegt; `AGENT_PROVIDER=claude` ist noch nie ausgeführt worden.
 
 ### Systemzustand
 
@@ -73,12 +74,14 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 ### Technisch offen
 
-| Punkt | Warum es zählt |
+| Punkt | Stand |
 |---|---|
-| Security-Review der **Agentenschicht** | Gate für den ersten echten Modellbetrieb |
-| Keine Ratenbegrenzung (Befund F8) | Beim Agenten schwerer als beim Menschen: ein fehlgeleiteter Agent wird nicht müde |
-| Kein Kostenlimit | `AGENT_MAX_CYCLES` begrenzt Zyklen, nicht Nachrichten pro Zyklus |
-| Rückrichtung Bus → Telegram | Nie zusammen mit der Agentenschicht erprobt |
+| **A1 — Agent handelt unter Menschen-Identität** | **blockiert den Modellbetrieb.** `agent_identity_create.sql` liegt bereit, nicht ausgeführt |
+| A2 Herkunftsvermerk | behoben |
+| A3 Laufzeitgrenze | behoben |
+| A5 Rückzug bei Busausfall | behoben |
+| F8 Ratenbegrenzung / Kostenlimit | behoben, fünf Decken in `budget.py` |
+| Rückrichtung Bus → Telegram | konfigurierbar, Voreinstellung unverändert `METADATA_ONLY` |
 | Freigabeentscheidung (`DEC-`Nummer) für Modellbetrieb | fehlt |
 
 ---
@@ -98,4 +101,8 @@ Vier Defekte gefunden und behoben, die den Betrieb blockiert hätten:
 
 Ein eigener Fehler: erfundene SDK-Version `anthropic==1.4.0` (real `1.2.0`) kostete einen Build.
 
-**Als Nächstes:** Security-Review der Agentenschicht.
+**Nachmittag, autonom weitergearbeitet:** Budget mit fünf Decken (F8), zweite Datengrenze zu Telegram, Security-Review der Agentenschicht mit sieben Befunden, davon A2/A3/A5 direkt behoben.
+
+Der wichtigste Fund ist A1: Der Agent nutzt das Credential von `AI-ENG-001` — und dessen Registry-Eintrag ist eine **Person** (`Gerd`, `AI Engineer`, `PROBATION`). Jede Antwort erscheint als Nachricht eines Menschen. Der Telegram-Connector hatte für genau dieses Problem bereits eine eigene technische Identität bekommen (`CEO-TG-002`, Titel „not an employee"); beim Agenten war dieselbe Sorgfalt nicht angewendet worden. `agent_identity_create.sql` legt `AGENT-ENG-001` nach diesem Muster an — nicht ausgeführt, weil eine dauerhafte Registry-Änderung eine Freigabe braucht.
+
+**Als Nächstes:** A1 entscheiden und ausführen, dann Datengrenze festlegen, dann erster Modellbetrieb. 56 Agenten-Tests, 33 Connector-Tests.

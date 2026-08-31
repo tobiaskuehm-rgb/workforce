@@ -216,3 +216,46 @@ class ProvenanceMarkerTest(unittest.TestCase):
             message(), policy="BODY",
         )
         self.assertTrue(bus.sent[0]["body"].startswith(agent_worker.PROVENANCE_MARKER))
+
+
+class PollFailureBackoffTest(unittest.TestCase):
+    """Security review A5: a bus that stays down must not be hammered."""
+
+    class FailingBus:
+        def __init__(self, failures=99):
+            self.failures = failures
+            self.calls = 0
+
+        def status(self):
+            self.calls += 1
+            if self.calls <= self.failures:
+                raise __import__("bus_client").BusError("AGENT_BUS_UNREACHABLE")
+            return {"channel_status": "TESTING"}
+
+        def inbox(self, limit=25):
+            return []
+
+    def test_backoff_grows_between_failed_polls(self):
+        slept: list[int] = []
+        agent_worker.run(self.FailingBus(), ScriptedProvider(), poll_seconds=10,
+                         max_cycles=10, sleep=slept.append)
+        self.assertEqual(sorted(slept), slept, "waits must not shrink")
+        self.assertGreater(len(slept), 1)
+
+    def test_run_gives_up_after_repeated_failures(self):
+        bus = self.FailingBus()
+        agent_worker.run(bus, ScriptedProvider(), poll_seconds=1,
+                         max_cycles=100, sleep=lambda _: None)
+        self.assertEqual(agent_worker.MAX_CONSECUTIVE_POLL_FAILURES, bus.calls)
+
+    def test_backoff_is_capped(self):
+        slept: list[int] = []
+        agent_worker.run(self.FailingBus(), ScriptedProvider(), poll_seconds=1000,
+                         max_cycles=10, sleep=slept.append)
+        self.assertTrue(all(s <= agent_worker.MAX_BACKOFF_SECONDS for s in slept))
+
+    def test_a_recovering_bus_resets_the_counter(self):
+        bus = self.FailingBus(failures=2)
+        agent_worker.run(bus, ScriptedProvider(), poll_seconds=1,
+                         max_cycles=5, sleep=lambda _: None)
+        self.assertGreater(bus.calls, agent_worker.MAX_CONSECUTIVE_POLL_FAILURES - 2)

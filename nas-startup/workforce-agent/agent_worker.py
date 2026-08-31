@@ -44,6 +44,11 @@ POLL_SECONDS_DEFAULT = 20
 MAX_REPLY_CHARS = 8000
 REQUEST_PREFIX = "AGENT"
 
+# Security review A5. After this many consecutive failed polls the run ends
+# rather than continuing to knock on a bus that is not answering.
+MAX_CONSECUTIVE_POLL_FAILURES = 5
+MAX_BACKOFF_SECONDS = 300
+
 # Security review 2026-08-31, A2. Prepended by the worker, never by the model:
 # an instruction in the system prompt is something the model can also omit,
 # and a reader who only sees the text would then have no way to tell.
@@ -260,12 +265,28 @@ def run(
 ) -> int:
     cycles = 0
     handled = 0
+    consecutive_failures = 0
     while max_cycles is None or cycles < max_cycles:
         try:
             results = poll_once(client, provider, policy=policy, budget=budget)
             handled += len(results)
+            consecutive_failures = 0
         except bus_client.BusError as error:
-            log("poll_failed", detail=error.detail)
+            # Security review A5: a bus that stays down must not be polled at
+            # full rate forever. Back off, and give up rather than sit in a
+            # loop that cannot do work - a stopped container is easier to
+            # notice than a busy one achieving nothing.
+            consecutive_failures += 1
+            log("poll_failed", detail=error.detail, consecutive=consecutive_failures)
+            if consecutive_failures >= MAX_CONSECUTIVE_POLL_FAILURES:
+                log("run_stopped_on_repeated_failures",
+                    consecutive=consecutive_failures, detail=error.detail)
+                break
+            backoff = min(poll_seconds * (2 ** consecutive_failures), MAX_BACKOFF_SECONDS)
+            log("backing_off", seconds=backoff)
+            sleep(backoff)
+            cycles += 1
+            continue
 
         # A spent budget ends the run, not just the pass. Continuing would burn
         # poll cycles that can no longer do any work.
