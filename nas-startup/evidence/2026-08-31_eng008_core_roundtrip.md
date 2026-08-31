@@ -100,6 +100,20 @@ Der Lauf verwendete den Repository-Stand nach Commit `3686c76` plus die drei obe
 
 ## Nicht abgedeckt
 
-- **Persistenz über Neustart** ist für den Agenten-Worker nachgewiesen (`state_store.py`, vier Absturztests), **nicht** für den Core-Roundtrip selbst. Der Runner ist zustandslos und startet bei einem Abbruch von vorn; ein Wiederaufsetzen mitten in der Sequenz gibt es nicht.
+- ~~**Persistenz über Neustart** für den Core-Roundtrip~~ — **nachgetragen am selben Tag, siehe unten.**
 - **Leftover aus Fehlversuchen:** Die Läufe `20260831CORE1` bis `CORE3` haben Tasks und Handoffs in Zwischenzuständen hinterlassen (`PENDING`, `IN_PROGRESS`, `ACCEPTED`). Sie sind Testartefakte, keine offene Arbeit, aber sie stehen in der Datenbank.
 - **Kein Modellbetrieb.** Das war weder Ziel noch erlaubt.
+
+## Nachtrag: Persistenz über Neustart
+
+Beim Abschluss oben war der Runner zustandslos und startete bei einem Abbruch von vorn — womit er am ersten bereits erledigten Schritt in einen Idempotenzkonflikt gelaufen wäre. Das ist nachgeholt.
+
+Der Runner braucht weiterhin keinen eigenen Zustand: Jede ID leitet sich aus der Lauf-ID ab, ein zweiter Prozess adressiert also dieselben Datensätze. Was fehlte, war die **Erkennung** — jeder Schritt nahm an, er müsse etwas tun. Jetzt prüfen `ensure_task_status()` und `ensure_handoff_status()` zuerst den Ist-Zustand und melden bereits Erreichtes als `resumed`. Dasselbe gilt für das Anlegen von Task und Handoffs.
+
+Der Ablehnungspfad brauchte eine eigene Behandlung: `REJECTED` liegt außerhalb der Reihenfolge `PENDING → OPEN → ACCEPTED`, und ein abgelehnter Handoff lässt sich nicht wieder öffnen.
+
+**Nachweis:** `test_resumes_after_a_crash_at_every_write` lässt den Prozess an **jeder der elf Schreibpositionen** sterben und verlangt, dass der Folgelauf sauber zu Ende kommt und der Task auf `DONE` steht. Dazu Prüfungen gegen Dubletten und darauf, dass wiederaufgesetzte Schritte im Transcript als solche markiert sind — sonst sähe ein Wiederholungslauf in der Evidenz wie frische Arbeit aus.
+
+Auch hier hat die Testattrappe einen eigenen Fehler offengelegt: Sie vergab bei jedem `send_message` eine neue ID und verbarg damit genau die Duplizierung, die ein wiederaufgesetzter Lauf nicht verursachen darf. Der echte Bus leitet die `message_id` aus Token und Idempotenzschlüssel ab; das ist jetzt nachgebildet.
+
+Damit ist der Nachweis **lokal** vollständig. Ein Wiederaufsetzen gegen die echte NAS ist noch nicht gelaufen — dafür bräuchte es erneut das Firewall-Fenster.
