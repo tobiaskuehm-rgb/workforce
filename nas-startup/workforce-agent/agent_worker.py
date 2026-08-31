@@ -105,11 +105,18 @@ def _with_marker(answer: str) -> str:
 
 
 def _send_reply(client, message, sender_id, message_id, body) -> dict[str, Any]:
+    # The task reference travels with the reply. An answer about task X belongs
+    # to task X - and without it the Telegram connector withholds the body,
+    # because its outbound allowlist is keyed on the task (review finding
+    # G-003). Losing the reference here would silently break the return leg of
+    # the chain while every component looked healthy on its own.
+    task_ref = message.get("task_ref")
     return client.send_message(
         recipient_id=sender_id,
         subject=reply_subject(str(message.get("subject", ""))),
         body=body,
         parent_message_id=message_id,
+        task_ref=str(task_ref) if task_ref else None,
         request_id=f"{REQUEST_PREFIX}-REPLY-{derived_key(message_id, 'reply')}",
         idempotency_key=f"IDEM-{REQUEST_PREFIX}-{derived_key(message_id, 'reply')}",
     )

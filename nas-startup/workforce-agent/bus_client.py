@@ -245,6 +245,7 @@ class BusClient:
         parent_message_id: str | None,
         request_id: str,
         idempotency_key: str,
+        task_ref: str | None = None,
         action_class: str = "INTERNAL_COMMUNICATION",
         confidentiality: str = "NEED_TO_KNOW",
     ) -> dict[str, Any]:
@@ -257,6 +258,8 @@ class BusClient:
         }
         if parent_message_id:
             payload["parent_message_id"] = parent_message_id
+        if task_ref:
+            payload["task_ref"] = task_ref
         return self._call(
             "POST",
             "/bus/v1/messages",

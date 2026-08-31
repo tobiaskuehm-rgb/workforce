@@ -466,3 +466,34 @@ class SubscriptionProviderTest(unittest.TestCase):
             "AGENT_SUBSCRIPTION_COMMAND": '["claude", "-p"]',
         })
         self.assertEqual(["claude", "-p"], provider.command)
+
+
+class TaskReferenceOnReplyTest(unittest.TestCase):
+    """The return leg of the Telegram chain depends on this.
+
+    The connector only forwards a message body when its task is on the
+    outbound allowlist (finding G-003). An agent reply without a task
+    reference is therefore announced but never shown - the chain would look
+    healthy component by component and still not deliver an answer.
+    """
+
+    def test_the_reply_carries_the_inbound_task_reference(self):
+        bus = FakeBus()
+        agent_worker.handle_message(
+            bus, ScriptedProvider(), message(task_ref="ENG-CHAIN-001"), policy="BODY"
+        )
+        self.assertEqual("ENG-CHAIN-001", bus.sent[0]["task_ref"])
+
+    def test_a_message_without_a_task_reference_sends_none(self):
+        bus = FakeBus()
+        agent_worker.handle_message(bus, ScriptedProvider(), message(), policy="BODY")
+        self.assertIsNone(bus.sent[0]["task_ref"])
+
+    def test_failure_replies_carry_it_too(self):
+        # A failure notice is about the same task and has to reach the human.
+        bus = FakeBus()
+        agent_worker.handle_message(
+            bus, ScriptedProvider(error="AGENT_PROVIDER_UNREACHABLE"),
+            message(task_ref="ENG-CHAIN-002"), policy="BODY",
+        )
+        self.assertEqual("ENG-CHAIN-002", bus.sent[0]["task_ref"])
