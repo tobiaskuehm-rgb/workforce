@@ -33,6 +33,7 @@ services:
       AGENT_MAX_PROVIDER_CALLS: "10"
       AGENT_MAX_TOKENS: "100000"
       AGENT_MAX_COST_USD: "0"
+      AGENT_MAX_RUNTIME_SECONDS: "300"
     secrets:
       - agent_bus_token
     networks:

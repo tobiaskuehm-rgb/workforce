@@ -44,6 +44,13 @@ POLL_SECONDS_DEFAULT = 20
 MAX_REPLY_CHARS = 8000
 REQUEST_PREFIX = "AGENT"
 
+# Security review 2026-08-31, A2. Prepended by the worker, never by the model:
+# an instruction in the system prompt is something the model can also omit,
+# and a reader who only sees the text would then have no way to tell.
+PROVENANCE_MARKER = (
+    "[Maschinell erzeugte Antwort. Vor Verwendung fachlich pruefen.]"
+)
+
 SYSTEM_PROMPT = """Du bist ein Fachmitarbeiter-Agent in einem internen Arbeitssystem.
 Du erhaeltst genau eine Arbeitsanfrage eines Kollegen und verfasst genau eine
 Antwort darauf. Antworte auf Deutsch, sachlich und knapp.
@@ -171,9 +178,13 @@ def handle_message(
 
     # 4. Write the answer back to the original sender. The recipient comes from
     #    the bus record, never from model output.
-    body = reply_text.strip()[:MAX_REPLY_CHARS]
-    if not body:
-        body = "Der Agent hat keine verwertbare Antwort erzeugt."
+    answer = reply_text.strip()
+    if not answer:
+        answer = "Der Agent hat keine verwertbare Antwort erzeugt."
+    # The marker is prepended after truncation of the answer, so a long answer
+    # can never push it out of the message.
+    room = MAX_REPLY_CHARS - len(PROVENANCE_MARKER) - 2
+    body = f"{PROVENANCE_MARKER}\n\n{answer[:room]}"
 
     try:
         sent = client.send_message(

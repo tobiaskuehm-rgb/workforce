@@ -5,12 +5,18 @@ Security review 2026-08-31, F8: nothing bounded how much the agent could do.
 spend. The review's own wording is the reason this exists - a misfiring agent
 does not get tired.
 
-Four independent ceilings, any one of which stops the run:
+Five independent ceilings, any one of which stops the run:
 
   messages        how many inbox messages may be handled at all
   provider_calls  how many times a model may be asked
   tokens          input + output tokens across the run
   cost            estimated spend in USD
+  runtime         wall-clock seconds the run may take
+
+The runtime ceiling exists because the others do not bound time (security
+review 2026-08-31, A3). A provider call can take minutes with retries, and an
+ACCEPTANCE credential is only valid for 30 minutes - without this a run would
+grind on past its own credential and fail on every remaining message.
 
 The cost figure is an estimate for a safety stop, not billing. Prices are
 configurable because they change; the defaults below are the Claude Opus 5
@@ -26,6 +32,7 @@ them up - never acknowledged-and-dropped.
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -42,6 +49,8 @@ DEFAULTS = {
     "provider_calls": 25,
     "tokens": 200_000,
     "cost_usd": 1.00,
+    # Comfortably inside the 30-minute lifetime of an ACCEPTANCE credential.
+    "runtime_seconds": 900,
 }
 
 
@@ -61,7 +70,10 @@ class Budget:
     max_provider_calls: int = DEFAULTS["provider_calls"]
     max_tokens: int = DEFAULTS["tokens"]
     max_cost_usd: float = DEFAULTS["cost_usd"]
+    max_runtime_seconds: int = DEFAULTS["runtime_seconds"]
     prices: dict[str, tuple[float, float]] = field(default_factory=lambda: dict(DEFAULT_PRICES))
+    # Injected so tests can drive the clock instead of sleeping.
+    clock: Any = time.monotonic
 
     messages_handled: int = 0
     provider_calls: int = 0
@@ -74,15 +86,25 @@ class Budget:
             ("max_messages", self.max_messages),
             ("max_provider_calls", self.max_provider_calls),
             ("max_tokens", self.max_tokens),
+            ("max_runtime_seconds", self.max_runtime_seconds),
         ):
             if value < 0:
                 raise ValueError(f"AGENT_BUDGET_INVALID:{name}")
         if self.max_cost_usd < 0:
             raise ValueError("AGENT_BUDGET_INVALID:max_cost_usd")
+        self._started_at = self.clock()
 
     # -- gates ------------------------------------------------------------
+    @property
+    def elapsed_seconds(self) -> float:
+        return self.clock() - self._started_at
+
     def check_message(self) -> None:
         """Call before touching the next message - before the acknowledgement."""
+        if self.elapsed_seconds >= self.max_runtime_seconds:
+            raise BudgetExhausted(
+                "runtime_seconds", self.elapsed_seconds, self.max_runtime_seconds
+            )
         if self.messages_handled >= self.max_messages:
             raise BudgetExhausted("messages", self.messages_handled, self.max_messages)
         if self.provider_calls >= self.max_provider_calls:
@@ -139,6 +161,8 @@ class Budget:
             "tokens_max": self.max_tokens,
             "cost_usd_estimated": round(self.cost_usd, 4),
             "cost_usd_max": self.max_cost_usd,
+            "elapsed_seconds": round(self.elapsed_seconds, 1),
+            "runtime_seconds_max": self.max_runtime_seconds,
         }
 
 
@@ -170,4 +194,7 @@ def build_budget(environment: dict[str, str] | None = None) -> Budget:
         ),
         max_tokens=_positive_int(env, "AGENT_MAX_TOKENS", DEFAULTS["tokens"]),
         max_cost_usd=cost,
+        max_runtime_seconds=_positive_int(
+            env, "AGENT_MAX_RUNTIME_SECONDS", DEFAULTS["runtime_seconds"]
+        ),
     )

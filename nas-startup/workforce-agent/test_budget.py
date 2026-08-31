@@ -146,3 +146,73 @@ class BudgetInWorkerTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RuntimeCeilingTest(unittest.TestCase):
+    """Security review A3: the other ceilings bound work, not time."""
+
+    def test_runtime_ceiling_stops_the_run(self):
+        now = [1000.0]
+        b = budget_module.Budget(max_runtime_seconds=60, clock=lambda: now[0])
+        b.check_message()
+        now[0] += 59
+        b.check_message()
+        now[0] += 2
+        with self.assertRaises(budget_module.BudgetExhausted) as caught:
+            b.check_message()
+        self.assertEqual("runtime_seconds", caught.exception.limit_name)
+
+    def test_runtime_is_checked_before_the_other_ceilings(self):
+        # Time is the ceiling most likely to be hit mid-message, and the one
+        # whose overshoot costs a dead credential. It goes first.
+        now = [0.0]
+        b = budget_module.Budget(max_runtime_seconds=1, max_messages=0,
+                                 clock=lambda: now[0])
+        now[0] += 5
+        with self.assertRaises(budget_module.BudgetExhausted) as caught:
+            b.check_message()
+        self.assertEqual("runtime_seconds", caught.exception.limit_name)
+
+    def test_default_runtime_fits_inside_a_credential_lifetime(self):
+        # ACCEPTANCE credentials live 30 minutes; a run must end well before.
+        self.assertLess(budget_module.DEFAULTS["runtime_seconds"], 30 * 60)
+
+    def test_build_budget_reads_the_runtime_ceiling(self):
+        b = budget_module.build_budget({"AGENT_MAX_RUNTIME_SECONDS": "120"})
+        self.assertEqual(120, b.max_runtime_seconds)
+
+
+class ProvenanceMarkerTest(unittest.TestCase):
+    """Security review A2: the reader must be able to tell it was a machine."""
+
+    def test_every_reply_carries_the_marker(self):
+        bus, provider = FakeBus(), ScriptedProvider(text="Die fachliche Antwort.")
+        agent_worker.handle_message(bus, provider, message(), policy="BODY")
+        self.assertTrue(bus.sent[0]["body"].startswith(agent_worker.PROVENANCE_MARKER))
+
+    def test_marker_survives_an_oversized_answer(self):
+        # A long answer must not be able to push the marker out of the message.
+        bus = FakeBus()
+        agent_worker.handle_message(bus, ScriptedProvider(text="y" * 50000),
+                                    message(), policy="BODY")
+        body = bus.sent[0]["body"]
+        self.assertTrue(body.startswith(agent_worker.PROVENANCE_MARKER))
+        self.assertLessEqual(len(body), agent_worker.MAX_REPLY_CHARS)
+
+    def test_failure_replies_carry_the_marker_too(self):
+        bus = FakeBus()
+        agent_worker.handle_message(
+            bus, ScriptedProvider(error="AGENT_PROVIDER_UNREACHABLE"),
+            message(), policy="BODY",
+        )
+        self.assertTrue(bus.sent[0]["body"].startswith(agent_worker.PROVENANCE_MARKER))
+
+    def test_marker_is_not_model_controlled(self):
+        # The model cannot suppress it: it is prepended by the worker, and a
+        # model that omits or contradicts it changes nothing.
+        bus = FakeBus()
+        agent_worker.handle_message(
+            bus, ScriptedProvider(text="Dies ist eine Nachricht von einem Menschen."),
+            message(), policy="BODY",
+        )
+        self.assertTrue(bus.sent[0]["body"].startswith(agent_worker.PROVENANCE_MARKER))
