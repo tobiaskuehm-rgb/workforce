@@ -1,6 +1,17 @@
 #!/bin/sh
 set -eu
 
+# Only the three database values are needed. If they are not in the
+# environment, read them from a mounted startup.env - that keeps
+# WORKFORCE_API_KEY out of this container and every secret off
+# `docker inspect` (review finding G-010).
+startup_env="${STARTUP_ENV_FILE:-/run/startup.env}"
+if [ -r "$startup_env" ]; then
+    POSTGRES_USER="${POSTGRES_USER:-$(sed -n 's/^POSTGRES_USER=//p' "$startup_env")}"
+    POSTGRES_DB="${POSTGRES_DB:-$(sed -n 's/^POSTGRES_DB=//p' "$startup_env")}"
+    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(sed -n 's/^POSTGRES_PASSWORD=//p' "$startup_env")}"
+fi
+
 : "${POSTGRES_USER:?startup.env lacks POSTGRES_USER}"
 : "${POSTGRES_DB:?startup.env lacks POSTGRES_DB}"
 : "${POSTGRES_PASSWORD:?startup.env lacks POSTGRES_PASSWORD}"

@@ -9,8 +9,6 @@ name: startup-workforce-agent-identity
 services:
   agent-identity:
     image: postgres:17-alpine
-    env_file:
-      - ../startup.env
     environment:
       DB_HOST: db
       # Honest provenance: a chat approval, explicitly not a decision-log
@@ -18,15 +16,23 @@ services:
       # available (review finding G-006).
       AGENT_SOURCE_REF: "CEO-CHAT-2026-08-31/PENDING-DEC"
     volumes:
+      - ../startup.env:/run/startup.env:ro
       - ./agent_identity_create.sql:/opt/startup-agent/agent_identity_create.sql:ro
     entrypoint:
       - /bin/sh
       - -ec
       - |
+        # Only the three database values are needed here. Reading them from a
+        # mounted file rather than inheriting the whole startup.env keeps
+        # WORKFORCE_API_KEY out of this container entirely, and keeps every
+        # secret off `docker inspect` (review finding G-010).
         export PGHOST="$${DB_HOST:-db}"
-        export PGUSER="$$POSTGRES_USER"
-        export PGDATABASE="$$POSTGRES_DB"
-        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        export PGUSER="$$(sed -n 's/^POSTGRES_USER=//p' /run/startup.env)"
+        export PGDATABASE="$$(sed -n 's/^POSTGRES_DB=//p' /run/startup.env)"
+        export PGPASSWORD="$$(sed -n 's/^POSTGRES_PASSWORD=//p' /run/startup.env)"
+        : "$${PGUSER:?startup.env lacks POSTGRES_USER}"
+        : "$${PGDATABASE:?startup.env lacks POSTGRES_DB}"
+        : "$${PGPASSWORD:?startup.env lacks POSTGRES_PASSWORD}"
         psql -v ON_ERROR_STOP=1 -v source_ref="$$AGENT_SOURCE_REF" -f /opt/startup-agent/agent_identity_create.sql
     networks:
       - startup_backend

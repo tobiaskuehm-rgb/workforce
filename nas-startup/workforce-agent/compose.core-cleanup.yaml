@@ -3,22 +3,28 @@ name: startup-core-roundtrip-cleanup
 services:
   core-cleanup:
     image: postgres:17-alpine
-    env_file:
-      - ../startup.env
     environment:
       DB_HOST: db
       # Must match the prepare step.
       CORE_RUN_SUFFIX: "20260831-CORE1"
     volumes:
+      - ../startup.env:/run/startup.env:ro
       - ./core_cleanup.sql:/opt/startup-core/core_cleanup.sql:ro
     entrypoint:
       - /bin/sh
       - -ec
       - |
+        # Only the three database values are needed here. Reading them from a
+        # mounted file rather than inheriting the whole startup.env keeps
+        # WORKFORCE_API_KEY out of this container entirely, and keeps every
+        # secret off `docker inspect` (review finding G-010).
         export PGHOST="$${DB_HOST:-db}"
-        export PGUSER="$$POSTGRES_USER"
-        export PGDATABASE="$$POSTGRES_DB"
-        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        export PGUSER="$$(sed -n 's/^POSTGRES_USER=//p' /run/startup.env)"
+        export PGDATABASE="$$(sed -n 's/^POSTGRES_DB=//p' /run/startup.env)"
+        export PGPASSWORD="$$(sed -n 's/^POSTGRES_PASSWORD=//p' /run/startup.env)"
+        : "$${PGUSER:?startup.env lacks POSTGRES_USER}"
+        : "$${PGDATABASE:?startup.env lacks POSTGRES_DB}"
+        : "$${PGPASSWORD:?startup.env lacks POSTGRES_PASSWORD}"
         psql -v ON_ERROR_STOP=1 -v run_suffix="$$CORE_RUN_SUFFIX" -f /opt/startup-core/core_cleanup.sql
         echo "Reminder: delete ./secrets/core_token_* by hand now that the credentials are revoked."
     networks:

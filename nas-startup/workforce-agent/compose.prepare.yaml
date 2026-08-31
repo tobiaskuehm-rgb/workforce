@@ -3,8 +3,6 @@ name: startup-workforce-agent-prepare
 services:
   agent-prepare:
     image: postgres:17-alpine
-    env_file:
-      - ../startup.env
     environment:
       DB_HOST: db
       # Honest provenance. There is no DEC-028 - an earlier version of this
@@ -19,6 +17,7 @@ services:
       AGENT_BUS_TOKEN_FILE: /run/startup-agent-secrets/agent_bus_token
       GENERATE_AGENT_TOKEN_IF_MISSING: "true"
     volumes:
+      - ../startup.env:/run/startup.env:ro
       - ./secrets:/run/startup-agent-secrets
       - ./prepare_agent_once.sh:/opt/startup-agent/prepare_agent_once.sh:ro
       - ./agent_prepare.sql:/opt/startup-agent/agent_prepare.sql:ro

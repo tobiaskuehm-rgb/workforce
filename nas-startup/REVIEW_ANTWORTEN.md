@@ -22,7 +22,7 @@ Bei **Abgelehnt** gilt: Eine Ablehnung ohne nachprüfbaren Grund ist keine Ableh
 
 **Vorab, weil es die Grundlage betrifft:** Das Review ist in fast allen Punkten richtig, und mehrere Befunde decken Fehler auf, die ich nicht nur gemacht, sondern in den Nachweisen auch noch als richtig dargestellt habe. Das gilt besonders für G-001 und G-006. Danke — genau dafür ist die Schleife da.
 
-Stand nach Abarbeitung: **77 Agenten-Tests, 35 Connector-Tests.**
+Stand nach Abarbeitung: **95 Agenten-Tests, 35 Connector-Tests.** `ENG-008` ist inzwischen als `CORE PASS` nachgewiesen (`evidence/2026-08-31_eng008_core_roundtrip.md`), einschließlich Persistenz über Neustart.
 
 ---
 
@@ -117,13 +117,28 @@ Sachlich stimmt der Befund ohnehin: `stdout` ist ein Betriebslog, die Markdown-E
 
 Umsetzung zusammen mit dem Core-Roundtrip, weil beide denselben Weg brauchen: Execution-Records über einen API-Endpunkt statt über einen Datenbankzugriff des Agenten — Letzteres würde die bewusst gesetzte Eigenschaft aufgeben, dass der Agent ausschließlich HTTPS mit dem Bus spricht.
 
-### G-010 — Secret-Regel unterlaufen → **Teilweise übernommen**
+### G-010 — Secret-Regel unterlaufen → **Übernommen (Umgebung), Entscheidung offen (Fallback)**
 
-Beide Beobachtungen stimmen.
+Beide Beobachtungen stimmen. `startup.env` enthält fünf Werte, und die Einmalcontainer brauchen drei davon:
 
-Zur vollständigen `startup.env` in Prepare/Cleanup: übernommen als offener Punkt. Diese Einmalcontainer brauchen nur `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD`. Ich habe es noch nicht geändert, weil dasselbe Muster im gesamten Bestand steckt (Bus-Realtest, Telegram-Prepare) und eine Umstellung dort mitgezogen werden sollte, statt nur den neuesten Ordner sauber zu machen.
+```text
+POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD   ← gebraucht
+API_PORT, WORKFORCE_API_KEY                     ← wurden mitvererbt
+```
 
-Zum Umgebungs-Fallback für `ANTHROPIC_API_KEY`: **Entscheidung bei Tobias.** Für die NAS gebe ich dir recht. Der Fallback ist aber nützlich für lokale Versuche außerhalb von Docker, und keine Compose-Datei nutzt ihn. Vorschlag: ein `AGENT_STRICT_SECRETS=true` in den NAS-Profilen, das den Start verweigert, wenn der Schlüssel aus der Umgebung kommt. Sag, ob dir das reicht, oder ob der Fallback ganz weg soll.
+**Umgesetzt:** Alle Prepare-, Cleanup-, Identity-, Core- und Audit-Container in `workforce-agent/` beziehen die drei Werte jetzt aus einer schreibgeschützt gemounteten `startup.env` statt über `env_file`. Nachgewiesen mit einem Wegwerf-Container:
+
+```text
+DB-Verbindung: 1
+PASS: WORKFORCE_API_KEY nicht im Environment
+PASS: POSTGRES_PASSWORD nicht im Environment
+```
+
+`docker inspect` eines laufenden oder gestoppten Containers zeigt damit kein Geheimnis mehr, und der API-Schlüssel erreicht diese Container gar nicht erst.
+
+**Nicht umgesetzt:** Dasselbe Muster steckt weiterhin in `bus-realtest/` und `telegram-connector/`. Beide sind freigegebene, real ausgeführte Pakete; sie mitzuziehen ist richtig, aber eine eigene Änderung an bestehender Evidenz und kein Nebenprodukt dieser Arbeit.
+
+**Zum Umgebungs-Fallback für `ANTHROPIC_API_KEY`: Entscheidung bei Tobias.** Für die NAS gebe ich dir recht. Der Fallback ist für lokale Versuche außerhalb von Docker nützlich, und keine Compose-Datei nutzt ihn. Mein Vorschlag bleibt ein `AGENT_STRICT_SECRETS=true` in den NAS-Profilen, das den Start verweigert, wenn der Schlüssel aus der Umgebung kommt. Solange der Modellbetrieb ohnehin nicht freigegeben ist, ist der Punkt nicht dringend.
 
 ### G-011 — Lokaltest nicht reproduzierbar → **Übernommen**
 
