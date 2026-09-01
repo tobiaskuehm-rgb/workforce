@@ -182,6 +182,14 @@ def test_sender_spoof_and_external_action_are_rejected_before_sql(monkeypatch):
         ("54000", "BUS_LOOP_LIMIT_EXCEEDED", 422),
         ("22001", "BUS_BODY_TOO_LARGE", 413),
         ("99999", "internal detail", 503),
+        # Knowledge codes must survive the normalisation (review finding
+        # G-027). They used to be rewritten into BUS_DATABASE_UNAVAILABLE, so
+        # an access refusal reached the caller - and the denial audit - as a
+        # database outage.
+        ("42501", "KNOWLEDGE_AUTH_FAILED", 401),
+        ("42501", "KNOWLEDGE_RETRIEVAL_DENIED", 403),
+        ("22023", "KNOWLEDGE_REQUEST_INVALID", 400),
+        ("23505", "KNOWLEDGE_IDEMPOTENCY_CONFLICT", 409),
     ],
 )
 def test_database_errors_are_mapped_without_unknown_details(sqlstate, message, expected):
@@ -196,6 +204,10 @@ def test_database_errors_are_mapped_without_unknown_details(sqlstate, message, e
     assert result.status_code == expected
     if sqlstate == "99999":
         assert result.detail == "BUS_DATABASE_UNAVAILABLE"
+    else:
+        # The stable identifier has to reach the caller unchanged - that is
+        # what makes a negative test able to tell one refusal from another.
+        assert result.detail == message
 
 
 def test_no_bus_admin_or_external_action_endpoint_exists():
@@ -581,3 +593,36 @@ def test_every_legacy_table_the_api_uses_is_verified():
     source = pathlib.Path(workforce_app.__file__).read_text(encoding="utf-8")
     for table in workforce_app.LEGACY_TABLES:
         assert f"FROM {table}" in source or f"INTO {table}" in source, table
+
+
+def test_an_unstable_message_is_still_generalised():
+    """Only BUS_ and KNOWLEDGE_ shapes travel; anything else is hidden.
+
+    Widening the prefix list (G-027) must not become a hole: a raw PostgreSQL
+    message would otherwise reach the caller and leak schema internals.
+    """
+    class Diag:
+        message_primary = 'relation "workforce.bus_tasks" does not exist'
+
+    class FakeError:
+        diag = Diag()
+
+    FakeError.sqlstate = "42P01"
+    result = workforce_app.bus_error(FakeError())
+    assert result.status_code == 503
+    assert result.detail == "BUS_DATABASE_UNAVAILABLE"
+    assert "workforce.bus_tasks" not in str(result.detail)
+
+
+def test_a_lowercase_knowledge_prefix_is_not_trusted():
+    # The check is on shape, not on goodwill: only upper case, digits and
+    # underscore count as a stable identifier.
+    class Diag:
+        message_primary = "KNOWLEDGE_something lowercase"
+
+    class FakeError:
+        diag = Diag()
+
+    FakeError.sqlstate = "42501"
+    result = workforce_app.bus_error(FakeError())
+    assert result.detail == "BUS_DATABASE_UNAVAILABLE"
