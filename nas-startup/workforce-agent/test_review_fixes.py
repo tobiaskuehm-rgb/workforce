@@ -372,12 +372,20 @@ class ProductionStateIsNamedTest(unittest.TestCase):
     def test_the_tag_points_at_the_named_commit(self) -> None:
         import subprocess
 
+        # The tag name follows the running image, not a fixed version. It was
+        # `produktiv-v7` until the Phase 4 window; hard-coding it meant the
+        # check went red on the rollout instead of following it. The old tag
+        # stays where it is - it is the rollback marker.
+        image = next(line.split("=", 1)[1].strip()
+                     for line in self.text.splitlines()
+                     if line.startswith("API_IMAGE="))
+        tag = "produktiv-" + image.rsplit(":", 1)[1]
         result = subprocess.run(
-            ["git", "rev-list", "-n", "1", "produktiv-v7"],
+            ["git", "rev-list", "-n", "1", tag],
             cwd=ROOT.parent, capture_output=True, text=True,
         )
         if result.returncode != 0:
-            self.skipTest("Tag produktiv-v7 nicht vorhanden")
+            self.skipTest(f"Tag {tag} nicht vorhanden")
         tagged = result.stdout.strip()
         expected = subprocess.run(
             ["git", "rev-parse", self.commit],

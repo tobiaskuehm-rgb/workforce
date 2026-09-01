@@ -1,17 +1,22 @@
 # The exact source state the NAS is running, and the files that define it.
 #
-# Written 2026-09-01 after measuring: all six files below match commit
-# ff2d32a byte for byte (review finding G-023). Before that, the running
-# state had no named reference at all - a rollback point that nobody could
-# reconstruct.
+# Written 2026-09-01 after measuring: all files below match the named commit
+# byte for byte (review finding G-023). Before that, the running state had no
+# named reference at all - a rollback point that nobody could reconstruct.
 #
 # Update this file only together with a real production deployment, and only
 # after verify_production_state.sh reports PASS against the new commit.
+#
+# 2026-09-01, Phase-4-Fenster: v7 -> v8, Migrationen 005-007 angewendet, zwei
+# Login-Rollen angelegt. 004 und 008 liegen als Dateien auf der NAS und sind
+# NICHT angewendet - sie stehen deshalb bewusst nicht unter APPLIED_MIGRATIONS
+# und auch nicht als FILE, weil dieses Dokument den laufenden Zustand nennt,
+# nicht den Ordnerinhalt.
 
-PRODUCTION_COMMIT=ff2d32a
+PRODUCTION_COMMIT=8512e57
 VERIFIED_AT=2026-09-01
-API_IMAGE=startup-workforce-api:v7
-APPLIED_MIGRATIONS=001_employee_registry,002_workforce_bus,003_workforce_bus_trigger_fix
+API_IMAGE=startup-workforce-api:v8
+APPLIED_MIGRATIONS=001_employee_registry,002_workforce_bus,003_workforce_bus_trigger_fix,005_bus_denial_audit,006_legacy_registry_tables,007_least_privilege_roles
 
 FILE=compose.yaml
 FILE=workforce-api/app.py
@@ -19,3 +24,6 @@ FILE=workforce-api/Dockerfile
 FILE=postgres-init/001_employee_registry.sql
 FILE=postgres-init/002_workforce_bus.sql
 FILE=postgres-init/003_workforce_bus_trigger_fix.sql
+FILE=postgres-init/005_bus_denial_audit.sql
+FILE=postgres-init/006_legacy_registry_tables.sql
+FILE=postgres-init/007_least_privilege_roles.sql
