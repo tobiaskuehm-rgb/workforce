@@ -38,7 +38,24 @@ DOCUMENTS = (
     ROOT / "HANDOVER.md",
     NAS / "workforce-agent" / "README.md",
     NAS / "chain-test" / "README.md",
+    NAS / "PHASE4_RUNBOOK.md",
 )
+
+# Documents deliberately outside the checks above. Reviews belong to the
+# reviewer; evidence is a dated snapshot and its numbers are supposed to stay
+# frozen. Everything else that lives at the top of nas-startup/ makes claims
+# about the running system and has to be in DOCUMENTS - see the test below,
+# which is what turns "somebody forgot to add it" into a failing run rather
+# than silent loss of coverage.
+NOT_CHECKED = {
+    "REVIEW_GERD.md", "REVIEW_ANTWORTEN.md", "GESAMTREVIEW_GERD_2026-09-01.md",
+    "NACHREVIEW_GERD_2026-09-01_C625B8C.md", "BERICHT_FUER_GERD.md",
+    "DEC_ENTWUERFE_2026-08-31.md", "2026-08-13_workforce_bus_nas_deployment.md",
+    "ACCEPTANCE_CHECKLIST.md", "BUS_PACKAGE_MANIFEST.md",
+    "BUS_REALTEST_KARL_THORSTEN_RUNBOOK.md", "NEXT_STEPS_KARL_THORSTEN.md",
+    "WORKFORCE_BUS_API_CONTRACT.md", "WORKFORCE_BUS_ROLLOUT.md",
+    "README.md", "AGENTS.md", "HANDOVER.md",
+}
 
 
 def documents() -> list[tuple[pathlib.Path, str]]:
@@ -314,17 +331,90 @@ class NoHardcodedCountsTest(unittest.TestCase):
     # status table is stale by the next nightly backup.
     ANCHOR = re.compile(r"`[0-9a-f]{7,40}`|\b20\d\d-\d\d-\d\d\b")
 
+    COUNT = re.compile(r"\b\d{2,4}\s+(?:Manifest)?[Dd]ateien\b")
+
     def test_no_document_states_an_unanchored_file_count(self) -> None:
+        """The unit is the sentence, not the source line.
+
+        The first version scanned line by line. Markdown prose wraps, so a
+        paragraph reading "das Manifest deckt 130\nDateien" split the number
+        from the word and slipped through - which is exactly how the count in
+        PHASE4_RUNBOOK.md survived a run of this test. Joining wrapped lines
+        closes that. The anchor now has to sit in the same sentence as the
+        number, because a date three sentences away does not keep this
+        particular number true.
+        """
         offenders = []
         for path, text in documents():
-            for number, line in enumerate(text.splitlines(), start=1):
-                if not re.search(r"\b\d{2,4}\s+(?:Manifest)?[Dd]ateien\b", line):
-                    continue
-                if self.ANCHOR.search(line):
-                    continue
-                offenders.append(f"{path.name}:{number}")
-        self.assertEqual([], offenders,
+            for start, paragraph in self.paragraphs(text):
+                for sentence in re.split(r"(?<=[.:;])\s+", paragraph):
+                    if not self.COUNT.search(sentence):
+                        continue
+                    if self.ANCHOR.search(sentence):
+                        continue
+                    offenders.append(f"{path.name}:{start}")
+        self.assertEqual([], sorted(set(offenders)),
                          "eine Dateizahl ohne Commit oder Datum veraltet still")
+
+    @staticmethod
+    def paragraphs(text: str) -> list[tuple[int, str]]:
+        """Wrapped prose lines joined; blank lines and list/table rows split.
+
+        Table rows must stay separate: joining them would let an anchor in one
+        row excuse a bare count in the next.
+        """
+        out, buf, start = [], [], 0
+        def flush():
+            if buf:
+                out.append((start, " ".join(buf)))
+                buf.clear()
+        for number, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            structural = (not stripped or stripped.startswith(("|", "-", "*", "#", ">", "```"))
+                          or re.match(r"^\d+\.", stripped))
+            if structural:
+                flush()
+                if stripped:
+                    out.append((number, stripped))
+                continue
+            if not buf:
+                start = number
+            buf.append(stripped)
+        flush()
+        return out
+
+    def test_every_operational_document_is_actually_checked(self) -> None:
+        """A checked-documents list nobody updates stops being a check.
+
+        PHASE4_RUNBOOK.md was written, reviewed and nearly committed while
+        being invisible to every scanner in this file - including the one that
+        catches unanchored file counts, which it tripped. It is also the most
+        dangerous document in the repository, because its lines are meant to be
+        executed. So: any new top-level document either joins DOCUMENTS or is
+        named in NOT_CHECKED, and forgetting both fails here.
+        """
+        checked = {p.name for p in DOCUMENTS}
+        forgotten = sorted(
+            p.name for p in NAS.glob("*.md")
+            if p.name not in checked and p.name not in NOT_CHECKED
+        )
+        self.assertEqual([], forgotten,
+                         "neues Dokument: in DOCUMENTS aufnehmen oder in "
+                         "NOT_CHECKED begruenden")
+
+    def test_a_wrapped_count_is_still_caught(self) -> None:
+        """The escape this guard was blind to, kept as a standing probe."""
+        wrapped = "das laufende Manifest deckt 130\nDateien und faellt damit auf."
+        joined = self.paragraphs(wrapped)
+        self.assertEqual(1, len(joined), "Zeilen wurden nicht zusammengefuegt")
+        self.assertTrue(self.COUNT.search(joined[0][1]))
+        self.assertFalse(self.ANCHOR.search(joined[0][1]))
+
+    def test_a_table_row_cannot_borrow_the_anchor_of_its_neighbour(self) -> None:
+        rows = "| Lauf | `ec8df2e` |\n| Manifest | 126 Dateien |"
+        joined = self.paragraphs(rows)
+        self.assertEqual(2, len(joined), "Tabellenzeilen wurden verschmolzen")
+        self.assertFalse(self.ANCHOR.search(joined[1][1]))
 
     def test_the_anchor_rule_actually_distinguishes(self) -> None:
         # A guard whose exemption swallows everything is not a guard.

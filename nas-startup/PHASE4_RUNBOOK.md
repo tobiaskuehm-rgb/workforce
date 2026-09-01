@@ -19,6 +19,25 @@ Wer abbricht, springt zu Abschnitt 8.
 | API-Zugangsdaten | `startup.env` (Eigentümerpasswort) | eigene Secret-Dateien |
 | Manifestumfang | Quellordner ohne `compose.yaml`/`workforce-api` | zusätzlich `compose.yaml`, `postgres-init/`, `workforce-api/` |
 
+Der Umfang ist gemessen, nicht geschätzt. Auf `ec8df2e` deckt das laufende
+Manifest 130 Dateien und das Zielmanifest 144 Dateien. Das Fenster fasst genau elf davon an:
+
+| geändert | neu |
+|---|---|
+| `compose.yaml` | `workforce-api/.dockerignore` |
+| `workforce-api/app.py` | `workforce-api/e2e_acceptance.rb` |
+| `workforce-api/Dockerfile` | `postgres-init/004_knowledge_capability.sql` |
+| `workforce-api/test_app.py` | `postgres-init/005_bus_denial_audit.sql` |
+| | `postgres-init/006_legacy_registry_tables.sql` |
+| | `postgres-init/007_least_privilege_roles.sql` |
+| | `postgres-init/008_knowledge_api_grants.sql` |
+
+**`004` und `008` liegen danach als Dateien auf der NAS, sind aber nicht
+angewendet.** Das ist kein Widerspruch: Angewendet wird eine Migration
+ausschließlich durch ihr Gate, und die beiden bleiben auf `"false"`. Wer den
+Zustand später prüft, prüft deshalb die Tabellen, nicht die Dateiliste —
+`nas_status.sh` zeigt den angewendeten Migrationsstand.
+
 **Ausdrücklich nicht Teil des Fensters:** Knowledge `004`, Knowledge-Grants
 `008`, Telegram, Modellaufrufe, jeder externe Test. Der Kanal bleibt
 `DISABLED`, der Kill Switch bleibt an.

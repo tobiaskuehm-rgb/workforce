@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-01, nach dem ersten vollständigen Kettenlauf — von Claude Code
+**Zuletzt aktualisiert:** 2026-09-01, nach Gerds achtem Zielcheck und der Vorbereitung von Phase 4 — von Claude Code
 
 ## Wie die Zusammenarbeit läuft
 
@@ -121,7 +121,27 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 ## Hier weitermachen
 
-**Stand:** Gerds Befunde `G-012` bis `G-019` sind **alle abgearbeitet**, einzeln beantwortet in `REVIEW_ANTWORTEN.md`. Das Gate bleibt **`CORE ITERATE`** — nicht weil noch Befunde offen wären, sondern weil vier der Korrekturen **nur gegen Attrappen geprüft** sind.
+**Stand:** Gerds achter Zielcheck (`0a197b0`) gibt **technisches GO für die Vorbereitung von Phase 4**. `G-035` bis `G-037` sind geschlossen. Ausgeführt ist nichts: Rollenanlage, Secrets, Migrationen und der Austausch von v7 durch v8 brauchen eine **gesonderte CEO-Freigabe für genau ein Fenster**. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
+
+### Phase 4 ist vorbereitet — `PHASE4_RUNBOOK.md`
+
+Das Runbook deckt Gerds verbindlichen Scope ab und ist zum Abarbeiten von oben nach unten geschrieben: Vorbedingungen, frische Sicherung **samt Rollen-Dump**, Rollenanlage aus Secret-Dateien, Zielmanifest, Öffnen ausschließlich der Gates `005`, `006`, `007`, sechs Nachweise, Rückfallpfad in der Reihenfolge, in der er funktioniert.
+
+Drei Entscheidungen darin, die ein Prüfer kennen sollte:
+
+- **Zwei Manifeste statt einem.** Die NAS hält `postgres-init/` nur bis `003`, dazu `compose.yaml` und `app.py` in der v7-Fassung. Nähme das *laufende* Manifest diese Pfade jetzt auf, stünde die Routineprüfung bis zum Rollout dauerhaft auf rot — und ein Wächter, der immer rot ist, wird ignoriert. `deploy_manifest.sh` nimmt deshalb `MANIFEST_OUT` entgegen; das Zielmanifest entsteht **im Fenster**, weil es den dann gültigen Commit nennen muss.
+- **`compose.yaml` erreicht die NAS erst im Fenster.** Sie zeigt auf `startup-workforce-api:v8`. Läge sie vorher dort, würde ein versehentliches `docker compose up` Phase 4 auslösen.
+- **`004` und `008` liegen danach als Dateien auf der NAS, angewendet sind sie nicht.** Angewendet wird ausschließlich über das Gate; beide bleiben `"false"`. Wer den Zustand prüft, prüft die Tabellen, nicht die Dateiliste.
+
+Der Umfang ist gemessen, nicht geschätzt: auf `ec8df2e` deckt das laufende Manifest 130 Dateien und das Zielmanifest 144; das Fenster fasst genau elf an (vier geändert, sieben neu — Tabelle im Runbook).
+
+### `nas_status.sh`: ein Lesebefehl für den ganzen Iststand
+
+Container, API-Version, Migrationsstand, Kanal, Zugänge, Rollen, Manifest, Backup-Rechte, Rückfallpunkte — mit `RESULT: PASS`/`FAIL` und passendem Exit-Code, also auch als Preflight verwendbar.
+
+Der erste Lauf meldete `PASS`, während eine Teilprüfung fehlschlug: Hinter einer Pipe gehört der Rückgabewert dem letzten Befehl, nicht der Prüfung. Behoben; die Regel steht jetzt in den drei Spiegeln. Aktueller Lauf: `RESULT: PASS`, Exit 0.
+
+### Was zuvor galt (Verlauf)
 
 ### Was in dieser Runde geschlossen wurde
 
