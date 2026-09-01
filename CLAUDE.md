@@ -51,12 +51,15 @@ Jedes Paket hat lokale Tests, die ohne Netzwerk, ohne Zugangsdaten und ohne Kost
 |---|---|---|
 | `workforce-agent` | ✅ nur Standardbibliothek | — |
 | `bus-realtest` | ✅ nur Standardbibliothek | — |
-| `telegram-connector` | ❌ braucht 3.11+ | `from datetime import UTC` |
+| `telegram-connector` | ✅ seit 2026-09-01 | — |
+| `chain-test` | ✅ echter Connector, echter Worker, Attrappen nur außen | — |
 | `workforce-api` | ❌ braucht FastAPI | Abhängigkeiten |
 
 ```bash
-cd nas-startup/workforce-agent && python3 -m unittest discover -q
-cd nas-startup/bus-realtest    && python3 -m unittest discover -q
+cd nas-startup/workforce-agent   && python3 -m unittest discover -q
+cd nas-startup/bus-realtest      && python3 -m unittest discover -q
+cd nas-startup/telegram-connector && python3 -m unittest discover -q
+cd nas-startup/chain-test        && python3 -m unittest discover -q
 ```
 
 Die übrigen beiden laufen in einem Wegwerf-Container auf der NAS:
@@ -224,6 +227,7 @@ Daten werden nicht gelöscht, sondern in einen Status überführt. `prevent_hard
 - **Attrappen werden aus der Quelle gebaut, nicht aus der Erinnerung.** Eine nach der eigenen Annahme gebaute Attrappe bestätigt die Annahme; das hat einen Lauf vier Anläufe gekostet. Rechte kommen aus `bus_rules.py`, und die Attrappe modelliert das Verhalten, auf das es ankommt — Idempotenz, Statuswechsel beim Bestätigen, `delivery_status`.
 - **Jede Kontrolle braucht einen Test, der sie absichtlich schwächt** und verlangt, dass es auffällt: `test_weakened_control_is_detected`, `test_injected_instructions_cannot_redirect_the_reply`, `WeakenedControlIsDetectedTest`. Ein Test, der nur den Gutfall sieht, unterscheidet eine wirksame Kontrolle nicht von einer stillgelegten.
 - **Ein Prüfwerkzeug, das etwas nicht lesen kann, scheitert laut.** `compose_scan.py` verweigert Dateien mit YAML-Ankern, statt leere Dienste zu melden — ein Wächter, der nicht hinsieht, meldet `PASS`.
+- **Eine Suite muss auf der Python-Version des Entwicklungsrechners laufen** (`G-011`). Eine Suite, die nur im Container läuft, wird nicht gelaufen — und dann fehlt sie genau dann, wenn sie am meisten wert wäre: vor dem ersten echten Lauf. `datetime.UTC` gegen `timezone.utc` einzutauschen ist kein Rückschritt, sondern der Preis dafür, dass geprüft wird.
 - **Testzahlen gehören nicht in die Dokumentation.** Sie waren zweimal veraltet, bevor jemand sie gelesen hat.
 - Ein Testpaket hinterlässt **keinen Müll**: Datensätze enden in einem Endzustand, Credentials werden widerrufen, Token-Dateien gelöscht.
 - Was gegen eine Attrappe grün ist, heißt **„gegen Attrappe geprüft"** — nicht „belegt". Der Unterschied gehört in den Nachweis.

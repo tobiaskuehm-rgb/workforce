@@ -23,7 +23,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 
@@ -490,7 +490,11 @@ class AuditStore:
 
     @staticmethod
     def _now() -> str:
-        return datetime.now(UTC).isoformat()
+        # timezone.utc rather than the datetime.UTC alias: the alias arrived in
+        # 3.11, and this file has to stay importable on the development Mac's
+        # 3.9 so the local suite - and the chain test that imports it - can be
+        # run before anything reaches the NAS (review finding G-011).
+        return datetime.now(timezone.utc).isoformat()
 
     def claim_update(self, update_id: int, payload_hash: str) -> str:
         try:

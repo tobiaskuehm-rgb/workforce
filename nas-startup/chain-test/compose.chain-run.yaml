@@ -1,0 +1,85 @@
+name: startup-chain-run
+
+# Steps 2 and 3: the connector and the agent, running together over the same
+# bus. This is the part that has never happened.
+#
+# Both need the temporary DSM firewall rule. Two containers means two
+# addresses, so the rule has to cover 172.31.254.0/29 rather than a single /32
+# as in earlier runs - that is a change worth noticing before opening it.
+#
+#   connector  172.31.254.2   needs the NAS API and api.telegram.org
+#   agent      172.31.254.3   needs the NAS API only
+#
+# Written out in full rather than shared through a YAML anchor: the secret
+# footprint guard (workforce-agent/test_compose_secrets.py) refuses files it
+# cannot parse, and it cannot resolve anchors.
+
+services:
+  chain-connector:
+    image: startup-telegram-ceo-connector:v1
+    build:
+      context: ../telegram-connector
+    restart: "no"
+    env_file:
+      - chain.env
+    secrets:
+      - telegram_bot_token
+      - workforce_bus_token
+    volumes:
+      - chain_connector_state_v1:/var/lib/startup-telegram
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "/app/telegram_connector.py", "--check-config"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  chain-agent:
+    image: startup-workforce-agent:v1
+    build:
+      context: ../workforce-agent
+    restart: "no"
+    env_file:
+      - agent.chain.env
+    secrets:
+      - agent_bus_token
+    volumes:
+      - chain_agent_state_v1:/var/lib/startup-agent
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.3
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  chain_connector_state_v1:
+  chain_agent_state_v1:
+
+networks:
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29
+
+secrets:
+  telegram_bot_token:
+    file: ./secrets/telegram_bot_token
+  workforce_bus_token:
+    file: ./secrets/chain_token_connector
+  agent_bus_token:
+    file: ./secrets/chain_token_agent

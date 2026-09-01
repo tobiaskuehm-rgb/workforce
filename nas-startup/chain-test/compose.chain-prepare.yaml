@@ -1,0 +1,44 @@
+name: startup-chain-prepare
+
+# Step 1 of the chain run. Creates a fresh connector identity, both routes,
+# and two short-lived credentials; opens the channel for the window.
+#
+# Talks to the database only - no firewall rule needed for this step.
+
+services:
+  chain-prepare:
+    image: postgres:17-alpine
+    environment:
+      DB_HOST: db
+      # Honest provenance: a chat approval, explicitly not a decision-log
+      # entry (review finding G-006). The connector writes its own
+      # DEC-023/ENG-007 into bus records because its validator demands that
+      # shape - see chain.env.example.
+      CHAIN_SOURCE_REF: "CEO-CHAT-2026-09-01/PENDING-DEC"
+      # Bump per run. A REVOKED identity can never be reactivated, so the
+      # connector identity CEO-TG-<suffix> must be new every time.
+      CHAIN_RUN_SUFFIX: "CHAIN20260901"
+      CHAIN_SECRET_DIR: /run/startup-chain-secrets
+    volumes:
+      - ../startup.db.env:/run/startup.db.env:ro
+      - ./secrets:/run/startup-chain-secrets
+      - ./prepare_chain_once.sh:/opt/startup-chain/prepare_chain_once.sh:ro
+      - ./chain_prepare.sql:/opt/startup-chain/chain_prepare.sql:ro
+    entrypoint: ["/bin/sh", "/opt/startup-chain/prepare_chain_once.sh"]
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    cap_add:
+      # Handing the tokens to UID 10001 needs CAP_CHOWN; cap_drop ALL took it.
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend

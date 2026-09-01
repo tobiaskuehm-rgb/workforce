@@ -1,0 +1,46 @@
+name: startup-chain-cleanup
+
+# Step 5, and it runs whatever happened before it - success, failure or
+# timeout lead into the same cleanup.
+
+services:
+  chain-cleanup:
+    image: postgres:17-alpine
+    environment:
+      DB_HOST: db
+      # Must match the prepare step, or nothing is revoked and the final check
+      # inside the SQL fails loudly rather than quietly.
+      CHAIN_RUN_SUFFIX: "CHAIN20260901"
+    volumes:
+      - ../startup.db.env:/run/startup.db.env:ro
+      - ./chain_cleanup.sql:/opt/startup-chain/chain_cleanup.sql:ro
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        # startup.db.env carries the three database values and nothing else
+        # (workforce-agent/derive_db_env_once.sh, findings G-010 and G-017).
+        export PGHOST="$${DB_HOST:-db}"
+        export PGUSER="$$(sed -n 's/^POSTGRES_USER=//p' /run/startup.db.env)"
+        export PGDATABASE="$$(sed -n 's/^POSTGRES_DB=//p' /run/startup.db.env)"
+        export PGPASSWORD="$$(sed -n 's/^POSTGRES_PASSWORD=//p' /run/startup.db.env)"
+        : "$${PGUSER:?startup.db.env lacks POSTGRES_USER}"
+        : "$${PGDATABASE:?startup.db.env lacks POSTGRES_DB}"
+        : "$${PGPASSWORD:?startup.db.env lacks POSTGRES_PASSWORD}"
+        psql -v ON_ERROR_STOP=1 -v run_suffix="$$CHAIN_RUN_SUFFIX" \
+             -f /opt/startup-chain/chain_cleanup.sql
+        echo "Reminder: delete ./secrets/chain_token_* and ./secrets/telegram_bot_token by hand."
+    networks:
+      - startup_backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  startup_backend:
+    external: true
+    name: startup_backend
