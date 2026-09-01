@@ -170,6 +170,29 @@ Alle drei sind behoben und als Regeln in `CLAUDE.md` eingetragen.
 
 **Firewall-Regel zurückgenommen, nachgemessen** mit dem tokenfreien Netz-Check: `WORKFORCE_CONNECT_TIMEOUT` von `172.31.254.2`. Der Rückbau ist damit vollständig — kein offener Netzweg, kein aktiver Zugang, kein Secret auf der Platte, keine Testcontainer, Kanal `DISABLED`.
 
+### Gerds fünfte Prüfrunde: `G-022` bis `G-034` abgearbeitet
+
+**Dreizehn Befunde, jeder selbst nachgemessen statt übernommen.** Zehn behoben und mit Tests belegt, einer bewusst offen, einer CEO-Gebiet, einer zur Hälfte widerlegt.
+
+| | |
+|---|---|
+| **Behoben und belegt** | `G-022` Backup-ACL, `G-023` Provenienz, `G-024` Restore, `G-025` Rollentrennung, `G-026` `.dockerignore`, `G-027` Fehlercodes, `G-028` Routenvertrag, `G-029` fail-closed, `G-031` Migrations-Gates, `G-033` Widerspruchsscan, `G-034` SDK-Retries |
+| **Bestätigt, bewusst nicht behoben** | `G-030` — integrierte Runtime-Kette, gehört in Roadmap-Phase 6 |
+| **Bestätigt, CEO-Gebiet** | `G-032` — 19 uncommittete Änderungen in den Autoritätsquellen |
+| **Zur Hälfte widerlegt** | `G-023` — die Produktivdateien passen sehr wohl zu einem Commit (`ff2d32a`) |
+
+**Zwei Befunde waren schwerer als beschrieben.** `G-022`: Neben der ACL lagen dort **25 Konfigurationsarchive mit `startup.env` und 26 vollständige SQL-Dumps** — jeder NAS-Benutzer konnte Datenbankpasswort, API-Schlüssel und sämtliche Nachrichteninhalte lesen. `G-025`: Der eigentliche Blocker stand nicht im Befund — die API führte bei jedem Start `CREATE TABLE` aus und brauchte deshalb dauerhaft DDL-Rechte.
+
+**Drei Dinge fanden erst die Tests**, nicht das Lesen: mein `.dockerignore`-Muster ließ `anthropic_api_key` durch, meine erste Fassung von Migration `007` hätte sie an die Gates von `004` und `005` gekettet, und der Widerspruchsscan fand eine veraltete Testzahl in dieser Datei.
+
+**Neu und wichtig für jeden weiteren Lauf:**
+
+- `production_state.txt` + `verify_production_state.sh` — der laufende Stand heißt `ff2d32a`, Tag `produktiv-v7`, jederzeit prüfbar **ohne** Deployment
+- `check_backup_permissions.sh` — die Backup-Härtung kann über Nacht erodieren, der Backup-Job läuft als Root
+- Migrationen `004`–`007` haben **je ein eigenes, geschlossenes Gate**. Ohne ausdrücklichen Schalter wendet ein `docker compose up` keine an
+
+**Restore erstmals bewiesen** — und der erste Versuch scheiterte: Der Dump enthält kein `CREATE ROLE`. Die Wiederherstellungsvorschrift steht in `evidence/2026-09-01_backup_acl_und_restore.md`.
+
 ### Gerds vierte Prüfrunde: `G-021` behoben — die Zweige sind vereinigt
 
 **Der schwerste Befund bisher, und er war zu eng gefasst.** Er nannte eine Richtung: API `v8` verdrängt die Knowledge-Endpunkte von `v7`. Die Messung zeigte eine zweite — dem autoritativen Stand fehlten `require_https_transport` (`F2`), das Ablehnungs-Audit, der festgenagelte Bridge-Subnetz (`F4`) und acht Tests. **Keiner der beiden Stände war eine Obermenge des anderen.**
@@ -197,12 +220,15 @@ Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find
 
 ### Noch offen für `CORE PASS`
 
-Gerds Liste, der ich zustimme:
+Gerds Roadmap, Phasen 3 bis 8 — **jede braucht eine CEO-Freigabe, die nicht vorliegt**:
 
-1. Migration `004` und API `v8` real ausrollen und testen
-2. Automatisierte Auditrekonstruktion ausführen
-3. Worker-Core-Test auf der NAS fahren
-4. Später ein echter Modellmitarbeiter — braucht eine Entscheidung
+1. **Phase 3 NAS-Preflight:** Iststand nachmessen, frisches Backup, Rückfallimage, Manifest der Produktivpfade
+2. **Phase 4 Foundation-Update:** API `v8` und Migrationen `005`–`007` — **ohne** Knowledge `004`, das hat ein eigenes Gate
+3. **Phase 5 Contract und Audit:** Contract-Test, Secret-Isolation, automatische Auditrekonstruktion
+4. **Phase 6 Core-Abnahme:** Roundtrip wiederholen, dann der **integrierte** Worker-Core (`G-030`)
+5. **Phase 7 Rückbau, Phase 8 formeller Status**
+
+Ein echter Modellmitarbeiter kommt danach und braucht eine eigene Entscheidung.
 
 ### Nichts mehr offen beim Nutzer
 
