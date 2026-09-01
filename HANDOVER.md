@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-01, nach Gerds achtem Zielcheck und der Vorbereitung von Phase 4 — von Claude Code
+**Zuletzt aktualisiert:** 2026-09-01, nach Gerds neuntem Zielcheck und der Korrektur von `G-042` — von Claude Code
 
 ## Wie die Zusammenarbeit läuft
 
@@ -121,9 +121,19 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 ## Hier weitermachen
 
-**Stand:** Gerds achter Zielcheck (`0a197b0`) gibt **technisches GO für die Vorbereitung von Phase 4**. `G-035` bis `G-037` sind geschlossen. Ausgeführt ist nichts: Rollenanlage, Secrets, Migrationen und der Austausch von v7 durch v8 brauchen eine **gesonderte CEO-Freigabe für genau ein Fenster**. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
+**Stand:** Gerds neunter Zielcheck (`eea959e`) hebt den Codeblocker `G-041` auf und hält das GO **allein wegen `G-042`** an. `G-042` ist korrigiert; es fehlt Gerds kurzer Runbook-Nachcheck. Danach braucht das Fenster noch die CEO-Freigabe für genau einen Lauf — der CEO hat sie grundsätzlich erteilt, sie ist also keine offene Frage mehr, sondern eine Terminfrage. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
 
-### `G-041`: Gerd hat das Phase-4-GO pausiert — zu Recht
+### `G-042`: das Runbook nannte Dinge, die es nicht gibt
+
+Bestätigt, beide Punkte selbst nachgemessen. `docker ps` zeigt `startup-db-1` und `startup-workforce-api-1`; `compose.yaml` setzt kein `container_name`, die Namen sind also abgeleitet. `startup-postgres` existiert nicht — zehn Befehle hätten abgebrochen. Und `005` legt `workforce.bus_denials` mit `occurred_at` an, nicht `bus_denial_audit`/`created_at`; ich hatte den Dateinamen der Migration für den Tabellennamen gehalten.
+
+Korrigiert auf die robustere Form: `docker compose exec -T db` statt Containernamen, `docker compose cp`, `docker compose restart`, und `docker inspect` holt sein Ziel aus `docker compose ps -q db`. **Dabei kam eine Folge dazu, die im Befund nicht steht:** Compose löst sein Projekt über das Arbeitsverzeichnis auf, und acht der umgestellten Befehle hatten kein `cd /volume1/docker/Startup` — als `docker exec` brauchten sie keins. Aus zehn `No such container` wären sonst acht `no configuration file provided` geworden.
+
+`test_runbook_targets.py` löst die Ziele des Runbooks jetzt gegen ihre Quellen auf: Dienstnamen gegen `compose.yaml`, `workforce.`-Bezeichner und Spalten gegen die Migrationen — und zwar **nur gegen die, die das Fenster anwendet**, denn ein Objekt aus dem gegateten `004` bestünde eine naive Existenzprüfung und fehlte im Fenster trotzdem. Sieben Fälle bauen den Fehler absichtlich wieder ein.
+
+Die Wurzel von `G-041` und `G-042` ist dieselbe und unangenehmer als beide: Ich habe ein Dokument, das ausgeführt wird, wie Prosa behandelt. Jede Codezeile läuft hier durch eine Suite; das Runbook lief durch keine — obwohl es das einzige Artefakt ist, dessen Zeilen direkt in eine Produktivshell gehen. Steht als Leitplanke 8 in den drei Spiegeln.
+
+### `G-041`: geschlossen, von Gerd bestätigt
 
 Sein Ergänzungscheck bestätigt die drei Entscheidungen (zwei Manifeste, `compose.yaml` erst im Fenster, `004`/`008` als Dateien ohne Anwendung), findet dabei aber, dass die dritte **im damaligen Compose noch nicht sicher** war.
 

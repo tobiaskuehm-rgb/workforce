@@ -742,3 +742,47 @@ Zwei Korrekturen an meinem eigenen ersten Entwurf, beide vom Lauf erzwungen:
 Deine Präzisierung zum Zielmanifest — erzeugen aus dem freigegebenen Commit, erst gegen das Phase-4-Paket prüfen, nach erfolgreichem Rollout das Ist-Manifest ersetzen — ist im Runbook so übernommen. „Kein dauerhaft roter Routinewächter" war genau mein Beweggrund; gut, dass wir da nicht auseinanderliegen.
 
 Zur Sicherung der bisherigen `compose.yaml` vor dem Einsetzen der neuen: aufgenommen.
+
+---
+
+## `G-042` — Phase-4-Runbook verwendet falsche Laufzeitobjekte
+
+**Bestätigt, vollständig.** Beide Punkte selbst nachgesehen, keiner davon nur nachgelesen.
+
+**Containernamen.** `docker ps` auf der NAS zeigt `startup-db-1` und `startup-workforce-api-1`; `compose.yaml` setzt kein `container_name`, die Namen entstehen also aus Projektordner, Dienst und Index. `startup-postgres` gibt es nicht — zehn Befehle im Runbook hätten mit `No such container` abgebrochen, und zwei davon (`docker cp`, das Rollen-SQL) mitten im Fenster.
+
+Am peinlichsten ist, dass das Dokument sich selbst widersprochen hat: Der Mount-Nachweis, den ich für `G-041` frisch ergänzt hatte, benutzte bereits korrekt `startup-db-1`. Der richtige Name stand also **im selben Dokument**, elf Zeilen unter einem falschen. Ich habe die neue Zeile aus `docker inspect` abgeschrieben und die alten aus dem Gedächtnis.
+
+**Audittabelle.** `postgres-init/005_bus_denial_audit.sql` legt `workforce.bus_denials` mit `occurred_at` an. `workforce.bus_denial_audit` und `created_at` existieren nirgends — ich hatte den Dateinamen der Migration für den Tabellennamen gehalten.
+
+### Korrektur
+
+Deine robustere Variante übernommen, nicht die kürzere: alle Befehle über `docker compose exec -T db` beziehungsweise `-T workforce-api`, `docker cp` als `docker compose cp`, `docker restart` als `docker compose restart`. Hart codierte Namen wären wieder nur richtig, bis jemand den Projektordner umbenennt.
+
+`docker inspect` hat keine Compose-Entsprechung und muss einen Container benennen. Dort kommt das Ziel jetzt aus `docker compose ps -q db` statt aus einem geschriebenen Namen.
+
+Das hat eine Folge, die im Befund nicht steht und die ich beim Umbau gefunden habe: **Compose löst sein Projekt über das Arbeitsverzeichnis auf.** Acht der umgestellten Befehle hatten kein `cd /volume1/docker/Startup` — als `docker exec` brauchten sie keins. Ohne die Ergänzung wäre aus zehn `No such container` schlicht acht `no configuration file provided` geworden. Die Form lesend auf der NAS verifiziert: `docker compose exec -T db psql -U workforce_app -d workforce -Atc 'SELECT current_user'` liefert `workforce_app`, Compose ist `v2.20.1` und kennt `cp` und `ps -q`.
+
+Die beiden verbliebenen `startup-workforce-api`-Vorkommen sind **Image-Referenzen** (`:v7` in der Änderungstabelle und in `docker save`) und bleiben richtig.
+
+### Statischer Test
+
+`test_runbook_targets.py`, 17 Fälle. Er löst die Ziele des Runbooks gegen ihre Quellen auf, statt eine Namensliste zu pflegen:
+
+- kein containerbezogener Docker-Unterbefehl ohne `compose`; `docker inspect` nur mit `compose ps -q`
+- jeder Compose-Befehl startet im Projektverzeichnis
+- jeder Dienstname existiert in `compose.yaml` — gelesen mit `compose_scan.py`, nicht mit einer zweiten Abschrift
+- jeder `workforce.`-Bezeichner und jede in einer Aggregatfunktion genannte Spalte existiert in den Migrationen
+- sieben Fälle bauen den Fehler absichtlich wieder ein und verlangen, dass er auffällt — die Originalfassungen `startup-postgres`, `bus_denial_audit` und `created_at` sind darunter
+
+Zwei Entscheidungen darin sind nicht kosmetisch:
+
+**Die Objektliste kommt nur aus den Migrationen, die dieses Fenster anwendet.** `004` und `008` bleiben ausgeschlossen. Ein Verweis auf `workforce.knowledge_objects` würde eine naive Existenzprüfung bestehen — die Tabelle steht ja im Quellbaum — und im Fenster trotzdem ins Leere greifen. Ein eigener Fall hält genau das fest, und ein weiterer prüft, dass das Runbook die beiden Gates überhaupt noch geschlossen nennt, damit Test und Dokument nicht stillschweigend auseinanderlaufen.
+
+**Der Wächter liest nur Codeblöcke.** Er hat zuerst meinen eigenen Erklärabsatz zu `G-042` als fehlerhaften Befehl gemeldet. Prosa über einen Befehl ist kein Befehl; ausgeführt wird, was im Fence steht. Ein Fall verlangt deshalb, dass die Erfassung mehr als fünfzehn Befehle findet und `db`, `workforce-api` und `bus_denials` darunter sind — sonst wäre die Einschränkung ein Weg, durch Wegsehen grün zu werden.
+
+### Was das über die Vorbereitung sagt
+
+`G-041` und `G-042` haben dieselbe Wurzel, und die ist unangenehmer als jeder der beiden Befunde: Ich habe ein Dokument geschrieben, das ausgeführt werden soll, und es wie Prosa behandelt. Jede Codezeile in diesem Repo läuft durch eine Suite; das Runbook lief durch keine, obwohl es das einzige Artefakt ist, dessen Zeilen direkt in eine Produktivshell gehen. Die Regel steht jetzt als Leitplanke 8 in `CLAUDE.md` und den beiden Spiegeln.
+
+**Lokal:** 299 + 15 + 35 + 9 Tests PASS. Runbook, Regeln und Spiegel gehen im selben Commit.

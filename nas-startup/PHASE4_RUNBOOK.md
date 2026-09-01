@@ -1,13 +1,24 @@
 # Phase 4 — Rollout-Runbook
 
-**Status: vorbereitet, nicht ausgeführt.** Gerds achter Zielcheck (`0a197b0`) gibt
-technisches GO für *die Vorbereitung*. Das Anlegen von Rollen und Secrets, das
-Anwenden von Migrationen und der Austausch des v7-Containers brauchen eine
-gesonderte CEO-Freigabe für genau ein Fenster.
+**Status: vorbereitet, nicht ausgeführt.** Gerds neunter Zielcheck (`eea959e`)
+hebt den Codeblocker `G-041` auf und hält das GO allein wegen `G-042` an —
+falsche Containernamen und eine falsche Audittabelle in genau diesem Dokument.
+Beides ist korrigiert; es fehlt Gerds kurzer Runbook-Nachcheck. Das Anlegen von
+Rollen und Secrets, das Anwenden von Migrationen und der Austausch des
+v7-Containers brauchen darüber hinaus eine CEO-Freigabe für genau ein Fenster.
 
 Dieses Dokument ist so geschrieben, dass es im Fenster von oben nach unten
 abgearbeitet wird. Jeder Schritt hat einen Befehl und ein Abbruchkriterium.
 Wer abbricht, springt zu Abschnitt 8.
+
+**Container werden nicht beim Namen genannt** (`G-042`). Ein Containername ist
+eine Ableitung aus Projektordner, Dienst und Index — `startup-db-1`, nicht
+`startup-postgres`. Deshalb laufen alle Befehle über `docker compose exec -T
+<dienst>`, und `docker inspect` holt sich sein Ziel aus `docker compose ps -q`.
+Das setzt voraus, dass jeder Befehl in `/volume1/docker/Startup` startet: ohne
+das Arbeitsverzeichnis findet Compose kein Projekt. `test_runbook_targets.py`
+prüft beides zusammen mit den Tabellen- und Spaltennamen gegen die
+Migrationen, die dieses Fenster tatsächlich anwendet.
 
 ## 1. Was sich ändert
 
@@ -93,12 +104,12 @@ Schritt, der sie liest, nicht mehr erreichbar.
 Unmittelbar vor dem Fenster, nicht „von gestern":
 
 ```
-ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker exec startup-postgres \
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db \
   pg_dump -U workforce_app workforce > /volume1/docker/Startup-Backups/preflight-$(date +%F_%H-%M-%S).sql"
 ```
 
 ```
-ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker exec startup-postgres \
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db \
   pg_dumpall -U workforce_app --globals-only > /volume1/docker/Startup-Backups/preflight-$(date +%F_%H-%M-%S).globals.sql"
 ```
 
@@ -135,15 +146,15 @@ ssh synology "cd /volume1/docker/Startup && \
   printf 'CREATE ROLE workforce_backup LOGIN PASSWORD %s;\n' \
     \"\$(sed -e \"s/'/''/g\" -e \"s/^/'/\" -e \"s/\$/'/\" secrets/workforce_backup_password)\" \
     >> /tmp/rollen.sql && \
-  sudo /usr/local/bin/docker cp /tmp/rollen.sql startup-postgres:/tmp/rollen.sql && \
-  sudo /usr/local/bin/docker exec startup-postgres psql -U workforce_app -d workforce -f /tmp/rollen.sql && \
-  sudo /usr/local/bin/docker exec startup-postgres rm /tmp/rollen.sql && rm /tmp/rollen.sql"
+  sudo /usr/local/bin/docker compose cp /tmp/rollen.sql db:/tmp/rollen.sql && \
+  sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -f /tmp/rollen.sql && \
+  sudo /usr/local/bin/docker compose exec -T db rm /tmp/rollen.sql && rm /tmp/rollen.sql"
 ```
 
 Prüfen, dass beide existieren und **keine** davon Superuser ist:
 
 ```
-ssh synology "sudo /usr/local/bin/docker exec startup-postgres psql -U workforce_app -d workforce -Atc \
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc \
   \"SELECT rolname, rolsuper, rolcreatedb FROM pg_roles WHERE rolname LIKE 'workforce%' ORDER BY 1\""
 ```
 
@@ -218,7 +229,7 @@ ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose u
 Nachsehen, dass der Mount wirklich weg ist — nicht in der Datei, sondern im Container:
 
 ```
-ssh synology "sudo /usr/local/bin/docker inspect startup-db-1 --format '{{range .Mounts}}{{.Destination}} {{end}}'"
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker inspect \$(sudo /usr/local/bin/docker compose ps -q db) --format '{{range .Mounts}}{{.Destination}} {{end}}'"
 ```
 
 Erwartet: **kein** `/docker-entrypoint-initdb.d`. Steht es noch da, ist die
@@ -238,22 +249,22 @@ ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose u
 
 2. **Neustart übersteht den Zustand**
    ```
-   ssh synology "sudo /usr/local/bin/docker restart startup-workforce-api && sleep 10 && curl -sS localhost:8080/health"
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose restart workforce-api && sleep 10 && curl -sS localhost:8080/health"
    ```
 
 3. **Fußabdruck des API-Containers** — das Eigentümerpasswort darf ihn nicht erreichen:
    ```
-   ssh synology "sudo /usr/local/bin/docker exec startup-workforce-api env | grep -ci 'POSTGRES_PASSWORD\|startup.env' || echo 'sauber: 0 Treffer'"
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T workforce-api env | grep -ci 'POSTGRES_PASSWORD\|startup.env' || echo 'sauber: 0 Treffer'"
    ```
    Erwartet: 0 Treffer. Jeder Treffer ist ein Abbruch (`G-035`).
 
 4. **Rechte-Negativtest** — eine Rolle mit bloßem `USAGE` darf nichts können:
    ```
-   ssh synology "sudo /usr/local/bin/docker exec startup-postgres psql -U workforce_app -d workforce -Atc \
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc \
      \"CREATE ROLE niemand LOGIN PASSWORD 'x'; GRANT USAGE ON SCHEMA workforce TO niemand;\" && \
-     sudo /usr/local/bin/docker exec startup-postgres psql -U niemand -d workforce -Atc \
+     sudo /usr/local/bin/docker compose exec -T db psql -U niemand -d workforce -Atc \
      \"SELECT workforce.bus_send_message('x','x','x','x','x')\" 2>&1 | head -2; \
-     sudo /usr/local/bin/docker exec startup-postgres psql -U workforce_app -d workforce -Atc 'DROP ROLE niemand'"
+     sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc 'DROP ROLE niemand'"
    ```
    Erwartet: `permission denied for function`. Erreicht die Rolle stattdessen
    `BUS_AUTH_FAILED`, ist `007` wirkungslos — das war genau der Befund `G-035`,
@@ -261,15 +272,15 @@ ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose u
 
 5. **Ablehnungs-Audit schreibt wirklich** (`005`):
    ```
-   ssh synology "curl -sS -X POST localhost:8080/bus/messages -H 'X-API-Key: falsch' -d '{}' >/dev/null; \
-     sudo /usr/local/bin/docker exec startup-postgres psql -U workforce_app -d workforce -Atc \
-     'SELECT count(*), max(created_at) FROM workforce.bus_denial_audit'"
+   ssh synology "cd /volume1/docker/Startup && curl -sS -X POST localhost:8080/bus/messages -H 'X-API-Key: falsch' -d '{}' >/dev/null; \
+     sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc \
+     'SELECT count(*), max(occurred_at) FROM workforce.bus_denials'"
    ```
    Erwartet: Zähler > 0 mit frischem Zeitstempel.
 
 6. **Realer `pg_dump` als `workforce_backup`** — nicht simuliert:
    ```
-   ssh synology "sudo /usr/local/bin/docker exec startup-postgres \
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db \
      pg_dump -U workforce_backup workforce > /tmp/backup_probe.sql; echo \"Exit: \$?\"; \
      wc -c < /tmp/backup_probe.sql; rm -f /tmp/backup_probe.sql"
    ```
@@ -294,7 +305,7 @@ alten Commit), dann Container mit v7 starten. Nur wenn die Datenbank
 tatsächlich beschädigt ist:
 
 ```
-ssh synology "sudo /usr/local/bin/docker exec -i startup-postgres psql -U workforce_app -d postgres \
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d postgres \
   -f - < /volume1/docker/Startup-Backups/preflight-<Zeitstempel>.globals.sql"
 ```
 
