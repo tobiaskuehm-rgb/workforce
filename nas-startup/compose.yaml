@@ -41,6 +41,9 @@ services:
       # refuses otherwise, because a login role means a password and a
       # password does not belong in a versioned file.
       APPLY_MIGRATION_007_LEAST_PRIVILEGE: "false"
+      # Belongs with 004: without the knowledge migration there is nothing to
+      # grant. Never open this one alone.
+      APPLY_MIGRATION_008_KNOWLEDGE_GRANTS: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -139,6 +142,18 @@ services:
           echo "Unexpected least-privilege role marker count; refusing to continue."
           exit 1
         fi
+        knowledge_grants_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '008_knowledge_api_grants'")"
+        if [ "$$knowledge_grants_count" = "0" ] && [ "$${APPLY_MIGRATION_008_KNOWLEDGE_GRANTS:-false}" != "true" ]; then
+          echo "Knowledge API grants NOT applied: gate closed (APPLY_MIGRATION_008_KNOWLEDGE_GRANTS is not true)."
+        elif [ "$$knowledge_grants_count" = "0" ]; then
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/008_knowledge_api_grants.sql
+          echo "Knowledge API grants applied."
+        elif [ "$$knowledge_grants_count" = "1" ]; then
+          echo "Knowledge API grants already applied."
+        else
+          echo "Unexpected knowledge API grant marker count; refusing to continue."
+          exit 1
+        fi
     volumes:
       - ./postgres-init:/opt/startup/migrations:ro
     networks:
@@ -156,16 +171,26 @@ services:
     build:
       context: ./workforce-api
     restart: unless-stopped
-    env_file:
-      - startup.env
+    # No env_file (review finding G-035). startup.env carries POSTGRES_USER=
+    # workforce_app and that role's superuser password. Loading it put both in
+    # the API container, and "app.py does not read them any more" is no
+    # protection: a compromised process reads its own environment and connects
+    # as the owner, around every grant migration 007 makes.
+    #
+    # What is left here is either not secret (the database name) or comes from
+    # its own file.
     environment:
       DB_HOST: db
       BUS_REQUIRE_HTTPS: "true"
-      # The API connects as its own least-privilege role, never as the owner
-      # (review finding G-035). Without both of these it refuses to start -
-      # a missing value used to mean "use workforce_app", silently.
+      # Not a secret, and it has to match startup.env. The migration runner
+      # still reads that file; only the API no longer does.
+      POSTGRES_DB: workforce
+      # The API connects as its own least-privilege role, never as the owner.
+      # Without both of these it refuses to start - a missing value used to
+      # mean "use workforce_app", silently.
       WORKFORCE_DB_USER: workforce_api
       WORKFORCE_DB_PASSWORD_FILE: /run/secrets/workforce_api_db_password
+      WORKFORCE_API_KEY_FILE: /run/secrets/workforce_api_key
       # Synology Reverse Proxy reaches the published port through the
       # current startup_frontend bridge gateway. Keep this host-only.
       BUS_TRUSTED_PROXY_CIDRS: "172.20.0.1/32"
@@ -176,6 +201,7 @@ services:
         condition: service_completed_successfully
     secrets:
       - workforce_api_db_password
+      - workforce_api_key
     ports:
       - "8080:8080"
     networks:
@@ -212,6 +238,11 @@ volumes:
   workforce_database_v1:
 
 secrets:
+  workforce_api_key:
+    # The value that is today WORKFORCE_API_KEY in startup.env. Copied into
+    # its own file in the rollout window; startup.env keeps its copy for the
+    # migration runner and the database.
+    file: ./secrets/workforce_api_key
   workforce_api_db_password:
     # Created in the rollout window, together with the role itself. Not in
     # git, not in startup.env, not in the environment.

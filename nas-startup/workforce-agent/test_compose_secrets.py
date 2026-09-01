@@ -20,13 +20,23 @@ import compose_scan
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-# The full startup.env holds five values. Only the productive stack may see it:
-# the database and the API genuinely need what is in there. The migration
-# container is listed because it ships with that stack and a change to the
-# running stack is an operational risk that G-017 does not ask us to take -
-# it is knowingly unchanged, not overlooked.
+# The full startup.env holds five values, among them the owner role and its
+# superuser password. Two services may see it:
+#
+#   db                the database itself is initialised from it
+#   registry-migrate  migrations are DDL on the owner's schema
+#
+# **workforce-api was removed from this list on 2026-09-01** (review finding
+# G-035). It used to load the whole file, so the owner credentials sat in the
+# API container - and "app.py does not read them" is no protection when a
+# compromised process can read its own environment and connect as the owner.
+# It now gets the database name plus two secret files and nothing else.
+#
+# This test compares as an equality on purpose: it failed the moment the API
+# stopped reading the file, which is how the improvement got recorded instead
+# of drifting past unnoticed.
 PRODUCTIVE_STACK = pathlib.Path("compose.yaml")
-STACK_SERVICES_ALLOWED_FULL_ENV = {"db", "registry-migrate", "workforce-api"}
+STACK_SERVICES_ALLOWED_FULL_ENV = {"db", "registry-migrate"}
 
 FULL_ENV = "startup.env"
 DB_ENV = "startup.db.env"

@@ -140,7 +140,7 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 Keiner davon kostet Geld, keiner braucht ein Modell. Alle brauchen **eine Freigabe im Chat** und die temporäre Firewall-Regel:
 
-1. **Migrationen `004_knowledge_capability` und `005_bus_denial_audit` anwenden.** Der Produktivstack zieht beide beim nächsten `up` selbst. Danach die Abnahmetests `003_knowledge_capability_acceptance.sql` und `005_bus_denial_audit_acceptance.sql`. **Die SQL ist auf diesem Mac nie gelaufen** — hier gibt es weder `psql` noch Docker.
+1. **Migration `005_bus_denial_audit` anwenden — Knowledge `004` ausdrücklich nicht.** Beide sind getrennt und fail-closed gegatet; ein `up` wendet **keine** an, solange der jeweilige Schalter nicht auf `true` steht. Danach der Abnahmetest `005_bus_denial_audit_acceptance.sql`. **Die SQL ist auf diesem Mac nie gelaufen** — hier gibt es weder `psql` noch Docker.
 2. **API `v8` bauen und ausrollen.** Sie schreibt die Ablehnungen; ohne sie bleibt `bus_denials` leer.
 3. **Contract-Test in der neuen Fassung gegen den echten Bus.** Erwartung: `deny` vollständig, `allow` 17/17 und 5/5, `wrong_reason` 0.
 4. **`verify_secret_isolation_once.sh`** — braucht keine Firewall-Regel und keine Zugangsdaten.
@@ -219,6 +219,16 @@ Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find
 1. Gerds Prüfrunde geriet mit einem `git add -A` ungelesen in einen Commit, der von etwas anderem handelte. Steht als Leitplanke 4 in `CLAUDE.md`.
 2. `REVIEW_ANTWORTEN.md` auf der NAS war 169 Zeilen alt — **Gerd hat gegen einen Stand geprüft, dem meine Antworten zu `G-012` bis `G-019` fehlten.** Beide Review-Dateien gehen ab jetzt bei jedem Deploy mit.
 
+### Kurznachcheck: die Restpunkte sind zu
+
+**Beide Restpunkte hatte ich benannt statt behoben** — das ist zu wenig, eine benannte Lücke ist eine Lücke.
+
+- **`startup.env` erreicht den API-Container nicht mehr.** Gerds Argument sticht: Dass `app.py` die Werte nicht mehr liest, schützt nicht bei einer kompromittierten API — ein Prozess liest seine eigene Umgebung und verbindet sich als Eigentümer, an jedem Grant vorbei. Der Container bekommt jetzt den Datenbanknamen im Klartext und zwei Secret-Dateien, sonst nichts. Der Migrationslauf behält die Datei; Migrationen sind DDL auf dem Schema des Eigentümers.
+- **Der pauschale Default-Grant ist weg.** Mein Argument war, eine Namensliste müsse jemand pflegen. Das Gegenargument sticht: Genau das ist der Zweck — sonst wäre eine künftige administrative `SECURITY DEFINER`-Funktion automatisch für die API ausführbar. `005` und die neue `008` erteilen ihre Funktionen namentlich.
+- **Drei veraltete Aussagen korrigiert**, drei neue Klassen im Widerspruchsscan: veraltete Gate-Aussage, unverankerte Dateizahl, Secret am falschen Ort — jede mit Negativprobe.
+
+**Ein Nebenertrag:** Der `G-017`-Wächter schlug fehl, weil `workforce-api` noch in der Liste der erlaubten `startup.env`-Leser stand. Die Gleichheitsprüfung hat die Verbesserung bemerkt und ihre Eintragung erzwungen.
+
 ### Nachreview: `G-035`, `G-036`, `G-037` behoben
 
 **Zwei davon entwerten Nachweise, die ich vorher geführt hatte** — das ist der wichtigste Punkt.
@@ -239,8 +249,8 @@ Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find
 | Provenienz | 6 von 6 Produktivdateien byteweise `ff2d32a`, Tag `produktiv-v7` |
 | Rückfallpunkte | Datenbank-Dump **plus Rollen-Dump** plus Image-Archiv, alle `640 root:administrators` |
 | Restore | **verifiziert**: null Fehler, 28 Nachrichten, 9 Tasks, Eigentümer `workforce_app` — deckungsgleich mit der Produktion |
-| Manifest | 126 Dateien, nichts unerwartet |
-| Backup-Rechte | 56 Dateien, keine mit Welt-Zugriff — die Härtung hat das Schreiben überstanden |
+| Manifest | nichts fehlend, nichts abweichend, nichts unerwartet |
+| Backup-Rechte | keine Datei mit Welt-Zugriff — die Härtung hat das Schreiben überstanden |
 
 **Der Rollen-Dump schließt die Lücke aus `G-024`**: Der nächtliche Job schreibt nur `pg_dump`, also ohne `CREATE ROLE`. Das Preflight-Paar ist beides und wurde eingespielt, nicht nur erzeugt.
 
@@ -251,7 +261,7 @@ Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find
 1. **Eine eigene CEO-Freigabe für genau das Fenster** — Phase 3 deckt sie nicht ab
 2. `CREATE ROLE workforce_api` und `workforce_backup` mit Passwörtern aus dem Secret-Store, **vor** Migration `007`
 3. Entscheidung, welche Gates geöffnet werden. Gerds Empfehlung: `005`, `006`, `007` — **ohne** Knowledge `004`
-4. Neues Passwort für `workforce_api` in `startup.env`, sonst spricht die API weiter als `workforce_app`
+4. Passwort für `workforce_api` in `secrets/workforce_api_db_password` und der API-Schlüssel in `secrets/workforce_api_key` — **nicht** in `startup.env`. Die Datei erreicht den API-Container nicht mehr, sie trägt das Eigentümer-Passwort (`G-035`)
 
 ### Noch offen für `CORE PASS`
 

@@ -146,6 +146,24 @@ BEGIN
 END;
 $$;
 
+-- The API calls this function, so it needs EXECUTE by name. Conditional
+-- because the gates are independent: this migration may run before 007 has
+-- created the role, and it must not fail for that (review finding G-035).
+-- 007 grants what already exists; this covers the other order.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'workforce_api') THEN
+        REVOKE EXECUTE ON FUNCTION workforce.bus_record_denial(
+            text, text, text, text, text, text, text, integer) FROM PUBLIC;
+        GRANT EXECUTE ON FUNCTION workforce.bus_record_denial(
+            text, text, text, text, text, text, text, integer) TO workforce_api;
+        RAISE NOTICE 'workforce_api: EXECUTE auf bus_record_denial erteilt';
+    ELSE
+        RAISE NOTICE 'workforce_api existiert noch nicht - Grant folgt aus 007';
+    END IF;
+END;
+$$;
+
 INSERT INTO workforce.schema_migrations (
     migration_id,
     description

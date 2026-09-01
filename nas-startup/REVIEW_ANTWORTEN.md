@@ -582,3 +582,68 @@ Dazu drei Tests, die belegen, dass der Wächter **Zähne hat**: Er fängt die Ze
 Zwei meiner Belege waren zu stark: Die Funktions-Allowlist bei `G-025` hat nichts begrenzt, und `G-034` war nicht geschlossen. Beide Male hatte ich das Richtige gebaut und das Falsche daraus geschlossen — im ersten Fall, weil ich den PostgreSQL-Standard nicht geprüft habe, im zweiten, weil ich eine Ebene tiefer gesucht habe als nötig.
 
 Das ist dieselbe Fehlerklasse wie `G-014`, `G-016` und `G-017`: **eine Zusicherung, die weiter reicht als der Beweis.** Der Unterschied ist, dass es diesmal nicht ein Kommentar war, sondern ein Test, der das Falsche geprüft hat.
+
+---
+
+# Antwort auf den Kurznachcheck (`G-035`, `G-037` Restpunkte)
+
+Beide Restpunkte treffen zu, und bei beiden hatte ich das Problem **benannt statt behoben**. Das ist zu wenig — eine benannte Lücke ist eine Lücke.
+
+### G-035, Punkt 1 — `startup.env` erreicht den API-Container → **Behoben**
+
+Dein Argument ist das entscheidende: *„Dass `app.py` diese Werte nicht mehr regulär verwendet, schützt nicht bei einer kompromittierten API."* Ein Prozess liest seine eigene Umgebung und verbindet sich direkt als Eigentümer — an jedem Grant aus `007` vorbei. Ich hatte den Punkt als Restrisiko notiert, obwohl er die Trennung vollständig umgehbar macht.
+
+**`env_file: startup.env` ist aus dem API-Service entfernt.** Was der Container jetzt bekommt:
+
+| | woher |
+|---|---|
+| `POSTGRES_DB=workforce` | Klartext in `compose.yaml` — ein Datenbankname ist kein Geheimnis |
+| `WORKFORCE_DB_USER=workforce_api` | ebenso |
+| Passwort der API-Rolle | Secret-Datei `workforce_api_db_password` |
+| API-Schlüssel | Secret-Datei `workforce_api_key` — dafür liest `app.py` jetzt `WORKFORCE_API_KEY_FILE` statt einer Umgebungsvariablen |
+
+Kein `POSTGRES_USER`, kein `POSTGRES_PASSWORD`, keine `startup.env` — weder als Umgebung noch als Mount. Der Migrationslauf behält die Datei, denn Migrationen sind DDL auf dem Schema des Eigentümers.
+
+### G-035, Punkt 2 — pauschaler Default-Grant → **Behoben**
+
+Auch hier hast du recht, und ich hatte die Abwägung falsch entschieden. Mein Argument war, eine Namensliste sei eine Liste, die jemand pflegen muss. Dein Gegenargument sticht: **Genau das ist der Zweck.** Eine künftige administrative `SECURITY DEFINER`-Funktion wäre sonst automatisch für die API ausführbar, ohne dass es jemand entschieden hat.
+
+`ALTER DEFAULT PRIVILEGES ... GRANT EXECUTE ON FUNCTIONS TO workforce_api` ist entfernt. Der `REVOKE ... FROM PUBLIC`-Teil bleibt — er ist die Sicherheitshälfte. Die Grants erteilen jetzt die anlegenden Migrationen:
+
+- **`005`** erteilt `bus_record_denial` namentlich, bedingt darauf, dass die Rolle existiert — die Gates sind unabhängig, `005` kann vor `007` laufen
+- **`008_knowledge_api_grants.sql`** ist neu und erteilt die sechs Knowledge-Funktionen namentlich. Eine eigene Migration, weil `004` aus dem autoritativen Satz stammt und nach der kanonischen Grenze hier nicht bearbeitet wird. Sie bricht ab, wenn `004` fehlt oder die Rolle fehlt
+- **`007`** erteilt weiterhin, was zum Zeitpunkt seines Laufs existiert
+
+### Der Negativtest auf den Container-Fußabdruck
+
+Wie verlangt prüft er, **was der Container bekommt**, nicht was der Code liest. Dafür liest der Compose-Scanner jetzt auch Umgebungsschlüssel und Secrets — nur Namen, nie Werte. Er prüft:
+
+- keine `env_file` am API-Service, kein `POSTGRES_USER`, kein `POSTGRES_PASSWORD`, kein `WORKFORCE_API_KEY` in der Umgebung
+- `startup.env` auch nicht als Mount — dasselbe Loch mit Umweg
+- die API bekommt trotzdem, was sie braucht (fail-closed darf nicht unbrauchbar heißen)
+- **der Migrationslauf behält den Eigentümerzugang** — die Trennung betrifft die API, nicht alles
+- kein pauschaler Default-Grant, `PUBLIC` bleibt gesperrt, jede spätere Migration erteilt ihre eigenen Funktionen
+
+**Ein Nebenertrag:** Der `G-017`-Wächter von gestern schlug beim ersten Lauf fehl — `workforce-api` stand noch in der Liste der erlaubten `startup.env`-Leser. Die Gleichheitsprüfung hat die Verbesserung bemerkt und mich gezwungen, sie einzutragen, statt sie stillschweigend vorbeiziehen zu lassen.
+
+### G-037 — drei veraltete Aussagen → **Behoben, Scan erweitert**
+
+| Zeile | war | ist |
+|---|---|---|
+| 143 | „`004` und `005` … zieht beide beim nächsten `up` selbst" | „`005` anwenden — Knowledge `004` ausdrücklich nicht", mit dem Hinweis, dass ein `up` **keine** anwendet |
+| 242 | „126 Dateien" | ohne Zahl |
+| 254 | Passwort in `startup.env` | Secret-Dateien, mit dem Grund |
+
+Drei neue Klassen im Scan, jede mit Negativprobe:
+
+- **Veraltete Gate-Aussage:** Die gegateten Migrationen werden aus `compose.yaml` abgeleitet; behauptet ein Dokument für eine davon einen automatischen Lauf, schlägt der Test fehl. Ein Test stellt sicher, dass überhaupt eine Migration gegatet ist — sonst wäre die Prüfung leer.
+- **Hart codierte Dateizahl:** Erlaubt ist eine Zahl nur, wenn die Zeile sie an einen Moment bindet — Commit-Hash oder Datum. „99 Dateien auf `f59e757`" bleibt wahr, „126 Dateien" in einer Statustabelle veraltet. Ein Test prüft, dass diese Ausnahme unterscheidet und nicht alles durchlässt.
+- **Secret am falschen Ort:** Nennt ein Dokument `startup.env` als Ablage für ein API-Secret, während der Compose-Vertrag die Datei gerade aus dem Container entfernt hat, ist das ein Widerspruch. Der Test überspringt sich selbst mit Begründung, falls der Service je wieder eine `env_file` bekommt — dann wäre er der falsche Wächter.
+
+Beim Erweitern fand der Scan zwei weitere Zahlen in `HANDOVER.md`. Eine davon war legitim (an einen Commit gebunden), die andere nicht — daher die Ankerregel statt eines pauschalen Verbots.
+
+## Offen und unverändert
+
+`workforce_app` behält `SUPERUSER`. Das bleibt der letzte Schritt, er ist nicht additiv, und er gehört in ein eigenes Fenster nach dem Rollout. Solange er aussteht, ist die Trennung wirksam, aber nicht erzwungen — das steht so im Kopf von `007`.
+
+`G-038` und `G-040` sind weiterhin nicht bearbeitet; dein Auftrag war auf die Restpunkte begrenzt.

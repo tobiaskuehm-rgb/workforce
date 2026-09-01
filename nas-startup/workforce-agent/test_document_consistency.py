@@ -269,6 +269,102 @@ class ClaimsMatchTheCodeTest(unittest.TestCase):
         self.assertEqual([], offenders)
 
 
+class GatedMigrationsAreNotDescribedAsAutomaticTest(unittest.TestCase):
+    """G-037: a document said a gated migration applies on the next `up`.
+
+    Every migration with an APPLY_ gate is fail-closed - a plain
+    `docker compose up` applies none of them. A document promising the
+    opposite sends somebody into a rollout window expecting work that will
+    not happen, or worse, not expecting work that will.
+    """
+
+    def gated_migrations(self) -> set[str]:
+        compose = (NAS / "compose.yaml").read_text(encoding="utf-8")
+        return {
+            name for name in re.findall(r"migrations/(\d{3})_[a-z_]+\.sql", compose)
+            if re.search(rf"APPLY_MIGRATION_{name}_[A-Z_]+:-false", compose)
+        }
+
+    def test_at_least_one_migration_is_gated(self) -> None:
+        # If this ever returns nothing the test below becomes vacuous.
+        self.assertNotEqual(set(), self.gated_migrations())
+
+    def test_no_document_calls_a_gated_migration_automatic(self) -> None:
+        gated = self.gated_migrations()
+        automatic = re.compile(
+            r"(zieht (sie|beide|diese)?\s*beim naechsten|zieht .{0,20}beim nächsten|"
+            r"automatisch angewendet|wendet .{0,20}automatisch an)", re.I
+        )
+        offenders = []
+        for path, text in documents():
+            for number, line in enumerate(text.splitlines(), start=1):
+                if not automatic.search(line):
+                    continue
+                if any(re.search(rf"`?{g}[_`]", line) for g in gated):
+                    offenders.append(f"{path.name}:{number}")
+        self.assertEqual([], offenders,
+                         f"gegatete Migrationen: {sorted(gated)} - ein up wendet keine an")
+
+
+class NoHardcodedCountsTest(unittest.TestCase):
+    """G-037: a manifest file count went stale between two deployments."""
+
+    # A number is allowed when the line anchors it to a moment - a commit or
+    # a date. "99 Dateien auf f59e757" stays true forever; "56 Dateien" in a
+    # status table is stale by the next nightly backup.
+    ANCHOR = re.compile(r"`[0-9a-f]{7,40}`|\b20\d\d-\d\d-\d\d\b")
+
+    def test_no_document_states_an_unanchored_file_count(self) -> None:
+        offenders = []
+        for path, text in documents():
+            for number, line in enumerate(text.splitlines(), start=1):
+                if not re.search(r"\b\d{2,4}\s+(?:Manifest)?[Dd]ateien\b", line):
+                    continue
+                if self.ANCHOR.search(line):
+                    continue
+                offenders.append(f"{path.name}:{number}")
+        self.assertEqual([], offenders,
+                         "eine Dateizahl ohne Commit oder Datum veraltet still")
+
+    def test_the_anchor_rule_actually_distinguishes(self) -> None:
+        # A guard whose exemption swallows everything is not a guard.
+        self.assertTrue(self.ANCHOR.search("Der Lauf begann auf `f59e757`, 99 Dateien"))
+        self.assertFalse(self.ANCHOR.search("| Manifest | 126 Dateien, nichts unerwartet |"))
+
+
+class SecretsAreDescribedWhereTheyLiveTest(unittest.TestCase):
+    """G-037: a document told the operator to put a secret in startup.env.
+
+    The compose file had just stopped handing startup.env to the API, exactly
+    so the owner password would leave the container. A document pointing the
+    new secret back into that file would undo the fix by instruction.
+    """
+
+    def api_service(self):
+        import compose_scan
+
+        return compose_scan.scan(NAS / "compose.yaml")["workforce-api"]
+
+    def test_the_api_service_really_has_no_env_file(self) -> None:
+        self.assertEqual([], self.api_service().env_files)
+
+    def test_no_document_puts_an_api_secret_into_startup_env(self) -> None:
+        # Only checked while the service has no env_file - if that ever comes
+        # back, this test is not the right guard any more and says so.
+        if self.api_service().env_files:
+            self.skipTest("API-Service laedt wieder eine env_file - erst das pruefen")
+        offenders = []
+        for path, text in documents():
+            for number, line in enumerate(text.splitlines(), start=1):
+                if "startup.env" not in line:
+                    continue
+                if re.search(r"(workforce_api|API-Schl|API_KEY).{0,60}startup\.env", line, re.I) \
+                   or re.search(r"startup\.env.{0,60}(workforce_api|API-Schl|API_KEY)", line, re.I):
+                    if not re.search(r"nicht|kein|ohne|erreicht .{0,20}nicht", line, re.I):
+                        offenders.append(f"{path.name}:{number}")
+        self.assertEqual([], offenders)
+
+
 class MigrationNumbersAreUniqueTest(unittest.TestCase):
     def test_no_two_migrations_share_a_number(self) -> None:
         names = sorted(p.name for p in (NAS / "postgres-init").glob("*.sql"))

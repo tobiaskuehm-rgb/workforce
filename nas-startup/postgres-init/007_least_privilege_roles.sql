@@ -90,16 +90,18 @@ REVOKE EXECUTE ON ALL ROUTINES IN SCHEMA public FROM PUBLIC;
 -- PUBLIC default. This migration will not run a second time to fix that.
 ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA workforce
     REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
-ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA workforce
-    GRANT EXECUTE ON FUNCTIONS TO workforce_api;
 ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA public
     REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 
--- The default grant above covers trigger functions too. That is not a hole:
--- a trigger function called directly fails with "can only be called as
--- trigger", so the privilege buys nothing. The alternative - a named list per
--- migration - is a list somebody has to remember, and this project has been
--- bitten by exactly that kind of list twice.
+-- **No default GRANT to workforce_api.** An earlier version had one, so every
+-- function a later migration created became callable by the API on its own.
+-- That is not an allowlist; it would hand out execute rights on a future
+-- administrative SECURITY DEFINER function without anybody deciding to.
+--
+-- New API-callable functions are granted by name, in the migration that
+-- creates them or in an additive permission migration. That is a list someone
+-- has to maintain - and that is the point: adding a function to the API's
+-- reach should be a decision, not a side effect.
 
 -- Granted by name, not by signature, and only for functions that exist.
 --

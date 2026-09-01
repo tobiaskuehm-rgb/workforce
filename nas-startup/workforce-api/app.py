@@ -17,7 +17,38 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-API_KEY = os.environ["WORKFORCE_API_KEY"]
+def _api_key() -> str:
+    """The API key, from a file - never from the environment.
+
+    Review finding G-035: the API service loaded the whole startup.env, so the
+    owner name and the owner's superuser password sat in the container. That
+    `app.py` no longer reads them is not protection: a compromised process can
+    read its own environment and connect as the owner directly, around every
+    grant migration 007 makes.
+
+    So the service gets no startup.env at all, and the two things it does need
+    come from their own files. An environment variable would also be readable
+    in `docker inspect`, which is the same argument that moved the bus tokens
+    into files (G-010).
+    """
+    path = os.environ.get("WORKFORCE_API_KEY_FILE", "").strip()
+    if path:
+        key = pathlib.Path(path).read_text(encoding="utf-8").strip()
+        if not key:
+            raise RuntimeError(f"WORKFORCE_API_KEY_FILE_EMPTY: {path}")
+        return key
+    # Only for the local test suite, which has no file to mount. On the NAS the
+    # compose file always sets WORKFORCE_API_KEY_FILE.
+    key = os.environ.get("WORKFORCE_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError(
+            "WORKFORCE_API_KEY_FILE_REQUIRED: der Schluessel kommt aus einer "
+            "Datei, nicht aus startup.env"
+        )
+    return key
+
+
+API_KEY = _api_key()
 BUS_PROJECT_ID = "START-UP"
 BUS_REQUIRE_HTTPS = os.environ.get("BUS_REQUIRE_HTTPS", "true").lower() not in {"0", "false", "no"}
 BUS_TRUSTED_PROXY_CIDRS = tuple(

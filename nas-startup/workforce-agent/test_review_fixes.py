@@ -227,6 +227,84 @@ class ApiUsesItsOwnRoleTest(unittest.TestCase):
         self.assertIn("workforce_api_db_password:", self.compose)
 
 
+class ApiContainerFootprintTest(unittest.TestCase):
+    """G-035: what the API container is handed, not what the code reads.
+
+    The API service used to load the whole startup.env. That `app.py` no
+    longer reads POSTGRES_USER is no protection - a compromised process reads
+    its own environment and connects as the owner, around every grant in
+    migration 007. So the check is on the footprint, not on the source.
+    """
+
+    def setUp(self) -> None:
+        import compose_scan
+
+        self.service = compose_scan.scan(ROOT / "compose.yaml")["workforce-api"]
+
+    def test_the_owner_secret_never_enters_the_container(self) -> None:
+        self.assertEqual([], self.service.env_files,
+                         "startup.env traegt POSTGRES_USER und das Eigentuemer-Passwort")
+        for forbidden in ("POSTGRES_USER", "POSTGRES_PASSWORD", "WORKFORCE_API_KEY"):
+            with self.subTest(key=forbidden):
+                self.assertNotIn(forbidden, self.service.environment)
+
+    def test_startup_env_is_not_mounted_either(self) -> None:
+        # Removing env_file and mounting the same file would be the same hole
+        # with extra steps.
+        for source in self.service.volume_sources:
+            self.assertNotIn("startup.env", source)
+
+    def test_it_still_gets_what_it_needs(self) -> None:
+        # Fail-closed must not mean unusable.
+        for required in ("POSTGRES_DB", "WORKFORCE_DB_USER",
+                         "WORKFORCE_DB_PASSWORD_FILE", "WORKFORCE_API_KEY_FILE"):
+            with self.subTest(key=required):
+                self.assertIn(required, self.service.environment)
+        self.assertIn("workforce_api_db_password", self.service.secrets)
+        self.assertIn("workforce_api_key", self.service.secrets)
+
+    def test_the_migration_runner_still_gets_the_owner(self) -> None:
+        # It legitimately needs it - migrations are DDL on the owner's schema.
+        # The separation is about the API, not about everything.
+        import compose_scan
+
+        runner = compose_scan.scan(ROOT / "compose.yaml")["registry-migrate"]
+        self.assertIn("startup.env", runner.env_files)
+
+
+class FunctionAllowlistIsRealTest(unittest.TestCase):
+    """G-035: a blanket default grant is not an allowlist."""
+
+    def setUp(self) -> None:
+        self.seven = (ROOT / "postgres-init" / "007_least_privilege_roles.sql").read_text()
+        self.five = (ROOT / "postgres-init" / "005_bus_denial_audit.sql").read_text()
+        self.eight = (ROOT / "postgres-init" / "008_knowledge_api_grants.sql").read_text()
+
+    def test_no_blanket_default_grant_to_the_api(self) -> None:
+        # It used to hand the API execute rights on every function a later
+        # migration created - including a future administrative
+        # SECURITY DEFINER function nobody decided to expose.
+        self.assertNotIn("GRANT EXECUTE ON FUNCTIONS TO workforce_api", self.seven)
+
+    def test_public_stays_revoked_by_default(self) -> None:
+        # The revoke half must stay: it is what keeps a new function from
+        # arriving executable by everyone.
+        self.assertIn("REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC", self.seven)
+
+    def test_each_later_migration_grants_its_own_functions(self) -> None:
+        self.assertIn("GRANT EXECUTE ON FUNCTION workforce.bus_record_denial", self.five)
+        self.assertIn("knowledge_create_candidate", self.eight)
+        self.assertIn("GRANT EXECUTE ON FUNCTION", self.eight)
+
+    def test_those_grants_survive_a_different_gate_order(self) -> None:
+        # 005 may run before 007 has created the role. It must not fail for
+        # that, and 007 grants what already exists.
+        self.assertIn("IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'workforce_api')",
+                      self.five)
+        self.assertIn("MIGRATION_008_ROLE_MISSING", self.eight)
+        self.assertIn("MIGRATION_008_REQUIRES_004", self.eight)
+
+
 class ModelFallbackIsOffTest(unittest.TestCase):
     """G-036: SDK retries were off, the server-side fallback was not."""
 

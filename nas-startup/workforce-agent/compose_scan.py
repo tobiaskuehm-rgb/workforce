@@ -25,6 +25,11 @@ class Service:
     env_files: list[str] = field(default_factory=list)
     volume_sources: list[str] = field(default_factory=list)
     networks: list[str] = field(default_factory=list)
+    # Environment keys only, never values. What a container is handed is a
+    # security property (review finding G-035); what the values are is not
+    # this scanner's business.
+    environment: list[str] = field(default_factory=list)
+    secrets: list[str] = field(default_factory=list)
 
 
 def _indent(line: str) -> int:
@@ -116,6 +121,13 @@ def scan(path: pathlib.Path) -> dict[str, Service]:
                 current.env_files.append(stripped[2:].strip().strip("'\""))
             elif current_key == "volumes" and stripped.startswith("- "):
                 current.volume_sources.append(stripped[2:].split(":")[0].strip())
+            elif current_key == "environment":
+                if stripped.startswith("- "):
+                    current.environment.append(stripped[2:].split("=")[0].strip())
+                elif ":" in stripped:
+                    current.environment.append(stripped.split(":", 1)[0].strip())
+            elif current_key == "secrets" and stripped.startswith("- "):
+                current.secrets.append(stripped[2:].strip())
             elif current_key == "networks":
                 if stripped.startswith("- "):
                     current.networks.append(stripped[2:].strip())
