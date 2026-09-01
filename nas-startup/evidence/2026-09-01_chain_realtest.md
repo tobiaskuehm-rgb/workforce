@@ -66,7 +66,17 @@ Nachgemessen statt protokolliert: Kanal `DISABLED`, null aktive Zugänge im ganz
 
 Die vier Nachrichten und beide Tasks bleiben — sie sind der Nachweis, keine Berechtigung.
 
-**Offen beim Nutzer:** die temporäre DSM-Firewall-Regel für `172.31.254.0/29` auf TCP 8443 zurücknehmen, und im BotFather entscheiden, ob der Testbot `@Thorsten_workforcebot` bestehen bleibt oder sein Token widerrufen wird.
+**Entschieden am 2026-09-01:** Der Testbot `@Thorsten_workforcebot` bleibt bestehen, sein Token wird nicht widerrufen. **Auf der NAS liegt es trotzdem nicht mehr** — es wurde mit den übrigen Token-Dateien gelöscht. Ein nächster Kettenlauf braucht es erneut in `chain-test/secrets/telegram_bot_token`, als Klartext, nicht als RTF.
+
+**Firewall-Regel zurückgenommen und nachgemessen.** Der tokenfreie Netz-Check aus `telegram-connector/compose.network-check.yaml` — ein Container auf `172.31.254.2`, ohne Zugangsdaten — meldet:
+
+```json
+{"endpoint": "/health", "reason": "WORKFORCE_CONNECT_TIMEOUT", "result": "FAIL"}
+```
+
+Das ist der Beleg, nicht die Behauptung. `G-007` entstand, weil eine dokumentierte Rücknahme nicht stattgefunden hatte; seither gilt: nachsehen, nicht nachlesen.
+
+**Damit ist der Rückbau vollständig:** kein offener Netzweg, kein aktiver Zugang, kein Secret auf der Platte, keine Testcontainer, Kanal `DISABLED`.
 
 ## Nebenbefund
 

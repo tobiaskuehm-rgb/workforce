@@ -158,7 +158,11 @@ Alle drei sind behoben und als Regeln in `CLAUDE.md` eingetragen.
 
 **Nebenbefund:** `AGENT-ENG-001` existiert und ist aktives Projektmitglied — vor dem Lauf gegen die Registry geprüft. Der Punkt aus `G-019` ist damit nachgemessen statt nachgelesen.
 
-**Offen beim Nutzer:** Firewall-Regel `172.31.254.0/29` zurücknehmen; über den Testbot `@Thorsten_workforcebot` entscheiden.
+**Testbot:** `@Thorsten_workforcebot` bleibt (entschieden 2026-09-01). Sein Token liegt aber **nicht mehr auf der NAS** — beim Rückbau gelöscht. Ein nächster Kettenlauf braucht es erneut in `chain-test/secrets/telegram_bot_token`, als **Klartext**.
+
+**Firewall-Regel zurückgenommen, nachgemessen** mit dem tokenfreien Netz-Check: `WORKFORCE_CONNECT_TIMEOUT` von `172.31.254.2`. Der Rückbau ist damit vollständig — kein offener Netzweg, kein aktiver Zugang, kein Secret auf der Platte, keine Testcontainer, Kanal `DISABLED`.
+
+### Nichts mehr offen beim Nutzer
 
 **Erster Einsatz des Deploy-Manifests:** Der Lauf begann auf `f59e757`, 99 Dateien verifiziert. Zwei Korrekturen wurden während des Laufs nachdeployt — das steht im Nachweis, statt als „Commit plus Änderungen" verschleiert zu werden (`G-019`).
 
