@@ -505,5 +505,35 @@ class MigrationNumbersAreUniqueTest(unittest.TestCase):
         self.assertEqual(len(numbers), len(set(numbers)), names)
 
 
+class RunbookStatusIsCurrentTest(unittest.TestCase):
+    """The runbook's own status head must name the finding that is open.
+
+    It went stale twice in a row: after G-042 it still announced the eighth
+    check, after G-043 it still announced G-042 as the open item. Nobody was
+    misled yet, but the head is the first thing an operator reads before
+    running the rest of the file in a production shell, and "the blocker is
+    G-042" is a statement about whether it is safe to start.
+
+    The newest finding is taken from the reviewer's own file, so this cannot
+    be satisfied by editing one side.
+    """
+
+    def newest_finding(self) -> str:
+        review = (NAS / "REVIEW_GERD.md").read_text(encoding="utf-8")
+        numbers = sorted(int(n) for n in re.findall(r"\bG-(\d{3})\b", review))
+        self.assertTrue(numbers, "REVIEW_GERD.md nennt keine Befundnummer")
+        return f"G-{numbers[-1]:03d}"
+
+    def test_the_runbook_head_names_the_newest_finding(self) -> None:
+        head = (NAS / "PHASE4_RUNBOOK.md").read_text(encoding="utf-8").split("\n")[:14]
+        self.assertIn(self.newest_finding(), "\n".join(head))
+
+    def test_a_stale_head_would_be_noticed(self) -> None:
+        head = "\n".join((NAS / "PHASE4_RUNBOOK.md").read_text(encoding="utf-8").split("\n")[:14])
+        stale = head.replace(self.newest_finding(), "G-001")
+        self.assertNotEqual(head, stale)
+        self.assertNotIn(self.newest_finding(), stale)
+
+
 if __name__ == "__main__":
     unittest.main()

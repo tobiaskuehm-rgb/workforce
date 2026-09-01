@@ -1,11 +1,14 @@
 # Phase 4 — Rollout-Runbook
 
-**Status: vorbereitet, nicht ausgeführt.** Gerds neunter Zielcheck (`eea959e`)
-hebt den Codeblocker `G-041` auf und hält das GO allein wegen `G-042` an —
-falsche Containernamen und eine falsche Audittabelle in genau diesem Dokument.
-Beides ist korrigiert; es fehlt Gerds kurzer Runbook-Nachcheck. Das Anlegen von
-Rollen und Secrets, das Anwenden von Migrationen und der Austausch des
-v7-Containers brauchen darüber hinaus eine CEO-Freigabe für genau ein Fenster.
+**Status: vorbereitet, nicht ausgeführt.** Gerds zehnter Zielcheck (`c4abc84`)
+schließt `G-042` und hält das GO allein wegen `G-043` an — vier Stellen, an
+denen dieses Dokument ein Verhalten unterstellte, das es nicht gibt: Schreiben
+in den gehärteten Backup-Ordner, ein Auditnachweis über einen im Fenster
+geschlossenen Kanal, `DROP ROLE` ohne `DROP OWNED BY`, und zwei Skripte, die
+aus dem Zielmanifest gefallen waren. Alle vier sind korrigiert; es fehlt Gerds
+kurzer Nachcheck. Das Anlegen von Rollen und Secrets, das Anwenden von
+Migrationen und der Austausch des v7-Containers brauchen darüber hinaus eine
+CEO-Freigabe für genau ein Fenster.
 
 Dieses Dokument ist so geschrieben, dass es im Fenster von oben nach unten
 abgearbeitet wird. Jeder Schritt hat einen Befehl und ein Abbruchkriterium.
