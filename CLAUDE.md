@@ -262,8 +262,16 @@ Ablauf, im selben Commit:
 
 Die Befundnummer ist kein Schmuck: Sie führt zur Beobachtung, die die Regel erzwungen hat. Eine Regel ohne diese Herkunft ist eine Meinung, und Meinungen gehören nicht in diese Datei.
 
-`HANDOVER.md` liegt ebenfalls zweimal — im Wurzelverzeichnis und in `nas-startup/`; nur die zweite erreicht die NAS. Am 2026-09-01 war die NAS-Kopie drei Sitzungen alt, und Gerd liest genau die. **Beide gehen immer gemeinsam.**
+**Drei Dateien liegen doppelt, und jede Zweitkopie ist die, die eine Seite tatsächlich liest:**
 
-`AGENTS.md` ist der zeichengleiche Spiegel dieser Datei — Gerd liest jene, Claude diese. **Beide werden immer gemeinsam geändert**, sonst arbeiten die zwei Seiten nach verschiedenen Regeln, ohne es zu merken.
+| | | wer liest die zweite |
+|---|---|---|
+| `CLAUDE.md` | `AGENTS.md` | Codex/Gerd |
+| `AGENTS.md` | `nas-startup/AGENTS.md` | Gerd auf der NAS |
+| `HANDOVER.md` | `nas-startup/HANDOVER.md` | Gerd auf der NAS |
+
+**Beide Seiten gehen immer gemeinsam.** Am 2026-09-01 stellte sich heraus, dass beide NAS-Kopien veraltet waren — `AGENTS.md` um fünf Commits, `HANDOVER.md` um drei Sitzungen. Alles, was in die Regeln geschrieben worden war, hatte den Prüfer nie erreicht, und nichts hat es gesagt. Eine Abweichung ist hier von Natur aus still: Jede Seite liest eine Datei, die vollständig aussieht.
+
+`workforce-agent/test_mirrors.py` prüft das jetzt, weil Disziplin die schwächste Absicherung ist.
 
 Wenn zwei Regeln dasselbe sagen, werden sie zusammengezogen. Diese Datei wird gelesen, bevor jemand etwas schreibt — wächst sie ins Unlesbare, hört das auf, und dann nützt die beste Regel nichts.
