@@ -176,7 +176,7 @@ Alle drei sind behoben und als Regeln in `CLAUDE.md` eingetragen.
 
 Vereinigt: `app.py` aus autoritativer Basis plus meinen drei Ergänzungen, 15 Aufrufstellen mit Audit-Kontext (auch die sechs von Knowledge), Migration als `005_bus_denial_audit` neben dem unveränderten `004_knowledge_capability`, `compose.yaml` mit beiden Blöcken, `test_app.py` aus beiden Seiten. Drei Abnahmetests und ein Ruby-E2E-Test, die hier ganz fehlten, sind jetzt da.
 
-**Im Container geprüft: 30 Tests grün** — und der Lauf fand drei Fehlschläge, von denen einer älter war als der Merge. Meine `G-018`-Arbeit hatte drei API-Tests kaputtgemacht, unbemerkt, weil die Suite auf diesem Mac nicht läuft. Der Containerlauf ist jetzt Pflicht vor jedem Commit an `app.py`.
+**Im Container geprüft, alle Tests grün** — und der Lauf fand drei Fehlschläge, von denen einer älter war als der Merge. Meine `G-018`-Arbeit hatte drei API-Tests kaputtgemacht, unbemerkt, weil die Suite auf diesem Mac nicht läuft. Der Containerlauf ist jetzt Pflicht vor jedem Commit an `app.py`.
 
 Neu als Wächter: ein **Routen-Inventar**, das alle 19 Routen namentlich aufzählt. Es hätte `G-021` selbst gefangen — jeder bisherige Test lief grün, während sieben Endpunkte fehlten.
 

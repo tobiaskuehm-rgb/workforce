@@ -1,0 +1,145 @@
+"""Cross-document contradiction scan.
+
+Review finding G-033: documentation and manifest overstated single pieces of
+evidence, and a stale command survived in a script header. The class of defect
+is older than that finding - `CORE PASS` outlived its retraction in one file,
+a migration number outlived its rename in three, and both mirrors of the rules
+were months apart from each other.
+
+None of that is a code bug, and no test suite was looking. This one is. It
+checks the invariants that have actually broken here, not a general idea of
+tidiness:
+
+  * every file a document points at exists
+  * every migration mentioned by number exists under that number
+  * the API version is the same everywhere it is stated
+  * no document claims a gate the evidence has retracted
+  * no document states a test count (they went stale twice)
+
+A finding here is a documentation defect, which in this project has twice been
+the thing that misled the reviewer.
+"""
+
+from __future__ import annotations
+
+import pathlib
+import re
+import unittest
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+NAS = ROOT / "nas-startup"
+
+# Documents that make claims about the system. Reviews are excluded on
+# purpose: REVIEW_GERD.md is written by the reviewer and quotes states that
+# were true when he wrote them.
+DOCUMENTS = (
+    ROOT / "CLAUDE.md",
+    ROOT / "AGENTS.md",
+    ROOT / "HANDOVER.md",
+    NAS / "workforce-agent" / "README.md",
+    NAS / "chain-test" / "README.md",
+)
+
+
+def documents() -> list[tuple[pathlib.Path, str]]:
+    return [(p, p.read_text(encoding="utf-8")) for p in DOCUMENTS if p.is_file()]
+
+
+def is_placeholder(name: str) -> bool:
+    """`NNN_<name>.sql` in the conventions is a pattern, not a reference."""
+    return "<" in name or "NNN" in name or name.startswith("JJJJ")
+
+
+class ReferencedFilesExistTest(unittest.TestCase):
+    def test_every_migration_mentioned_by_name_exists(self) -> None:
+        available = {p.name for p in (NAS / "postgres-init").glob("*.sql")}
+        missing = []
+        for path, text in documents():
+            for name in re.findall(r"\b(\d{3}_[a-z_]+)\.sql\b", text):
+                # Acceptance tests live in postgres-tests/ and carry their own
+                # numbering; they have their own check below.
+                if name.endswith("_acceptance") or is_placeholder(name):
+                    continue
+                if f"{name}.sql" not in available:
+                    missing.append(f"{path.name}: {name}.sql")
+        self.assertEqual([], missing, f"vorhanden: {sorted(available)}")
+
+    def test_every_acceptance_test_mentioned_by_name_exists(self) -> None:
+        available = {p.name for p in (NAS / "postgres-tests").glob("*.sql")}
+        missing = [
+            f"{path.name}: {name}"
+            for path, text in documents()
+            for name in re.findall(r"postgres-tests/(\S+?\.sql)", text)
+            if name not in available and not is_placeholder(name)
+        ]
+        self.assertEqual([], missing, f"vorhanden: {sorted(available)}")
+
+    def test_every_evidence_document_mentioned_exists(self) -> None:
+        available = {p.name for p in (NAS / "evidence").glob("*.md")}
+        missing = [
+            f"{path.name}: {name}"
+            for path, text in documents()
+            for name in re.findall(r"(20\d\d-\d\d-\d\d_[a-z0-9_]+\.md)", text)
+            if name not in available
+        ]
+        self.assertEqual([], missing)
+
+
+class VersionsAgreeTest(unittest.TestCase):
+    def test_the_api_version_is_stated_the_same_everywhere(self) -> None:
+        app = (NAS / "workforce-api" / "app.py").read_text(encoding="utf-8")
+        in_code = set(re.findall(r'"api_version": "(v\d+)"', app))
+        self.assertEqual(1, len(in_code), f"app.py nennt mehrere Versionen: {in_code}")
+        version = in_code.pop()
+
+        dockerfile = (NAS / "workforce-api" / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn(f'version="{version}"', dockerfile)
+
+        compose = (NAS / "compose.yaml").read_text(encoding="utf-8")
+        self.assertIn(f"startup-workforce-api:{version}", compose)
+
+    def test_the_production_reference_names_the_running_version(self) -> None:
+        # production_state.txt describes what runs on the NAS - which is the
+        # older image, deliberately. It must not silently drift to the version
+        # in the repository.
+        state = (NAS / "production_state.txt").read_text(encoding="utf-8")
+        self.assertRegex(state, r"API_IMAGE=startup-workforce-api:v\d+")
+        self.assertRegex(state, r"PRODUCTION_COMMIT=[0-9a-f]{7,40}")
+
+
+class NoRetractedClaimSurvivesTest(unittest.TestCase):
+    def test_no_document_still_claims_core_pass(self) -> None:
+        # The gate was downgraded to CORE ITERATE on 2026-08-31 (G-015) and
+        # has stayed there. A surviving CORE PASS would be the exact defect
+        # G-019 described: two documents, two truths.
+        offenders = [
+            path.name for path, text in documents()
+            if re.search(r"(?<!~~)\bCORE PASS\b(?!~~)", text)
+            and "CORE ITERATE" not in text
+        ]
+        self.assertEqual([], offenders)
+
+    def test_no_document_states_a_test_count(self) -> None:
+        # Convention in CLAUDE.md: test numbers went stale twice before
+        # anybody read them.
+        offenders = []
+        for path, text in documents():
+            for match in re.findall(r"\b\d{2,4} Tests?\b", text):
+                offenders.append(f"{path.name}: {match}")
+        self.assertEqual([], offenders)
+
+
+class MigrationNumbersAreUniqueTest(unittest.TestCase):
+    def test_no_two_migrations_share_a_number(self) -> None:
+        names = sorted(p.name for p in (NAS / "postgres-init").glob("*.sql"))
+        numbers = [n.split("_", 1)[0] for n in names]
+        self.assertEqual(len(numbers), len(set(numbers)), names)
+
+    def test_no_two_acceptance_tests_share_a_number(self) -> None:
+        names = sorted(p.name for p in (NAS / "postgres-tests").glob("*.sql"))
+        numbers = [n.split("_", 1)[0] for n in names]
+        self.assertEqual(len(numbers), len(set(numbers)), names)
+
+
+if __name__ == "__main__":
+    unittest.main()
