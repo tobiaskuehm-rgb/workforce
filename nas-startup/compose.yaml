@@ -37,6 +37,10 @@ services:
       # 006 is a no-op on the running NAS - the tables exist since August. It
       # only records that their definition moved out of the API startup path.
       APPLY_MIGRATION_006_LEGACY_TABLES: "false"
+      # 007 needs workforce_api and workforce_backup to exist first - it
+      # refuses otherwise, because a login role means a password and a
+      # password does not belong in a versioned file.
+      APPLY_MIGRATION_007_LEAST_PRIVILEGE: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -121,6 +125,18 @@ services:
           echo "Legacy registry tables already applied."
         else
           echo "Unexpected legacy registry table marker count; refusing to continue."
+          exit 1
+        fi
+        roles_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '007_least_privilege_roles'")"
+        if [ "$$roles_count" = "0" ] && [ "$${APPLY_MIGRATION_007_LEAST_PRIVILEGE:-false}" != "true" ]; then
+          echo "Least-privilege roles NOT applied: gate closed (APPLY_MIGRATION_007_LEAST_PRIVILEGE is not true)."
+        elif [ "$$roles_count" = "0" ]; then
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/007_least_privilege_roles.sql
+          echo "Least-privilege roles applied; workforce_app keeps SUPERUSER until a separate step removes it."
+        elif [ "$$roles_count" = "1" ]; then
+          echo "Least-privilege roles already applied."
+        else
+          echo "Unexpected least-privilege role marker count; refusing to continue."
           exit 1
         fi
     volumes:

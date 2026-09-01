@@ -85,7 +85,8 @@ class MigrationsAreSeparatelyGatedTest(unittest.TestCase):
     def test_both_gates_default_to_closed(self) -> None:
         for gate in ("APPLY_MIGRATION_004_KNOWLEDGE",
                      "APPLY_MIGRATION_005_BUS_DENIAL_AUDIT",
-                     "APPLY_MIGRATION_006_LEGACY_TABLES"):
+                     "APPLY_MIGRATION_006_LEGACY_TABLES",
+                     "APPLY_MIGRATION_007_LEAST_PRIVILEGE"):
             with self.subTest(gate=gate):
                 self.assertIn(f'{gate}: "false"', self.compose)
 
@@ -96,6 +97,7 @@ class MigrationsAreSeparatelyGatedTest(unittest.TestCase):
             ("APPLY_MIGRATION_004_KNOWLEDGE", "004_knowledge_capability.sql"),
             ("APPLY_MIGRATION_005_BUS_DENIAL_AUDIT", "005_bus_denial_audit.sql"),
             ("APPLY_MIGRATION_006_LEGACY_TABLES", "006_legacy_registry_tables.sql"),
+            ("APPLY_MIGRATION_007_LEAST_PRIVILEGE", "007_least_privilege_roles.sql"),
         ):
             with self.subTest(migration=migration):
                 self.assertIn(f'"$${{{gate}:-false}}" != "true"', self.compose)
@@ -121,6 +123,51 @@ class MigrationsAreSeparatelyGatedTest(unittest.TestCase):
         migrations = sorted(p.name for p in (ROOT / "postgres-init").glob("*.sql"))
         prefixes = [name.split("_", 1)[0] for name in migrations]
         self.assertEqual(len(prefixes), len(set(prefixes)), migrations)
+
+
+class LeastPrivilegeMigrationTest(unittest.TestCase):
+    """G-025: the runtime account was superuser and owner of everything."""
+
+    def setUp(self) -> None:
+        self.sql = (ROOT / "postgres-init" / "007_least_privilege_roles.sql").read_text()
+
+    def test_it_refuses_to_run_without_the_roles(self) -> None:
+        # A login role means a password, and a password does not belong in a
+        # versioned file. So the migration checks instead of creating.
+        self.assertIn("MIGRATION_007_ROLE_MISSING", self.sql)
+        self.assertIn("workforce_api", self.sql)
+        self.assertIn("workforce_backup", self.sql)
+
+    def test_it_refuses_a_privileged_runtime_account(self) -> None:
+        # Granting narrowly to an account that is itself superuser would be
+        # decoration.
+        self.assertIn("MIGRATION_007_ROLE_TOO_PRIVILEGED", self.sql)
+        for attribute in ("rolsuper", "rolcreaterole", "rolcreatedb", "rolbypassrls"):
+            self.assertIn(attribute, self.sql)
+
+    def test_the_api_gets_no_table_rights_in_the_bus_schema(self) -> None:
+        # Everything goes through SECURITY DEFINER functions. Direct table
+        # access would let the API around the append-only triggers.
+        self.assertIn("REVOKE ALL ON ALL TABLES IN SCHEMA workforce FROM workforce_api",
+                      self.sql)
+
+    def test_the_grants_survive_a_closed_migration_gate(self) -> None:
+        # The API calls functions from 002, 004 and 005. A static GRANT list
+        # would chain this migration to exactly the gates G-031 separated.
+        self.assertIn("FOREACH", self.sql)
+        self.assertNotIn("GRANT EXECUTE ON FUNCTION\n", self.sql)
+
+    def test_it_does_not_strip_superuser_silently(self) -> None:
+        # Taking SUPERUSER away locks the API out if anything else is wrong.
+        # It is documented as a separate step, not executed here.
+        self.assertNotIn("ALTER ROLE workforce_app NOSUPERUSER;", self.sql)
+        self.assertIn("NOSUPERUSER", self.sql, "der naechste Schritt muss benannt sein")
+
+    def test_the_backup_account_cannot_write(self) -> None:
+        self.assertIn("GRANT SELECT ON ALL TABLES IN SCHEMA workforce TO workforce_backup",
+                      self.sql)
+        for verb in ("INSERT", "UPDATE", "DELETE"):
+            self.assertNotIn(f"GRANT {verb}", self.sql.split("workforce_backup")[-1])
 
 
 class ProductionStateIsNamedTest(unittest.TestCase):
