@@ -1,6 +1,10 @@
 \set ON_ERROR_STOP on
 
--- Durable record of *refused* bus operations.
+-- Durable record of *refused* API operations - bus and knowledge alike.
+--
+-- Numbered 005, not 004: the authoritative source set already had a
+-- 004_knowledge_capability, and two different migrations under one number
+-- would have been two competing technical truths (review finding G-021).
 --
 -- Review finding G-018: workforce.bus_events only ever holds successful INSERT
 -- and UPDATE events, because a refused call raises and its transaction rolls
@@ -23,7 +27,7 @@
 BEGIN;
 
 SELECT set_config('app.actor_id', 'SYSTEM-MIGRATION', true);
-SELECT set_config('app.request_id', 'MIG-004-BUS-DENIAL-AUDIT', true);
+SELECT set_config('app.request_id', 'MIG-005-BUS-DENIAL-AUDIT', true);
 
 CREATE TABLE workforce.bus_denials (
     denial_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -42,8 +46,13 @@ CREATE TABLE workforce.bus_denials (
         CHECK (char_length(actor_id) BETWEEN 1 AND 128),
     CONSTRAINT bus_denials_operation_shape
         CHECK (operation ~ '^[A-Z0-9_]{1,64}$'),
+    -- KNOWLEDGE is here because the denial log covers the whole API, not just
+    -- the bus: the knowledge endpoints go through the same execute_bus_one and
+    -- therefore through the same audit hook (review finding G-021 merged the
+    -- two lineages, so there is one API and one audit path).
     CONSTRAINT bus_denials_record_type
-        CHECK (record_type IN ('TASK', 'HANDOFF', 'MESSAGE', 'CHANNEL', 'UNKNOWN')),
+        CHECK (record_type IN ('TASK', 'HANDOFF', 'MESSAGE', 'CHANNEL',
+                               'KNOWLEDGE', 'UNKNOWN')),
     -- An identifier, never content. A body would not survive either test.
     CONSTRAINT bus_denials_record_key_shape
         CHECK (record_key IS NULL OR char_length(record_key) BETWEEN 1 AND 128),
@@ -141,7 +150,7 @@ INSERT INTO workforce.schema_migrations (
     migration_id,
     description
 ) VALUES (
-    '004_bus_denial_audit',
+    '005_bus_denial_audit',
     'Append-only record of refused bus operations; identifiers and error codes only'
 );
 

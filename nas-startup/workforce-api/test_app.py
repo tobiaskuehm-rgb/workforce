@@ -1,4 +1,5 @@
 import os
+import pathlib
 
 import pytest
 from fastapi.testclient import TestClient
@@ -101,7 +102,7 @@ def test_invalid_bearer_is_rejected_over_https(monkeypatch):
 def test_message_id_is_stable_and_sender_is_not_client_controlled(monkeypatch):
     captured = []
 
-    def fake_execute(sql, parameters):
+    def fake_execute(sql, parameters, *, audit=None):
         captured.append((sql, parameters))
         return {"message_id": parameters[2], "project_id": parameters[3]}
 
@@ -135,7 +136,7 @@ def test_message_id_is_stable_and_sender_is_not_client_controlled(monkeypatch):
 def test_sender_spoof_and_external_action_are_rejected_before_sql(monkeypatch):
     called = False
 
-    def fake_execute(*_):
+    def fake_execute(*_, **__):
         nonlocal called
         called = True
         return {}
@@ -205,10 +206,143 @@ def test_no_bus_admin_or_external_action_endpoint_exists():
     assert "/bus/v1/whatsapp" not in paths
 
 
-# --- Cleartext transport for credential-bearing endpoints ------------------
-# Security review 2026-08-31, F2: the bus already refused plain HTTP, but the
-# legacy registry endpoints and the web UI did not, so WORKFORCE_API_KEY and all
-# document content travelled in the clear over the published port 8080.
+def test_knowledge_status_reports_disabled_without_exposing_content(monkeypatch):
+    monkeypatch.setattr(
+        workforce_app,
+        "connection",
+        lambda: FakeConnection(
+            [
+                (("workforce.knowledge_systems",)),
+                (("DISABLED", True)),
+            ]
+        ),
+    )
+    response = TestClient(workforce_app.app).get("/knowledge/v1/status")
+    assert response.status_code == 200
+    assert response.json() == {
+        "api_version": "v8",
+        "project_id": "START-UP",
+        "migration": "004_knowledge_capability",
+        "system_status": "DISABLED",
+    }
+
+
+def test_knowledge_candidate_identity_and_version_are_server_controlled(monkeypatch):
+    captured = []
+
+    def fake_execute(sql, parameters, *, audit=None):
+        captured.append((sql, parameters))
+        return {
+            "knowledge_id": parameters[3],
+            "version": 1,
+            "project_id": parameters[2],
+            "knowledge_status": "DRAFT",
+        }
+
+    monkeypatch.setattr(workforce_app, "execute_bus_one", fake_execute)
+    workforce_app.app.dependency_overrides[workforce_app.require_knowledge_token] = (
+        lambda: "f" * 64
+    )
+    workforce_app.app.dependency_overrides[workforce_app.require_request_id] = (
+        lambda: "REQ-KNOWLEDGE-TEST-001"
+    )
+
+    response = TestClient(workforce_app.app, base_url="https://testserver").post(
+        "/knowledge/v1/candidates",
+        json={
+            "knowledge_id": "KN-TEST-RULE-001",
+            "title": "Testregel",
+            "knowledge_class": "K1",
+            "domain": "Company Core",
+            "owner_id": "SAO-001",
+            "classification": "PROJECT_INTERNAL",
+            "provenance_source": "TEST-SOURCE",
+            "tags": ["Test"],
+            "content": "Freigegebener Testinhalt.",
+            "audiences": [{"kind": "PROJECT", "value": "START-UP"}],
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["project_id"] == "START-UP"
+    assert response.json()["knowledge_status"] == "DRAFT"
+    assert len(captured) == 1
+    assert captured[0][1][0] == "f" * 64
+    assert captured[0][1][2] == "START-UP"
+    assert len(captured[0][1]) == 16
+
+
+def test_knowledge_retrieval_uses_server_run_and_project(monkeypatch):
+    captured = []
+
+    def fake_execute(sql, parameters, *, audit=None):
+        captured.append((sql, parameters))
+        return [{"run_id": parameters[1], "knowledge_id": "KN-TEST-RULE-001"}]
+
+    monkeypatch.setattr(workforce_app, "execute_bus_many", fake_execute)
+    workforce_app.app.dependency_overrides[workforce_app.require_knowledge_token] = (
+        lambda: "e" * 64
+    )
+
+    response = TestClient(workforce_app.app, base_url="https://testserver").post(
+        "/knowledge/v1/retrieve",
+        json={
+            "query": "aktuelle Regel",
+            "domain": "Company Core",
+            "retrieval_mode": "GENERAL",
+            "task_ref": "ENG-004",
+            "limit": 5,
+        },
+    )
+
+    assert response.status_code == 200
+    assert len(captured) == 1
+    parameters = captured[0][1]
+    assert parameters[0] == "e" * 64
+    assert parameters[1].startswith("KRUN-")
+    assert parameters[2] == "START-UP"
+    assert len(parameters) == 8
+
+
+def test_knowledge_request_cannot_spoof_employee_or_approval(monkeypatch):
+    called = False
+
+    def fake_execute(*_, **__):
+        nonlocal called
+        called = True
+        return []
+
+    monkeypatch.setattr(workforce_app, "execute_bus_many", fake_execute)
+    workforce_app.app.dependency_overrides[workforce_app.require_knowledge_token] = (
+        lambda: "d" * 64
+    )
+
+    response = TestClient(workforce_app.app, base_url="https://testserver").post(
+        "/knowledge/v1/retrieve",
+        json={
+            "query": "vertraulich",
+            "employee_id": "PEO-001",
+            "approved_only": False,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "KNOWLEDGE_REQUEST_INVALID"}
+    assert called is False
+
+
+def test_no_knowledge_admin_or_credential_endpoint_exists():
+    paths = {route.path for route in workforce_app.app.routes}
+    assert "/knowledge/v1/admin" not in paths
+    assert "/knowledge/v1/credentials" not in paths
+    assert "/knowledge/v1/role-packs" not in paths
+    assert "/knowledge/v1/ingest-chat" not in paths
+
+
+# --- Aus dem Bus-/Audit-Zweig uebernommen (G-021: eine API, ein Testsatz) ---
+# Fuenf Tests zur Klartext-Sperre (Security-Review F2) und drei zum
+# Ablehnungs-Audit (G-018). Sie fehlten im autoritativen Stand, weil dieser
+# Zweig sie nie gesehen hat - die Vereinigung geht in beide Richtungen.
 
 
 def test_legacy_endpoint_refuses_cleartext_before_checking_the_api_key():
@@ -218,25 +352,21 @@ def test_legacy_endpoint_refuses_cleartext_before_checking_the_api_key():
     assert response.status_code == 503
     assert response.json() == {"detail": "HTTPS_REQUIRED"}
 
-
 def test_web_ui_refuses_cleartext():
     response = TestClient(workforce_app.app).get("/")
     assert response.status_code == 503
     assert response.json() == {"detail": "HTTPS_REQUIRED"}
-
 
 def test_web_ui_is_served_over_https():
     response = TestClient(workforce_app.app, base_url="https://testserver").get("/")
     assert response.status_code == 200
     assert "Workforce Kernel" in response.text
 
-
 def test_legacy_endpoint_still_rejects_a_wrong_api_key_over_https():
     response = TestClient(workforce_app.app, base_url="https://testserver").get(
         "/workers", headers={"X-API-Key": "wrong-key"}
     )
     assert response.status_code == 401
-
 
 def test_health_and_db_check_stay_reachable_over_cleartext(monkeypatch):
     # The container healthcheck calls /health on loopback without a forwarded
@@ -246,10 +376,6 @@ def test_health_and_db_check_stay_reachable_over_cleartext(monkeypatch):
     client = TestClient(workforce_app.app)
     assert client.get("/health").status_code == 200
     assert client.get("/db-check").status_code == 200
-
-
-# --- Denial audit (review finding G-018) ------------------------------------
-
 
 def test_every_bus_call_carries_its_audit_context():
     """No bus operation may be refused without leaving a record.
@@ -272,7 +398,6 @@ def test_every_bus_call_carries_its_audit_context():
         and not any(keyword.arg == "audit" for keyword in node.keywords)
     ]
     assert missing == [], f"bus calls without audit context at lines {missing}"
-
 
 def test_a_refused_call_is_recorded_once_with_identifiers_only(monkeypatch):
     import psycopg
@@ -302,7 +427,6 @@ def test_a_refused_call_is_recorded_once_with_identifiers_only(monkeypatch):
     # function resolves it to an employee id and stores that instead.
     assert error.status_code in {400, 401, 403, 404, 409, 413, 422, 503}
 
-
 def test_a_broken_audit_never_turns_a_denial_into_a_server_error(monkeypatch):
     import psycopg
 
@@ -316,3 +440,72 @@ def test_a_broken_audit_never_turns_a_denial_into_a_server_error(monkeypatch):
     workforce_app.record_denial(
         audit, workforce_app.HTTPException(status_code=403, detail="BUS_X_DENIED")
     )
+
+
+# --- Bestandswahrung (Befund G-021) -----------------------------------------
+
+
+def test_no_route_disappears_when_the_two_lineages_are_merged():
+    """Every bus and knowledge route has to survive, by name.
+
+    G-021: this repository's API had branched from a state before the knowledge
+    work. Deploying it would have removed seven endpoints that were already
+    accepted - and nothing would have said so, because every test that existed
+    still passed. A route inventory is the cheapest thing that notices.
+
+    Add a route here when you add one to the API. Removing a line is a
+    deliberate act and needs a decision, not a refactor.
+    """
+    expected = {
+        # Bus
+        ("GET", "/bus/v1/status"),
+        ("GET", "/bus/v1/messages"),
+        ("POST", "/bus/v1/messages"),
+        ("POST", "/bus/v1/messages/{message_id}/ack"),
+        ("GET", "/bus/v1/tasks"),
+        ("POST", "/bus/v1/tasks"),
+        ("POST", "/bus/v1/tasks/{task_id}/transition"),
+        ("GET", "/bus/v1/handoffs"),
+        ("POST", "/bus/v1/handoffs"),
+        ("POST", "/bus/v1/handoffs/{handoff_id}/transition"),
+        # Knowledge - the seven a v8 built from the wrong base would have lost
+        ("GET", "/knowledge/v1/status"),
+        ("POST", "/knowledge/v1/candidates"),
+        ("POST", "/knowledge/v1/objects/{knowledge_id}/versions/{version}/submit-review"),
+        ("POST", "/knowledge/v1/objects/{knowledge_id}/versions/{version}/approve"),
+        ("POST", "/knowledge/v1/objects/{knowledge_id}/versions/{version}/revoke"),
+        ("POST", "/knowledge/v1/retrieve"),
+        ("POST", "/knowledge/v1/assessments"),
+        # Operational
+        ("GET", "/health"),
+        ("GET", "/db-check"),
+    }
+    actual = {
+        (method, route.path)
+        for route in workforce_app.app.routes
+        for method in getattr(route, "methods", set())
+        if method in {"GET", "POST", "PATCH", "DELETE"}
+    }
+    missing = expected - actual
+    assert missing == set(), f"Routen verschwunden: {sorted(missing)}"
+
+
+def test_the_api_reports_one_version_everywhere():
+    # Two lineages meant two version numbers. One API, one answer - otherwise
+    # a caller cannot tell which half it is talking to.
+    import re
+
+    source = pathlib.Path(workforce_app.__file__).read_text(encoding="utf-8")
+    versions = set(re.findall(r'"api_version": "(v[0-9]+)"', source))
+    assert versions == {"v8"}, versions
+
+
+def test_the_denial_audit_knows_the_knowledge_record_type():
+    # The knowledge endpoints go through the same execute_bus_one, so their
+    # refusals reach the same table. A record type the CHECK constraint
+    # rejects would turn every knowledge denial into a silent audit failure.
+    migration = pathlib.Path(workforce_app.__file__).resolve().parents[1] \
+        / "postgres-init" / "005_bus_denial_audit.sql"
+    text = migration.read_text(encoding="utf-8")
+    assert "'KNOWLEDGE'" in text
+    assert "005_bus_denial_audit" in text

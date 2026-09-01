@@ -30,7 +30,7 @@ BEGIN
     -- The denial audit is part of what this run has to leave behind.
     IF NOT EXISTS (
         SELECT 1 FROM workforce.schema_migrations
-        WHERE migration_id = '004_bus_denial_audit'
+        WHERE migration_id = '005_bus_denial_audit'
     ) THEN
         RAISE EXCEPTION 'WORKERCORE_PREPARE_DENIAL_AUDIT_MISSING';
     END IF;

@@ -1,11 +1,13 @@
 import hashlib
 import hmac
 import ipaddress
+import json
 import os
 import sys
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Literal, NamedTuple
+from typing import Annotated, Literal, NamedTuple
 
 import psycopg
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Query, Request, status
@@ -64,7 +66,7 @@ def bus_error(exc: psycopg.Error) -> HTTPException:
         }.get(code, "BUS_DATABASE_UNAVAILABLE")
 
     if code == "42501":
-        http_status = 401 if message == "BUS_AUTH_FAILED" else 403
+        http_status = 401 if message in {"BUS_AUTH_FAILED", "KNOWLEDGE_AUTH_FAILED"} else 403
     elif code == "P0002":
         http_status = 404
     elif code in {"23505", "55000"}:
@@ -180,12 +182,23 @@ def require_idempotency_key(
     return value
 
 
+def require_knowledge_token(
+    request: Request,
+    authorization: str = Header(default="", alias="Authorization"),
+) -> str:
+    require_bus_transport(request)
+    scheme, separator, token = authorization.partition(" ")
+    if separator != " " or scheme.lower() != "bearer" or not 32 <= len(token) <= 512:
+        raise HTTPException(status_code=401, detail="KNOWLEDGE_BEARER_TOKEN_REQUIRED")
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
 class BusAudit(NamedTuple):
     """Everything the denial log is allowed to know about one call.
 
-    Identifiers and nothing else: no subject, no body, no note, no token. The
-    table's CHECK constraints refuse anything wider, so this is a shape, not a
-    promise.
+    Identifiers and nothing else: no subject, no body, no note, no token, and
+    for knowledge no title and no content. The table's CHECK constraints refuse
+    anything wider, so this is a shape, not a promise.
     """
 
     operation: str
@@ -334,6 +347,8 @@ app = FastAPI(title="Workforce Kernel", docs_url=None, redoc_url=None, lifespan=
 async def validation_error_handler(request: Request, exc: RequestValidationError):
     if request.url.path.startswith("/bus/"):
         return JSONResponse(status_code=400, content={"detail": "BUS_REQUEST_INVALID"})
+    if request.url.path.startswith("/knowledge/"):
+        return JSONResponse(status_code=400, content={"detail": "KNOWLEDGE_REQUEST_INVALID"})
     return await request_validation_exception_handler(request, exc)
 
 UI_HTML = """<!doctype html>
@@ -466,6 +481,56 @@ class BusHandoffCreate(BusModel):
 class BusHandoffTransition(BusModel):
     new_status: Literal["OPEN", "ACCEPTED", "REJECTED", "CANCELLED"]
     response_note: str | None = Field(default=None, max_length=4000)
+
+
+class KnowledgeAudience(BusModel):
+    kind: Literal["PROJECT", "ROLE", "EMPLOYEE"]
+    value: str = Field(min_length=1, max_length=128)
+
+
+class KnowledgeCandidateCreate(BusModel):
+    knowledge_id: str = Field(pattern=r"^KN-[A-Z0-9-]{3,60}$")
+    title: str = Field(min_length=1, max_length=240)
+    knowledge_class: Literal["K0", "K1", "K2", "K3", "K4", "K5"]
+    domain: str = Field(min_length=1, max_length=120)
+    owner_id: str = Field(pattern=r"^[A-Z][A-Z0-9-]{2,63}$")
+    classification: Literal["PROJECT_INTERNAL", "NEED_TO_KNOW"]
+    provenance_source: str = Field(min_length=1, max_length=1000)
+    valid_from: datetime | None = None
+    review_due: datetime | None = None
+    stale_after: datetime | None = None
+    tags: list[Annotated[str, Field(min_length=1, max_length=80)]] = Field(
+        default_factory=list,
+        max_length=40,
+    )
+    content: str = Field(min_length=1, max_length=100000)
+    audiences: list[KnowledgeAudience] = Field(min_length=1, max_length=50)
+
+
+class KnowledgeRevoke(BusModel):
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+class KnowledgeRetrieve(BusModel):
+    query: str = Field(min_length=1, max_length=1000)
+    domain: str | None = Field(default=None, min_length=1, max_length=120)
+    retrieval_mode: Literal["GENERAL", "ROLE_PACK"] = "GENERAL"
+    task_ref: str | None = Field(default=None, pattern=r"^[A-Z][A-Z0-9-]{2,63}$")
+    limit: int = Field(default=5, ge=1, le=20)
+
+
+class CapabilityAssessmentCreate(BusModel):
+    assessment_id: str = Field(pattern=r"^ASMT-[A-Z0-9-]{3,60}$")
+    employee_id: str = Field(pattern=r"^[A-Z][A-Z0-9-]{2,63}$")
+    capability_id: str = Field(pattern=r"^CAP-[A-Z0-9-]{3,60}$")
+    score: int = Field(ge=0, le=5)
+    target_level: int = Field(ge=0, le=5)
+    error_class: Literal["E1", "E2", "E3", "E4", "E5", "E6"]
+    feedback: str = Field(min_length=1, max_length=8000)
+    training_action: str = Field(min_length=1, max_length=4000)
+    context_run_id: str | None = Field(default=None, pattern=r"^KRUN-[A-Z0-9-]{8,80}$")
+    retest_of: str | None = Field(default=None, pattern=r"^ASMT-[A-Z0-9-]{3,60}$")
+    retest_result: str | None = Field(default=None, max_length=4000)
 
 
 @app.get("/health")
@@ -741,6 +806,204 @@ def bus_transition_handoff(
         ),
         audit=BusAudit("HANDOFF_TRANSITION", "HANDOFF", token_hash, request_id,
                        handoff_id),
+    )
+
+
+@app.get("/knowledge/v1/status")
+def knowledge_status() -> dict:
+    try:
+        with connection() as conn:
+            if conn.execute(
+                "SELECT to_regclass('workforce.knowledge_systems')"
+            ).fetchone()[0] is None:
+                return {
+                    "api_version": "v8",
+                    "project_id": BUS_PROJECT_ID,
+                    "migration": "missing",
+                    "system_status": "MISSING",
+                }
+            row = conn.execute(
+                """
+                SELECT
+                    system.system_status,
+                    EXISTS (
+                        SELECT 1
+                        FROM workforce.schema_migrations AS migration
+                        WHERE migration.migration_id = '004_knowledge_capability'
+                    ) AS migration_present
+                FROM workforce.knowledge_systems AS system
+                WHERE system.project_id = %s
+                """,
+                (BUS_PROJECT_ID,),
+            ).fetchone()
+    except psycopg.Error as exc:
+        raise bus_error(exc) from exc
+
+    if row is None:
+        return {
+            "api_version": "v8",
+            "project_id": BUS_PROJECT_ID,
+            "migration": "missing",
+            "system_status": "MISSING",
+        }
+    return {
+        "api_version": "v8",
+        "project_id": BUS_PROJECT_ID,
+        "migration": "004_knowledge_capability" if row[1] else "missing",
+        "system_status": row[0],
+    }
+
+
+@app.post("/knowledge/v1/candidates", status_code=201)
+def knowledge_create_candidate(
+    item: KnowledgeCandidateCreate,
+    token_hash: str = Depends(require_knowledge_token),
+    request_id: str = Depends(require_request_id),
+) -> dict:
+    audience_payload = json.dumps(
+        [audience.model_dump() for audience in item.audiences],
+        separators=(",", ":"),
+    )
+    return execute_bus_one(
+        """
+        SELECT (workforce.knowledge_create_candidate(
+            %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s, %s::jsonb
+        )).*
+        """,
+        (
+            token_hash,
+            request_id,
+            BUS_PROJECT_ID,
+            item.knowledge_id,
+            item.title,
+            item.knowledge_class,
+            item.domain,
+            item.owner_id,
+            item.classification,
+            item.provenance_source,
+            item.valid_from,
+            item.review_due,
+            item.stale_after,
+            item.tags,
+            item.content,
+            audience_payload,
+        ),
+        audit=BusAudit("KNOWLEDGE_CREATE", "KNOWLEDGE", token_hash, request_id,
+                       item.knowledge_id),
+    )
+
+
+@app.post("/knowledge/v1/objects/{knowledge_id}/versions/{version}/submit-review")
+def knowledge_submit_review(
+    knowledge_id: str = Path(pattern=r"^KN-[A-Z0-9-]{3,60}$"),
+    version: int = Path(ge=1),
+    token_hash: str = Depends(require_knowledge_token),
+    request_id: str = Depends(require_request_id),
+) -> dict:
+    return execute_bus_one(
+        """
+        SELECT (workforce.knowledge_submit_review(%s, %s, %s, %s, %s)).*
+        """,
+        (token_hash, request_id, BUS_PROJECT_ID, knowledge_id, version),
+        audit=BusAudit("KNOWLEDGE_SUBMIT_REVIEW", "KNOWLEDGE", token_hash, request_id,
+                       knowledge_id),
+    )
+
+
+@app.post("/knowledge/v1/objects/{knowledge_id}/versions/{version}/approve")
+def knowledge_approve(
+    knowledge_id: str = Path(pattern=r"^KN-[A-Z0-9-]{3,60}$"),
+    version: int = Path(ge=1),
+    token_hash: str = Depends(require_knowledge_token),
+    request_id: str = Depends(require_request_id),
+) -> dict:
+    return execute_bus_one(
+        "SELECT (workforce.knowledge_approve(%s, %s, %s, %s, %s)).*",
+        (token_hash, request_id, BUS_PROJECT_ID, knowledge_id, version),
+        audit=BusAudit("KNOWLEDGE_APPROVE", "KNOWLEDGE", token_hash, request_id, knowledge_id),
+    )
+
+
+@app.post("/knowledge/v1/objects/{knowledge_id}/versions/{version}/revoke")
+def knowledge_revoke(
+    item: KnowledgeRevoke,
+    knowledge_id: str = Path(pattern=r"^KN-[A-Z0-9-]{3,60}$"),
+    version: int = Path(ge=1),
+    token_hash: str = Depends(require_knowledge_token),
+    request_id: str = Depends(require_request_id),
+) -> dict:
+    return execute_bus_one(
+        "SELECT (workforce.knowledge_revoke(%s, %s, %s, %s, %s, %s)).*",
+        (
+            token_hash,
+            request_id,
+            BUS_PROJECT_ID,
+            knowledge_id,
+            version,
+            item.reason,
+        ),
+        audit=BusAudit("KNOWLEDGE_REVOKE", "KNOWLEDGE", token_hash, request_id, knowledge_id),
+    )
+
+
+@app.post("/knowledge/v1/retrieve")
+def knowledge_retrieve(
+    item: KnowledgeRetrieve,
+    token_hash: str = Depends(require_knowledge_token),
+) -> list[dict]:
+    run_id = "KRUN-" + uuid.uuid4().hex.upper()
+    return execute_bus_many(
+        """
+        SELECT * FROM workforce.knowledge_retrieve(
+            %s, %s, %s, %s, %s, %s, %s, %s
+        )
+        """,
+        (
+            token_hash,
+            run_id,
+            BUS_PROJECT_ID,
+            item.query,
+            item.domain,
+            item.retrieval_mode,
+            item.task_ref,
+            item.limit,
+        ),
+        audit=BusAudit("KNOWLEDGE_RETRIEVE", "KNOWLEDGE", token_hash, run_id),
+    )
+
+
+@app.post("/knowledge/v1/assessments", status_code=201)
+def knowledge_record_assessment(
+    item: CapabilityAssessmentCreate,
+    token_hash: str = Depends(require_knowledge_token),
+    request_id: str = Depends(require_request_id),
+) -> dict:
+    return execute_bus_one(
+        """
+        SELECT (workforce.knowledge_record_assessment(
+            %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s
+        )).*
+        """,
+        (
+            token_hash,
+            request_id,
+            BUS_PROJECT_ID,
+            item.assessment_id,
+            item.employee_id,
+            item.capability_id,
+            item.score,
+            item.target_level,
+            item.error_class,
+            item.feedback,
+            item.training_action,
+            item.context_run_id,
+            item.retest_of,
+            item.retest_result,
+        ),
+        audit=BusAudit("KNOWLEDGE_ASSESSMENT", "KNOWLEDGE", token_hash, request_id,
+                       item.assessment_id),
     )
 
 

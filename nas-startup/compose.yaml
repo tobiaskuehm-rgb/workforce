@@ -72,9 +72,19 @@ services:
           echo "Unexpected Workforce Bus trigger fix marker count; refusing to continue."
           exit 1
         fi
-        denial_audit_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '004_bus_denial_audit'")"
+        knowledge_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '004_knowledge_capability'")"
+        if [ "$$knowledge_count" = "0" ]; then
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/004_knowledge_capability.sql
+          echo "Knowledge & Capability migration applied; system remains DISABLED."
+        elif [ "$$knowledge_count" = "1" ]; then
+          echo "Knowledge & Capability migration already applied."
+        else
+          echo "Unexpected Knowledge & Capability migration marker count; refusing to continue."
+          exit 1
+        fi
+        denial_audit_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '005_bus_denial_audit'")"
         if [ "$$denial_audit_count" = "0" ]; then
-          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/004_bus_denial_audit.sql
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/005_bus_denial_audit.sql
           echo "Workforce Bus denial audit applied."
         elif [ "$$denial_audit_count" = "1" ]; then
           echo "Workforce Bus denial audit already applied."

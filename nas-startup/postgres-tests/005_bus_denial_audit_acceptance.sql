@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
--- Acceptance test for migration 004_bus_denial_audit (review finding G-018).
+-- Acceptance test for migration 005_bus_denial_audit (review finding G-018).
 --
 -- Everything here runs inside one transaction and is rolled back, so it can be
 -- run against production. It writes test rows through the real function and
@@ -20,9 +20,9 @@ DECLARE
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM workforce.schema_migrations
-        WHERE migration_id = '004_bus_denial_audit'
+        WHERE migration_id = '005_bus_denial_audit'
     ) THEN
-        RAISE EXCEPTION 'Migration 004_bus_denial_audit is missing.';
+        RAISE EXCEPTION 'Migration 005_bus_denial_audit is missing.';
     END IF;
 
     -- 1. A refusal by an unknown token is still recorded, attributed UNKNOWN.

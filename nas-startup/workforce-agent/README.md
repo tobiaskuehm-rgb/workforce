@@ -141,9 +141,9 @@ cd nas-startup/workforce-agent && python3 -m unittest test_worker_core_test -v
 
 `workforce.bus_events` enthält ausschließlich **erfolgreiche** Vorgänge. Eine abgelehnte Bus-Operation wirft, ihre Transaktion rollt zurück und nimmt jede darin geschriebene Audit-Zeile mit. Die drei geforderten Ablehnungen des Core-Roundtrips lebten deshalb nur in stdout und in handgeschriebenem Markdown — beides weg, sobald der Container weg ist (Befund `G-018`).
 
-Migration `004_bus_denial_audit` schließt das mit `workforce.bus_denials`: append-only, geschrieben von der API **nach** dem Fehlschlag auf einer frischen Verbindung — der einzigen Stelle, an der es überhaupt möglich ist.
+Migration `005_bus_denial_audit` schließt das mit `workforce.bus_denials`: append-only, geschrieben von der API **nach** dem Fehlschlag auf einer frischen Verbindung — der einzigen Stelle, an der es überhaupt möglich ist.
 
-Was dort landen darf, ist eng: Identitäten, Bezeichner, stabiler Fehlercode, HTTP-Status. Kein Betreff, kein Nachrichtentext, keine Notiz, kein Token. Das erzwingen `CHECK`-Bedingungen — ein Nachrichtentext ist weder ein gültiger Fehlercode noch eine gültige Operation. `postgres-tests/004_bus_denial_audit_acceptance.sql` versucht genau das und verlangt, dass es scheitert.
+Was dort landen darf, ist eng: Identitäten, Bezeichner, stabiler Fehlercode, HTTP-Status. Kein Betreff, kein Nachrichtentext, keine Notiz, kein Token. Das erzwingen `CHECK`-Bedingungen — ein Nachrichtentext ist weder ein gültiger Fehlercode noch eine gültige Operation. `postgres-tests/005_bus_denial_audit_acceptance.sql` versucht genau das und verlangt, dass es scheitert.
 
 `core_audit.sql` weist seither zwei Hälften getrennt aus:
 

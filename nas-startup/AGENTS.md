@@ -84,7 +84,7 @@ Jedes Paket hat lokale Tests, die ohne Netzwerk, ohne Zugangsdaten und ohne Kost
 | `bus-realtest` | ✅ nur Standardbibliothek | — |
 | `telegram-connector` | ✅ seit 2026-09-01 | — |
 | `chain-test` | ✅ echter Connector, echter Worker, Attrappen nur außen | — |
-| `workforce-api` | ❌ braucht FastAPI | Abhängigkeiten |
+| `workforce-api` | ❌ braucht FastAPI | Abhängigkeiten — **im Container pflicht**, siehe unten |
 
 ```bash
 cd nas-startup/workforce-agent   && python3 -m unittest discover -q
@@ -97,6 +97,18 @@ Die übrigen beiden laufen in einem Wegwerf-Container auf der NAS:
 
 ```bash
 ssh synology "sudo /usr/local/bin/docker run --rm -v /volume1/docker/Startup/telegram-connector:/src:ro -w /tmp python:3.13-alpine sh -c 'cp /src/*.py /tmp/ && python -m unittest discover -q'"
+```
+
+**Die API-Suite gehört vor jeden Commit an `app.py`.** Am 2026-09-01 stellte sich heraus, dass die `G-018`-Arbeit drei API-Tests kaputtgemacht hatte — unbemerkt, weil die Suite lokal nicht läuft. Ein Testdouble mit fester Signatur bricht an einem neuen Schlüsselwortargument ab, und der Test prüft danach nichts mehr von dem, was er behauptet:
+
+```bash
+cd nas-startup && tar czf - workforce-api postgres-init \
+  | ssh synology "mkdir -p /tmp/apitest && cd /tmp/apitest && tar xzf -"
+ssh synology 'sudo /usr/local/bin/docker run --rm -v /tmp/apitest:/src:ro -w /work python:3.13-slim sh -c "
+  cp -r /src/workforce-api /work/ && mkdir -p /work/postgres-init && cp /src/postgres-init/*.sql /work/postgres-init/
+  pip install --quiet --no-cache-dir fastapi httpx pytest \"psycopg[binary]\" >/dev/null 2>&1
+  cd /work/workforce-api && python -m pytest test_app.py -q"'
+ssh synology "rm -rf /tmp/apitest"
 ```
 
 Der volle Pfad ist nicht kosmetisch: Die passwortlose sudo-Regel lautet auf `/usr/local/bin/docker`, und in einer nicht-interaktiven SSH-Sitzung liegt `docker` nicht im `PATH`. Ohne den Pfad fragt `sudo` nach dem Passwort und der Befehl scheitert.
@@ -146,7 +158,7 @@ Fehlertexte aus fremden Prozessen wandern **nicht** in die Kennung: `AGENT_SUBSC
 | Credential | `CRED-<scope>-<paket>-<lauf-suffix>` | `CRED-ACCEPT-WC-AGENT-20260831-WC1` |
 | Request-Id | `<PRÄFIX>-<lauf>-<phase>` | `CORE-20260831CORE4-TASK-DONE` |
 | Idempotenzschlüssel | beginnt `IDEM-`, 13–101 Zeichen | `IDEM-CORE-20260831CORE4-TASK` |
-| Migration | `NNN_snake_case.sql` | `004_bus_denial_audit.sql` |
+| Migration | `NNN_snake_case.sql` | `005_bus_denial_audit.sql` |
 | Compose | `compose.<zweck>.yaml` | `compose.workercore.yaml` |
 | Einmal-Skript | `<zweck>_once.sh` | `prepare_workercore_once.sh` |
 | Tests | `test_<modul>.py` neben dem Modul | `test_state_store.py` |

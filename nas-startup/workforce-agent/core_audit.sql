@@ -43,7 +43,7 @@ SELECT set_config('core.reject_id', 'HO-CORE-' || :'run_id' || '-REJ', false);
 -- ON_ERROR_STOP turns that into a non-zero exit.
 SELECT CASE
     WHEN to_regclass('workforce.bus_denials') IS NULL
-        THEN 'FEHLT - Migration 004_bus_denial_audit anwenden'
+        THEN 'FEHLT - Migration 005_bus_denial_audit anwenden'
     ELSE 'vorhanden'
 END AS bus_denials;
 
