@@ -218,6 +218,30 @@ Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find
 1. Gerds Prüfrunde geriet mit einem `git add -A` ungelesen in einen Commit, der von etwas anderem handelte. Steht als Leitplanke 4 in `CLAUDE.md`.
 2. `REVIEW_ANTWORTEN.md` auf der NAS war 169 Zeilen alt — **Gerd hat gegen einen Stand geprüft, dem meine Antworten zu `G-012` bis `G-019` fehlten.** Beide Review-Dateien gehen ab jetzt bei jedem Deploy mit.
 
+### Phase 3 abgeschlossen: `PREFLIGHT PASS`
+
+**2026-09-01, nach CEO-Freigabe.** Kein Rollout — `compose.yaml`, `postgres-init/` und `workforce-api/` sind bewusst **nicht** auf der NAS. Nachweis: `evidence/2026-09-01_phase3_nas_preflight.md`.
+
+| | |
+|---|---|
+| Iststand | API `v7`, Migrationen `001`–`003`, Kanal `DISABLED`, **0** aktive Credentials, beide Container `healthy` |
+| Provenienz | 6 von 6 Produktivdateien byteweise `ff2d32a`, Tag `produktiv-v7` |
+| Rückfallpunkte | Datenbank-Dump **plus Rollen-Dump** plus Image-Archiv, alle `640 root:administrators` |
+| Restore | **verifiziert**: null Fehler, 28 Nachrichten, 9 Tasks, Eigentümer `workforce_app` — deckungsgleich mit der Produktion |
+| Manifest | 126 Dateien, nichts unerwartet |
+| Backup-Rechte | 56 Dateien, keine mit Welt-Zugriff — die Härtung hat das Schreiben überstanden |
+
+**Der Rollen-Dump schließt die Lücke aus `G-024`**: Der nächtliche Job schreibt nur `pg_dump`, also ohne `CREATE ROLE`. Das Preflight-Paar ist beides und wurde eingespielt, nicht nur erzeugt.
+
+**Ein Nebeneffekt der `G-022`-Härtung gehört gemerkt:** In `Startup-Backups` schreibt nur noch Root. Eine Shell-Umleitung als `TOBKUM` scheitert mit `Permission denied` — dafür braucht es `sudo`.
+
+### Voraussetzungen für Phase 4 (Rollout)
+
+1. **Eine eigene CEO-Freigabe für genau das Fenster** — Phase 3 deckt sie nicht ab
+2. `CREATE ROLE workforce_api` und `workforce_backup` mit Passwörtern aus dem Secret-Store, **vor** Migration `007`
+3. Entscheidung, welche Gates geöffnet werden. Gerds Empfehlung: `005`, `006`, `007` — **ohne** Knowledge `004`
+4. Neues Passwort für `workforce_api` in `startup.env`, sonst spricht die API weiter als `workforce_app`
+
 ### Noch offen für `CORE PASS`
 
 Gerds Roadmap, Phasen 3 bis 8 — **jede braucht eine CEO-Freigabe, die nicht vorliegt**:
