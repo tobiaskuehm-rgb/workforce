@@ -663,3 +663,43 @@ Der Widerspruchsscan sah das nicht — keine seiner Klassen prüft, ob eine *Beh
 Jetzt eingetragen: kein `docker system prune`, kein `volume prune`, kein `image prune` — diese Befehle wirken NAS-weit, nicht auf das eigene Projekt, und was sie entfernen, ist nicht rekonstruierbar. Ein Wegwerf-Container geht mit `--rm` oder gezielt mit `docker rm -f <name>`.
 
 Beides ist damit dauerhaft festgehalten, nicht nur im Gesprächsverlauf.
+
+---
+
+## Achter Zielcheck: Phase 4 ist vorbereitet, nicht ausgeführt
+
+Dein GO galt der Vorbereitung. Ausgeführt ist nichts: keine Rolle angelegt, kein Secret erzeugt, keine Migration angewendet, v7 unverändert im Betrieb. Das Fenster liegt beim CEO.
+
+### `PHASE4_RUNBOOK.md`
+
+Deckt deinen Scope Punkt für Punkt ab: Vorbedingungen, frische Sicherung samt Rollen-Dump, Rollenanlage aus Secret-Dateien, Zielmanifest, ausschließlich die Gates `005`, `006`, `007`, sechs Nachweise, Rückfall in funktionierender Reihenfolge. Jeder Schritt hat ein Abbruchkriterium.
+
+Drei Entscheidungen, bei denen ich von der naheliegenden Lesart abgewichen bin — widersprich, wenn du sie anders siehst:
+
+**1. Zwei Manifeste statt eines.** Du schreibst, das vollständige Manifest solle „nun auch für `compose.yaml`, `postgres-init/` und `workforce-api/` erzeugt und geprüft" werden. Ich habe nachgesehen, was die NAS dort hält: `postgres-init/` nur `001`–`003`, `compose.yaml` und `app.py` in der v7-Fassung. Nähme das *laufende* Manifest diese Pfade jetzt auf, meldete jede Routineprüfung bis zum Rollout `FAIL` — und ein Wächter, der dauerhaft rot steht, wird gelesen wie einer, der aus ist. `deploy_manifest.sh` nimmt deshalb `MANIFEST_OUT` entgegen. Das Zielmanifest entsteht **im Fenster**, weil es den dann gültigen Commit nennen muss; der Befehl dafür steht wörtlich im Runbook und ist probeweise durchgelaufen (20 Pfade, 144 Dateien auf `9117c17`).
+
+**2. `compose.yaml` geht erst im Fenster mit.** Sie zeigt auf `startup-workforce-api:v8`. Läge sie vorher auf der NAS, würde ein versehentliches `docker compose up` genau das auslösen, was noch nicht freigegeben ist.
+
+**3. `004` und `008` liegen nach dem Rollout als Dateien auf der NAS.** Das ist unvermeidlich, sobald `postgres-init/` im Manifest steht, und es ist unbedenklich: Angewendet wird ausschließlich über das Gate, beide bleiben `"false"`. Ich sage es ausdrücklich, weil „Datei vorhanden" und „Migration angewendet" hier auseinanderfallen und die Auflage des CEO lautet, Knowledge dürfe nicht als Nebenwirkung aktiviert werden. Wer prüft, prüft die Tabellen — `nas_status.sh` zeigt den angewendeten Stand.
+
+Der Umfang ist gemessen: auf `9117c17` fasst das Fenster elf Dateien an, vier geändert und sieben neu.
+
+### Zwei Wächter, die nicht wachten — beide selbst gefunden
+
+**`nas_status.sh` meldete `PASS`, während eine Teilprüfung `FAIL` meldete.** Der Rückgabewert hinter einer Pipe gehört dem letzten Befehl, nicht der Prüfung. Behoben, Regel in den drei Spiegeln.
+
+**Der Widerspruchsscan sah `PHASE4_RUNBOOK.md` nicht.** Die Liste geprüfter Dokumente ist handgepflegt, die neue Datei stand nicht darin — ausgerechnet das Dokument, dessen Zeilen jemand ausführen soll. Aufgenommen; ein neuer Test verlangt, dass jedes weitere Dokument oben in `nas-startup/` entweder geprüft oder in `NOT_CHECKED` begründet wird.
+
+Beim Aufnehmen fiel die zweite Lücke auf: Der Wächter gegen unverankerte Dateizahlen las **Zeilen**. Markdown bricht Absätze um, und `deckt 130\nDateien` trennt die Zahl vom Wort — so überlebte die Zahl im Runbook einen grünen Lauf. Die Prüfung arbeitet jetzt auf Sätzen aus zusammengefügten Zeilen; Tabellenzeilen bleiben getrennt, damit keine Zeile den Anker ihrer Nachbarin borgt. Zwei Negativproben halten beides fest.
+
+### Teststand
+
+267 (`workforce-agent`) + 15 (`bus-realtest`) + 9 (`chain-test`) lokal, 35 (`telegram-connector`) + 39 (`workforce-api`) im Wegwerf-Container = **365 PASS**, Stand `9117c17`.
+
+Die API-Suite scheiterte dabei zunächst dreifach — an einer veralteten Kopie, dann an `psycopg2` statt `psycopg`, dann an einem flach kopierten Verzeichnis. Kein einziger Fehlschlag lag am Code; alle drei lagen an meinem Aufruf, obwohl der richtige Befehl in `CLAUDE.md` steht. Die zwei Fallen sind dort jetzt ausdrücklich benannt.
+
+### NAS-Iststand
+
+`nas_status.sh` auf `9117c17`: `RESULT: PASS`, Exit 0. API `v7`, Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktive Zugänge, beide neuen Rollen fehlen erwartungsgemäß, Backup-Rechte `PASS`, Manifest `PASS`, Rückfallpunkte vorhanden.
+
+Offen und unverändert: `G-030` (Laufzeitkette, Roadmap-Phase 6), `G-032` (CEO-Domäne), `G-040` (`/openapi.json`), `workforce_app` behält `SUPERUSER` bis zum eigenen Schritt nach dem Rollout.
