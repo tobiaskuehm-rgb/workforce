@@ -1,0 +1,38 @@
+name: startup-chain-identity
+
+# Reads the numeric Telegram ids for chain.env, from this package's own
+# secrets folder - so the bot token has to be placed exactly once, here.
+#
+# Talks only to api.telegram.org, never to the NAS API. **No firewall rule
+# needed**, which is why this step comes before the window is opened.
+#
+# Send any message to the new bot first: the probe reads pending updates, and
+# with none it correctly returns an empty list. It prints ids only - never the
+# token, never message text.
+
+services:
+  chain-identity-probe:
+    image: startup-telegram-ceo-connector:v1
+    build:
+      context: ../telegram-connector
+    entrypoint: ["python", "/app/identity_probe.py"]
+    environment:
+      TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
+    secrets:
+      - telegram_bot_token
+    networks:
+      - outbound
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  outbound:
+
+secrets:
+  telegram_bot_token:
+    file: ./secrets/telegram_bot_token
