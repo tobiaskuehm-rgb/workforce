@@ -67,7 +67,8 @@ ssh synology "cd /volume1/docker/Startup && sh verify_manifest.sh"
 | Baustein | Zustand | Nachweis in `evidence/` |
 |---|---|---|
 | PostgreSQL-Schema (Migrationen 001–003) | produktiv | — |
-| Migration `004` (Ablehnungs-Audit) | **geschrieben, nie angewendet** | — |
+| Migration `005` (Ablehnungs-Audit) | **geschrieben, nie angewendet** | — |
+| Migration `004` (Knowledge) | aus dem autoritativen Satz übernommen, nie angewendet, **eigenes Gate** | — |
 | Workforce-API `v7` (FastAPI) | läuft, gesund — **im Repo steht `v8`**, nicht ausgerollt | — |
 | HTTPS über Reverse Proxy 8443 | verifiziert | — |
 | Bus-Realtest Karl ↔ Thorsten | **PASS** | `2026-08-31_bus_realtest_karl_thorsten.md` |
@@ -132,7 +133,7 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 | `G-015` | `CORE PASS` zurückgenommen → `BUS LIFECYCLE PASS`, Gate `CORE ITERATE` | Evidenz |
 | `G-016` | Abo-Provider zurückgezogen, nicht scheinbar isoliert | `providers.py` |
 | `G-017` | Runner mit Außenroute bekommt keine Secret-Datei; DB-Helfer lesen `startup.db.env` | Compose-Dateien, `derive_db_env_once.sh` |
-| `G-018` | Migration `004`: append-only `bus_denials`; Audit prüft exakte Ids und volle Reihenfolge | `postgres-init/`, `workforce-api/`, `core_audit.sql` |
+| `G-018` | Migration `005`: append-only `bus_denials`; Audit prüft exakte Ids und volle Reihenfolge | `postgres-init/`, `workforce-api/`, `core_audit.sql` |
 | `G-019` | Deploy-Manifest mit Prüfsummen; „nicht belegt" heißt jetzt so | `deploy_manifest.sh`, `verify_manifest.sh` |
 
 ### Vier Nachweise, die noch fehlen — alle im selben Fenster einsammelbar
@@ -144,7 +145,7 @@ Keiner davon kostet Geld, keiner braucht ein Modell. Alle brauchen **eine Freiga
 3. **Contract-Test in der neuen Fassung gegen den echten Bus.** Erwartung: `deny` vollständig, `allow` 17/17 und 5/5, `wrong_reason` 0.
 4. **`verify_secret_isolation_once.sh`** — braucht keine Firewall-Regel und keine Zugangsdaten.
 5. **Der Kettenlauf** (`chain-test/`) — braucht zusätzlich einen Telegram-Testbot und die breitere Firewall-Regel
-6. **Der Worker-Core-Lauf** (`compose.workercore.yaml`) — setzt `AGENT-ENG-001` in der Registry, Migration `004` und API `v8` voraus; `workercore_prepare.sql` prüft alle drei und bricht ab, statt halb zu laufen.
+6. **Der Worker-Core-Lauf** (`compose.workercore.yaml`) — setzt `AGENT-ENG-001` in der Registry, Migration `005` und API `v8` voraus; `workercore_prepare.sql` prüft alle drei und bricht ab, statt halb zu laufen.
 
 **Erledigt:** `startup.db.env` liegt auf der NAS — `root:users` mit `660`, genau drei Schlüssel, kein API-Schlüssel darin. `startup.env` unverändert.
 
@@ -218,6 +219,16 @@ Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find
 1. Gerds Prüfrunde geriet mit einem `git add -A` ungelesen in einen Commit, der von etwas anderem handelte. Steht als Leitplanke 4 in `CLAUDE.md`.
 2. `REVIEW_ANTWORTEN.md` auf der NAS war 169 Zeilen alt — **Gerd hat gegen einen Stand geprüft, dem meine Antworten zu `G-012` bis `G-019` fehlten.** Beide Review-Dateien gehen ab jetzt bei jedem Deploy mit.
 
+### Nachreview: `G-035`, `G-036`, `G-037` behoben
+
+**Zwei davon entwerten Nachweise, die ich vorher geführt hatte** — das ist der wichtigste Punkt.
+
+- **`G-035`:** PostgreSQL erteilt `EXECUTE` auf Funktionen standardmäßig an `PUBLIC`. Mein `GRANT` an `workforce_api` war deshalb **reine Dekoration** — nachgemessen: eine Rolle ohne jedes Recht konnte die Bus-Funktionen ausführen. Jetzt `REVOKE ... FROM PUBLIC` plus `ALTER DEFAULT PRIVILEGES`, damit Funktionen aus `004`/`005` beim Öffnen ihres Gates nicht mit dem Standard ankommen. Die API verbindet sich jetzt tatsächlich als `workforce_api`, ohne Rückfall auf den Eigentümer. **Beides in einer Produktivkopie bewiesen**, samt echtem API-Start und echtem `pg_dump` — der fand noch fehlende Sequenzrechte.
+- **`G-036`:** Bei `G-034` hatte ich die SDK-Retries abgeschaltet und den **serverseitigen** Fallback stehen lassen, der eine abgelehnte Anfrage auf einem zweiten Modell wiederholt. `G-034` war damit nicht geschlossen. Entfernt.
+- **`G-037`:** Sieben konkrete Widersprüche korrigiert — vor allem `004`/`005` verwechselt. Der Scan prüfte, ob eine Datei existiert, nie ob die **Nummer zum Thema** passt. Erweitert um Migrationszuordnung, Datenpolicy, Provider-Fallback, Commitzahlen und offene Gates — mit drei Tests, die belegen, dass er die real falsche Zeile fängt und korrekte Abgrenzungen durchlässt.
+
+**Offen und benannt:** `workforce_app` behält `SUPERUSER` (eigener Schritt), und der API-Container sieht über `env_file` weiterhin `POSTGRES_PASSWORD`. `G-038` und `G-040` sind nicht bearbeitet — der Auftrag war auf drei Befunde begrenzt.
+
 ### Phase 3 abgeschlossen: `PREFLIGHT PASS`
 
 **2026-09-01, nach CEO-Freigabe.** Kein Rollout — `compose.yaml`, `postgres-init/` und `workforce-api/` sind bewusst **nicht** auf der NAS. Nachweis: `evidence/2026-09-01_phase3_nas_preflight.md`.
@@ -254,7 +265,7 @@ Gerds Roadmap, Phasen 3 bis 8 — **jede braucht eine CEO-Freigabe, die nicht vo
 
 Ein echter Modellmitarbeiter kommt danach und braucht eine eigene Entscheidung.
 
-### Nichts mehr offen beim Nutzer
+### Was beim Nutzer liegt
 
 **Erster Einsatz des Deploy-Manifests:** Der Lauf begann auf `f59e757`, 99 Dateien verifiziert. Zwei Korrekturen wurden während des Laufs nachdeployt — das steht im Nachweis, statt als „Commit plus Änderungen" verschleiert zu werden (`G-019`).
 
@@ -301,7 +312,7 @@ Gerds zweite Prüfrunde vollständig abgearbeitet, `G-012` bis `G-019`.
 
 Jede der drei Stellen hat jetzt eine Prüfung, die scheitert, wenn die Zusicherung nicht mehr gilt. Wo sich eine Zusicherung nicht prüfen lässt, steht hin, dass sie nicht belegt ist.
 
-Neu dazugekommen: `startup.db.env` mit drei statt fünf Werten, `test_compose_secrets.py` als Drift-Wächter über alle Compose-Dateien, Migration `004` mit `workforce.bus_denials`, API `v8`, Deploy-Manifest mit Prüfsummen.
+Neu dazugekommen: `startup.db.env` mit drei statt fünf Werten, `test_compose_secrets.py` als Drift-Wächter über alle Compose-Dateien, die Migration für das Ablehnungs-Audit — damals unter der Nummer `004`, heute `005`, beim Merge mit dem autoritativen Stand umnummeriert (`G-021`), API `v8`, Deploy-Manifest mit Prüfsummen.
 
 **Ehrliche Grenze dieser Runde:** Vier Korrekturen sind gegen Attrappen grün und **nie gegen die NAS gelaufen**. Auf diesem Mac gibt es weder `psql` noch Docker; die neue SQL ist gelesen, nicht ausgeführt.
 

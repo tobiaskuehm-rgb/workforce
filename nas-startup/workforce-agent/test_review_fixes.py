@@ -163,11 +163,92 @@ class LeastPrivilegeMigrationTest(unittest.TestCase):
         self.assertNotIn("ALTER ROLE workforce_app NOSUPERUSER;", self.sql)
         self.assertIn("NOSUPERUSER", self.sql, "der naechste Schritt muss benannt sein")
 
+    def test_public_loses_execute_not_just_the_api_role(self) -> None:
+        """G-035: the first version of this migration limited nothing.
+
+        PostgreSQL grants EXECUTE on every function to PUBLIC by default, so
+        granting it to workforce_api added nothing - measured in a restored
+        copy, a role with no grant at all reached BUS_AUTH_FAILED, which means
+        the function ran. Revoking from workforce_api was a no-op; the revoke
+        has to hit PUBLIC.
+        """
+        self.assertIn("REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA workforce FROM PUBLIC",
+                      self.sql)
+        self.assertIn("REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC",
+                      self.sql)
+
+    def test_functions_from_later_migrations_do_not_reopen_the_hole(self) -> None:
+        # 004 and 005 are behind closed gates. When one opens, its new
+        # functions must not arrive with the PUBLIC default - and this
+        # migration will not run again to fix that.
+        self.assertIn("ALTER DEFAULT PRIVILEGES", self.sql)
+        self.assertIn("REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC", self.sql)
+
+    def test_the_backup_account_can_actually_run_pg_dump(self) -> None:
+        # pg_dump reads last_value from every sequence. Table rights alone
+        # produce a zero-byte dump and an error - that is what the first
+        # version did, measured against a restored copy.
+        self.assertIn("GRANT SELECT ON ALL SEQUENCES IN SCHEMA workforce TO workforce_backup",
+                      self.sql)
+        self.assertIn("GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO workforce_backup",
+                      self.sql)
+
     def test_the_backup_account_cannot_write(self) -> None:
         self.assertIn("GRANT SELECT ON ALL TABLES IN SCHEMA workforce TO workforce_backup",
                       self.sql)
         for verb in ("INSERT", "UPDATE", "DELETE"):
             self.assertNotIn(f"GRANT {verb}", self.sql.split("workforce_backup")[-1])
+
+
+class ApiUsesItsOwnRoleTest(unittest.TestCase):
+    """G-035: the role existed and the stack went on using the owner."""
+
+    def setUp(self) -> None:
+        self.app = (ROOT / "workforce-api" / "app.py").read_text(encoding="utf-8")
+        self.compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+
+    def test_the_api_never_falls_back_to_the_owner(self) -> None:
+        # A missing variable used to mean "connect as workforce_app", which
+        # owns the schema, every table and every function.
+        self.assertIn("WORKFORCE_DB_USER_REQUIRED", self.app)
+        self.assertNotIn('user=os.environ["POSTGRES_USER"]', self.app)
+        self.assertNotIn('os.environ.get("POSTGRES_USER"', self.app)
+
+    def test_the_password_comes_from_a_file(self) -> None:
+        # Project rule: secrets only in files. An environment variable is
+        # readable in `docker inspect`.
+        self.assertIn("WORKFORCE_DB_PASSWORD_FILE", self.app)
+        self.assertNotIn('os.environ["POSTGRES_PASSWORD"]', self.app)
+
+    def test_the_stack_actually_wires_it(self) -> None:
+        self.assertIn("WORKFORCE_DB_USER: workforce_api", self.compose)
+        self.assertIn("WORKFORCE_DB_PASSWORD_FILE: /run/secrets/workforce_api_db_password",
+                      self.compose)
+        self.assertIn("workforce_api_db_password:", self.compose)
+
+
+class ModelFallbackIsOffTest(unittest.TestCase):
+    """G-036: SDK retries were off, the server-side fallback was not."""
+
+    def setUp(self) -> None:
+        self.source = (ROOT / "workforce-agent" / "providers.py").read_text(encoding="utf-8")
+
+    def test_no_server_side_fallback_is_requested(self) -> None:
+        # A policy decline used to be re-run on a second model inside the same
+        # call. The worker reserves one provider call against the budget; a
+        # second model run inside it is neither reservable nor blockable.
+        code = "\n".join(
+            line for line in self.source.splitlines()
+            if not line.lstrip().startswith("#")
+        )
+        self.assertNotIn("fallbacks=", code)
+        self.assertNotIn("server-side-fallback", code)
+        self.assertNotIn("betas=", code)
+
+    def test_a_refusal_is_still_handled_as_a_result(self) -> None:
+        # Removing the fallback must not turn a refusal into a crash - the
+        # worker has to be able to write an explaining answer to the bus.
+        self.assertIn('stop_reason", None) == "refusal"', self.source)
 
 
 class ProductionStateIsNamedTest(unittest.TestCase):

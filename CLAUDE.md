@@ -69,7 +69,7 @@ Auf einem anderen Rechner reicht SSH-Zugang zur NAS:
 git clone synology:/volume1/docker/git/workforce.git "workorce claude"
 ```
 
-Geprüft: geklont, 62 Commits, identischer Hash, vollständiger Inhalt.
+Geprüft: geklont, identischer Hash, vollständiger Inhalt. (Ohne Zahl — sie veraltet mit dem nächsten Commit.)
 
 **Das Bundle bleibt als Rückfall.** `sh nas-startup/backup_bundle.sh` schreibt die vollständige Historie zusätzlich als eine Datei nach `/volume1/docker/git/workforce.bundle` — nützlich, falls am Git-Server etwas hakt oder jemand ohne Git an den Stand muss. Beides trägt nur, was Git verfolgt; Secrets bleiben bauartbedingt draußen, dasselbe Argument wie beim Deploy-Manifest.
 

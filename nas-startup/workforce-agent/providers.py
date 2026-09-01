@@ -142,12 +142,17 @@ class ClaudeProvider:
                 messages=[{"role": "user", "content": content}],
                 thinking={"type": "adaptive"},
                 output_config={"effort": "medium"},
-                # Opt in to server-side refusal fallbacks: on a policy decline
-                # the request is re-run on a fallback model inside the same
-                # call, so a borderline work item still gets an answer instead
-                # of silently stalling in the bus.
-                betas=["server-side-fallback-2026-07-01"],
-                fallbacks="default",
+                # No server-side fallback (review finding G-036). It used to be
+                # enabled here so a policy decline would be re-run on a second
+                # model inside the same call - which is the same defect G-034
+                # closed for SDK retries, one layer further out: the worker
+                # reserves exactly one provider call against the budget, and a
+                # second model run inside that call is not reservable and not
+                # blockable. A refusal is handled below as an ordinary result;
+                # that is the honest answer, and it costs one call.
+                #
+                # Re-enabling needs a cost decision and a demonstrated hard
+                # external ceiling, not a beta flag.
             )
         except anthropic.RateLimitError as exc:
             raise ProviderError("AGENT_PROVIDER_RATE_LIMITED") from exc

@@ -3,6 +3,7 @@ import hmac
 import ipaddress
 import json
 import os
+import pathlib
 import sys
 import uuid
 from contextlib import asynccontextmanager
@@ -26,12 +27,43 @@ BUS_TRUSTED_PROXY_CIDRS = tuple(
 )
 
 
+def database_login() -> tuple[str, str]:
+    """The account the API connects with - never the owner.
+
+    Review finding G-035: migration 007 created a least-privilege role, and
+    the stack went on connecting as `workforce_app`, which owns the schema,
+    every table and every function. The separation existed on paper only.
+
+    Fail-closed on purpose: no fallback to POSTGRES_USER. A missing variable
+    used to mean "use the owner", which is the one outcome that must not
+    happen silently. The password comes from a file, like every other secret
+    in this project - an environment variable is readable in `docker inspect`.
+    """
+    user = os.environ.get("WORKFORCE_DB_USER", "").strip()
+    if not user:
+        raise RuntimeError(
+            "WORKFORCE_DB_USER_REQUIRED: die API verbindet sich nicht mehr als "
+            "Eigentuemer; setze WORKFORCE_DB_USER=workforce_api"
+        )
+    path = os.environ.get("WORKFORCE_DB_PASSWORD_FILE", "").strip()
+    if not path:
+        raise RuntimeError(
+            "WORKFORCE_DB_PASSWORD_FILE_REQUIRED: Passwort nur aus einer Datei, "
+            "nie aus der Umgebung"
+        )
+    password = pathlib.Path(path).read_text(encoding="utf-8").strip()
+    if not password:
+        raise RuntimeError(f"WORKFORCE_DB_PASSWORD_FILE_EMPTY: {path}")
+    return user, password
+
+
 def connection():
+    user, password = database_login()
     return psycopg.connect(
         host=os.environ.get("DB_HOST", "db"),
         dbname=os.environ["POSTGRES_DB"],
-        user=os.environ["POSTGRES_USER"],
-        password=os.environ["POSTGRES_PASSWORD"],
+        user=user,
+        password=password,
         connect_timeout=3,
     )
 

@@ -129,6 +129,146 @@ class NoRetractedClaimSurvivesTest(unittest.TestCase):
         self.assertEqual([], offenders)
 
 
+class MigrationsAreNamedCorrectlyTest(unittest.TestCase):
+    """G-037: 004 and 005 were confused in five places and the scan passed.
+
+    The old scan checked that a referenced file exists. It never checked that
+    the *number* a document attaches to a *topic* is the right one. After the
+    G-021 merge the denial audit moved from 004 to 005, and the documents kept
+    saying 004 - which points readers at the knowledge migration instead.
+    """
+
+    # Words that show the sentence is drawing a distinction rather than
+    # making a claim: "damals 004, heute 005", "ohne Knowledge 004". A guard
+    # that flags correct text gets switched off, so it has to read these.
+    CONTRAST = ("ohne", "damals", "heute", "statt", "nicht", "umnummeriert",
+                "frueher", "früher", "vorher")
+
+    def disambiguated(self, line: str) -> bool:
+        lowered = line.lower()
+        return any(word in lowered for word in self.CONTRAST)
+
+    # Topic -> the migration number that owns it, taken from the files
+    # themselves rather than from a second list.
+    def topic_of(self, number: str) -> str:
+        for path in (NAS / "postgres-init").glob(f"{number}_*.sql"):
+            return path.stem.split("_", 1)[1]
+        return ""
+
+    def test_the_denial_audit_is_not_called_004(self) -> None:
+        self.assertEqual("bus_denial_audit", self.topic_of("005"))
+        offenders = []
+        for path, text in documents():
+            for line_number, line in enumerate(text.splitlines(), start=1):
+                if self.disambiguated(line):
+                    continue
+                if re.search(r"`004`[^\n]{0,60}(Ablehnung|denial|bus_denials)", line, re.I) \
+                   or re.search(r"(Ablehnung|denial|bus_denials)[^\n]{0,40}`004`", line, re.I):
+                    offenders.append(f"{path.name}:{line_number}")
+        self.assertEqual([], offenders,
+                         "das Ablehnungs-Audit ist Migration 005, nicht 004")
+
+    def test_knowledge_is_not_called_005(self) -> None:
+        self.assertEqual("knowledge_capability", self.topic_of("004"))
+        offenders = [
+            f"{path.name}:{number}"
+            for path, text in documents()
+            for number, line in enumerate(text.splitlines(), start=1)
+            if not self.disambiguated(line)
+            and re.search(r"`005`[^\n]{0,60}Knowledge", line, re.I)
+        ]
+        self.assertEqual([], offenders)
+
+
+class TheGuardHasTeethTest(unittest.TestCase):
+    """A scan that only ever passes proves nothing about its own reach.
+
+    G-037 was exactly that: the first version of this file passed while five
+    documents named the wrong migration. These cases pin what it can see and
+    what it deliberately lets through.
+    """
+
+    def setUp(self) -> None:
+        self.checker = MigrationsAreNamedCorrectlyTest("test_the_denial_audit_is_not_called_004")
+
+    def test_it_would_catch_the_line_that_was_actually_wrong(self) -> None:
+        wrong = "| `G-018` | Migration `004`: append-only `bus_denials` |"
+        self.assertFalse(self.checker.disambiguated(wrong))
+        self.assertTrue(
+            re.search(r"`004`[^\n]{0,60}(Ablehnung|denial|bus_denials)", wrong, re.I)
+        )
+
+    def test_it_lets_a_sentence_that_draws_the_distinction_through(self) -> None:
+        # "damals 004, heute 005" is correct text and must not be flagged -
+        # a guard that cries wolf gets switched off.
+        for correct in (
+            "die Migration für das Ablehnungs-Audit - damals `004`, heute `005`",
+            "Migrationen `005`-`007` - ohne Knowledge `004`",
+        ):
+            with self.subTest(text=correct):
+                self.assertTrue(self.checker.disambiguated(correct))
+
+    def test_the_topic_mapping_comes_from_the_files(self) -> None:
+        # Not from a second list somebody has to keep in sync - that is the
+        # failure mode this whole scan exists for.
+        self.assertEqual("bus_denial_audit", self.checker.topic_of("005"))
+        self.assertEqual("knowledge_capability", self.checker.topic_of("004"))
+
+
+class ClaimsMatchTheCodeTest(unittest.TestCase):
+    """G-037: comments outlived the behaviour they described."""
+
+    def test_the_data_policy_comment_matches_the_allowlist(self) -> None:
+        # The example file said METADATA_ONLY carries the subject long after
+        # the subject had been removed from it (G-029, then G-037).
+        import data_boundary
+
+        example = (NAS / "workforce-agent" / "workforce-agent.env.example").read_text(
+            encoding="utf-8"
+        )
+        line = next(
+            (l for l in example.splitlines() if "METADATA_ONLY" in l and l.lstrip().startswith("#")),
+            "",
+        )
+        carries_subject = "subject" in data_boundary._ALLOWED_FIELDS["METADATA_ONLY"]
+        claims_subject = re.search(r"^#\s+METADATA_ONLY\s+subject", line) is not None
+        self.assertEqual(carries_subject, claims_subject,
+                         f"Kommentar und Feldliste widersprechen sich: {line!r}")
+
+    def test_no_document_claims_a_model_fallback(self) -> None:
+        # G-036 removed the server-side fallback. A document still promising
+        # it would send the next reader looking for a feature that is gone.
+        providers = (NAS / "workforce-agent" / "providers.py").read_text(encoding="utf-8")
+        code = "\n".join(
+            l for l in providers.splitlines() if not l.lstrip().startswith("#")
+        )
+        self.assertNotIn("fallbacks=", code)
+        offenders = [
+            path.name for path, text in documents()
+            if re.search(r"Fallback-?Modell|server-side-fallback", text, re.I)
+        ]
+        self.assertEqual([], offenders)
+
+    def test_no_document_states_a_commit_count(self) -> None:
+        # Same class as the test counts: true when written, wrong one commit
+        # later.
+        offenders = [
+            f"{path.name}: {match}"
+            for path, text in documents()
+            for match in re.findall(r"\b\d{2,5} Commits?\b", text)
+        ]
+        self.assertEqual([], offenders)
+
+    def test_nothing_claims_all_gates_are_closed_while_they_are_open(self) -> None:
+        # HANDOVER said "Nichts mehr offen beim Nutzer" while four migration
+        # gates and a CEO decision were open.
+        offenders = [
+            path.name for path, text in documents()
+            if "Nichts mehr offen" in text
+        ]
+        self.assertEqual([], offenders)
+
+
 class MigrationNumbersAreUniqueTest(unittest.TestCase):
     def test_no_two_migrations_share_a_number(self) -> None:
         names = sorted(p.name for p in (NAS / "postgres-init").glob("*.sql"))

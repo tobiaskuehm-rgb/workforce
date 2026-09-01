@@ -33,6 +33,17 @@
 -- exactly what they allow and nothing else. That is the property that makes
 -- the route allowlist and the append-only triggers binding rather than
 -- advisory.
+--
+-- **The first version of this migration did not achieve that** (review finding
+-- G-035). PostgreSQL grants EXECUTE on every new function to PUBLIC by
+-- default, and an empty `proacl` means exactly that default. Granting EXECUTE
+-- to workforce_api therefore added nothing: every role could already call
+-- every function. Measured in a restored copy - a role with no grant at all
+-- reached BUS_AUTH_FAILED, which means the function ran.
+--
+-- So the revoke comes first, and ALTER DEFAULT PRIVILEGES makes it hold for
+-- functions that later migrations create. Without that, opening the gate for
+-- 004 or 005 would silently reopen the hole for their new functions.
 
 BEGIN;
 
@@ -65,7 +76,30 @@ GRANT USAGE ON SCHEMA workforce TO workforce_api;
 -- Nothing broad: no table privileges in the workforce schema at all. Every
 -- bus and knowledge operation goes through a SECURITY DEFINER function.
 REVOKE ALL ON ALL TABLES IN SCHEMA workforce FROM workforce_api;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA workforce FROM workforce_api;
+
+-- The one that actually matters (G-035): take EXECUTE away from PUBLIC, not
+-- from workforce_api. Revoking from a role that only ever held the PUBLIC
+-- default is a no-op.
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA workforce FROM PUBLIC;
+REVOKE EXECUTE ON ALL ROUTINES IN SCHEMA workforce FROM PUBLIC;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC;
+REVOKE EXECUTE ON ALL ROUTINES IN SCHEMA public FROM PUBLIC;
+
+-- And for what does not exist yet. Migrations 004 and 005 are behind closed
+-- gates; when one of them opens, its new functions must not arrive with the
+-- PUBLIC default. This migration will not run a second time to fix that.
+ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA workforce
+    REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA workforce
+    GRANT EXECUTE ON FUNCTIONS TO workforce_api;
+ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA public
+    REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
+-- The default grant above covers trigger functions too. That is not a hole:
+-- a trigger function called directly fails with "can only be called as
+-- trigger", so the privilege buys nothing. The alternative - a named list per
+-- migration - is a list somebody has to remember, and this project has been
+-- bitten by exactly that kind of list twice.
 
 -- Granted by name, not by signature, and only for functions that exist.
 --
@@ -143,6 +177,25 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO workforce_api;
 GRANT USAGE ON SCHEMA workforce, public TO workforce_backup;
 GRANT SELECT ON ALL TABLES IN SCHEMA workforce TO workforce_backup;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO workforce_backup;
+
+-- Sequences too. `pg_dump` reads `last_value` from every sequence, so a
+-- backup account with table rights alone produces a zero-byte dump and an
+-- error - measured, not assumed: the first version of this migration failed
+-- with "permission denied for sequence activity_log_id_seq".
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA workforce TO workforce_backup;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO workforce_backup;
+
+-- And for tables and sequences that later migrations add, so a dump does not
+-- start failing the day a gate opens.
+ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA workforce
+    GRANT SELECT ON TABLES TO workforce_backup;
+ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA workforce
+    GRANT SELECT ON SEQUENCES TO workforce_backup;
+ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA public
+    GRANT SELECT ON TABLES TO workforce_backup;
+ALTER DEFAULT PRIVILEGES FOR ROLE workforce_app IN SCHEMA public
+    GRANT SELECT ON SEQUENCES TO workforce_backup;
+
 -- Read only. A backup account that can write is a backup account that can be
 -- used to change what it is supposed to preserve.
 

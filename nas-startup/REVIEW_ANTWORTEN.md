@@ -501,3 +501,84 @@ Ich stimme zu: **`CORE ITERATE`.** Von deinen dreizehn Befunden sind zehn behobe
 **Was ich nicht getan habe, und warum:** kein Deployment, keine Migration angewendet, keine Änderung an laufenden Containern. `004` und `005` bleiben getrennt, jede mit eigenem geschlossenen Gate. Kein bezahlter Modelltest.
 
 **Was als Nächstes dran ist**, in deiner Reihenfolge: Phase 3, der NAS-Preflight — und dafür brauche ich eine neue CEO-Freigabe, die ich nicht habe.
+
+---
+
+# Antwort auf den Nachreview (`G-035`, `G-036`, `G-037`)
+
+Auftragsgemäß nur diese drei. `G-038` und `G-040` sind unten kurz eingeordnet, aber nicht bearbeitet.
+
+**Alle drei treffen zu, und zwei davon entwerten Nachweise, die ich vorher geführt habe.** Das ist der wichtigste Satz dieser Antwort.
+
+### G-035 — Rollentrennung nicht verdrahtet, Funktions-Allowlist unwirksam → **Bestätigt, beide Teile behoben**
+
+**Der `PUBLIC`-Teil ist der schwerwiegendere, und du hast recht.** Ich habe es in einer wiederhergestellten Produktivkopie nachgemessen: Eine Rolle `niemand` mit **keinerlei** Rechten außer `USAGE ON SCHEMA` konnte `workforce.bus_list_messages` ausführen — sie bekam `BUS_AUTH_FAILED`, die Funktion **lief also**. `proacl` war leer, und leer heißt Standardrecht, und das ist `EXECUTE` für `PUBLIC`.
+
+**Mein `GRANT EXECUTE ... TO workforce_api` war damit reine Dekoration**, und mein gestriger Nachweis hat mehr behauptet, als er zeigte. Die Tabellensperre war echt; die Funktions-Allowlist war es nie.
+
+Behoben:
+
+| | |
+|---|---|
+| `REVOKE EXECUTE ... FROM PUBLIC` | für `workforce` **und** `public`, Funktionen und Routinen |
+| `ALTER DEFAULT PRIVILEGES` | damit Funktionen aus `004`/`005` beim Öffnen ihres Gates nicht mit dem `PUBLIC`-Standard ankommen — `007` läuft kein zweites Mal, um das zu reparieren |
+| Nachgemessen | `niemand` bekommt jetzt `permission denied for function`; `proacl` zeigt nur noch `workforce_app=X/workforce_app` und `workforce_api=X/workforce_app` |
+
+**Der Verdrahtungsteil**, ebenfalls zutreffend: Die API verband sich weiter als `workforce_app`. Jetzt liest sie `WORKFORCE_DB_USER` und ein Passwort aus einer Datei — **ohne Rückfall auf `POSTGRES_USER`**. Ein fehlender Wert bedeutete vorher „nimm den Eigentümer", also genau das, was nicht still passieren darf. `compose.yaml` verdrahtet Rolle und Secret-Datei.
+
+**Beides bewiesen, nicht behauptet**, in der Produktivkopie:
+
+```
+API-Start als workforce_api:  /health ok · /db-check ok · /bus/v1/status v8
+ohne WORKFORCE_DB_USER:       WORKFORCE_DB_USER_REQUIRED, Start verweigert
+```
+
+**Dein realer `pg_dump` hat noch etwas gefunden.** Der erste Versuch mit `workforce_backup` scheiterte: `permission denied for sequence activity_log_id_seq` — 0 Bytes. Ich hatte `SELECT` auf Tabellen erteilt, nicht auf Sequenzen, und `pg_dump` liest deren Stände. Ergänzt samt Default Privileges; zweiter Versuch **374 KB, null Fehler, 20 Tabellen**.
+
+**Was offen bleibt und benannt gehört:** `workforce_app` behält `SUPERUSER`, und ein Superuser umgeht jede Rechteprüfung. Solange das so ist, wirkt die Trennung erst, wenn die API tatsächlich als `workforce_api` verbindet — was sie jetzt tut —, aber sie ist noch nicht *erzwungen*. Der Entzug steht als eigener, benannter Schritt im Kopf der Migration. Zweitens sieht der API-Container über `env_file: startup.env` weiterhin `POSTGRES_PASSWORD`. Das ist kein Weg zurück zum Eigentümerzugang, weil der Code ihn nicht mehr liest — aber es ist mehr, als der Container braucht, und gehört in dieselbe Aufräumrunde.
+
+### G-036 — Serverseitiger Fallback bleibt aktiv → **Bestätigt, behoben**
+
+Zutreffend, und mein eigener Kommentar sagte es wörtlich: *„on a policy decline the request is re-run on a fallback model inside the same call"*. Ich hatte bei `G-034` die SDK-Retries abgeschaltet und die serverseitige Wiederholung stehen lassen — **`G-034` war damit nicht geschlossen**, und meine Antwort dazu war zu früh.
+
+`betas=["server-side-fallback-2026-07-01"]` und `fallbacks="default"` sind entfernt. Eine Ablehnung wird weiterhin als regulärer Fall behandelt (`stop_reason == "refusal"`), der Worker schreibt eine erklärende Antwort in den Bus. Zwei Tests: kein `fallbacks=`, kein `betas=`, kein `server-side-fallback` im ausführbaren Teil — und der Ablehnungspfad ist noch da, damit das Entfernen keinen Absturz erzeugt.
+
+Eine Wiederaktivierung braucht eine Kostenentscheidung und eine nachgewiesene harte externe Obergrenze, nicht ein Beta-Flag.
+
+### G-037 — Widerspruchsscan besteht trotz Widersprüchen → **Bestätigt, beide Teile behoben**
+
+Alle genannten Stellen nachgeprüft und korrigiert:
+
+| Stelle | war | ist |
+|---|---|---|
+| `HANDOVER.md`:70 | „Migration `004` (Ablehnungs-Audit)" | `005`; `004` als Knowledge mit eigenem Gate ergänzt |
+| `HANDOVER.md`:135 | `G-018` → Migration `004` | `005` |
+| `HANDOVER.md`:147 | Worker-Core setzt `004` voraus | `005` |
+| `HANDOVER.md`:305 | historischer Eintrag mit `004` | „damals `004`, heute `005`" |
+| `HANDOVER.md`:257 | „Nichts mehr offen beim Nutzer" | „Was beim Nutzer liegt" |
+| `AGENTS.md`:72 | „62 Commits" | ohne Zahl, mit Begründung |
+| `env.example`:16 | „`METADATA_ONLY` subject, action class, ids" | ohne Betreff, mit Verweis auf `G-029` |
+
+**Der wichtigere Teil deines Befunds ist der zweite:** Der Scan bestand, obwohl die Widersprüche dastanden. Er prüfte, ob eine genannte Datei existiert — nie, ob die **Nummer zum Thema** passt. Erweitert um:
+
+- **Migrationszuordnung** — Thema zu Nummer, aus den Dateinamen abgeleitet statt aus einer zweiten Liste
+- **Datenpolicy** — der Kommentar in `env.example` wird gegen `_ALLOWED_FIELDS` geprüft, nicht gegen sich selbst
+- **Provider-Fallback** — kein Dokument darf ein Fallbackmodell versprechen, das der Code nicht mehr hat
+- **Commitzahlen** — dieselbe Klasse wie die Testzahlen
+- **Offene Gates** — „Nichts mehr offen" bei offenen Gates ist ein Widerspruch
+
+Dazu drei Tests, die belegen, dass der Wächter **Zähne hat**: Er fängt die Zeile, die real falsch war, lässt eine Zeile durch, die den Unterschied ausdrücklich zieht („damals `004`, heute `005`", „ohne Knowledge `004`"), und leitet die Zuordnung aus den Dateien ab. Beim Erweitern hat er zwei Fehlalarme in eigener Sache produziert — beide waren korrekte Sätze, und ein Wächter, der korrekten Text anmeckert, wird abgeschaltet.
+
+---
+
+## Zu den nicht bearbeiteten Punkten
+
+**`G-038` — der `docker system prune -f`.** Der Befund steht, und ich habe ihn selbst in der vorigen Antwort gemeldet. Was entfernt wurde, ist tatsächlich nicht rekonstruierbar; nachweisbar ist nur, dass Produktivstack und alle Projekt-Images vorhanden sind. Als Regel gehört das in `CLAUDE.md` — ich habe es nicht eingetragen, weil dein Auftrag ausdrücklich auf drei Befunde begrenzt war. Sag Bescheid, dann trage ich es nach.
+
+**`G-040` — `/openapi.json`.** Von mir gemeldet, von dir bestätigt. Nicht angefasst: `e2e_acceptance.rb` liest das Schema, ein Abschalten wäre eine Verhaltensänderung mit Testfolge und braucht eine Entscheidung.
+
+## Was dieser Durchgang über meine Nachweise sagt
+
+Zwei meiner Belege waren zu stark: Die Funktions-Allowlist bei `G-025` hat nichts begrenzt, und `G-034` war nicht geschlossen. Beide Male hatte ich das Richtige gebaut und das Falsche daraus geschlossen — im ersten Fall, weil ich den PostgreSQL-Standard nicht geprüft habe, im zweiten, weil ich eine Ebene tiefer gesucht habe als nötig.
+
+Das ist dieselbe Fehlerklasse wie `G-014`, `G-016` und `G-017`: **eine Zusicherung, die weiter reicht als der Beweis.** Der Unterschied ist, dass es diesmal nicht ein Kommentar war, sondern ein Test, der das Falsche geprüft hat.

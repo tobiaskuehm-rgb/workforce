@@ -161,6 +161,11 @@ services:
     environment:
       DB_HOST: db
       BUS_REQUIRE_HTTPS: "true"
+      # The API connects as its own least-privilege role, never as the owner
+      # (review finding G-035). Without both of these it refuses to start -
+      # a missing value used to mean "use workforce_app", silently.
+      WORKFORCE_DB_USER: workforce_api
+      WORKFORCE_DB_PASSWORD_FILE: /run/secrets/workforce_api_db_password
       # Synology Reverse Proxy reaches the published port through the
       # current startup_frontend bridge gateway. Keep this host-only.
       BUS_TRUSTED_PROXY_CIDRS: "172.20.0.1/32"
@@ -169,6 +174,8 @@ services:
         condition: service_healthy
       registry-migrate:
         condition: service_completed_successfully
+    secrets:
+      - workforce_api_db_password
     ports:
       - "8080:8080"
     networks:
@@ -203,3 +210,9 @@ networks:
 
 volumes:
   workforce_database_v1:
+
+secrets:
+  workforce_api_db_password:
+    # Created in the rollout window, together with the role itself. Not in
+    # git, not in startup.env, not in the environment.
+    file: ./secrets/workforce_api_db_password
