@@ -55,14 +55,16 @@ Läuft seit dem 2026-09-01 auch mit Python 3.9: `telegram_connector.py` benutzt 
 
 **Die Firewall-Regel ist breiter als bei früheren Läufen.** Connector und Agent sind zwei Container und brauchen zwei Adressen (`.2` und `.3`); ein einzelnes `/32` reicht nicht mehr.
 
-## Die eine Entscheidung vorher
+## Die Entscheidung ist gefallen: `METADATA_ONLY`
+
+**Entschieden am 2026-09-01.** Der erste Lauf soll zeigen, dass die Kette sich schließt — nicht, dass eine Echo-Antwort lesbar ist. Eine Benachrichtigung im Chat belegt die Rückrichtung vollständig.
 
 `TELEGRAM_OUTBOUND_POLICY` in `chain.env`:
 
 - **`METADATA_ONLY`** (Voreinstellung, fail-closed) — du siehst *„eine Antwort ist da"*, nicht ihren Text. **Die Kette ist damit trotzdem bewiesen:** Eine Benachrichtigung im Chat heißt, dass die Rückrichtung funktioniert hat.
 - **`BODY`** — der Antworttext selbst erscheint gekürzt im Chat, und nur für Nachrichten, deren Task auf der Allowlist steht.
 
-Telegram-Bot-Chats sind Cloud-Chats ohne Ende-zu-Ende-Verschlüsselung. `BODY` heißt, dass interne Arbeitsinhalte bei Telegram liegen. Für den ersten Lauf reicht `METADATA_ONLY`.
+Telegram-Bot-Chats sind Cloud-Chats ohne Ende-zu-Ende-Verschlüsselung. `BODY` heißt, dass interne Arbeitsinhalte bei Telegram liegen. Ein späterer Wechsel auf `BODY` ist eine eigene Entscheidung und gehört dokumentiert — es ist eine Datengrenze, kein Ausführlichkeitsschalter.
 
 ## Schrittfolge
 

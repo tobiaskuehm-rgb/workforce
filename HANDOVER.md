@@ -151,7 +151,7 @@ Dritter struktureller Blocker gefunden und aufgelöst: Der Connector validiert `
 
 **Was der Lauf noch braucht, und zwar von dir:** ein neuer Telegram-Testbot mit Token in `chain-test/secrets/telegram_bot_token`, die beiden Chat-/User-Ids aus `identity_probe.py`, die Firewall-Regel für **`172.31.254.0/29`** (breiter als früher — zwei Container, zwei Adressen), und die Freigabe. Schrittfolge in `chain-test/README.md`.
 
-**Die eine Entscheidung vorher:** `TELEGRAM_OUTBOUND_POLICY`. `METADATA_ONLY` beweist die Kette auch (eine Benachrichtigung im Chat heißt, die Rückrichtung hat funktioniert), zeigt aber den Antworttext nicht. `BODY` zeigt ihn — und legt interne Inhalte bei Telegram ab.
+**Entschieden am 2026-09-01:** `TELEGRAM_OUTBOUND_POLICY=METADATA_ONLY` für den ersten Lauf. Die Benachrichtigung im Chat belegt die Rückrichtung; der Antworttext bleibt auf der NAS. Ein späterer Wechsel auf `BODY` ist eine eigene Entscheidung.
 
 ### Der Worker-Core-Test ist gebaut
 
