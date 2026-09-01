@@ -497,11 +497,11 @@ def test_the_api_contract_is_exactly_this():
         ("POST", "/knowledge/v1/objects/{knowledge_id}/versions/{version}/submit-review"),
         ("POST", "/knowledge/v1/retrieve"),
         ("GET", "/knowledge/v1/status"),
-        # FastAPI's own schema route. docs_url and redoc_url are switched off,
-        # this one is not - and e2e_acceptance.rb reads it to check the path
-        # list, so it is load-bearing. Listed here because the contract is the
-        # contract: it is reachable without a credential and describes the
-        # whole API. Whether that is wanted is a decision, not a test.
+        # The schema route. FastAPI's own version was unauthenticated and
+        # described the whole API to anyone who could reach the port
+        # (G-040); it is replaced by an own route at the same path behind
+        # require_api_key, so this inventory entry is unchanged and the
+        # acceptance test keeps its contract check - with a key.
         ("GET", "/openapi.json"),
         ("GET", "/roles"),
         ("POST", "/roles"),
@@ -522,6 +522,41 @@ def test_the_api_contract_is_exactly_this():
         f"verschwunden: {sorted(expected - actual)}; "
         f"neu und nicht eingetragen: {sorted(actual - expected)}"
     )
+
+
+def test_the_schema_needs_a_credential():
+    # G-040: the schema is the attack surface written down. It went out to
+    # anyone who asked.
+    response = TestClient(workforce_app.app, base_url="https://testserver").get("/openapi.json")
+    assert response.status_code == 401, response.text
+    assert response.json()["detail"] == "invalid API key"
+
+
+def test_the_schema_is_still_served_to_an_authorised_caller():
+    # Removing the route would have closed the finding by deleting the
+    # acceptance test's contract check. It has to keep working.
+    response = TestClient(workforce_app.app, base_url="https://testserver").get(
+        "/openapi.json", headers={"X-API-Key": workforce_app.API_KEY}
+    )
+    assert response.status_code == 200, response.text
+    assert "/bus/v1/messages" in response.json()["paths"]
+
+
+def test_the_schema_refuses_cleartext():
+    # It now carries a credential, so it falls under the same transport rule
+    # as every other endpoint that does.
+    response = TestClient(workforce_app.app).get(
+        "/openapi.json", headers={"X-API-Key": workforce_app.API_KEY}
+    )
+    assert response.status_code == 503, response.text
+    assert response.json()["detail"] == "HTTPS_REQUIRED"
+
+
+def test_fastapis_own_unauthenticated_schema_route_is_off():
+    # The fix is two halves: openapi_url=None removes FastAPI's route, and an
+    # own route takes the path. Keeping only the second half would leave the
+    # original one in place and this file would not notice.
+    assert workforce_app.app.openapi_url is None
 
 
 def test_the_api_reports_one_version_everywhere():

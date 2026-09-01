@@ -383,7 +383,8 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Workforce Kernel", docs_url=None, redoc_url=None, lifespan=lifespan)
+app = FastAPI(title="Workforce Kernel", docs_url=None, redoc_url=None,
+              openapi_url=None, lifespan=lifespan)
 
 
 @app.exception_handler(RequestValidationError)
@@ -584,6 +585,26 @@ def health() -> dict[str, str]:
 @app.get("/", response_class=HTMLResponse, dependencies=[Depends(require_https_transport)])
 def user_interface() -> str:
     return UI_HTML
+
+
+# Review finding G-040: FastAPI serves its schema at /openapi.json without a
+# credential, and that schema describes every route and every request model -
+# the full internal attack surface, handed to anything that can reach the
+# port. docs_url and redoc_url were already off; this was the last anonymous
+# description of the API.
+#
+# Authenticated rather than removed. e2e_acceptance.rb reads the path list to
+# check the contract against the running app, and a check that has to be
+# deleted in order to close a finding is a worse outcome than one that has to
+# send a key. require_api_key also refuses cleartext, so the schema never
+# travels anywhere the key would not.
+#
+# openapi_url=None above removes FastAPI's own unauthenticated route; this one
+# takes its place at the same path, so the route inventory is unchanged.
+@app.get("/openapi.json", include_in_schema=False,
+         dependencies=[Depends(require_api_key)])
+def openapi_schema() -> dict:
+    return app.openapi()
 
 
 @app.get("/db-check")

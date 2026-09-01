@@ -35,13 +35,17 @@ IDEMPOTENCY_PREFIX = "IDEM-API-E2E-#{RUN}"
 TASK_ID = "ENG-E2E-#{RUN}"
 HANDOFF_ID = "HO-E2E-#{RUN}"
 
-def request(http, method, path, token: nil, request_id: nil, idempotency_key: nil, body: nil)
+def request(http, method, path, token: nil, api_key: nil, request_id: nil, idempotency_key: nil, body: nil)
   request_class = {
     get: Net::HTTP::Get,
     post: Net::HTTP::Post
   }.fetch(method)
   req = request_class.new(path)
   req["Authorization"] = "Bearer #{token}" if token
+  # The schema route moved behind the API key (review finding G-040). It is
+  # the only call here that authenticates this way; the bus routes use bearer
+  # tokens and know nothing about this header.
+  req["X-API-Key"] = api_key if api_key
   req["X-Request-ID"] = request_id if request_id
   req["Idempotency-Key"] = idempotency_key if idempotency_key
   if body
@@ -335,7 +339,17 @@ http.start do |client|
   expect(code, 200, task, "Task completion")
   raise "Task completion mismatch" unless task["task_status"] == "DONE" && task["completed_at"]
 
-  code, openapi = request(client, :get, "/openapi.json")
+  # G-040: the schema no longer answers without a credential. Both halves are
+  # checked - that it refuses anonymously, and that the contract check still
+  # works for an authorised caller. Closing the finding by deleting this check
+  # would have been the worse trade.
+  code, _refused = request(client, :get, "/openapi.json")
+  expect(code, 401, _refused, "OpenAPI without a key")
+
+  api_key = ENV["WORKFORCE_API_KEY"]
+  raise "WORKFORCE_API_KEY is required to inspect the schema" if api_key.nil? || api_key.empty?
+
+  code, openapi = request(client, :get, "/openapi.json", api_key: api_key)
   expect(code, 200, openapi, "OpenAPI inspection")
   paths = openapi.fetch("paths").keys
   forbidden_paths = %w[/bus/v1/admin /bus/v1/credentials /bus/v1/email /bus/v1/whatsapp]

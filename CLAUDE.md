@@ -309,6 +309,8 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 12. **Ein Negativtest, der eine Funktion aufruft, muss ihre Stelligkeit treffen** (`G-044`). PostgreSQL antwortet auf eine falsche Argumentzahl mit `function ... does not exist` — genau die Meldung, die auch käme, wenn die Rechtemigration nie gelaufen wäre. Fünf Argumente statt dreizehn haben so einen Nachweis erzeugt, der grün aussah und nichts prüfte. Signaturen kommen aus der Migration oder aus `pg_get_function_identity_arguments`, nie aus dem Gedächtnis; `test_runbook_targets.py` vergleicht sie inzwischen.
 
+13. **Ein Schemaendpunkt ist eine Zugangsdatenfrage, keine Bequemlichkeit** (`G-040`). `/openapi.json` beschreibt jede Route und jedes Requestmodell — die interne Angriffsoberfläche, aufgeschrieben. FastAPI liefert sie ohne Credential aus, auch wenn `docs_url` und `redoc_url` längst aus sind; abgeschaltet wird sie mit `openapi_url=None`, und wer sie braucht, bekommt eine **eigene** Route am selben Pfad hinter `require_api_key` (das seinerseits Klartext verweigert). Authentifiziert statt entfernt, wo ein Abnahmetest daran hängt: Einen Befund zu schließen, indem man die Prüfung löscht, die ihn gefunden hätte, ist der schlechtere Tausch. Und die Korrektur hat zwei Hälften — nur die eigene Route hinzuzufügen ließe FastAPIs Original bestehen, deshalb prüft ein Test `app.openapi_url is None`.
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.
