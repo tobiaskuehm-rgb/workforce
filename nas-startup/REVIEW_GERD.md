@@ -750,3 +750,26 @@ Zusätzlich verliert das Phase-4-Zielmanifest die Abdeckung von `check_secret_fi
 ## Aktualisiertes Gate
 
 `G-041` und `G-042` bleiben geschlossen. Das bereits freigegebene Phase-4-Fenster **noch nicht starten**, bis `G-043` korrigiert und kurz nachgeprüft ist. Es ist keine Wiederholung der Migrationstests oder der übrigen Phase-4-Vorbereitung nötig; nur diese vier eng begrenzten Runbook-Punkte sind offen.
+
+---
+
+# Elfter Zielcheck – Nachprüfung `G-043`, Stand `0966cbb`
+
+## Urteil
+
+**`G-043` ist geschlossen. Technisches GO für das bereits freigegebene Phase-4-Fenster.**
+
+- Dumps und Compose-Sicherung werden nun über einen eng begrenzten privilegierten Wegwerf-Container in den gehärteten Backup-Ordner geschrieben. Der Ordner bleibt unverändert geschützt; Eigentümergruppe `administrators` ist auf der NAS GID `101`, das benötigte Image `postgres:17-alpine` liegt lokal vor. Größe, Eigentümer, Modus und Lesbarkeit werden anschließend geprüft.
+- Datenbank- und Rollen-Dump verwenden einen gemeinsamen Zeitstempel; `nas_status.sh` prüft jetzt das tatsächlich zusammengehörige Paar statt irgendeinen neuesten Rollen-Dump.
+- Der Auditnachweis umgeht den verbindlich `DISABLED` bleibenden Kanal nicht: Er ruft `workforce.bus_record_denial` als `workforce_api` auf, prüft den eindeutig markierten Datensatz als Eigentümer und weist anschließend nach, dass `workforce_api` die Audit-Tabelle nicht lesen darf.
+- Die temporäre Rolle wird in einem getrennten Aufräumschritt mit `DROP OWNED BY` und `DROP ROLE` entfernt; ihr Nichtbestand wird danach geprüft.
+- `check_secret_files.sh` und zusätzlich `g041_empty_volume_test.py` stehen jetzt sowohl im Zielmanifest als auch in der Übertragungsliste.
+- Die Schutztests decken Backup-Schreibweg, reale API-Routen, Testrollen-Cleanup, Hilfsskript-Abdeckung, Dump-Paarung und einen veralteten Runbook-Statuskopf jeweils mit Gegenproben ab.
+- Unabhängig lokal: **318 + 15 + 35 + 9 = 377 Tests PASS**, Python- und Shell-Syntax sowie `git diff --check` PASS.
+- Read-only auf der NAS bestätigt: alle geprüften Runbook-, Test- und Handover-Dateien sind bytegleich zum lokalen Stand; keine `g043`-Testreste; Manifest, Backup-Rechte und Gesamtstatus PASS.
+
+## Freigabegrenze
+
+Der Startpunkt ist unverändert und nachgemessen: API v7 und Datenbank gesund, Migrationen genau `001`–`003`, Kanal `DISABLED`, 0 aktive Credentials, `004`/`005` nicht angewendet und die neuen Rollen noch nicht vorhanden. Der Nachcheck selbst hat den Produktivstack nicht verändert.
+
+Das Runbook kann nun für das bereits durch den CEO freigegebene Phase-4-Fenster von oben nach unten abgearbeitet werden. Verbindlich bleiben alle dort genannten Abbruch- und Rückfallkriterien; Knowledge `004`/`008`, Telegram, Modellaufrufe und externe Tests bleiben außerhalb dieses Fensters.
