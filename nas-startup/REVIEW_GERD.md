@@ -671,3 +671,42 @@ Der DB-Service mountet den vollständigen Ordner `postgres-init/` nach `/docker-
 ## Aktualisiertes Gate
 
 Das zuvor erteilte technische GO für Phase 4 wird durch diesen Ergänzungscheck **pausiert**, bis `G-041` geschlossen und der Empty-Volume-Negativtest bestanden ist. Die Zwei-Manifest-Strategie und das späte Einspielen von `compose.yaml` werden bestätigt. Danach genügt wieder ein kurzer Zielcheck; die übrige Phase-4-Vorbereitung muss nicht neu begonnen werden.
+
+---
+
+# Neunter Zielcheck – Nachprüfung `G-041`, Stand `eea959e`
+
+## Urteil zu `G-041`
+
+**`G-041` ist technisch geschlossen.**
+
+- Der DB-Dienst mountet `postgres-init/` nicht mehr nach `/docker-entrypoint-initdb.d`.
+- `registry-migrate` behält den einzigen kontrollierten Zugriff unter `/opt/startup/migrations` und respektiert die einzelnen Gates.
+- Der statische Schutztest erkennt die ursprünglich gefährliche Mount-Zeile beim Wiedereinsetzen und lässt einen anderen, ungegateten Seed-Ordner bewusst zu.
+- Das Empty-Volume-Testskript übernimmt den echten Runner aus `compose.yaml` statt ihn nachzubauen. Claudes NAS-Evidenz weist für geschlossene Gates genau `001`–`003`, für Phase 4 genau `001`–`003`,`005`–`007` und in beiden Fällen kein `004`/`008` aus. Die absichtlich wiederhergestellte Falle führt `004` aus und endet bei `007` mit einem abgebrochenen Container; der Test kann den ursprünglichen Fehler also tatsächlich erkennen.
+- Unabhängig lokal: **282 + 15 + 35 + 9 = 341 Tests PASS**, Python- und Shell-Syntax sowie `git diff --check` PASS.
+- Read-only auf der NAS bestätigt: keine `g041`-Container, keine `g041`-Netze und kein `/tmp/g041`; Evidenz- und Review-Dateien stimmen bytegleich mit dem lokalen Stand überein.
+
+Der reale v7-DB-Container trägt den alten `/docker-entrypoint-initdb.d`-Mount erwartungsgemäß noch. Das ist kein neuer Produktivschaden: Das bestehende Volume ist nicht leer und auf der NAS liegen dort weiterhin nur `001`–`003`. Im Phase-4-Fenster muss der DB-Container aber zwingend mit `--force-recreate` ersetzt und der fehlende Mount danach am tatsächlichen Container geprüft werden.
+
+Der zustandsändernde Empty-Volume-Test wurde in diesem Nachcheck nicht ein zweites Mal auf der NAS ausgeführt. Geprüft wurden Implementierung, Roh-Evidenz, Schutztest, vollständige lokale Tests und der aufgeräumte NAS-Nachzustand. Eine Wiederholung ohne eigenes Testgate hätte keinen zusätzlichen Produktivschutz erzeugt.
+
+## `G-042` – Phase-4-Runbook verwendet falsche Laufzeitobjekte
+
+**Schwere:** hoch – Ausführungsblocker des Rolloutfensters
+**Datei:** `PHASE4_RUNBOOK.md`
+
+`G-041` ist behoben, aber das mitgeänderte Runbook ist noch nicht ausführbar:
+
+1. Zahlreiche Befehle verwenden `startup-postgres` und `startup-workforce-api`. Die realen Compose-Containernamen sind `startup-db-1` und `startup-workforce-api-1`; die falschen Namen existieren auf der NAS nicht.
+2. Der Nachweis für Migration `005` fragt `workforce.bus_denial_audit` und `created_at` ab. Angelegt werden tatsächlich `workforce.bus_denials` und `occurred_at`.
+
+### Kleinste sichere Korrektur
+
+- Alle hart codierten Containernamen durch die realen Compose-Namen ersetzen oder – robuster – sämtliche Befehle über `docker compose exec -T db ...` und `docker compose exec -T workforce-api ...` ausführen.
+- Auditabfrage auf `SELECT count(*), max(occurred_at) FROM workforce.bus_denials` korrigieren.
+- Einen statischen Runbook-Test ergänzen, der unbekannte Container- und Tabellenbezeichner erkennt.
+
+## Aktualisiertes Gate
+
+Der **Codeblocker `G-041` ist aufgehoben**. Das technische GO zur tatsächlichen Phase-4-Ausführung bleibt ausschließlich wegen `G-042` pausiert. Nach dessen kleiner Korrektur genügt ein kurzer Runbook-Nachcheck; der Empty-Volume-Nachweis und die übrige Phase-4-Vorbereitung müssen nicht wiederholt werden.
