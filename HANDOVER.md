@@ -134,11 +134,24 @@ Keiner davon kostet Geld, keiner braucht ein Modell. Alle brauchen **eine Freiga
 2. **API `v8` bauen und ausrollen.** Sie schreibt die Ablehnungen; ohne sie bleibt `bus_denials` leer.
 3. **Contract-Test in der neuen Fassung gegen den echten Bus.** Erwartung: `deny` vollständig, `allow` 17/17 und 5/5, `wrong_reason` 0.
 4. **`verify_secret_isolation_once.sh`** — braucht keine Firewall-Regel und keine Zugangsdaten.
-5. **Der Worker-Core-Lauf** (`compose.workercore.yaml`) — setzt `AGENT-ENG-001` in der Registry, Migration `004` und API `v8` voraus; `workercore_prepare.sql` prüft alle drei und bricht ab, statt halb zu laufen.
+5. **Der Kettenlauf** (`chain-test/`) — braucht zusätzlich einen Telegram-Testbot und die breitere Firewall-Regel
+6. **Der Worker-Core-Lauf** (`compose.workercore.yaml`) — setzt `AGENT-ENG-001` in der Registry, Migration `004` und API `v8` voraus; `workercore_prepare.sql` prüft alle drei und bricht ab, statt halb zu laufen.
 
 **Erledigt:** `startup.db.env` liegt auf der NAS — `root:users` mit `660`, genau drei Schlüssel, kein API-Schlüssel darin. `startup.env` unverändert.
 
 Eine Lehre dabei, die in den Runbooks steht: `sudo docker` scheitert über eine **nicht-interaktive** SSH-Sitzung, weil die NOPASSWD-Regel auf `/usr/local/bin/docker` lautet und `docker` dort nicht im `PATH` liegt. Mit vollem Pfad läuft es. `sudo sh …` geht gar nicht — die passwortlose Regel gilt nur für Docker.
+
+### Der Kettentest ist startbereit
+
+**Die Kette schließt sich lokal.** `chain-test/test_chain.py` fährt Telegram → Connector → Bus → Agent → Bus → Connector → Telegram mit dem **echten** Connector und dem **echten** Worker; Attrappen nur an den zwei Außenrändern. Neun Tests grün.
+
+Dritter struktureller Blocker gefunden und aufgelöst: Der Connector validiert `source_ref` als `^DEC-\d{3}/ENG-\d{3}$` und kann den ehrlichen Platzhalter aus `G-006` nicht schreiben. Er schreibt `DEC-023/ENG-007` — wahr, denn das ist die Entscheidung, die ihn erlaubt. Die Provenienz des Kettentests selbst steht im SQL.
+
+`G-011` ist behoben statt weiter umgangen: `timezone.utc` statt `datetime.UTC`, zwei Zeilen. Damit laufen **alle vier** Suiten auf dem Mac — vorher zwei.
+
+**Was der Lauf noch braucht, und zwar von dir:** ein neuer Telegram-Testbot mit Token in `chain-test/secrets/telegram_bot_token`, die beiden Chat-/User-Ids aus `identity_probe.py`, die Firewall-Regel für **`172.31.254.0/29`** (breiter als früher — zwei Container, zwei Adressen), und die Freigabe. Schrittfolge in `chain-test/README.md`.
+
+**Die eine Entscheidung vorher:** `TELEGRAM_OUTBOUND_POLICY`. `METADATA_ONLY` beweist die Kette auch (eine Benachrichtigung im Chat heißt, die Rückrichtung hat funktioniert), zeigt aber den Antworttext nicht. `BODY` zeigt ihn — und legt interne Inhalte bei Telegram ab.
 
 ### Der Worker-Core-Test ist gebaut
 
