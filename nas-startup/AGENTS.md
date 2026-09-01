@@ -42,6 +42,36 @@ Diese ergeben sich aus dem Security-Review (`nas-startup/evidence/2026-08-31_sec
 - **Ein Container, der nicht als Root läuft, braucht sein Zustandsverzeichnis im Image** — `mkdir` plus `chown` auf den Benutzer, unter dem er läuft. Ein benanntes Volume erbt Eigentümer und Rechte vom Mountpunkt im Image; fehlt der Pfad dort, gehört das Volume Root und der Prozess kommt nicht an seine eigenen Daten (Kettenlauf 2026-09-01). Dasselbe Muster wie `cap_drop: ALL` und die `600`-Datei: Eine Härtung verschiebt, wer worauf zugreift, und das fällt erst beim nächsten Lauf auf.
 - **Ein Container bekommt nur die Secret-Werte, die er benutzt** (`G-017`). Ein Mount nimmt Werte aus `docker inspect`, nicht aus dem Dateisystem. Wer die Datenbank nicht anfasst, bekommt kein Datenbankpasswort.
 
+## Wo was kanonisch liegt
+
+Am 2026-09-01 fiel auf, dass `workforce-api/` in diesem Repo von einem Stand **vor** der Knowledge-Arbeit abgezweigt war: Der autoritative Quellensatz hatte API v7 mit sieben `/knowledge/v1`-Endpunkten, dieses Repo hatte null davon — und beide Seiten hatten eine Migration namens `004` mit verschiedenem Inhalt (Befund `G-021`). Niemandem war es aufgefallen, weil es **keinen Ort gab, an dem der Stand einmal liegt**.
+
+| | kanonisch in | gepflegt von |
+|---|---|---|
+| **Code** — API, Migrationen, Connector, Agent, Compose, Tests | diesem **Git-Repo** | Claude Code |
+| **Entscheidungen** — `DEC_*`, `ENG_*`, Task Board, Company State | dem **iCloud-Quellensatz** | CEO und Codex |
+| **Reviews** — `REVIEW_GERD.md`, `REVIEW_ANTWORTEN.md` | Repo **und** NAS, beide | je eine Seite, siehe oben |
+| **Laufendes System** | der **NAS** — Ziel, nie Quelle | Deploy aus dem Repo |
+
+**Code wird nie aus dem iCloud-Satz heraus gepflegt und nie dorthin zurückgeschrieben.** Wenn dort Code liegt, der im Repo fehlt, wird er **einmalig ins Repo geholt** und danach nur noch dort geändert. Andersherum gilt dasselbe für Entscheidungen: Eine `DEC-`Nummer entsteht nicht im Repo.
+
+## Die Historie überlebt diesen Rechner
+
+Das Repo hat kein Remote — die NAS kann keins sein, dort ist kein Git installiert. Deshalb liegt die **vollständige Historie als Bundle** auf der NAS:
+
+```bash
+cd nas-startup && sh backup_bundle.sh
+```
+
+Nach jedem nennenswerten Arbeitsabschnitt ausführen. Wiederherstellung auf einem anderen Rechner braucht nur SSH:
+
+```bash
+ssh synology "cat /volume1/docker/git/workforce.bundle" > workforce.bundle
+git clone workforce.bundle "workorce claude"
+```
+
+Das Bundle trägt nur, was Git verfolgt — Secrets bleiben bauartbedingt draußen, dasselbe Argument wie beim Deploy-Manifest. Sobald das DSM-Paket „Git Server" installiert ist, ersetzt ein echtes Remote das Ganze.
+
 ## Testen
 
 Jedes Paket hat lokale Tests, die ohne Netzwerk, ohne Zugangsdaten und ohne Kosten laufen:
