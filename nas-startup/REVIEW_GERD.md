@@ -535,3 +535,53 @@ Der vollständige Prüfbericht steht in `NACHREVIEW_GERD_2026-09-01_C625B8C.md`.
 Claude soll vor Phase 4 zuerst `G-035` bis `G-037` korrigieren und `G-040` als Entscheidung offenhalten. Danach genügt ein kurzer gezielter Gerd-Nachcheck; die gesamte Analyse muss nicht noch einmal von vorn beginnen.
 
 **Ergänzung zu `G-037`:** Phase-3-Evidenz und Handover nennen 126 Manifestdateien; der abschließend deployte Stand `3a97c03` manifestiert tatsächlich 127. Das ändert den PASS nicht, bestätigt aber die noch unvollständige Dokumentkonsistenzprüfung.
+
+---
+
+# Siebte Prüfrunde – kurzer Zielnachcheck vor Phase 4, Stand `33574ae`
+
+## Ergebnis
+
+- Unabhängig lokal: **248 + 15 + 35 + 9 = 307 Tests PASS**; Python- und Shell-Syntax sowie `git diff --check` ebenfalls PASS.
+- NAS unverändert sicher: Datenbank und API v7 `healthy`, nur Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktive Credentials und noch keine Rollen `workforce_api`/`workforce_backup`.
+- NAS-Manifest: Commit `33574ae`, 128 manifestierte Dateien, 0 Abweichungen. Das Manifest umfasst weiterhin bewusst nicht die noch nicht ausgerollten Pfade `compose.yaml`, `postgres-init/` und `workforce-api/`.
+- Backup-Schutz: 56 Dateien geprüft, keine Welt-Rechte, kein `everyone`-ACL, PASS.
+- `G-036` ist geschlossen. `G-035` und `G-037` sind substanziell verbessert, aber noch nicht geschlossen.
+
+## G-035 – **teilweise geschlossen, weiterhin Phase-4-Blocker**
+
+Positiv bestätigt:
+
+- Die API verlangt jetzt `WORKFORCE_DB_USER=workforce_api` und ein Passwort aus einer Secret-Datei; ein Rückfall auf `POSTGRES_USER` ist entfernt.
+- `PUBLIC EXECUTE` wird für bestehende Funktionen widerrufen.
+- Die Backup-Rolle erhält die für einen realen `pg_dump` nötigen Sequenzrechte.
+- Der serverseitige Nachweis in der Produktivkopie ist plausibel und passt zur Implementierung.
+
+Noch offen:
+
+1. `workforce-api` lädt in `compose.yaml` weiterhin die vollständige `startup.env`. Damit befinden sich `POSTGRES_USER=workforce_app` und dessen Eigentümer-/Superuser-Passwort weiterhin im API-Container. Dass `app.py` diese Werte nicht mehr regulär verwendet, schützt nicht bei einer kompromittierten API: Der Prozess kann die Umgebungswerte auslesen und sich direkt als Eigentümer verbinden. Die Rollentrennung ist dadurch weiterhin umgehbar.
+2. `ALTER DEFAULT PRIVILEGES ... GRANT EXECUTE ON FUNCTIONS TO workforce_api` erteilt der API automatisch Ausführungsrecht auf **jede** künftig von `workforce_app` angelegte Funktion. Das ist keine explizite Funktions-Allowlist und kann eine spätere administrative `SECURITY DEFINER`-Funktion unbeabsichtigt freigeben.
+
+Erforderliche Mini-Korrektur:
+
+- `startup.env` vollständig aus dem API-Service entfernen. Die API erhält nur den nicht geheimen Datenbanknamen sowie eigene Secret-Dateien für API-Schlüssel und `workforce_api`-Passwort; Eigentümername und Eigentümerpasswort dürfen im Container weder als Environment noch als Mount vorhanden sein.
+- Den automatischen Default-Grant an `workforce_api` entfernen. `PUBLIC` bleibt per Default gesperrt; ausführbare API-Funktionen werden namentlich in der anlegenden Migration oder einer additiven Berechtigungsmigration freigegeben.
+- Ein Negativtest muss den **effektiven Container-Footprint** prüfen: kein `POSTGRES_USER`, kein `POSTGRES_PASSWORD`, kein `startup.env` im API-Service und keine Ausführung einer nicht allowlisteten Testfunktion.
+
+## G-036 – **geschlossen**
+
+`betas=["server-side-fallback-2026-07-01"]` und `fallbacks="default"` sind entfernt, SDK-Retries bleiben 0 und der Ablehnungspfad bleibt als reguläres Ergebnis erhalten. Die neuen Schutztests prüfen den ausführbaren Code und sind PASS. Vor einem gesondert freigegebenen bezahlten Modelllauf besteht aus diesem Befund kein weiterer Blocker.
+
+## G-037 – **teilweise geschlossen**
+
+Die sieben benannten Widersprüche wurden korrigiert und der Scan deutlich erweitert. Er übersieht aber weiterhin aktuelle Gegensätze in `HANDOVER.md`:
+
+- Zeile 143 behauptet weiterhin, Migrationen `004` und `005` würden gemeinsam und automatisch beim nächsten `up` angewendet. Tatsächlich sind beide getrennt und fail-closed gegatet; Phase 4 soll ausdrücklich nur `005`–`007` ohne `004` ausrollen.
+- Zeile 242 nennt weiter 126 Manifestdateien; der aktuelle NAS-Nachweis meldet 128.
+- Zeile 254 verlangt das neue API-Passwort in `startup.env`, obwohl die Implementierung nun eine Secret-Datei vorsieht und `startup.env` gerade aus dem API-Container entfernt werden muss.
+
+Der Widerspruchsscan muss diese drei konkreten Klassen mit Negativproben erkennen: veraltete automatische Gate-Aussage, hart codierte Manifestzahl und Secret-Ablage im Widerspruch zum Compose-Vertrag.
+
+## Freigabeempfehlung
+
+**Phase 4 noch nicht starten.** Der Umfang bis zur Freigabe ist klein und klar begrenzt: API-Container wirklich vom Eigentümer-Secret isolieren, Funktionsrechte wieder zu einer echten Allowlist machen und die drei verbleibenden Dokumentwidersprüche samt Schutztests schließen. Danach genügt erneut ein kurzer Zielcheck; keine neue Gesamtanalyse und kein neuer Phase-3-Preflight sind erforderlich, solange der NAS-Iststand unverändert bleibt.
