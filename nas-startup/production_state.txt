@@ -1,0 +1,21 @@
+# The exact source state the NAS is running, and the files that define it.
+#
+# Written 2026-09-01 after measuring: all six files below match commit
+# ff2d32a byte for byte (review finding G-023). Before that, the running
+# state had no named reference at all - a rollback point that nobody could
+# reconstruct.
+#
+# Update this file only together with a real production deployment, and only
+# after verify_production_state.sh reports PASS against the new commit.
+
+PRODUCTION_COMMIT=ff2d32a
+VERIFIED_AT=2026-09-01
+API_IMAGE=startup-workforce-api:v7
+APPLIED_MIGRATIONS=001_employee_registry,002_workforce_bus,003_workforce_bus_trigger_fix
+
+FILE=compose.yaml
+FILE=workforce-api/app.py
+FILE=workforce-api/Dockerfile
+FILE=postgres-init/001_employee_registry.sql
+FILE=postgres-init/002_workforce_bus.sql
+FILE=postgres-init/003_workforce_bus_trigger_fix.sql

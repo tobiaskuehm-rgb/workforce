@@ -123,5 +123,76 @@ class MigrationsAreSeparatelyGatedTest(unittest.TestCase):
         self.assertEqual(len(prefixes), len(set(prefixes)), migrations)
 
 
+class ProductionStateIsNamedTest(unittest.TestCase):
+    """G-023: the running state had no reference anyone could reconstruct."""
+
+    def setUp(self) -> None:
+        self.text = (ROOT / "production_state.txt").read_text(encoding="utf-8")
+        self.commit = next(
+            line.split("=", 1)[1].strip()
+            for line in self.text.splitlines()
+            if line.startswith("PRODUCTION_COMMIT=")
+        )
+        self.files = [
+            line.split("=", 1)[1].strip()
+            for line in self.text.splitlines()
+            if line.startswith("FILE=")
+        ]
+
+    def test_the_named_commit_exists(self) -> None:
+        import subprocess
+
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", "--quiet", f"{self.commit}^{{commit}}"],
+            cwd=ROOT.parent, capture_output=True, text=True,
+        )
+        self.assertEqual(0, result.returncode,
+                         f"PRODUCTION_COMMIT {self.commit} existiert nicht")
+
+    def test_every_named_file_exists_in_that_commit(self) -> None:
+        # A file listed here but absent from the commit would make the check
+        # pass on a state it never verified.
+        import subprocess
+
+        self.assertTrue(self.files)
+        for name in self.files:
+            with self.subTest(file=name):
+                result = subprocess.run(
+                    ["git", "cat-file", "-e", f"{self.commit}:nas-startup/{name}"],
+                    cwd=ROOT.parent, capture_output=True,
+                )
+                self.assertEqual(0, result.returncode, name)
+
+    def test_the_tag_points_at_the_named_commit(self) -> None:
+        import subprocess
+
+        result = subprocess.run(
+            ["git", "rev-list", "-n", "1", "produktiv-v7"],
+            cwd=ROOT.parent, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            self.skipTest("Tag produktiv-v7 nicht vorhanden")
+        tagged = result.stdout.strip()
+        expected = subprocess.run(
+            ["git", "rev-parse", self.commit],
+            cwd=ROOT.parent, capture_output=True, text=True,
+        ).stdout.strip()
+        self.assertEqual(expected, tagged)
+
+    def test_the_migrations_named_here_match_the_files(self) -> None:
+        # The applied migrations and the deployed migration files have to be
+        # the same set, or the reference describes two different systems.
+        applied = next(
+            line.split("=", 1)[1].strip()
+            for line in self.text.splitlines()
+            if line.startswith("APPLIED_MIGRATIONS=")
+        ).split(",")
+        from_files = [
+            name.split("/")[-1].removesuffix(".sql")
+            for name in self.files if name.startswith("postgres-init/")
+        ]
+        self.assertEqual(sorted(applied), sorted(from_files))
+
+
 if __name__ == "__main__":
     unittest.main()
