@@ -710,3 +710,43 @@ Der zustandsändernde Empty-Volume-Test wurde in diesem Nachcheck nicht ein zwei
 ## Aktualisiertes Gate
 
 Der **Codeblocker `G-041` ist aufgehoben**. Das technische GO zur tatsächlichen Phase-4-Ausführung bleibt ausschließlich wegen `G-042` pausiert. Nach dessen kleiner Korrektur genügt ein kurzer Runbook-Nachcheck; der Empty-Volume-Nachweis und die übrige Phase-4-Vorbereitung müssen nicht wiederholt werden.
+
+---
+
+# Zehnter Zielcheck – Runbook-Nachprüfung, Stand `c4abc84`
+
+## Urteil zu `G-042`
+
+**`G-042` ist geschlossen.**
+
+- Alle containerbezogenen Runbook-Befehle verwenden jetzt `docker compose` und stabile Dienstnamen; `docker inspect` bezieht die Container-ID aus `docker compose ps -q`.
+- Jeder Compose-Befehl startet im Projektordner `/volume1/docker/Startup`.
+- Die Auditabfrage nennt jetzt die tatsächlich von Migration `005` erzeugten Bezeichner `workforce.bus_denials` und `occurred_at`.
+- Der neue Wächter liest die Dienste aus `compose.yaml`, Tabellen und Spalten aus den im Fenster tatsächlich angewendeten Migrationen und erkennt die ursprünglichen Fehler beim absichtlichen Wiedereinsetzen.
+- Unabhängig lokal: **299 + 15 + 35 + 9 = 358 Tests PASS**, Python- und Shell-Syntax sowie `git diff --check` PASS.
+- Read-only auf der NAS bestätigt: die Dienste `db`, `registry-migrate` und `workforce-api` werden korrekt aufgelöst; `docker compose exec -T db ...` erreicht die laufende Datenbank als `workforce_app`.
+
+## `G-043` – Runbook bleibt an drei realen Ausführungspunkten blockiert
+
+**Schwere:** hoch – Ausführungsblocker des bereits freigegebenen Fensters
+**Datei:** `PHASE4_RUNBOOK.md`
+
+Der neue Namenswächter ist wirksam, deckt aber drei andere ausführbare Fehler im selben Runbook nicht ab:
+
+1. **Die frischen Dumps und die Compose-Sicherung können nicht geschrieben werden.** Die Umleitungen in Abschnitt 3 und das `cp` in Abschnitt 5 laufen als `TOBKUM`. `/volume1/docker/Startup-Backups` ist nach `G-022` absichtlich nur für Root beschreibbar. Der direkte NAS-Nachweis ergibt `NOT_WRITABLE`; `HANDOVER.md` dokumentiert dieselbe Grenze bereits ausdrücklich. Das Fenster würde vor der ersten Sicherung mit `Permission denied` abbrechen.
+2. **Der Ablehnungs-Audit-Test kann keinen Auditdatensatz erzeugen.** `/bus/messages` existiert nicht; der direkte NAS-Aufruf liefert `404`. Der echte Pfad ist `/bus/v1/messages`, erwartet `Authorization: Bearer ...` statt `X-API-Key` und wird bei dem im Fenster verbindlich `DISABLED` bleibenden Kanal bereits mit `503` abgewiesen, bevor `record_denial` erreicht wird. Eine bloße Pfadkorrektur reicht daher nicht.
+3. **Die Testrolle bleibt zurück.** Der Negativtest erteilt `niemand` `USAGE` auf dem Schema und versucht danach unmittelbar `DROP ROLE niemand`. PostgreSQL verweigert das Löschen einer Rolle mit verbliebenen Berechtigungsabhängigkeiten. Vor `DROP ROLE` muss mindestens `DROP OWNED BY niemand` beziehungsweise ein ausdrückliches `REVOKE` erfolgen; die Bereinigung muss auch nach einem fehlgeschlagenen Negativtest laufen.
+
+Zusätzlich verliert das Phase-4-Zielmanifest die Abdeckung von `check_secret_files.sh`, obwohl das Runbook dieses Skript unmittelbar ausführt. Das aktuelle Ist-Manifest führt die Datei; die Befehlslisten in Abschnitt 5 tun es nicht.
+
+### Kleinste sichere Korrektur
+
+- Dumps und Compose-Sicherung über einen nachweislich privilegierten, eng begrenzten Schreibweg erzeugen; danach Größe, Eigentümer `root:administrators`, Modus `640` und Lesbarkeit prüfen. Keine Lockerung des Backup-Ordners.
+- Den Auditnachweis ohne Öffnen des Kanals durchführen, beispielsweise über den realen `record_denial`-Pfad im v8-API-Container oder die freigegebene Funktion `workforce.bus_record_denial` als `workforce_api`, mit eindeutiger Test-Request-ID und anschließender Abfrage genau dieses Datensatzes.
+- Testrolle mit garantiertem `DROP OWNED BY niemand; DROP ROLE niemand` aufräumen und den Nichtbestand danach prüfen.
+- `check_secret_files.sh` in Zielmanifest und Übertragung aufnehmen.
+- Den Runbook-Wächter um Backup-Schreibweg, reale API-Routen beziehungsweise Auditpfad, Testrollen-Cleanup und alle im Runbook ausgeführten lokalen Hilfsskripte erweitern; jeweils mit Negativprobe.
+
+## Aktualisiertes Gate
+
+`G-041` und `G-042` bleiben geschlossen. Das bereits freigegebene Phase-4-Fenster **noch nicht starten**, bis `G-043` korrigiert und kurz nachgeprüft ist. Es ist keine Wiederholung der Migrationstests oder der übrigen Phase-4-Vorbereitung nötig; nur diese vier eng begrenzten Runbook-Punkte sind offen.
