@@ -38,7 +38,8 @@ Diese ergeben sich aus dem Security-Review (`nas-startup/evidence/2026-08-31_sec
 - **Der Agent bleibt werkzeuglos.** `Provider.complete()` nimmt Text und gibt Text zurück. Darauf beruht die gesamte Absicherung gegen Prompt-Injection: Die Modellausgabe wird ausschließlich als Antworttext verwendet, der Empfänger kommt immer aus dem Bus-Datensatz. Werkzeuge würden das Bedrohungsmodell umwerfen.
 - **Die Datengrenze bleibt eine Funktion.** Alles, was einen Modellanbieter erreicht, läuft durch `data_boundary.prepare_outbound()`. Kein zweiter Weg nach draußen.
 - **Fail-closed bleibt die Voreinstellung.** Kanal `DISABLED`, Schalter aus, Kill Switch an. Testzugänge sind kurzlebig und werden nach jedem Lauf widerrufen.
-- **Secrets nur in Dateien**, nie in Umgebungsvariablen, nie im Repo, nie im Chat.
+- **Secrets nur in Dateien**, nie in Umgebungsvariablen, nie im Repo, nie im Chat. Und **im Klartext**: eine mit TextEdit geschriebene Datei ist RTF, kein Token (Kettenlauf 2026-09-01). Länge und Form prüfen, nie den Wert ausgeben.
+- **Ein Container, der nicht als Root läuft, braucht sein Zustandsverzeichnis im Image** — `mkdir` plus `chown` auf den Benutzer, unter dem er läuft. Ein benanntes Volume erbt Eigentümer und Rechte vom Mountpunkt im Image; fehlt der Pfad dort, gehört das Volume Root und der Prozess kommt nicht an seine eigenen Daten (Kettenlauf 2026-09-01). Dasselbe Muster wie `cap_drop: ALL` und die `600`-Datei: Eine Härtung verschiebt, wer worauf zugreift, und das fällt erst beim nächsten Lauf auf.
 - **Ein Container bekommt nur die Secret-Werte, die er benutzt** (`G-017`). Ein Mount nimmt Werte aus `docker inspect`, nicht aus dem Dateisystem. Wer die Datenbank nicht anfasst, bekommt kein Datenbankpasswort.
 
 ## Testen
@@ -213,6 +214,8 @@ Beim Anlegen vergleicht der Bus den gespeicherten Datensatz gegen die Wiederholu
 6. Abnahmetest unter `postgres-tests/NNN_<name>_acceptance.sql` — läuft in einer Transaktion und endet mit `ROLLBACK`, damit er gegen die Produktion laufen darf.
 
 Daten werden nicht gelöscht, sondern in einen Status überführt. `prevent_hard_delete` blockt `DELETE` auf jeder Bus-Tabelle mit dem Hinweis auf „explicit status change and revocation metadata". `bus_events` und `bus_denials` blocken zusätzlich `UPDATE`.
+
+**Ein Widerruf ist nie nur ein Status.** `REVOKED` verlangt `revoked_at`, bei allen Bus-Tabellen zusätzlich einen nicht leeren `revocation_reason`; ein `CHECK` erzwingt das und lässt die ganze Transaktion scheitern, wenn es fehlt (Kettenlauf 2026-09-01). Das ist richtig so: ein widerrufener Datensatz ohne Grund wäre ein Loch in der Audit-Spur.
 
 ## Nachweise und Provenienz
 

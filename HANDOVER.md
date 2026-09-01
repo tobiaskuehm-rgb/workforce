@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-08-31, nach der Abarbeitung von Gerds zweiter Prüfrunde — von Claude Code
+**Zuletzt aktualisiert:** 2026-09-01, nach dem ersten vollständigen Kettenlauf — von Claude Code
 
 ## Wie die Zusammenarbeit läuft
 
@@ -70,6 +70,7 @@ cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && tar czf - <pfade
 | Agenten-Trockenlauf (Echo) | **PASS** | `2026-08-31_agent_dryrun.md` |
 | **ENG-008 Core-Roundtrip** | **`BUS LIFECYCLE PASS`**, Gate `CORE ITERATE` (`G-015`) | `2026-08-31_eng008_core_roundtrip.md` |
 | Security-Review Agentenschicht | erledigt | `2026-08-31_security_review_agent.md` |
+| **Kette Telegram → Bus → Agent → Bus → Telegram** | **`CHAIN PASS`** | `2026-09-01_chain_realtest.md` |
 | Contract-Test gegen den echten Bus | **überholt** — die alte Fassung zählte jeden Fehler als Ablehnung (`G-014`) | `2026-08-31_contract_test_und_aufraeumen.md` |
 
 Die Kette **Telegram → NAS → Bus → PostgreSQL** ist real belegt. Der Bus ist abgenommen.
@@ -141,9 +142,29 @@ Keiner davon kostet Geld, keiner braucht ein Modell. Alle brauchen **eine Freiga
 
 Eine Lehre dabei, die in den Runbooks steht: `sudo docker` scheitert über eine **nicht-interaktive** SSH-Sitzung, weil die NOPASSWD-Regel auf `/usr/local/bin/docker` lautet und `docker` dort nicht im `PATH` liegt. Mit vollem Pfad läuft es. `sudo sh …` geht gar nicht — die passwortlose Regel gilt nur für Docker.
 
-### Der Kettentest ist startbereit
+### Die Kette ist real gelaufen — `CHAIN PASS`
 
-**Die Kette schließt sich lokal.** `chain-test/test_chain.py` fährt Telegram → Connector → Bus → Agent → Bus → Connector → Telegram mit dem **echten** Connector und dem **echten** Worker; Attrappen nur an den zwei Außenrändern. Neun Tests grün.
+**2026-09-01: Das System hat zum ersten Mal getan, wofür es existiert.** Zwei vollständige Durchläufe Telegram → Connector → Bus → Agent → Bus → Connector → Telegram, je genau eine Anfrage und genau eine Antwort, Task-Bezug in beide Richtungen erhalten. Echo-Provider, kein Modell, 0,00 $. Nachweis: `evidence/2026-09-01_chain_realtest.md`.
+
+**Drei Defekte, die kein lokaler Test finden konnte:**
+
+1. Das Bot-Token war eine **RTF-Datei** — mit TextEdit geschrieben. 433 Bytes Auszeichnung statt 46 Zeichen Token.
+2. Das **Agenten-Image legte sein Zustandsverzeichnis nicht an**. Das Volume gehörte damit Root, der Container läuft als UID 10001 → `unable to open database file`, sofortiger Absturz. **Das hätte jeden künftigen Agentenlauf getroffen**, auch den Worker-Core-Test. Behoben im `Dockerfile`.
+3. `chain_cleanup.sql` setzte **`REVOKED` ohne Widerrufsmetadaten**. Die `CHECK`-Bedingung brach die Transaktion ab — richtig so, ein Widerruf ohne Grund wäre ein Loch in der Audit-Spur.
+
+Alle drei sind behoben und als Regeln in `CLAUDE.md` eingetragen.
+
+**Rückbau nachgemessen:** Kanal `DISABLED`, null aktive Zugänge im ganzen Projekt, null aktive Kettenrouten, Connector-Identität `REVOKED`, alle vier Token-Dateien gelöscht, keine Testcontainer mehr, Produktivstack unberührt und gesund.
+
+**Nebenbefund:** `AGENT-ENG-001` existiert und ist aktives Projektmitglied — vor dem Lauf gegen die Registry geprüft. Der Punkt aus `G-019` ist damit nachgemessen statt nachgelesen.
+
+**Offen beim Nutzer:** Firewall-Regel `172.31.254.0/29` zurücknehmen; über den Testbot `@Thorsten_workforcebot` entscheiden.
+
+**Erster Einsatz des Deploy-Manifests:** Der Lauf begann auf `f59e757`, 99 Dateien verifiziert. Zwei Korrekturen wurden während des Laufs nachdeployt — das steht im Nachweis, statt als „Commit plus Änderungen" verschleiert zu werden (`G-019`).
+
+### Der Kettentest lokal
+
+**Die Kette schließt sich auch lokal.** `chain-test/test_chain.py` fährt Telegram → Connector → Bus → Agent → Bus → Connector → Telegram mit dem **echten** Connector und dem **echten** Worker; Attrappen nur an den zwei Außenrändern. Neun Tests grün.
 
 Dritter struktureller Blocker gefunden und aufgelöst: Der Connector validiert `source_ref` als `^DEC-\d{3}/ENG-\d{3}$` und kann den ehrlichen Platzhalter aus `G-006` nicht schreiben. Er schreibt `DEC-023/ENG-007` — wahr, denn das ist die Entscheidung, die ihn erlaubt. Die Provenienz des Kettentests selbst steht im SQL.
 

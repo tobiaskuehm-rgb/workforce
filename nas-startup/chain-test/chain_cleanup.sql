@@ -50,19 +50,29 @@ WHERE credential_id IN (
       )
   AND credential_status <> 'REVOKED';
 
+-- A revocation needs its metadata, not just the status: every bus table has a
+-- CHECK that REVOKED implies revoked_at and a non-empty revocation_reason.
+-- Setting only the status aborts the whole transaction (found in the chain run
+-- on 2026-09-01), which is the constraint doing exactly its job - a revoked
+-- row without a reason would be a hole in the audit trail.
 UPDATE workforce.bus_route_allowlist
-SET route_status = 'REVOKED'
+SET route_status = 'REVOKED',
+    revoked_at = clock_timestamp(),
+    revocation_reason = 'Chain test completed or stopped'
 WHERE route_id LIKE 'ROUTE-CHAIN-' || current_setting('chain.run_suffix') || '%'
   AND route_status <> 'REVOKED';
 
 UPDATE workforce.bus_member_capabilities
-SET capability_status = 'REVOKED'
+SET capability_status = 'REVOKED',
+    revoked_at = clock_timestamp(),
+    revocation_reason = 'Chain test completed or stopped'
 WHERE project_id = 'START-UP'
   AND employee_id = current_setting('chain.connector')
   AND capability_status <> 'REVOKED';
 
 UPDATE workforce.employee_project_memberships
-SET membership_status = 'REVOKED'
+SET membership_status = 'REVOKED',
+    revoked_at = clock_timestamp()
 WHERE project_id = 'START-UP'
   AND employee_id = current_setting('chain.connector')
   AND membership_status <> 'REVOKED';
@@ -70,7 +80,8 @@ WHERE project_id = 'START-UP'
 -- The identity itself is retired, not removed. A REVOKED identity can never be
 -- reactivated, which is why every run creates its own.
 UPDATE workforce.employees
-SET employment_status = 'REVOKED'
+SET employment_status = 'REVOKED',
+    revoked_at = clock_timestamp()
 WHERE employee_id = current_setting('chain.connector')
   AND employment_status <> 'REVOKED';
 
