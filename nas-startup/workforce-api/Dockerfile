@@ -1,7 +1,7 @@
 FROM python:3.13-alpine
 
 LABEL org.opencontainers.image.title="Start UP Workforce API" \
-      org.opencontainers.image.version="v8"
+      org.opencontainers.image.version="v9"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

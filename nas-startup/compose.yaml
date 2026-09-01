@@ -177,7 +177,7 @@ services:
       - no-new-privileges:true
 
   workforce-api:
-    image: startup-workforce-api:v8
+    image: startup-workforce-api:v9
     build:
       context: ./workforce-api
     restart: unless-stopped

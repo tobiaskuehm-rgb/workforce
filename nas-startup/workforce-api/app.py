@@ -623,7 +623,7 @@ def bus_status() -> dict:
         with connection() as conn:
             if conn.execute("SELECT to_regclass('workforce.bus_channels')").fetchone()[0] is None:
                 return {
-                    "api_version": "v8",
+                    "api_version": "v9",
                     "project_id": BUS_PROJECT_ID,
                     "migration": "missing",
                     "channel_status": "MISSING",
@@ -649,13 +649,13 @@ def bus_status() -> dict:
 
     if row is None:
         return {
-            "api_version": "v8",
+            "api_version": "v9",
             "project_id": BUS_PROJECT_ID,
             "migration": "missing",
             "channel_status": "MISSING",
         }
     return {
-        "api_version": "v8",
+        "api_version": "v9",
         "project_id": BUS_PROJECT_ID,
         "migration": "002_workforce_bus" if row[3] else "missing",
         "channel_status": row[0],
@@ -881,7 +881,7 @@ def knowledge_status() -> dict:
                 "SELECT to_regclass('workforce.knowledge_systems')"
             ).fetchone()[0] is None:
                 return {
-                    "api_version": "v8",
+                    "api_version": "v9",
                     "project_id": BUS_PROJECT_ID,
                     "migration": "missing",
                     "system_status": "MISSING",
@@ -905,13 +905,13 @@ def knowledge_status() -> dict:
 
     if row is None:
         return {
-            "api_version": "v8",
+            "api_version": "v9",
             "project_id": BUS_PROJECT_ID,
             "migration": "missing",
             "system_status": "MISSING",
         }
     return {
-        "api_version": "v8",
+        "api_version": "v9",
         "project_id": BUS_PROJECT_ID,
         "migration": "004_knowledge_capability" if row[1] else "missing",
         "system_status": row[0],

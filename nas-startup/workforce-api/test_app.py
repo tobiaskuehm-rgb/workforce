@@ -56,7 +56,7 @@ def test_bus_status_reports_missing_migration_without_credentials(monkeypatch):
     response = TestClient(workforce_app.app).get("/bus/v1/status")
     assert response.status_code == 200
     assert response.json() == {
-        "api_version": "v8",
+        "api_version": "v9",
         "project_id": "START-UP",
         "migration": "missing",
         "channel_status": "MISSING",
@@ -232,7 +232,7 @@ def test_knowledge_status_reports_disabled_without_exposing_content(monkeypatch)
     response = TestClient(workforce_app.app).get("/knowledge/v1/status")
     assert response.status_code == 200
     assert response.json() == {
-        "api_version": "v8",
+        "api_version": "v9",
         "project_id": "START-UP",
         "migration": "004_knowledge_capability",
         "system_status": "DISABLED",
@@ -566,7 +566,7 @@ def test_the_api_reports_one_version_everywhere():
 
     source = pathlib.Path(workforce_app.__file__).read_text(encoding="utf-8")
     versions = set(re.findall(r'"api_version": "(v[0-9]+)"', source))
-    assert versions == {"v8"}, versions
+    assert versions == {"v9"}, versions
 
 
 def test_the_denial_audit_knows_the_knowledge_record_type():
