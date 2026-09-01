@@ -39,10 +39,13 @@ Zwei Grenzen aus `DEC-027` und `ENG-008`, die gelten:
 
 ```
 Mac-Repo  /Users/Tobi/Documents/Codex/workorce claude/nas-startup/   ← Quelle der Wahrheit
-NAS       /volume1/docker/Startup/                                    ← Ziel, kein Git
+NAS       /volume1/docker/Startup/                                    ← Deploy-Ziel
+NAS       /volume1/docker/git/workforce.git                           ← Git-Remote (seit 2026-09-01)
 ```
 
-Die NAS hat **kein Git**. Am Code wird im Repo gearbeitet, auf die NAS wird deployt. Ausnahme sind die beiden Review-Dateien: Die leben auf der NAS, weil Gerd nur dort hinkommt.
+**Neu seit 2026-09-01: Das Repo hat ein Remote.** `git push` nach jedem Arbeitsabschnitt; auf einem anderen Rechner `git clone synology:/volume1/docker/git/workforce.git`. Vorher lag die gesamte Historie auf genau einem Mac — das war das größere Risiko als jeder Befund im Reviewlog, und es ist die Ursache hinter `G-021`.
+
+Am Deploy ändert das nichts: Am Code wird im Repo gearbeitet, auf `/volume1/docker/Startup/` wird deployt. Am Code wird im Repo gearbeitet, auf die NAS wird deployt. Ausnahme sind die beiden Review-Dateien: Die leben auf der NAS, weil Gerd nur dort hinkommt.
 
 Deploy (`rsync` und `scp` funktionieren auf dieser DSM nicht). **Versionierte Dateien, nie ganze Verzeichnisse** — ein verzeichnisweites Archiv nimmt Secrets und Laufzeitdateien mit (Befund `G-020`). Die Dateiliste geht über `-T` in `tar`, nicht über `$(…)`: **zsh zerlegt eine unquotierte Variable nicht in Wörter**, und die Pfade kämen als ein einziges Argument an.
 

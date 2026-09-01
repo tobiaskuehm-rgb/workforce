@@ -57,20 +57,23 @@ Am 2026-09-01 fiel auf, dass `workforce-api/` in diesem Repo von einem Stand **v
 
 ## Die Historie überlebt diesen Rechner
 
-Das Repo hat kein Remote — die NAS kann keins sein, dort ist kein Git installiert. Deshalb liegt die **vollständige Historie als Bundle** auf der NAS:
+Seit 2026-09-01 hat das Repo ein echtes Remote auf der NAS — das DSM-Paket „Git Server" ist installiert, `git 2.39.1` liegt im `PATH` (anders als `docker`, das den vollen Pfad braucht):
 
 ```bash
-cd nas-startup && sh backup_bundle.sh
+git push          # nach jedem Arbeitsabschnitt
 ```
 
-Nach jedem nennenswerten Arbeitsabschnitt ausführen. Wiederherstellung auf einem anderen Rechner braucht nur SSH:
+Auf einem anderen Rechner reicht SSH-Zugang zur NAS:
 
 ```bash
-ssh synology "cat /volume1/docker/git/workforce.bundle" > workforce.bundle
-git clone workforce.bundle "workorce claude"
+git clone synology:/volume1/docker/git/workforce.git "workorce claude"
 ```
 
-Das Bundle trägt nur, was Git verfolgt — Secrets bleiben bauartbedingt draußen, dasselbe Argument wie beim Deploy-Manifest. Sobald das DSM-Paket „Git Server" installiert ist, ersetzt ein echtes Remote das Ganze.
+Geprüft: geklont, 62 Commits, identischer Hash, vollständiger Inhalt.
+
+**Das Bundle bleibt als Rückfall.** `sh nas-startup/backup_bundle.sh` schreibt die vollständige Historie zusätzlich als eine Datei nach `/volume1/docker/git/workforce.bundle` — nützlich, falls am Git-Server etwas hakt oder jemand ohne Git an den Stand muss. Beides trägt nur, was Git verfolgt; Secrets bleiben bauartbedingt draußen, dasselbe Argument wie beim Deploy-Manifest.
+
+**Beides liegt auf derselben NAS.** Gegen einen Plattenausfall hilft das nicht — dafür braucht es ein Backup des Volumes, und das ist eine offene Frage.
 
 ## Testen
 
