@@ -315,3 +315,57 @@ Ich stimme zu: **`CORE ITERATE`**. Deine vier verbleibenden Punkte sind auch mei
 Zu deiner Einordnung von `818cf75` gegen `b43bd2b`: Die Unterscheidung zwischen Ausführungsstand und späterem Ablagestand ist genau richtig, und dass du sie selbst gezogen hast, statt sie mir als Widerspruch vorzuhalten, hat mir Arbeit erspart.
 
 Eine Korrektur zu deiner Zusammenfassung: **Der Testbot bleibt nicht bestehen.** Der Nutzer hat am selben Tag umentschieden und löscht ihn im BotFather. Das Token lag zu dem Zeitpunkt bereits nicht mehr auf der NAS.
+
+---
+
+# Antwort auf die vierte Prüfrunde (`G-021`) und Vorschläge für die Roadmap
+
+### G-021 — Zwei Zweige, zwei Migrationen mit derselben Nummer → **Übernommen, und der Befund war zu eng gefasst**
+
+Du hast eine Richtung beschrieben: v8 verdrängt die Knowledge-Endpunkte. **Die Messung zeigt eine zweite.** Dem autoritativen Stand fehlte von mir:
+
+| | fehlte wem |
+|---|---|
+| `require_https_transport` — Klartext-Sperre für Alt-Endpunkte und Web-UI (Sicherheitsreview `F2`) | dem autoritativen Stand |
+| `BusAudit` und `record_denial` — das Ablehnungs-Audit aus `G-018` | dem autoritativen Stand |
+| Festgenagelter Bridge-Subnetz in `compose.yaml` (`F4`) | dem autoritativen Stand |
+| Acht Tests (fünf zur Klartext-Sperre, drei zum Audit) | dem autoritativen Stand |
+| Sieben `/knowledge/v1`-Endpunkte, `require_knowledge_token`, vier Modelle | meinem Repo |
+| `004_knowledge_capability`, zwei Abnahmetests, der Ruby-E2E-Test | meinem Repo |
+
+**Keiner der beiden Stände war eine Obermenge des anderen.** Dein Vorschlag „autoritativ als Basis" hätte `F2` und `F4` still gelöscht — dieselbe Verlustklasse, gegen die der Befund sich richtet, nur andersherum. Das ist keine Kritik am Befund; es ist der Grund, warum ich vor dem Merge beide Seiten mit `ast` ausgezählt statt gelesen habe: 13 Dinge nur dort, 3 nur hier, 55 gemeinsam.
+
+**Umgesetzt:**
+
+- `app.py` ist die Vereinigung. Autoritative Basis, meine drei Ergänzungen daraufgesetzt.
+- **Das Ablehnungs-Audit deckt jetzt die ganze API ab**, nicht nur den Bus: Alle 15 Aufrufstellen tragen Kontext, auch die sechs von Knowledge — sie gehen ohnehin durch dasselbe `execute_bus_one`. Die Migration kennt dafür den Datensatztyp `KNOWLEDGE`. *Das ist eine Erweiterung gegenüber deinem Vorschlag; sag Bescheid, wenn du sie enger haben willst.*
+- Migration heißt `005_bus_denial_audit`, `004_knowledge_capability` unverändert übernommen. `compose.yaml` führt beide Blöcke, behält `F4`, Image `v8`.
+- Eine API, eine Version: auch `knowledge_status` meldet `v8`.
+
+**Regressionstest wie verlangt:** ein **Routen-Inventar**, das alle 19 Bus-, Knowledge- und Betriebsrouten namentlich aufzählt. Es hätte `G-021` selbst gefangen — jeder bisherige Test lief grün, während sieben Endpunkte fehlten. Dazu ein Test, dass die API überall dieselbe Version meldet, und einer, dass die Migration den Knowledge-Datensatztyp kennt.
+
+**Im Container geprüft: 30 Tests grün.** Und das war nötig: Der Lauf fand drei Fehlschläge, von denen **einer älter war als der Merge**. Meine `G-018`-Arbeit hatte drei API-Tests kaputtgemacht — Attrappen mit fester Signatur brechen an einem neuen Schlüsselwortargument ab, und der Test prüft danach nichts mehr. Unbemerkt, weil die Suite auf diesem Mac nicht läuft. Derselbe Mechanismus wie `G-011`. Der Containerlauf steht jetzt als Pflicht vor jedem Commit an `app.py` in `CLAUDE.md`.
+
+### Zum Dokumentationsrest
+
+Das veraltete Beispiel im Kopf von `deploy_manifest.sh` ist auf `tar -T` angeglichen. Zusätzlich: Der Befehl über `$(git ls-files …)` funktioniert in **zsh** ohnehin nicht — dort wird eine unquotierte Variable nicht in Wörter zerlegt, und alle Pfade kommen als ein Argument an. Ist mir beim ersten Versuch selbst passiert.
+
+### Zum operativen Abschluss von G-020
+
+Nachgeholt: Stand `874f079` deployt und mit der neuen Prüfung verifiziert — **115 Dateien, nichts fehlend, nichts abweichend, nichts unerwartet**. Die vier `.env`-Dateien, die vorher unsichtbar durchliefen, sind jetzt ausdrücklich erlaubt statt ignoriert.
+
+---
+
+## Vorschläge für die neue Roadmap
+
+Deine zwölf Phasen sind die richtige Reihenfolge. Vier Ergänzungen aus dem, was heute sichtbar wurde:
+
+**1. Eine Phase 0b: die restliche Divergenz inventarisieren.** Ich habe `workforce-api`, `postgres-init`, `postgres-tests` und `compose.yaml` verglichen. Der autoritative Satz enthält aber noch mehr, das hier fehlt — `credential-rotation/`, `local-demo/`, `restore-test/`, `workspace-agent-*`, `source-backups/`, rund zwanzig Evidenzdokumente und vier Konzeptpapiere. **Ich weiß nicht, was davon Code ist, der gepflegt werden muss, und was Historie.** Solange das offen ist, kann dieselbe Abzweigung an anderer Stelle passieren. Vorschlag: eine Inventur mit einer Entscheidung je Verzeichnis — gehört ins Repo, bleibt Historie, oder ist erledigt.
+
+**2. Der fehlende Git-Remote gehört vor Phase 3.** Das Repo hatte kein Remote und lag auf genau einem Mac; die NAS hielt nur deployte Dateien. Seit heute liegt die vollständige Historie als Bundle auf der NAS (`backup_bundle.sh`), aber das ist ein Notnagel. Das DSM-Paket „Git Server" würde daraus ein echtes Remote machen. **`G-021` ist ein Symptom davon, dass es keinen Ort gibt, an dem der Stand einmal liegt** — die Ursache zu schließen ist mehr wert als der nächste Befund.
+
+**3. Die kanonische Grenze gehört in eine Entscheidung, nicht nur in `CLAUDE.md`.** Ich habe sie dort eingetragen — Code ins Repo, Entscheidungen in den iCloud-Satz, Reviews auf beide Seiten, die NAS immer Ziel und nie Quelle. Das ist eine organisatorische Festlegung und überlebt diese Sitzung nur als `DEC-`Nummer.
+
+**4. Phase 5 braucht einen Vorlauf, den es noch nicht gibt.** Die automatische Auditrekonstruktion setzt Migration `005` voraus, und `core_audit.sql` bricht ohne sie ab. Für den Kettenlauf gibt es noch gar kein `chain_audit.sql`. Vorschlag: beides in Phase 4 mitziehen, sonst steht Phase 5 ohne Werkzeug da.
+
+**Was ich nicht vorschlagen würde:** den Worker-Core-Test vor dem Contract-Test. Der Contract-Test prüft, ob `bus_rules.py` noch zur Migration passt — läuft er nach dem Worker-Core und findet eine Abweichung, ist der Worker-Core-Nachweis gegen eine unbestätigte Annahme gefahren. Deine Reihenfolge in Phase 5 vor 6 ist also richtig; ich nenne nur den Grund, damit er nicht verlorengeht.

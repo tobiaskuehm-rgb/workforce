@@ -167,6 +167,20 @@ Alle drei sind behoben und als Regeln in `CLAUDE.md` eingetragen.
 
 **Firewall-Regel zurückgenommen, nachgemessen** mit dem tokenfreien Netz-Check: `WORKFORCE_CONNECT_TIMEOUT` von `172.31.254.2`. Der Rückbau ist damit vollständig — kein offener Netzweg, kein aktiver Zugang, kein Secret auf der Platte, keine Testcontainer, Kanal `DISABLED`.
 
+### Gerds vierte Prüfrunde: `G-021` behoben — die Zweige sind vereinigt
+
+**Der schwerste Befund bisher, und er war zu eng gefasst.** Er nannte eine Richtung: API `v8` verdrängt die Knowledge-Endpunkte von `v7`. Die Messung zeigte eine zweite — dem autoritativen Stand fehlten `require_https_transport` (`F2`), das Ablehnungs-Audit, der festgenagelte Bridge-Subnetz (`F4`) und acht Tests. **Keiner der beiden Stände war eine Obermenge des anderen.**
+
+Vereinigt: `app.py` aus autoritativer Basis plus meinen drei Ergänzungen, 15 Aufrufstellen mit Audit-Kontext (auch die sechs von Knowledge), Migration als `005_bus_denial_audit` neben dem unveränderten `004_knowledge_capability`, `compose.yaml` mit beiden Blöcken, `test_app.py` aus beiden Seiten. Drei Abnahmetests und ein Ruby-E2E-Test, die hier ganz fehlten, sind jetzt da.
+
+**Im Container geprüft: 30 Tests grün** — und der Lauf fand drei Fehlschläge, von denen einer älter war als der Merge. Meine `G-018`-Arbeit hatte drei API-Tests kaputtgemacht, unbemerkt, weil die Suite auf diesem Mac nicht läuft. Der Containerlauf ist jetzt Pflicht vor jedem Commit an `app.py`.
+
+Neu als Wächter: ein **Routen-Inventar**, das alle 19 Routen namentlich aufzählt. Es hätte `G-021` selbst gefangen — jeder bisherige Test lief grün, während sieben Endpunkte fehlten.
+
+### Was noch nicht inventarisiert ist
+
+Der autoritative Satz enthält mehr, das hier fehlt: `credential-rotation/`, `local-demo/`, `restore-test/`, `workspace-agent-*`, `source-backups/`, rund zwanzig Evidenzdokumente, vier Konzeptpapiere. **Ich weiß nicht, was davon gepflegter Code ist und was Historie.** Solange das offen ist, kann dieselbe Abzweigung an anderer Stelle passieren. Vorschlag in `REVIEW_ANTWORTEN.md`: eine Inventur mit einer Entscheidung je Verzeichnis.
+
 ### Gerds dritte Prüfrunde: `G-020` behoben
 
 **Ein neuer Befund, Schwere mittel, trifft zu.** Das Deploy-Manifest prüfte die gelisteten Dateien korrekt, erkannte aber keine **unerwarteten** — und hätte umgekehrt einen lokal vorhandenen `secrets/`-Ordner mit ins Archiv genommen. Auf der NAS nachgemessen: vier Dateien in den deployten Pfaden fehlten im Manifest (alles `*.env`, legitim — aber die Prüfung konnte das nicht unterscheiden).
