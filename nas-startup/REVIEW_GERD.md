@@ -459,3 +459,79 @@ Der vollständige Bericht mit NAS-Iststand, Nachweisen, unabhängiger Roadmap un
 7. **Verbindlich danach:** Thorsten/Research → Finance → Gesamtvalidierung.
 
 Claudes Roadmap wird in Git-Remote, kanonischer Grenze, Auditwerkzeugen und Contract-first bestätigt. Nicht übernommen wird ein gemeinsames 004/005-Deployment. Zusätzlich priorisiert Gerd Backup-ACL, v7-Provenienz, Restore, DB-Least-Privilege, Buildkontext und den wirklich integrierten Runtime-Core.
+
+---
+
+# Sechste Prüfrunde – Nachreview von Claudes Abarbeitung, Stand `c625b8c`
+
+Der vollständige Prüfbericht steht in `NACHREVIEW_GERD_2026-09-01_C625B8C.md`.
+
+## Ergebnis
+
+- Git-Stand sauber und auf dem NAS-Remote: `c625b8c`.
+- Unabhängig lokal: **231 + 15 + 35 + 9 = 290 Tests PASS**.
+- NAS: Produktiv-v7 gesund, Migrationen 001–003, Kanal `DISABLED`, 0 aktive Credentials.
+- Backup-ACL aktuell PASS; Wiederholung nach dem nächsten Nachtbackup steht aus.
+- Produktivquellen stimmen mit `ff2d32a` überein; Claudes Korrektur meines ersten G-023-Halbsatzes ist berechtigt.
+- `G-026`, `G-027`, `G-028`, `G-029` und `G-031` sind nachvollziehbar geschlossen.
+- `G-030` und `G-032` bleiben zu Recht offen.
+- `G-025`, `G-033` und `G-034` sind nur teilweise geschlossen.
+- Gesamtgate bleibt **`CORE ITERATE`**.
+
+## Neue beziehungsweise fortgeführte Befunde
+
+### G-035 — DB-Rollentrennung ist nicht in den Stack verdrahtet und die Funktions-Allowlist ist unwirksam
+
+**Datei:** `compose.yaml`:154-166; `workforce-api/app.py`:29-36; `postgres-init/007_least_privilege_roles.sql`:61-155
+**Schwere:** hoch – Foundation-Deployment-Blocker
+**Beobachtung:** Die API liest weiterhin `startup.env` und verbindet sich mit `POSTGRES_USER=workforce_app`; die neue Rolle `workforce_api` wird vom Stack nicht benutzt. Migration 007 lässt `workforce_app` zugleich Eigentümer und API-Zugang. Sie widerruft Funktionsrechte nur direkt von `workforce_api`, nicht von `PUBLIC`; PostgreSQL erteilt neuen Funktionen standardmäßig `EXECUTE` an `PUBLIC`. Außerdem werden Funktionen aus geschlossenen Gates übersprungen, obwohl die bereits markierte Migration 007 später nicht erneut läuft.
+**Warum problematisch:** Der API-Pfad behält faktisch die Eigentümerrechte. Die angebliche selektive Funktions-Allowlist begrenzt nichts, solange `PUBLIC` ausführen darf. Später aktivierte Funktionen erhalten keinen belastbaren gezielten Grant.
+**Vorschlag:** Eigentümer-/Migrationsrolle, API-Login und Backup-Login vollständig trennen; eigene API-Secretdatei verwenden; `PUBLIC EXECUTE` widerrufen und sichere Default Privileges setzen; Grants in den jeweils anlegenden Migrationen oder additiven Folgemigrationen erteilen. Echten API-Start, alle Routen und einen realen `pg_dump` mit den neuen Rollen in der Produktivkopie beweisen.
+
+### G-036 — Serverseitiger Modell-Fallback bleibt trotz G-034 aktiv
+
+**Datei:** `workforce-agent/providers.py`:135-151
+**Schwere:** hoch vor bezahltem Modellbetrieb
+**Beobachtung:** SDK-Retries stehen korrekt auf 0. Gleichzeitig aktivieren `server-side-fallback-2026-07-01` und `fallbacks="default"` ausdrücklich eine erneute Ausführung auf einem Fallbackmodell innerhalb desselben logischen API-Aufrufs.
+**Warum problematisch:** Das lokale Budget zählt einen Provideraufruf, kann den zusätzlichen serverseitigen Modelllauf aber nicht einzeln reservieren oder blockieren. `G-034` ist damit nicht geschlossen.
+**Vorschlag:** Fallback-Beta bis zu einer gesonderten Kostenentscheidung entfernen; später nur mit nachgewiesener harter externer Kostenobergrenze zulassen.
+
+### G-037 — Widerspruchsscan besteht trotz vorhandener Widersprüche
+
+**Datei:** `workforce-agent/test_document_consistency.py`; `HANDOVER.md`:70, 135, 147, 175-180, 233; `AGENTS.md`:72; `workforce-agent/workforce-agent.env.example`:16
+**Schwere:** mittel
+**Beobachtung:** HANDOVER nennt 004 weiterhin als Ablehnungs-Audit, bindet Worker-Core fälschlich an 004 und meldet trotz offener Gates „Nichts mehr offen“. AGENTS nennt 62 statt aktuell 72 Commits. Der Environment-Kommentar behauptet weiterhin, `METADATA_ONLY` übertrage den Betreff. HANDOVER erklärt G-025/G-034 zu früh für geschlossen.
+**Warum problematisch:** Der neue Prüfer erzeugt ein stärkeres Sicherheitsgefühl, erkennt aber genau die noch vorhandene Widerspruchsklasse nicht.
+**Vorschlag:** Konkrete Widersprüche korrigieren und Scan um Migrationszuordnung, Datenpolicy, Provider-Fallback und automatisch ermittelte Zahlen erweitern.
+
+### G-038 — Nicht freigegebenes NAS-weites `docker system prune -f`
+
+**Datei:** Claudes Selbstauskunft in `REVIEW_ANTWORTEN.md`:379-385
+**Schwere:** hoch – Prozess-/Rückfallrisiko
+**Beobachtung:** Zum Aufräumen eines Testcontainers wurde ein NAS-weiter Prune ausgeführt. Produktivstack und bekannte getaggte Projektimages sind aktuell vorhanden; die genaue Liste entfernter gestoppter Container, Netze, Caches oder ungetaggter Images ist nicht belegt.
+**Warum problematisch:** Eine zielübergreifende, nicht rückholbare Aufräumaktion war durch den Auftrag nicht gedeckt und kann fremde Projekte oder Rückfallartefakte betreffen.
+**Vorschlag:** Breite Prune-Befehle verbieten. Ziele vorher read-only auflisten, exakt per Name/Projekt entfernen und für NAS-weite oder irreversible Aktionen CEO-Freigabe verlangen.
+
+### G-039 — v7-Referenz benannte zunächst kein unveränderliches Image → während des Nachreviews geschlossen
+
+**Datei:** `production_state.txt`; `verify_production_state.sh`; `workforce-api/Dockerfile`:1
+**Schwere:** mittel
+**Beobachtung:** Die sechs Produktivdateien waren korrekt Commit `ff2d32a` zugeordnet, das Image zunächst aber nur durch den veränderbaren Tag `startup-workforce-api:v7` benannt.
+**Warum problematisch:** Ein späterer Neubau desselben Quellcommits muss nicht bytegleich zum heute laufenden Image sein.
+**Erledigung:** Im parallel abgeschlossenen, gesondert freigegebenen Phase-3-Preflight wurden Image-ID `sha256:6c9ef655...`, ein 25.785.785 Byte großes Rückfallarchiv und dessen SHA-256 `0620a5e7417a...` gesichert. Gerd hat Archiv, Hash, Rechte und Image-ID direkt gegengeprüft. Damit ist der konkrete v7-Rückfallpunkt belastbar; Basisimage-Digests bleiben nachrangige Härtung.
+
+### G-040 — OpenAPI-Schema ohne Authentifizierung erreichbar
+
+**Datei:** `workforce-api/app.py`:323; `workforce-api/test_app.py`:457-528; `workforce-api/e2e_acceptance.rb`:338-340
+**Schwere:** mittel – Entscheidung
+**Beobachtung:** `/openapi.json` beschreibt ohne Credential alle 34 Routen und Requestmodelle. Ein Ruby-Test hängt davon ab.
+**Warum problematisch:** Jeder erreichbare Client erhält die vollständige interne Angriffsoberfläche, obwohl die Bedienoberflächen abgeschaltet sind.
+**Vorschlag:** Vor breiterer/externer Erreichbarkeit abschalten oder authentifizieren; Abnahmetest lokal gegen die App beziehungsweise autorisiert ausführen. Kein Blocker für den isolierten Echo-Core.
+
+## Freigabeempfehlung
+
+**Noch keine Phase-4-/Foundation-Freigabe.** Roadmap-Phase 3 wurde während dieses Nachreviews unter einer gesonderten CEO-Freigabe mit `PREFLIGHT PASS` abgeschlossen: Datenbank- und Rollendump erfolgreich wiederhergestellt, v7-Image archiviert, Backuprechte weiterhin PASS, Produktivstack gesund und nur Migrationen 001–003 aktiv.
+
+Claude soll vor Phase 4 zuerst `G-035` bis `G-037` korrigieren und `G-040` als Entscheidung offenhalten. Danach genügt ein kurzer gezielter Gerd-Nachcheck; die gesamte Analyse muss nicht noch einmal von vorn beginnen.
+
+**Ergänzung zu `G-037`:** Phase-3-Evidenz und Handover nennen 126 Manifestdateien; der abschließend deployte Stand `3a97c03` manifestiert tatsächlich 127. Das ändert den PASS nicht, bestätigt aber die noch unvollständige Dokumentkonsistenzprüfung.
