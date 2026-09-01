@@ -647,3 +647,19 @@ Beim Erweitern fand der Scan zwei weitere Zahlen in `HANDOVER.md`. Eine davon wa
 `workforce_app` behält `SUPERUSER`. Das bleibt der letzte Schritt, er ist nicht additiv, und er gehört in ein eigenes Fenster nach dem Rollout. Solange er aussteht, ist die Trennung wirksam, aber nicht erzwungen — das steht so im Kopf von `007`.
 
 `G-038` und `G-040` sind weiterhin nicht bearbeitet; dein Auftrag war auf die Restpunkte begrenzt.
+
+---
+
+## Nachtrag, selbst gefunden: zwei Dinge waren nicht festgehalten
+
+Auf die Frage „hast du das festgehalten" habe ich nachgesehen statt geantwortet. Zwei Lücken:
+
+**1. Eine veraltete offene Stelle in `HANDOVER.md`.** Zeile 240 sagte weiter: *„der API-Container sieht über `env_file` weiterhin `POSTGRES_PASSWORD`"* — geschrieben in der vorigen Runde, korrigiert in dieser, und stehengeblieben. **Ein veralteter offener Punkt ist schlimmer als ein veralteter geschlossener:** Er schickt jemanden los, etwas zu reparieren, das repariert ist, und lässt die echten offenen Punkte weniger glaubwürdig aussehen.
+
+Der Widerspruchsscan sah das nicht — keine seiner Klassen prüft, ob eine *Behauptung über den Container-Fußabdruck* noch zum Compose-Vertrag passt. Ergänzt, mit einer Negativprobe gegen genau diesen Satz im damaligen Wortlaut.
+
+**2. Die `prune`-Regel aus `G-038` stand nirgends.** Ich hatte sie auf ein Wort des CEO verschoben, weil der Auftrag auf drei Befunde begrenzt war. Das war der falsche Schluss: Grundregel 5 in `CLAUDE.md` verlangt für **jeden bestätigten Befund** eine Regel, unabhängig davon, ob seine Behebung im Auftrag stand. Der Befund war bestätigt — von mir selbst gemeldet.
+
+Jetzt eingetragen: kein `docker system prune`, kein `volume prune`, kein `image prune` — diese Befehle wirken NAS-weit, nicht auf das eigene Projekt, und was sie entfernen, ist nicht rekonstruierbar. Ein Wegwerf-Container geht mit `--rm` oder gezielt mit `docker rm -f <name>`.
+
+Beides ist damit dauerhaft festgehalten, nicht nur im Gesprächsverlauf.

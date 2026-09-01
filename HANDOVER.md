@@ -221,6 +221,8 @@ Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find
 
 ### Kurznachcheck: die Restpunkte sind zu
 
+**Nachtrag, selbst gefunden:** Zwei Dinge waren nicht festgehalten. Eine veraltete offene Stelle in dieser Datei behauptete weiter, der API-Container sehe `POSTGRES_PASSWORD` — korrigiert, und der Scan kennt die Klasse jetzt. Und die `prune`-Regel aus `G-038` stand nirgends: Grundregel 5 verlangt für **jeden bestätigten Befund** eine Regel, auch wenn seine Behebung nicht im Auftrag stand. Beides ist nachgetragen.
+
 **Beide Restpunkte hatte ich benannt statt behoben** — das ist zu wenig, eine benannte Lücke ist eine Lücke.
 
 - **`startup.env` erreicht den API-Container nicht mehr.** Gerds Argument sticht: Dass `app.py` die Werte nicht mehr liest, schützt nicht bei einer kompromittierten API — ein Prozess liest seine eigene Umgebung und verbindet sich als Eigentümer, an jedem Grant vorbei. Der Container bekommt jetzt den Datenbanknamen im Klartext und zwei Secret-Dateien, sonst nichts. Der Migrationslauf behält die Datei; Migrationen sind DDL auf dem Schema des Eigentümers.
@@ -237,7 +239,7 @@ Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find
 - **`G-036`:** Bei `G-034` hatte ich die SDK-Retries abgeschaltet und den **serverseitigen** Fallback stehen lassen, der eine abgelehnte Anfrage auf einem zweiten Modell wiederholt. `G-034` war damit nicht geschlossen. Entfernt.
 - **`G-037`:** Sieben konkrete Widersprüche korrigiert — vor allem `004`/`005` verwechselt. Der Scan prüfte, ob eine Datei existiert, nie ob die **Nummer zum Thema** passt. Erweitert um Migrationszuordnung, Datenpolicy, Provider-Fallback, Commitzahlen und offene Gates — mit drei Tests, die belegen, dass er die real falsche Zeile fängt und korrekte Abgrenzungen durchlässt.
 
-**Offen und benannt:** `workforce_app` behält `SUPERUSER` (eigener Schritt), und der API-Container sieht über `env_file` weiterhin `POSTGRES_PASSWORD`. `G-038` und `G-040` sind nicht bearbeitet — der Auftrag war auf drei Befunde begrenzt.
+**Offen und benannt:** `workforce_app` behält `SUPERUSER` (eigener Schritt). Der zweite Punkt dieser Zeile — der API-Container sehe weiterhin `POSTGRES_PASSWORD` — **ist seit dem Kurznachcheck erledigt**; `startup.env` erreicht den Service nicht mehr. `G-038` und `G-040` waren nicht Teil des Auftrags.
 
 ### Phase 3 abgeschlossen: `PREFLIGHT PASS`
 

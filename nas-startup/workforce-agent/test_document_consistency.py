@@ -348,6 +348,44 @@ class SecretsAreDescribedWhereTheyLiveTest(unittest.TestCase):
     def test_the_api_service_really_has_no_env_file(self) -> None:
         self.assertEqual([], self.api_service().env_files)
 
+    def test_no_document_claims_the_api_still_holds_the_owner_secret(self) -> None:
+        """The line that got away.
+
+        After startup.env was removed from the API service, HANDOVER still
+        said "der API-Container sieht ueber env_file weiterhin
+        POSTGRES_PASSWORD". True when written, wrong one commit later - and
+        none of the other checks in this file looked at it. A stale open point
+        is worse than a stale closed one: it sends somebody to fix what is
+        already fixed, and it makes the real open points look less credible.
+        """
+        if self.api_service().env_files:
+            self.skipTest("API-Service laedt wieder eine env_file - dann stimmt die Aussage")
+        offenders = []
+        for path, text in documents():
+            for number, line in enumerate(text.splitlines(), start=1):
+                if not re.search(r"POSTGRES_PASSWORD|Eigentuemer-Passwort|Eigentümer-Passwort", line):
+                    continue
+                # Only lines that claim the API *has* it, in the present tense.
+                if re.search(r"(API-Container|API-Service|api).{0,80}(sieht|erhaelt|erhält|bekommt|traegt|trägt).{0,40}"
+                             r"(POSTGRES_PASSWORD|Eigentuemer-Passwort|Eigentümer-Passwort)", line, re.I) \
+                   or re.search(r"(POSTGRES_PASSWORD|Eigentuemer-Passwort|Eigentümer-Passwort).{0,60}"
+                                r"(im API-Container|erreicht den API)", line, re.I):
+                    if not re.search(r"erledigt|nicht mehr|behoben|entfernt|frueher|früher|war\b", line, re.I):
+                        offenders.append(f"{path.name}:{number}")
+        self.assertEqual([], offenders,
+                         "startup.env erreicht den API-Service nicht mehr")
+
+    def test_that_check_would_have_caught_the_real_line(self) -> None:
+        # The sentence exactly as it stood, so the guard is shown to have
+        # teeth rather than asserted to.
+        stale = ("**Offen und benannt:** `workforce_app` behaelt `SUPERUSER`, und der "
+                 "API-Container sieht ueber `env_file` weiterhin `POSTGRES_PASSWORD`.")
+        self.assertTrue(
+            re.search(r"(API-Container|API-Service|api).{0,80}(sieht|erhaelt|bekommt).{0,40}"
+                      r"(POSTGRES_PASSWORD|Eigentuemer-Passwort)", stale, re.I)
+        )
+        self.assertFalse(re.search(r"erledigt|nicht mehr|behoben|entfernt", stale, re.I))
+
     def test_no_document_puts_an_api_secret_into_startup_env(self) -> None:
         # Only checked while the service has no env_file - if that ever comes
         # back, this test is not the right guard any more and says so.
