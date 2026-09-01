@@ -16,8 +16,13 @@
 # 2026-09-01, nach G-040: /openapi.json antwortet nicht mehr ohne Zugangsdaten.
 # Das aendert beobachtbares Verhalten einer dokumentierten Route, deshalb v9.
 # produktiv-v8 bleibt als Rueckfallmarke stehen, das v8-Image liegt auf der NAS.
+#
+# 2026-09-02, G-046: nur ein Kommentar in app.py, kein Verhalten - deshalb
+# bleibt es v9 und der Tag produktiv-v9 wandert auf den neuen Commit mit.
+# Ein Versionswechsel je Kommentar waere Inflation; ein unbenannter laufender
+# Stand waere schlimmer.
 
-PRODUCTION_COMMIT=ff7529e
+PRODUCTION_COMMIT=672e0a7
 VERIFIED_AT=2026-09-01
 API_IMAGE=startup-workforce-api:v9
 APPLIED_MIGRATIONS=001_employee_registry,002_workforce_bus,003_workforce_bus_trigger_fix,005_bus_denial_audit,006_legacy_registry_tables,007_least_privilege_roles
