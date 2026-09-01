@@ -78,4 +78,6 @@ Der Lauf begann auf Commit `f59e757`, Manifest verifiziert: 99 Dateien, keine Ab
 
 **Während des Laufs wurden zwei Korrekturen nachdeployt:** `workforce-agent/Dockerfile` (Defekt 2) und `chain-test/chain_cleanup.sql` (Defekt 3). Der Stand am Ende des Laufs ist deshalb **nicht** `f59e757`. Der genaue Endstand steht unten und ist nach dem Lauf erneut gegen die NAS verifiziert — genau die Angabe, die dem `ENG-008`-Nachweis gefehlt hat.
 
-**Endstand:** siehe `DEPLOY_MANIFEST.txt` auf der NAS, eingetragen im Anschluss an diesen Nachweis.
+**Endstand:** Commit `b43bd2bb5ec464d71cc243825c4c40034a667167`, sauberer Baum. Nach dem Lauf deployt und gegen die NAS verifiziert: 107 Dateien in `chain-test`, `telegram-connector`, `workforce-agent`, `evidence` — keine Abweichung (`DEPLOY_MANIFEST.txt`, 2026-09-01T05:20:02Z).
+
+Zwischen Startstand `f59e757` und Endstand `b43bd2b` liegen genau zwei Korrekturen am laufenden Fenster — `workforce-agent/Dockerfile` und `chain-test/chain_cleanup.sql` — plus die Dokumentation dieses Laufs. Beide Hashes sind benannt, beide Manifeste verifiziert. **Damit ist dieser Lauf reproduzierbar, anders als der `ENG-008`-Lauf vom 2026-08-31.**
