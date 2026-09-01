@@ -103,7 +103,22 @@ if [ -n "$found_dump" ]; then
 else
     echo "neuester Preflight-Dump: keiner gefunden"
 fi
-newest "$backups/preflight-*.globals.sql" "zugehoeriger Rollen-Dump"
+# "zugehoerig" was a claim, not a check: this used to report the newest
+# globals dump regardless of which database dump it belonged to. A restore
+# needs the pair, so the name is derived from the dump that was just named
+# (G-043 - same class as guardrail 7: a text that asserts a safeguard has to
+# be able to back it up).
+if [ -n "$found_dump" ]; then
+    mate="${found_dump%.sql}.globals.sql"
+    if [ -f "$mate" ]; then
+        echo "zugehoeriger Rollen-Dump: $(basename "$mate")"
+    else
+        echo "zugehoeriger Rollen-Dump: FEHLT zu $(basename "$found_dump")"
+        problems=$((problems + 1))
+    fi
+else
+    echo "zugehoeriger Rollen-Dump: kein Dump, also kein Paar"
+fi
 newest "$backups/rollback-*.tar.gz" "neuestes Rollback-Image"
 
 echo

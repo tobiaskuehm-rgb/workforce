@@ -101,35 +101,87 @@ Schritt, der sie liest, nicht mehr erreichbar.
 
 ## 3. Frische Sicherung (Abbruch bei jedem Fehler)
 
-Unmittelbar vor dem Fenster, nicht „von gestern":
+Unmittelbar vor dem Fenster, nicht „von gestern".
+
+**Der Backup-Ordner ist absichtlich nur für Root beschreibbar** (`G-022`).
+Nachgemessen: `drwxr-x--- root administrators`, und eine Schreibprobe als
+`TOBKUM` ergibt `Permission denied`. Eine Umleitung nach
+`> /volume1/docker/Startup-Backups/…` wird von der **SSH-Sitzung** ausgeführt,
+nicht von Docker, und bricht deshalb ab, bevor irgendetwas gesichert ist
+(`G-043`). Die Rechte werden nicht gelockert. Geschrieben wird über den
+einzigen privilegierten Weg, den diese Maschine passwortlos hergibt: einen
+Wegwerf-Container unter `sudo docker`, mit dem Backup-Ordner als Bind-Mount.
+Als Image dient `postgres:17-alpine` — es liegt für die Datenbank ohnehin
+lokal, also holt dieser Schritt nichts aus dem Netz.
+
+Ein Zeitstempel für alle drei Dateien, damit Dump und Rollen-Dump erkennbar
+zusammengehören:
+
+```
+TS=$(date +%F_%H-%M-%S) && echo "Sicherungsstempel: $TS"
+```
+
+**Datenbank-Dump.** Erst im Container erzeugen und **dort** zählen, dann
+herausschreiben und die Größe vergleichen. Eine durchgehende Pipe würde den
+Rückgabewert von `pg_dump` verschlucken — dieselbe Falle, die `nas_status.sh`
+schon einmal `PASS` melden ließ, während eine Teilprüfung fehlschlug:
 
 ```
 ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db \
-  pg_dump -U workforce_app workforce > /volume1/docker/Startup-Backups/preflight-$(date +%F_%H-%M-%S).sql"
+  sh -c 'pg_dump -U workforce_app workforce > /tmp/pf.sql && wc -c < /tmp/pf.sql'"
 ```
 
 ```
-ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db \
-  pg_dumpall -U workforce_app --globals-only > /volume1/docker/Startup-Backups/preflight-$(date +%F_%H-%M-%S).globals.sql"
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db cat /tmp/pf.sql \
+  | sudo /usr/local/bin/docker run --rm -i -v /volume1/docker/Startup-Backups:/backup postgres:17-alpine \
+    sh -c 'cat > /backup/preflight-$TS.sql && chown 0:101 /backup/preflight-$TS.sql && chmod 640 /backup/preflight-$TS.sql'"
 ```
+
+**Rollen-Dump.** Nicht optional: `pg_dump` enthält kein `CREATE ROLE`, ein
+Restore ohne ihn scheitert an `role "workforce_app" does not exist` — in
+diesem Projekt bereits einmal passiert (`G-024`):
+
+```
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db \
+  sh -c 'pg_dumpall -U workforce_app --globals-only > /tmp/pfg.sql && wc -c < /tmp/pfg.sql'"
+```
+
+```
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db cat /tmp/pfg.sql \
+  | sudo /usr/local/bin/docker run --rm -i -v /volume1/docker/Startup-Backups:/backup postgres:17-alpine \
+    sh -c 'cat > /backup/preflight-$TS.globals.sql && chown 0:101 /backup/preflight-$TS.globals.sql && chmod 640 /backup/preflight-$TS.globals.sql'"
+```
+
+```
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db rm -f /tmp/pf.sql /tmp/pfg.sql"
+```
+
+**Rollback-Image.** `docker save -o` schreibt aus dem CLI heraus, und das läuft
+unter `sudo` als Root — dieser Befehl scheitert also nicht. Er legt die Datei
+aber `600 root:root` ab und damit als einzige im Ordner unlesbar für
+`TOBKUM`; nachgemessen. Deshalb dieselbe Normalisierung wie oben:
 
 ```
 ssh synology "sudo /usr/local/bin/docker save startup-workforce-api:v7 \
-  -o /volume1/docker/Startup-Backups/rollback-workforce-api-v7-$(date +%F_%H-%M-%S).tar.gz"
+  -o /volume1/docker/Startup-Backups/rollback-workforce-api-v7-$TS.tar.gz && \
+  sudo /usr/local/bin/docker run --rm -v /volume1/docker/Startup-Backups:/backup postgres:17-alpine \
+    sh -c 'chown 0:101 /backup/rollback-workforce-api-v7-$TS.tar.gz && chmod 640 /backup/rollback-workforce-api-v7-$TS.tar.gz'"
 ```
-
-**Der Rollen-Dump ist nicht optional.** `pg_dump` enthält kein `CREATE ROLE`;
-ein Restore ohne ihn scheitert an `role "workforce_app" does not exist` — das
-ist in diesem Projekt bereits einmal passiert (`G-024`).
 
 Danach die Sicherung *lesen*, nicht nur ihre Existenz prüfen:
 
 ```
-ssh synology "ls -l /volume1/docker/Startup-Backups/ | tail -4 && \
-  head -3 /volume1/docker/Startup-Backups/preflight-*.globals.sql | head -5"
+ssh synology "ls -l /volume1/docker/Startup-Backups/preflight-$TS.sql \
+  /volume1/docker/Startup-Backups/preflight-$TS.globals.sql \
+  /volume1/docker/Startup-Backups/rollback-workforce-api-v7-$TS.tar.gz && \
+  head -3 /volume1/docker/Startup-Backups/preflight-$TS.globals.sql"
 ```
 
-Abbruch, wenn eine Datei 0 Byte hat oder der Dump eine Fehlermeldung enthält.
+Erwartet: drei Dateien, jede `-rw-r----- root administrators`, jede größer als
+0 Byte, die Größe der beiden Dumps gleich der oben im Container gezählten, und
+der Rollen-Dump beginnt mit dem `pg_dumpall`-Kopf. **Lesbar zu sein ist Teil
+des Nachweises** — eine Sicherung, die im Rückfall niemand öffnen kann, ist
+keine. Abbruch bei jeder Abweichung.
 
 ## 4. Rollen anlegen
 
@@ -169,17 +221,27 @@ cd nas-startup && MANIFEST_OUT=DEPLOY_MANIFEST.txt sh deploy_manifest.sh \
   chain-test telegram-connector workforce-agent evidence compose.yaml postgres-init workforce-api \
   HANDOVER.md AGENTS.md REVIEW_GERD.md REVIEW_ANTWORTEN.md NACHREVIEW_GERD_2026-09-01_C625B8C.md \
   PHASE4_RUNBOOK.md deploy_manifest.sh verify_manifest.sh backup_bundle.sh \
-  check_backup_permissions.sh verify_production_state.sh nas_status.sh production_state.txt
+  check_backup_permissions.sh check_secret_files.sh verify_production_state.sh nas_status.sh \
+  g041_empty_volume_test.py production_state.txt
 ```
 
 **Vorher die laufende `compose.yaml` sichern.** Sie wird gleich ersetzt, und
 der Rückfall in Abschnitt 8 braucht die Fassung, unter der der Stack heute
 läuft:
 
+Auch hier gilt Abschnitt 3: `cp` liefe als `TOBKUM` und käme nicht in den
+Ordner (`G-043`). Derselbe privilegierte Weg, derselbe Zeitstempel:
+
 ```
-ssh synology "cd /volume1/docker/Startup && cp -p compose.yaml \
-  /volume1/docker/Startup-Backups/compose-v7-$(date +%F_%H-%M-%S).yaml && \
-  ls -l /volume1/docker/Startup-Backups/compose-v7-*.yaml | tail -1"
+ssh synology "cd /volume1/docker/Startup && cat compose.yaml \
+  | sudo /usr/local/bin/docker run --rm -i -v /volume1/docker/Startup-Backups:/backup postgres:17-alpine \
+    sh -c 'cat > /backup/compose-v7-$TS.yaml && chown 0:101 /backup/compose-v7-$TS.yaml && chmod 640 /backup/compose-v7-$TS.yaml'"
+```
+
+```
+ssh synology "ls -l /volume1/docker/Startup-Backups/compose-v7-$TS.yaml && \
+  cmp -s /volume1/docker/Startup-Backups/compose-v7-$TS.yaml /volume1/docker/Startup/compose.yaml \
+  && echo 'identisch' || echo 'ABWEICHUNG - Abbruch'"
 ```
 
 Übertragen wird die Dateiliste, nie ein Verzeichnis (`G-020`), und über `-T`,
@@ -190,7 +252,8 @@ cd nas-startup && git ls-files -- chain-test telegram-connector workforce-agent 
   compose.yaml postgres-init workforce-api HANDOVER.md AGENTS.md REVIEW_GERD.md \
   REVIEW_ANTWORTEN.md NACHREVIEW_GERD_2026-09-01_C625B8C.md PHASE4_RUNBOOK.md \
   deploy_manifest.sh verify_manifest.sh backup_bundle.sh check_backup_permissions.sh \
-  verify_production_state.sh nas_status.sh production_state.txt > /tmp/liste.txt && \
+  check_secret_files.sh verify_production_state.sh nas_status.sh g041_empty_volume_test.py \
+  production_state.txt > /tmp/liste.txt && \
   echo DEPLOY_MANIFEST.txt >> /tmp/liste.txt && \
   tar czf - -T /tmp/liste.txt | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
 ```
@@ -258,25 +321,68 @@ ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose u
    ```
    Erwartet: 0 Treffer. Jeder Treffer ist ein Abbruch (`G-035`).
 
-4. **Rechte-Negativtest** — eine Rolle mit bloßem `USAGE` darf nichts können:
+4. **Rechte-Negativtest** — eine Rolle mit bloßem `USAGE` darf nichts können.
+   Drei getrennte Befehle, nicht einer: Das Aufräumen muss auch dann laufen,
+   wenn der Negativtest fehlschlägt, und in einer `&&`-Kette täte es das nicht.
    ```
    ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc \
-     \"CREATE ROLE niemand LOGIN PASSWORD 'x'; GRANT USAGE ON SCHEMA workforce TO niemand;\" && \
-     sudo /usr/local/bin/docker compose exec -T db psql -U niemand -d workforce -Atc \
-     \"SELECT workforce.bus_send_message('x','x','x','x','x')\" 2>&1 | head -2; \
-     sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc 'DROP ROLE niemand'"
+     \"CREATE ROLE niemand LOGIN PASSWORD 'x'; GRANT USAGE ON SCHEMA workforce TO niemand;\""
+   ```
+   ```
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U niemand -d workforce -Atc \
+     \"SELECT workforce.bus_send_message('x','x','x','x','x')\" 2>&1 | head -2"
    ```
    Erwartet: `permission denied for function`. Erreicht die Rolle stattdessen
    `BUS_AUTH_FAILED`, ist `007` wirkungslos — das war genau der Befund `G-035`,
    weil PostgreSQL `EXECUTE` standardmäßig an `PUBLIC` vergibt.
 
-5. **Ablehnungs-Audit schreibt wirklich** (`005`):
+   **Aufräumen, unabhängig vom Ergebnis.** `DROP ROLE` allein scheitert: das
+   erteilte `USAGE` ist eine Abhängigkeit, und PostgreSQL antwortet mit
+   `role "niemand" cannot be dropped because some objects depend on it —
+   DETAIL: privileges for schema workforce`. Im Wegwerf-Container nachgemessen
+   (`G-043`). Erst `DROP OWNED BY`, dann `DROP ROLE`:
    ```
-   ssh synology "cd /volume1/docker/Startup && curl -sS -X POST localhost:8080/bus/messages -H 'X-API-Key: falsch' -d '{}' >/dev/null; \
-     sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc \
-     'SELECT count(*), max(occurred_at) FROM workforce.bus_denials'"
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc \
+     'DROP OWNED BY niemand; DROP ROLE niemand;'"
    ```
-   Erwartet: Zähler > 0 mit frischem Zeitstempel.
+   ```
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc \
+     \"SELECT count(*) FROM pg_roles WHERE rolname = 'niemand'\""
+   ```
+   Erwartet: `0`. Eine liegengebliebene Testrolle ist Müll im Produktivsystem
+   und widerspricht der Regel, dass ein Testpaket nichts hinterlässt.
+
+5. **Ablehnungs-Audit schreibt wirklich** (`005`). **Nicht über HTTP.** Der
+   frühere Befehl konnte den Auditpfad nie erreichen (`G-043`), aus drei
+   Gründen übereinander: `/bus/messages` gibt es nicht — die Route heißt
+   `/bus/v1/messages` —, sie erwartet `Authorization: Bearer` statt
+   `X-API-Key`, und `require_bus_ready()` läuft **vor** jeder Tokenprüfung und
+   weist bei Kanal `DISABLED` mit `503 BUS_CHANNEL_NOT_ACTIVE` ab. Über
+   `localhost:8080` käme zusätzlich `BUS_HTTPS_REQUIRED` zuerst. Der Kanal
+   bleibt in diesem Fenster verbindlich `DISABLED`, also wird der Nachweis
+   dort geführt, wo die Ablehnung tatsächlich verbucht wird:
+   ```
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_api -d workforce -Atc \
+     \"SELECT workforce.bus_record_denial('START-UP', repeat('0',64), 'PHASE4-AUDIT-PROBE', 'MESSAGE_SEND', 'MESSAGE', 'PROBE', 'BUS_AUTH_FAILED', 401)\""
+   ```
+   ```
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -Atc \
+     \"SELECT actor_id, operation, error_code, http_status, occurred_at FROM workforce.bus_denials WHERE request_id = 'PHASE4-AUDIT-PROBE'\""
+   ```
+   Erwartet: genau eine Zeile, `actor_id` = `UNKNOWN` (der erfundene
+   Token-Hash löst auf nichts auf, und `bus_identify_for_audit` darf dafür
+   nicht werfen), frischer Zeitstempel. **Die Zeile bleibt stehen** —
+   `bus_denials` ist append-only, und eine Probe mit erkennbarer Request-Id ist
+   ehrlicher als eine, die man hinterher wegräumt.
+
+   Der Aufruf belegt zugleich den Grant aus `005`/`007`. Die Gegenprobe belegt
+   dessen Enge — dieselbe Rolle darf den Datensatz **nicht lesen**:
+   ```
+   ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_api -d workforce -Atc \
+     'SELECT count(*) FROM workforce.bus_denials' 2>&1 | head -2"
+   ```
+   Erwartet: `permission denied for table bus_denials`. Kommt hier eine Zahl,
+   ist `007` zu weit.
 
 6. **Realer `pg_dump` als `workforce_backup`** — nicht simuliert:
    ```

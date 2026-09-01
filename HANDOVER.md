@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-01, nach Gerds neuntem Zielcheck und der Korrektur von `G-042` — von Claude Code
+**Zuletzt aktualisiert:** 2026-09-01, nach Gerds zehntem Zielcheck und der Korrektur von `G-043` — von Claude Code
 
 ## Wie die Zusammenarbeit läuft
 
@@ -121,7 +121,21 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 ## Hier weitermachen
 
-**Stand:** Gerds neunter Zielcheck (`eea959e`) hebt den Codeblocker `G-041` auf und hält das GO **allein wegen `G-042`** an. `G-042` ist korrigiert; es fehlt Gerds kurzer Runbook-Nachcheck. Danach braucht das Fenster noch die CEO-Freigabe für genau einen Lauf — der CEO hat sie grundsätzlich erteilt, sie ist also keine offene Frage mehr, sondern eine Terminfrage. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
+**Stand:** Gerds zehnter Zielcheck (`c4abc84`) schließt `G-042` und hält das GO **allein wegen `G-043`** an — vier ausführbare Fehler im Runbook. Alle vier sind korrigiert; es fehlt Gerds kurzer Nachcheck. Danach braucht das Fenster noch die CEO-Freigabe für genau einen Lauf — der CEO hat sie grundsätzlich erteilt, sie ist also keine offene Frage mehr, sondern eine Terminfrage. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
+
+### `G-043`: das Runbook unterstellte ein Verhalten, das es nicht gibt
+
+Vier Punkte, alle bestätigt, alle selbst nachgemessen statt nachgelesen.
+
+**Backup-Ordner.** `drwxr-x--- root administrators`, Schreibprobe als `TOBKUM` → `Permission denied`. Die Umleitungen in Abschnitt 3 und das `cp` in Abschnitt 5 werden von der SSH-Sitzung ausgeführt, nicht von Docker; das Fenster wäre vor der ersten Sicherung gestorben. Geschrieben wird jetzt über einen Wegwerf-Container unter `sudo docker` — im Wegwerf-Verzeichnis belegt: Datei landet `-rw-r----- root administrators` und ist für `TOBKUM` lesbar. **Dazu kam ein Punkt, den der Befund nicht nennt:** `docker save -o` schreibt zwar als Root und scheitert nicht, legt die Datei aber `600 root:root` ab — als einzige im Ordner unlesbar. Wird jetzt mit normalisiert.
+
+**Audit-Nachweis.** `/bus/messages` gibt es nicht (`/bus/v1/messages`), das Verfahren ist `Authorization: Bearer`, und `require_bus_ready()` läuft **vor** der Tokenprüfung: bei Kanal `DISABLED` — und der bleibt es im Fenster — kommt `503 BUS_CHANNEL_NOT_ACTIVE`, bevor irgendetwas verbucht wird. Über `localhost:8080` käme zusätzlich `BUS_HTTPS_REQUIRED` zuerst. Der Nachweis läuft jetzt über `bus_record_denial` als `workforce_api`, mit Gegenprobe, dass dieselbe Rolle die Tabelle **nicht lesen** darf.
+
+**Testrolle.** Im Wegwerf-Container nachgemessen: `DROP ROLE niemand` → `cannot be dropped because some objects depend on it — DETAIL: privileges for schema workforce`. Jetzt `DROP OWNED BY` zuerst, in einem eigenen Befehl, damit das Aufräumen auch nach einem fehlgeschlagenen Negativtest läuft, plus Nichtbestandsprüfung.
+
+**Zielmanifest.** `check_secret_files.sh` fehlte in beiden Listen in Abschnitt 5 — und `g041_empty_volume_test.py` ebenfalls, was der Befund nicht nennt. Beides ergänzt. Ein fehlender Pfad wird nicht als „fehlend" gemeldet: `verify_manifest.sh` läuft `find $paths`, also fällt die Datei still aus der Abdeckung.
+
+**Nebenbei repariert:** `nas_status.sh` meldete den „zugehörigen" Rollen-Dump als den jeweils neuesten, ohne die Zugehörigkeit zu prüfen. Jetzt wird der Name aus dem gerade genannten Dump abgeleitet; Abschnitt 3 vergibt dafür **einen** Zeitstempel für alle drei Dateien.
 
 ### `G-042`: das Runbook nannte Dinge, die es nicht gibt
 

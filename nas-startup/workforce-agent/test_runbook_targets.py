@@ -168,18 +168,117 @@ def referenced_objects(text: str) -> set[str]:
 
 
 def column_offenders(text: str) -> list[str]:
+    """Columns named against a workforce table, from three places.
+
+    The aggregate form alone was not enough: when the audit proof stopped
+    using `max(occurred_at)` the check had nothing left to look at and would
+    have passed on any column name at all.
+    """
     known = table_columns()
     offenders = []
     for command in commands(text):
-        tables = re.findall(r"FROM\s+workforce\.([a-z_]+)", command, re.IGNORECASE)
-        for table in tables:
+        for select_list, table in re.findall(
+                r"SELECT\s+(.*?)\s+FROM\s+workforce\.([a-z_]+)",
+                command, re.IGNORECASE | re.DOTALL):
             if table not in known:
                 continue
-            for used in re.findall(r"\b(?:max|min|avg|sum|count)\s*\(\s*([a-z_]+)\s*\)",
+            for item in select_list.split(","):
+                bare = item.strip()
+                if re.fullmatch(r"[a-z_]+", bare) and bare not in known[table]:
+                    offenders.append(f"{table}.{bare}")
+        for table in re.findall(r"FROM\s+workforce\.([a-z_]+)", command, re.IGNORECASE):
+            if table not in known:
+                continue
+            for used in re.findall(r"\b(?:max|min|avg|sum)\s*\(\s*([a-z_]+)\s*\)",
                                    command, re.IGNORECASE):
                 if used not in known[table]:
                     offenders.append(f"{table}.{used}")
+            for used in re.findall(r"WHERE\s+([a-z_]+)\s*=", command, re.IGNORECASE):
+                if used not in known[table]:
+                    offenders.append(f"{table}.{used}")
     return offenders
+
+
+BACKUP_DIR = "/volume1/docker/Startup-Backups"
+
+
+def backup_write_offenders(text: str) -> list[str]:
+    """Writes into the hardened backup folder that the SSH user cannot make.
+
+    Review finding G-043: `pg_dump ... > /volume1/docker/Startup-Backups/...`
+    is executed by the remote shell as TOBKUM, and the folder is root-only
+    since G-022. Docker is the one privileged writer available without a
+    password, so a redirect or a `cp` into that path is always wrong and a
+    `docker run -v .../Startup-Backups:/backup` or `docker save -o` is right.
+    """
+    target = re.escape(BACKUP_DIR)
+    offenders = []
+    for command in commands(text):
+        # Only the shell's own writes are the problem. `docker save -o <path>`
+        # is written by the CLI, which runs as root under sudo - measured -
+        # and matches neither pattern, so it needs no exemption. An exemption
+        # would have been a hole: it would also have hidden a second, real
+        # write in the same command.
+        redirect = re.search(r">>?\s*" + target, command)
+        # `docker compose cp` addresses a container, not the host folder.
+        copy = re.search(r"(?<!compose )\bcp\b[^;|]*?" + target, command)
+        if redirect or copy:
+            offenders.append(command)
+    return offenders
+
+
+def api_routes() -> list[str]:
+    body = (NAS / "workforce-api" / "app.py").read_text(encoding="utf-8")
+    return re.findall(r"@app\.(?:get|post|put|patch|delete)\(\s*[\"']([^\"']+)", body)
+
+
+def api_route_offenders(text: str) -> list[str]:
+    patterns = [re.compile("^" + re.sub(r"\\\{[a-z_]+\\\}", "[^/]+", re.escape(route)) + "$")
+                for route in api_routes()]
+    offenders = []
+    for command in commands(text):
+        for path in re.findall(r"localhost:8080(/[A-Za-z0-9_/{}.-]*)", command):
+            if not any(pattern.match(path) for pattern in patterns):
+                offenders.append(path)
+    return offenders
+
+
+def role_cleanup_offenders(text: str) -> list[str]:
+    """A role the runbook creates has to be gone again when it is done.
+
+    `DROP ROLE` alone fails once the role holds a privilege - measured in a
+    throwaway container: `cannot be dropped because some objects depend on
+    it`. So the cleanup needs DROP OWNED BY, and it needs to sit in its own
+    command: in an `&&` chain a failing negative test skips it.
+    """
+    joined = "\n".join(commands(text))
+    offenders = []
+    for role in set(re.findall(r"CREATE ROLE\s+([a-z_]+)", joined)):
+        if role in {"workforce_api", "workforce_backup"}:  # the window keeps these
+            continue
+        if f"DROP OWNED BY {role}" not in joined:
+            offenders.append(f"{role}: DROP OWNED BY fehlt")
+        if f"DROP ROLE {role}" not in joined:
+            offenders.append(f"{role}: DROP ROLE fehlt")
+    return offenders
+
+
+def helper_script_offenders(text: str) -> list[str]:
+    """Every script the runbook runs has to be one the rollout also ships.
+
+    Review finding G-043: `check_secret_files.sh` was executed by section 2
+    and missing from both path lists in section 5, so the target manifest
+    would have stopped covering a file the window depends on - and an
+    uncovered path is not reported as missing, it is simply out of scope.
+    """
+    executed = set()
+    manifest_commands = []
+    for command in commands(text):
+        if "deploy_manifest.sh" in command or "git ls-files" in command:
+            manifest_commands.append(command)
+        executed.update(re.findall(r"(?:^|\s)sh\s+([A-Za-z0-9_-]+\.sh)", command))
+    lists = " ".join(manifest_commands)
+    return sorted(name for name in executed if name not in lists)
 
 
 class RunbookTargetsTest(unittest.TestCase):
@@ -202,6 +301,18 @@ class RunbookTargetsTest(unittest.TestCase):
 
     def test_every_column_in_a_query_exists(self) -> None:
         self.assertEqual([], column_offenders(self.text))
+
+    def test_no_write_into_the_backup_folder_bypasses_docker(self) -> None:
+        self.assertEqual([], backup_write_offenders(self.text))
+
+    def test_every_api_path_exists(self) -> None:
+        self.assertEqual([], api_route_offenders(self.text))
+
+    def test_every_created_role_is_dropped_again(self) -> None:
+        self.assertEqual([], role_cleanup_offenders(self.text))
+
+    def test_every_executed_helper_script_is_in_the_target_manifest(self) -> None:
+        self.assertEqual([], helper_script_offenders(self.text))
 
     def test_an_image_reference_is_not_mistaken_for_a_container(self) -> None:
         # `docker save startup-workforce-api:v7` is correct and must stay.
@@ -251,9 +362,55 @@ class WeakenedControlIsDetectedTest(unittest.TestCase):
         self.assertTrue(referenced_objects(broken) - schema_objects())
 
     def test_the_original_column_name_would_be_caught(self) -> None:
-        broken = self.text.replace("max(occurred_at)", "max(created_at)", 1)
+        broken = self.text.replace("occurred_at FROM workforce.bus_denials",
+                                   "created_at FROM workforce.bus_denials", 1)
         self.assertNotEqual(self.text, broken)
         self.assertTrue(column_offenders(broken))
+
+    def test_a_wrong_column_in_a_where_clause_would_be_caught(self) -> None:
+        broken = self.text.replace("WHERE request_id = 'PHASE4-AUDIT-PROBE'",
+                                   "WHERE anfrage_id = 'PHASE4-AUDIT-PROBE'", 1)
+        self.assertNotEqual(self.text, broken)
+        self.assertTrue(column_offenders(broken))
+
+    def test_a_redirect_into_the_backup_folder_would_be_caught(self) -> None:
+        # The exact command G-043 found.
+        broken = self.text.replace(
+            "sh -c 'pg_dump -U workforce_app workforce > /tmp/pf.sql && wc -c < /tmp/pf.sql'",
+            "pg_dump -U workforce_app workforce > /volume1/docker/Startup-Backups/preflight-x.sql", 1)
+        self.assertNotEqual(self.text, broken)
+        self.assertTrue(backup_write_offenders(broken))
+
+    def test_a_cp_into_the_backup_folder_would_be_caught(self) -> None:
+        broken = self.text.replace(
+            "cat compose.yaml",
+            "cp -p compose.yaml /volume1/docker/Startup-Backups/compose-v7.yaml #", 1)
+        self.assertNotEqual(self.text, broken)
+        self.assertTrue(backup_write_offenders(broken))
+
+    def test_docker_save_into_the_backup_folder_stays_allowed(self) -> None:
+        # It is written by the CLI as root. A guard that flagged it would be
+        # turned off rather than obeyed.
+        self.assertIn("docker save startup-workforce-api:v7", self.text)
+        self.assertEqual([], backup_write_offenders(self.text))
+
+    def test_the_original_api_path_would_be_caught(self) -> None:
+        broken = self.text.replace("curl -sS localhost:8080/health",
+                                   "curl -sS -X POST localhost:8080/bus/messages", 1)
+        self.assertNotEqual(self.text, broken)
+        self.assertIn("/bus/messages", api_route_offenders(broken))
+
+    def test_a_bare_drop_role_would_be_caught(self) -> None:
+        broken = self.text.replace("'DROP OWNED BY niemand; DROP ROLE niemand;'",
+                                   "'DROP ROLE niemand'", 1)
+        self.assertNotEqual(self.text, broken)
+        self.assertTrue(role_cleanup_offenders(broken))
+
+    def test_a_script_missing_from_the_manifest_would_be_caught(self) -> None:
+        broken = self.text.replace("check_secret_files.sh verify_production_state.sh",
+                                   "verify_production_state.sh")
+        self.assertNotEqual(self.text, broken)
+        self.assertIn("check_secret_files.sh", helper_script_offenders(broken))
 
     def test_a_knowledge_object_would_be_caught_although_it_exists(self) -> None:
         # The point of the gate: `knowledge_objects` is real in the tree and
@@ -279,6 +436,14 @@ class ScanSourcesTest(unittest.TestCase):
         self.assertIn("db", used_services(text))
         self.assertIn("workforce-api", used_services(text))
         self.assertIn("bus_denials", referenced_objects(text))
+        self.assertIn("CREATE ROLE niemand", "\n".join(commands(text)))
+        self.assertIn("check_secret_files.sh", text)
+
+    def test_the_route_scan_finds_the_routes_it_needs(self) -> None:
+        routes = api_routes()
+        self.assertIn("/health", routes)
+        self.assertIn("/bus/v1/messages", routes)
+        self.assertNotIn("/bus/messages", routes)
 
     def test_the_migration_scan_finds_the_objects_it_needs(self) -> None:
         objects = schema_objects()

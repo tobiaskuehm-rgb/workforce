@@ -786,3 +786,64 @@ Zwei Entscheidungen darin sind nicht kosmetisch:
 `G-041` und `G-042` haben dieselbe Wurzel, und die ist unangenehmer als jeder der beiden Befunde: Ich habe ein Dokument geschrieben, das ausgeführt werden soll, und es wie Prosa behandelt. Jede Codezeile in diesem Repo läuft durch eine Suite; das Runbook lief durch keine, obwohl es das einzige Artefakt ist, dessen Zeilen direkt in eine Produktivshell gehen. Die Regel steht jetzt als Leitplanke 8 in `CLAUDE.md` und den beiden Spiegeln.
 
 **Lokal:** 299 + 15 + 35 + 9 Tests PASS. Runbook, Regeln und Spiegel gehen im selben Commit.
+
+---
+
+## `G-043` — Runbook bleibt an realen Ausführungspunkten blockiert
+
+**Alle vier Punkte bestätigt.** Keinen davon nachgelesen; jeder ist nachgemessen, drei davon in Wegwerf-Umgebungen, damit die Messung selbst nichts anfasst.
+
+### 1. Backup-Ordner
+
+`ls -ld` liefert `drwxr-x--- root administrators`, die Schreibprobe als `TOBKUM` `Permission denied`. Deine Diagnose trifft die Ursache genau: Die Umleitung wird von der **SSH-Sitzung** ausgeführt, nicht von Docker. Das Fenster wäre vor der ersten Sicherung gestorben.
+
+Der Ordner bleibt wie er ist. Geschrieben wird über den einzigen privilegierten Weg, den diese Maschine passwortlos hergibt — einen Wegwerf-Container unter `sudo docker` mit dem Ordner als Bind-Mount, Image `postgres:17-alpine`, weil es für die Datenbank ohnehin lokal liegt und dieser Schritt damit nichts aus dem Netz holt. In `/tmp/g043probe` belegt, nicht im Backup-Ordner: `uid=0(root)`, Datei landet `-rw-r----- root administrators`, für `TOBKUM` lesbar. Probe restlos entfernt.
+
+Der Dump wird **erst im Container erzeugt und dort gezählt**, dann herausgeschrieben, dann werden die Größen verglichen. Eine durchgehende Pipe hätte den Rückgabewert von `pg_dump` verschluckt — dieselbe Falle, die `nas_status.sh` schon einmal `PASS` melden ließ, während eine Teilprüfung fehlschlug.
+
+**Ein Punkt kam beim Nachmessen dazu, den der Befund nicht nennt.** `docker save -o` schreibt aus dem CLI heraus, und das läuft unter `sudo` als Root — dieser Befehl scheitert also *nicht*. Er legt die Datei aber `600 root:root` ab, als einzige im Ordner, und damit für `TOBKUM` unlesbar. In einem root-only Wegwerf-Ordner nachgestellt. Das Rollback-Image wird jetzt genauso normalisiert wie die Dumps; deine geforderte Lesbarkeitsprüfung hätte sonst genau dort angeschlagen.
+
+### 2. Audit-Nachweis
+
+Bestätigt, und der Grund liegt sogar dreifach übereinander. `/bus/messages` existiert nicht — `app.py` kennt `/bus/v1/messages`. Das Verfahren ist `Authorization: Bearer`, nicht `X-API-Key`. Und `require_bus_token()` ruft `require_bus_ready()` **vor** jeder Tokenprüfung auf: Bei Kanal `DISABLED` — auf der NAS gerade nachgelesen, `START-UP|DISABLED` — kommt `503 BUS_CHANNEL_NOT_ACTIVE`, bevor irgendetwas verbucht wird. Über `localhost:8080` käme zusätzlich `require_bus_transport()` zuvor und antwortete `BUS_HTTPS_REQUIRED`. Deine Feststellung, dass eine Pfadkorrektur nicht reicht, ist damit noch etwas stärker als im Befund.
+
+Deinen zweiten Vorschlag übernommen: `workforce.bus_record_denial` als `workforce_api`, mit der eindeutigen Request-Id `PHASE4-AUDIT-PROBE`, danach Abfrage genau dieses Datensatzes als `workforce_app`. Der erfundene Token-Hash löst auf `UNKNOWN` auf — `bus_identify_for_audit` darf dafür ausdrücklich nicht werfen, und der Nachweis prüft das mit.
+
+**Ergänzt: eine Gegenprobe.** Der Aufruf belegt den Grant aus `005`/`007`; dass `workforce_api` die Tabelle danach **nicht lesen** darf, belegt dessen Enge. Ein Nachweis, der nur zeigt, dass etwas geht, unterscheidet eine enge Rolle nicht von einer weiten.
+
+Die Probezeile bleibt stehen. `bus_denials` ist append-only, und eine Zeile mit erkennbarer Request-Id ist ehrlicher als eine, die man hinterher wegräumen wollte und laut Leitplanke 3 auch gar nicht dürfte.
+
+### 3. Testrolle
+
+Im Wegwerf-Container mit `tmpfs` nachgestellt, damit kein Volume entsteht und kein Aufräumbefehl in die Nähe des Produktivvolumens kommt (`G-038`):
+
+```
+ERROR:  role "niemand" cannot be dropped because some objects depend on it
+DETAIL:  privileges for schema workforce
+```
+
+`DROP OWNED BY niemand; DROP ROLE niemand;` räumt sauber, danach `count = 0`. Container mit `docker rm -f` entfernt.
+
+Dein zweiter Halbsatz ist der wichtigere: Das Aufräumen muss **auch nach einem fehlgeschlagenen Negativtest** laufen. Die alte Fassung hing an einer `&&`-Kette und hätte genau dann nicht aufgeräumt, wenn `007` nicht wirkt — also im interessanten Fall. Der Nachweis besteht jetzt aus vier getrennten Befehlen, und der letzte prüft den Nichtbestand.
+
+### 4. Zielmanifest
+
+Bestätigt — und es fehlt noch eine zweite Datei, die der Befund nicht nennt: `g041_empty_volume_test.py`. Beide stehen im laufenden Ist-Manifest und fielen aus beiden Listen in Abschnitt 5 heraus.
+
+Die Folge ist stiller als „fehlt": `verify_manifest.sh` läuft `find $paths`, ein Pfad also, der aus der Liste fällt, wird nicht als fehlend gemeldet — er ist einfach nicht mehr abgedeckt, und die Prüfung meldet weiter `PASS`. Genau die Sorte Abweichung, gegen die das Manifest überhaupt existiert.
+
+### Wächter
+
+`test_runbook_targets.py` wächst um vier Prüffamilien, jede mit Negativprobe: kein Schreibweg in den Backup-Ordner am Container vorbei (Umleitung **und** `cp`, während `docker save -o` erlaubt bleibt); jeder `localhost:8080`-Pfad existiert als Route in `app.py`; jede vom Runbook angelegte Rolle wird mit `DROP OWNED BY` **und** `DROP ROLE` wieder entfernt; jedes ausgeführte Hilfsskript steht in den Manifestlisten.
+
+Zwei Dinge daran sind mir beim Bauen aufgefallen und gehören in die Antwort:
+
+**Die Spaltenprüfung wäre durch meine eigene Korrektur wirkungslos geworden.** Sie sah nur in Aggregatfunktionen nach; der neue Auditnachweis benutzt kein `max()` mehr, also hätte sie nichts mehr geprüft und jeden Spaltennamen durchgelassen. Jetzt liest sie zusätzlich gewöhnliche `SELECT`-Listen und `WHERE`-Vergleiche. Der Wächter aus `G-042` wäre also im selben Commit still erblindet, in dem er sein erstes Ergebnis geliefert hat.
+
+**Eine Ausnahme habe ich wieder ausgebaut.** Erst hatte `docker save -o` einen Freibrief für den ganzen Befehl. Das hätte einen zweiten, echten Schreibvorgang im selben Befehl mitgedeckt. Die Ausnahme ist überflüssig, weil `-o` weder ein Umleitungs- noch ein `cp`-Muster ist — sie war reine Bequemlichkeit mit Loch.
+
+### Nebenbei repariert
+
+`nas_status.sh` meldete den „zugehörigen" Rollen-Dump als den jeweils neuesten, ohne die Zugehörigkeit je zu prüfen. Das Wort war eine Zusicherung ohne Beleg — Leitplanke 7. Der Name wird jetzt aus dem gerade genannten Datenbank-Dump abgeleitet, und ein fehlendes Gegenstück ist ein Befund. Abschnitt 3 vergibt dafür **einen** Zeitstempel für alle drei Dateien; vorher hätten drei `$(date)`-Aufrufe drei verschiedene Stempel erzeugt.
+
+**Lokal:** 311 + 15 + 35 + 9 Tests PASS, Python- und Shell-Syntax sowie `git diff --check` PASS. Runbook, Wächter, `nas_status.sh`, Regeln und Spiegel gehen im selben Commit.
