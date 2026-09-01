@@ -12,10 +12,14 @@
 # NICHT angewendet - sie stehen deshalb bewusst nicht unter APPLIED_MIGRATIONS
 # und auch nicht als FILE, weil dieses Dokument den laufenden Zustand nennt,
 # nicht den Ordnerinhalt.
+#
+# 2026-09-01, nach G-040: /openapi.json antwortet nicht mehr ohne Zugangsdaten.
+# Das aendert beobachtbares Verhalten einer dokumentierten Route, deshalb v9.
+# produktiv-v8 bleibt als Rueckfallmarke stehen, das v8-Image liegt auf der NAS.
 
-PRODUCTION_COMMIT=8512e57
+PRODUCTION_COMMIT=ff7529e
 VERIFIED_AT=2026-09-01
-API_IMAGE=startup-workforce-api:v8
+API_IMAGE=startup-workforce-api:v9
 APPLIED_MIGRATIONS=001_employee_registry,002_workforce_bus,003_workforce_bus_trigger_fix,005_bus_denial_audit,006_legacy_registry_tables,007_least_privilege_roles
 
 FILE=compose.yaml
