@@ -19,6 +19,11 @@ set -eu
 # Run on the Mac, in nas-startup/, with the paths you are about to deploy:
 #
 #   sh deploy_manifest.sh workforce-agent postgres-init
+#
+# MANIFEST_OUT redirects the output, for a rollout target that is prepared
+# before the NAS holds it:
+#
+#   MANIFEST_OUT=DEPLOY_MANIFEST_PHASE4.txt sh deploy_manifest.sh <paths>
 #   git ls-files -- workforce-agent postgres-init > /tmp/liste.txt
 #   echo DEPLOY_MANIFEST.txt >> /tmp/liste.txt
 #   tar czf - -T /tmp/liste.txt \
@@ -71,7 +76,11 @@ if [ -z "$files" ]; then
     exit 2
 fi
 
-manifest=DEPLOY_MANIFEST.txt
+# The running manifest describes what the NAS holds today. A second, wider
+# manifest describes a rollout target the NAS does not hold yet - keeping them
+# apart is what stops the routine check from going permanently red while a
+# planned change is still pending.
+manifest="${MANIFEST_OUT:-DEPLOY_MANIFEST.txt}"
 {
     echo "# Start UP deployment manifest"
     echo "commit=$commit"

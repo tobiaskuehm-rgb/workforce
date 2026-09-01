@@ -585,3 +585,58 @@ Der Widerspruchsscan muss diese drei konkreten Klassen mit Negativproben erkenne
 ## Freigabeempfehlung
 
 **Phase 4 noch nicht starten.** Der Umfang bis zur Freigabe ist klein und klar begrenzt: API-Container wirklich vom Eigentümer-Secret isolieren, Funktionsrechte wieder zu einer echten Allowlist machen und die drei verbleibenden Dokumentwidersprüche samt Schutztests schließen. Danach genügt erneut ein kurzer Zielcheck; keine neue Gesamtanalyse und kein neuer Phase-3-Preflight sind erforderlich, solange der NAS-Iststand unverändert bleibt.
+
+## CEO-Ergänzung – Effizienz- und Kommunikationskontrollen mit Schwerpunkt Phase 5
+
+Phase 5 bleibt Contract- und Auditphase und wird um folgende verbindliche Prüfpunkte erweitert. Ziel ist nicht weniger Nachweis, sondern weniger unnötige Übertragung, Speicherung und Modellnutzung.
+
+1. **Kostenkontrolle:** Vor jedem Provideraufruf werden Modell, Aufruf-, Token- und Kostenbudget geprüft und reserviert. Unbekannte Modelle, automatische Retries/Fallbacks und Überschreitungen werden fail-closed blockiert und auditiert. Echo-Tests bleiben kostenlos; ein echter bezahlter Aufruf benötigt ein eigenes CEO-Gate.
+2. **Datensparsamkeit:** Der Worker überträgt nur die für den konkreten Auftrag erlaubten Felder. Aktiver Arbeitskontext, Referenzen und historischer Nachweis werden getrennt. Volltexte werden nicht erneut kopiert, wenn eine stabile ID plus Hash und ein berechtigter Abruf genügen.
+3. **Dublettenschutz:** Dieselbe Message-/Task-/Handoff-ID und derselbe Idempotency-Key dürfen höchstens einen Provideraufruf und ein fachliches Ergebnis erzeugen. Inhaltsähnlichkeit allein darf keine automatische Wiederverwendung auslösen, weil dadurch Daten zwischen Aufgaben vermischt werden könnten.
+4. **Kommunikationsweg:** Der einzige Kernpfad lautet Registry → Bus → Worker → Bus. Telegram und spätere Kanäle bleiben reine Randadapter; kein Mitarbeiter, Connector oder Modell darf Bus, Allowlist, Audit oder Kill Switch umgehen. Hop-Zahl, Schleifen und parallele Rückwege werden geprüft.
+5. **Modellanbindung:** Modelle werden über eine portable Provider-Schnittstelle und eine explizite Allowlist angebunden. Die Zuordnung zu Aufgabenklassen, Datenobergrenze und Budget ist konfiguriert und auditierbar; kein selbstständiger Modellwechsel. Stärkere oder teurere Modelle werden nur gezielt eingesetzt, nicht als Standard.
+
+### Verbindliche Phase-5-Nachweise
+
+- Budget `0` blockiert jeden bezahlten Aufruf.
+- Eine doppelt zugestellte Nachricht erzeugt genau einen Provideraufruf und ein Ergebnis.
+- Ein nicht freigegebenes Feld, Modell oder Kommunikationsziel wird verweigert und im Audit sichtbar.
+- Der Testlauf weist pro Vorgang Datenmenge, Felder, Provideraufrufe, Tokens beziehungsweise belastbare Schätzung, Kostenobergrenze, Route und Dublettenentscheidung aus.
+- Der vollständige Echo-Core bleibt funktional; für Phase 5 ist kein kostenpflichtiger Modelllauf erforderlich.
+- Abschlussartefakt ist ein kompakter maschinenlesbarer Effizienzbericht plus kurze menschenlesbare Zusammenfassung, ohne kopierte Vollpayloads oder Secrets.
+
+### Einordnung in die Roadmap
+
+- **Phase 4:** technische Voraussetzungen erzwingen – getrennte Secrets und Rollen, explizite Rechte-Allowlist, kein Umgehungsweg.
+- **Phase 5:** Kosten-, Datenmengen-, Dubletten-, Routen- und Modell-Allowlist-Prüfungen bauen; kompakten Effizienzbericht mit Echo erzeugen.
+- **Phase 6:** dieselben Kontrollen im integrierten Registry → Bus → Worker → Bus-Core nachweisen.
+- **Nach dem formellen Core-PASS:** genau einen echten Modellprovider in einem separaten, budgetierten CEO-Testgate anbinden und gegen Echo sowie eine günstigere geeignete Modellklasse vergleichen.
+
+Die Kontrollen aus Phase 5 müssen vor Phase 6 umgesetzt sein. Diese Ergänzung ist keine Freigabe für einen echten Modellprovider, externe Kommunikation oder produktive Autonomie.
+
+---
+
+# Achter Zielcheck – Eintritt in Phase 4, Stand `0a197b0`
+
+## Urteil
+
+**Technisches GO für die Vorbereitung von Phase 4. Noch keine Ausführungsfreigabe für den NAS-Rollout.**
+
+- `G-035` ist für den vorgesehenen Phase-4-Pfad geschlossen: `startup.env` erreicht die API nicht mehr; Eigentümerzugang und API-Zugang sind getrennt; API-Schlüssel und API-Datenbankpasswort kommen aus eigenen Secret-Dateien; Funktionsrechte sind namentlich statt pauschal.
+- `G-036` bleibt geschlossen: keine SDK-Retries und kein serverseitiger Modell-Fallback.
+- `G-037` ist geschlossen: die konkreten Widersprüche sind korrigiert und die neuen Fehlerklassen besitzen Negativproben.
+- Unabhängig lokal: **264 + 15 + 35 + 9 = 323 Tests PASS**, zusätzlich Python-Syntax und `git diff --check` PASS.
+- NAS-Ausgangspunkt unverändert: API v7 und Datenbank gesund, Migrationen genau `001`–`003`, Kanal `DISABLED`, 0 aktive Credentials, neue Rollen noch nicht angelegt, Backup-Schutz PASS, Manifest für Commit `0a197b0` PASS.
+
+## Verbindlicher Phase-4-Scope
+
+- frische Sicherung unmittelbar vor dem Fenster;
+- Rollen `workforce_api` und `workforce_backup` aus Secret-Dateien anlegen;
+- vollständiges Deployment-Manifest nun auch für `compose.yaml`, `postgres-init/` und `workforce-api/` erzeugen und prüfen;
+- API v8 ausrollen und ausschließlich Migrationen `005`, `006`, `007` aktivieren;
+- Knowledge `004` und Knowledge-Grants `008` bleiben geschlossen;
+- kein Telegram-, Modell- oder externer Test;
+- danach Health, Restart, API-Container-Fußabdruck, Rollen-/Rechte-Negativtests, Ablehnungs-Audit und realen `pg_dump` mit `workforce_backup` prüfen;
+- bei einer Abweichung Rückfall auf gesichertes v7-Image, Preflight-Dump, Rollen-Dump und vorherige Produktivdateien.
+
+Claude darf Runbook, Prüfbefehle und Rollbackschritte für diesen Scope vorbereiten. Das tatsächliche Erstellen von Rollen/Secrets, Anwenden von Migrationen und Ersetzen des v7-Containers benötigt die gesonderte CEO-Freigabe für genau dieses Fenster.

@@ -115,6 +115,11 @@ ssh synology 'sudo /usr/local/bin/docker run --rm -v /tmp/apitest:/src:ro -w /wo
 ssh synology "rm -rf /tmp/apitest"
 ```
 
+Zwei Details dieses Befehls sind nicht verhandelbar, beide am 2026-09-01 durch je einen falschen Fehlschlag bezahlt:
+
+- **Die Verzeichnisstruktur bleibt erhalten.** `test_the_denial_audit_knows_the_knowledge_record_type` liest `postgres-init/005_bus_denial_audit.sql` relativ zu `app.py`. Wer alles flach nach `/tmp` kopiert, bekommt `FileNotFoundError` und hält ihn für einen Codefehler.
+- **`psycopg`, nicht `psycopg2`.** `app.py` importiert `psycopg` (Version 3). Das falsche Paket erzeugt einen Sammelfehler, bei dem die ganze Suite gar nicht erst startet. Die verbindlichen Versionen stehen im `Dockerfile` — dort nachschlagen, nicht schätzen (Regel 4).
+
 Der volle Pfad ist nicht kosmetisch: Die passwortlose sudo-Regel lautet auf `/usr/local/bin/docker`, und in einer nicht-interaktiven SSH-Sitzung liegt `docker` nicht im `PATH`. Ohne den Pfad fragt `sudo` nach dem Passwort und der Befehl scheitert.
 
 Testzahlen stehen bewusst nicht hier — sie waren zweimal veraltet, bevor jemand sie gelesen hat.
@@ -290,7 +295,7 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 3. **Keine Datenbankchirurgie am Bus vorbei.** Liegengebliebene Datensätze werden über die Regeln des Busses geschlossen, nicht per `UPDATE`. Wenn die Regel im Weg steht, ist die Regel richtig und der Wunsch falsch.
 4. **Kein `git add -A` ohne Blick auf `git status`.** Am 2026-09-01 hat ein Sammel-`add` Gerds neue Prüfrunde mit eingecheckt, ungelesen und unter einer Commit-Botschaft, die von etwas anderem handelte. In einem Repo, in dem zwei Seiten schreiben, ist das keine Bequemlichkeit, sondern eine Fälschung der Historie.
 5. **Jede Änderung ist ein Git-Commit mit Beschreibung.** Auf Deutsch, im Betreff was sich ändert, im Rumpf **warum**. Kein Sammelcommit über mehrere Befunde. Ein Commit, dessen Beschreibung „diverse Anpassungen" lauten müsste, ist zu groß.
-6. **Der deployte Stand ist benannt oder er gilt nicht.** `deploy_manifest.sh` vor dem Deploy, `verify_manifest.sh` auf der NAS. Ein Nachweislauf ohne bestandene Prüfung ist keiner. **Deployt werden versionierte Dateien, nie ganze Verzeichnisse** (`G-020`): Ein Archiv über ein Verzeichnis nimmt lokale Secrets und Laufzeitdateien mit, und eine Prüfung, die nur die gelisteten Dateien kennt, übersieht alten Code, der danebenliegt. Das Manifest kommt aus `git ls-files`; die Prüfung meldet **fehlend, abweichend und unerwartet**.
+6. **Der deployte Stand ist benannt oder er gilt nicht.** `deploy_manifest.sh` vor dem Deploy, `verify_manifest.sh` auf der NAS. Ein Nachweislauf ohne bestandene Prüfung ist keiner. **Deployt werden versionierte Dateien, nie ganze Verzeichnisse** (`G-020`): Ein Archiv über ein Verzeichnis nimmt lokale Secrets und Laufzeitdateien mit, und eine Prüfung, die nur die gelisteten Dateien kennt, übersieht alten Code, der danebenliegt. Das Manifest kommt aus `git ls-files`; die Prüfung meldet **fehlend, abweichend und unerwartet**. Den kompletten NAS-Iststand liefert ein einzelner Lesebefehl: `nas_status.sh` (Container, API-Version, Migrationsstand, Kanal, Rollen, Manifest, Backup-Rechte, Rückfallpunkte). Er endet mit `RESULT: PASS` oder `FAIL` und passendem Exit-Code und taugt damit auch als Preflight. Ein Statusskript, dessen Teilprüfung fehlschlägt, während es selbst `PASS` meldet, ist schlimmer als keines — Rückgabewerte hinter einer Pipe (`prüfung | tail`) gehören zum letzten Befehl, nicht zur Prüfung.
 7. **Ein Kommentar, der eine Absicherung behauptet, muss sie belegen können.** Das ist die häufigste Fehlerklasse in diesem Projekt: die Anforderung richtig aufgeschrieben, etwas anderes gebaut, und der Text bleibt als Zusicherung stehen. Wo sich eine Zusicherung nicht prüfen lässt, steht hin, dass sie **nicht belegt** ist.
 
 ## Wie diese Datei wächst
