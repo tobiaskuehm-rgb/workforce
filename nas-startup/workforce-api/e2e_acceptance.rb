@@ -1,5 +1,18 @@
 #!/usr/bin/env ruby
 
+# NIE AUSGEFUEHRT. Stand 2026-09-02 nennt kein Nachweis unter evidence/ einen
+# Lauf dieses Skripts, und kein Runbook ruft es auf (review finding G-046).
+#
+# Es braucht drei Dinge, die es heute alle nicht gibt: drei echte Bearer-Token,
+# einen Kanal auf TESTING statt DISABLED, und HTTPS-Erreichbarkeit von aussen
+# (Port 8443, DSM-Firewall). Jedes davon ist ein eigener freigabepflichtiger
+# Schritt, also ist ein Lauf ein eigenes Fenster und kein Nebenbei.
+#
+# Das steht hier, weil der Code an zwei Stellen mit diesem Skript argumentiert:
+# app.py begruendet damit, dass /openapi.json authentifiziert statt entfernt
+# wurde, und REVIEW_ANTWORTEN.md fuehrt es als Grund an. Beides haelt nur, wenn
+# daneben steht, dass die Pruefung bislang eine Moeglichkeit ist und kein Beleg.
+
 require "json"
 require "io/console"
 require "net/http"

@@ -599,6 +599,11 @@ def user_interface() -> str:
 # send a key. require_api_key also refuses cleartext, so the schema never
 # travels anywhere the key would not.
 #
+# Honest qualifier (G-046): that script has never been run - no evidence file
+# names a run, and no runbook calls it. So this reasoning preserves a *possible*
+# check, not a running one. It is still the better trade, but a weaker argument
+# than it first reads as, and the difference belongs here rather than nowhere.
+#
 # openapi_url=None above removes FastAPI's own unauthenticated route; this one
 # takes its place at the same path, so the route inventory is unchanged.
 @app.get("/openapi.json", include_in_schema=False,

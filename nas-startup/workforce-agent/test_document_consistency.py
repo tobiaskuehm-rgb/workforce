@@ -505,18 +505,64 @@ class MigrationNumbersAreUniqueTest(unittest.TestCase):
         self.assertEqual(len(numbers), len(set(numbers)), names)
 
 
-class RunbookStatusIsCurrentTest(unittest.TestCase):
-    """The runbook's own status head must name the finding that is open.
+class UnexercisedArtifactIsLabelledTest(unittest.TestCase):
+    """An artifact that has never run must not silently back an argument.
 
-    It went stale twice in a row: after G-042 it still announced the eighth
-    check, after G-043 it still announced G-042 as the open item. Nobody was
-    misled yet, but the head is the first thing an operator reads before
-    running the rest of the file in a production shell, and "the blocker is
-    G-042" is a statement about whether it is safe to start.
+    Review finding G-046: `/openapi.json` was left reachable-with-a-key rather
+    than removed, and the reason given - in a code comment and in the review
+    answer - was that `e2e_acceptance.rb` reads the path list. That script has
+    never been run: no evidence file names a run, and no runbook calls it. The
+    trade is still the right one, but the argument is weaker than it reads, and
+    the difference has to be written down where the argument is made.
 
-    The newest finding is taken from the reviewer's own file, so this cannot
-    be satisfied by editing one side.
+    The check is deliberately narrow. Trying to decide mechanically whether an
+    artifact "is exercised" gave the wrong answer for three of four candidates
+    - `check_backup_permissions.sh` runs inside `nas_status.sh`, and
+    `backup_bundle.sh` runs every session - so a broad guard here would have
+    produced noise and been switched off.
     """
+
+    SCRIPT = NAS / "workforce-api" / "e2e_acceptance.rb"
+
+    def test_the_script_says_it_has_never_run(self) -> None:
+        self.assertIn("NIE AUSGEFUEHRT", self.SCRIPT.read_text(encoding="utf-8"))
+
+    def test_the_code_comment_carries_the_qualifier(self) -> None:
+        app = (NAS / "workforce-api" / "app.py").read_text(encoding="utf-8")
+        self.assertIn("e2e_acceptance.rb", app)
+        self.assertIn("has never been run", app)
+
+    def test_no_evidence_file_claims_a_run(self) -> None:
+        # If a run ever happens, its evidence lands here and this test fails -
+        # which is the reminder to take the qualifier back out again.
+        for path in sorted((NAS / "evidence").glob("*.md")):
+            self.assertNotIn("e2e_acceptance", path.read_text(encoding="utf-8"),
+                             f"{path.name} nennt einen Lauf - Kennzeichnung anpassen")
+
+
+class RunbookStatusIsCurrentTest(unittest.TestCase):
+    """The runbook's head has to describe the state the runbook is in.
+
+    It went stale three times: after G-042 it still announced the eighth
+    check, after G-043 it still announced G-042 as the open blocker, and after
+    the window had actually run it still said "vorbereitet, nicht ausgefuehrt"
+    (G-046). The head is the first thing an operator reads before running the
+    rest of the file in a production shell, so every one of those was a
+    statement about whether it is safe to start.
+
+    A runbook has two states and the check follows them:
+
+      pending   - the head names the newest finding from the reviewer's own
+                  file, so it cannot be satisfied by editing one side
+      executed  - the head says so, with a date, and points at an evidence
+                  file that exists
+    """
+
+    HEAD_LINES = 16
+
+    def head(self) -> str:
+        text = (NAS / "PHASE4_RUNBOOK.md").read_text(encoding="utf-8")
+        return "\n".join(text.split("\n")[: self.HEAD_LINES])
 
     def newest_finding(self) -> str:
         review = (NAS / "REVIEW_GERD.md").read_text(encoding="utf-8")
@@ -524,15 +570,32 @@ class RunbookStatusIsCurrentTest(unittest.TestCase):
         self.assertTrue(numbers, "REVIEW_GERD.md nennt keine Befundnummer")
         return f"G-{numbers[-1]:03d}"
 
-    def test_the_runbook_head_names_the_newest_finding(self) -> None:
-        head = (NAS / "PHASE4_RUNBOOK.md").read_text(encoding="utf-8").split("\n")[:14]
-        self.assertIn(self.newest_finding(), "\n".join(head))
+    def test_the_head_describes_the_state_the_runbook_is_in(self) -> None:
+        head = self.head()
+        if "ausgeführt am" in head:
+            self.assertRegex(head, r"ausgeführt am \d{4}-\d{2}-\d{2}")
+            named = re.findall(r"`(evidence/[\w./-]+\.md)`", head)
+            self.assertTrue(named, "ausgefuehrt, aber kein Nachweis genannt")
+            for name in named:
+                self.assertTrue((NAS / name).is_file(), f"{name} fehlt")
+        else:
+            self.assertIn(self.newest_finding(), head)
 
-    def test_a_stale_head_would_be_noticed(self) -> None:
-        head = "\n".join((NAS / "PHASE4_RUNBOOK.md").read_text(encoding="utf-8").split("\n")[:14])
-        stale = head.replace(self.newest_finding(), "G-001")
-        self.assertNotEqual(head, stale)
-        self.assertNotIn(self.newest_finding(), stale)
+    def test_a_head_that_claims_a_run_without_evidence_would_be_caught(self) -> None:
+        head = self.head()
+        self.assertIn("ausgeführt am", head)
+        broken = re.sub(r"`evidence/[\w./-]+\.md`", "`evidence/gibt-es-nicht.md`", head)
+        self.assertNotEqual(head, broken)
+        named = re.findall(r"`(evidence/[\w./-]+\.md)`", broken)
+        self.assertTrue(named)
+        self.assertFalse(any((NAS / name).is_file() for name in named))
+
+    def test_a_pending_head_without_the_newest_finding_would_be_caught(self) -> None:
+        # The other branch, exercised on a head that is not the current one -
+        # otherwise the pending rule would rot the moment a runbook is run.
+        pending = "**Status: vorbereitet, nicht ausgeführt.** Blocker ist G-001."
+        self.assertNotIn("ausgeführt am", pending)
+        self.assertNotIn(self.newest_finding(), pending)
 
 
 if __name__ == "__main__":

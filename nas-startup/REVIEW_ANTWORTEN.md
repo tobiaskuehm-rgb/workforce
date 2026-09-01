@@ -1031,3 +1031,39 @@ Was daran hängt, damit du es nicht suchen musst:
 3. So lassen und nur dokumentieren — billigste Variante, lässt die Fehllesung aber im System
 
 Ich halte 1 für richtig: Der Statusbericht ist das, was ein Mensch im Fenster liest, und dort zählt Wahrheit mehr als Abwärtskompatibilität eines Feldes, das genau zwei Testdoubles und ein Skript kennen.
+
+---
+
+## `G-046` — eigener Prüfdurchgang: drei Behauptungen, die niemand mehr halten konnte
+
+Kein Befund von dir. Ich bin den Bestand mit deinem Blick durchgegangen, während `G-030` und `G-045` auf Entscheidungen warten, und habe drei Stellen gefunden — eine davon von heute Morgen und von mir.
+
+### 1. Ich habe eine Entscheidung mit einem Skript begründet, das nie gelaufen ist
+
+Bei `G-040` habe ich `/openapi.json` authentifiziert statt entfernt, mit der Begründung: `e2e_acceptance.rb` liest die Pfadliste, und einen Befund zu schließen, indem man die Prüfung löscht, die ihn gefunden hätte, sei der schlechtere Tausch.
+
+**Kein einziger Nachweis unter `evidence/` erwähnt dieses Skript.** Kein Runbook ruft es auf. Es braucht drei Bearer-Token, einen Kanal auf `TESTING` und HTTPS-Erreichbarkeit von außen — alles drei existiert heute nicht, jedes davon ist ein eigener freigabepflichtiger Schritt.
+
+Der Tausch bleibt richtig. Aber meine Begründung bewahrt eine **Möglichkeit**, keine laufende Prüfung, und das ist ein schwächeres Argument als es klang. Der Unterschied steht jetzt dort, wo das Argument gemacht wird: im Kopf des Skripts, im Kommentar in `app.py` und hier. Drei Testfälle halten es fest — darunter einer, der fehlschlägt, sobald doch ein Nachweis einen Lauf nennt. Das ist dann die Erinnerung, die Einschränkung wieder zu entfernen.
+
+Ich hätte das gestern schreiben müssen, nicht heute.
+
+### 2. Der Bus-Vertrag war vier Versionen alt — und niemand prüfte ihn
+
+`WORKFORCE_BUS_API_CONTRACT.md` behauptete im Statuskopf: *„In `workforce-api:v6` implementiert … HTTPS-/Real-E2E-Abnahme ausstehend."* Produktiv läuft `v9`, und der reale HTTPS-Lauf auf Port 8443 mit echten kurzlebigen Token fand am **2026-08-31** statt — nachzulesen in `evidence/2026-08-31_bus_realtest_karl_thorsten.md`, mit dem Vorabtest, der belegte, dass die Firewall vorher blockte.
+
+Das Dokument steht in der `NOT_CHECKED`-Liste des Konsistenzwächters. Diese Liste ist grundsätzlich richtig — `ACCEPTANCE_CHECKLIST.md`, `WORKFORCE_BUS_ROLLOUT.md` und `BUS_PACKAGE_MANIFEST.md` tragen ein Datum im Kopf und sind Momentaufnahmen. Der Vertrag trug **keins**, und ein Dokument ohne Datum wird als aktuell gelesen. Genau daran ist es gescheitert.
+
+Der Vertragsinhalt selbst stimmt übrigens: Die beschriebenen `/bus/v1`-Routen sind seit `v6` unverändert. Falsch war nur die Statuszeile.
+
+### 3. Das Phase-4-Runbook sagte „nicht ausgeführt", nachdem es ausgeführt war
+
+Der Kopf stand noch auf *„Status: vorbereitet, nicht ausgeführt"* — bei einem Dokument, dessen Zeilen ich Stunden vorher in eine Produktivshell gegeben hatte. Es ist jetzt als **Ausführungsprotokoll** gekennzeichnet, mit Datum und Nachweisdatei, und mit dem ausdrücklichen Hinweis, dass die Versionsnummern darin der Stand des Fensters sind: Es beschreibt `v7` → `v8`, produktiv läuft `v9`.
+
+Das ist die dritte Fassung dieses Kopfes, die veraltet war. Der Wächter, den ich nach der zweiten gebaut hatte, hätte die dritte **nicht** gefunden — er kannte nur den Zustand „steht aus" und hätte beim Erfolg rot gemeldet. Ein Wächter, der beim Gutfall anschlägt, wird abgeschaltet. Er prüft jetzt beide Zustände, jeden mit Gegenprobe: steht aus → nennt den neuesten Befund aus **deiner** Datei; ausgeführt → nennt Datum und eine Nachweisdatei, die es wirklich gibt.
+
+### Was ich daraus mitnehme
+
+Die drei hängen zusammen. Alle sind Aussagen, die zum Zeitpunkt des Schreibens stimmten und die niemand zurücknahm, als sie aufhörten zu stimmen — und in zwei von drei Fällen war der Wächter, der es hätte merken sollen, entweder nicht zuständig oder auf den falschen Zustand geeicht. Als Leitplanken 16 und 17.
+
+**Lokal:** 326 + 15 + 35 + 9 Tests PASS.

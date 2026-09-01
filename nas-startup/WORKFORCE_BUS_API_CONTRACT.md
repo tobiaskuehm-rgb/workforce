@@ -1,7 +1,12 @@
 # Workforce Bus API v0.1 – Implementierungsvertrag
 
-**Status:** In `workforce-api:v6` implementiert, lokal getestet und auf dem NAS gebaut; Kanal weiterhin `DISABLED`, HTTPS-/Real-E2E-Abnahme ausstehend.  
+**Status:** Gültig für `workforce-api:v9` (Stand 2026-09-02). Geschrieben für `v6`; die hier beschriebenen Bus-Endpunkte haben sich seither nicht geändert. Dazugekommen sind seit `v7` die `/knowledge/v1`-Endpunkte — nicht Gegenstand dieses Vertrags, Migration `004` ist nicht angewendet —, und seit `v9` verlangt `/openapi.json` den API-Schlüssel (`G-040`). Kanal weiterhin `DISABLED`.
+
 **Bezug:** `DEC-015`, `DEC-016`, `ENG-003`, `HO-020`
+
+Die Zeile darüber hieß bis 2026-09-02 „in `workforce-api:v6` implementiert … HTTPS-/Real-E2E-Abnahme ausstehend" und war damit vier Versionen alt (`G-046`). Beides ist überholt: Der reale Lauf über HTTPS auf Port 8443 mit echten, kurzlebigen Token fand am 2026-08-31 statt, nachgewiesen in `evidence/2026-08-31_bus_realtest_karl_thorsten.md`. **Nicht** gelaufen ist dagegen das Ruby-Abnahmeskript `workforce-api/e2e_acceptance.rb` — es trägt den Hinweis inzwischen im eigenen Kopf.
+
+Dieses Dokument ist **nicht datiert und wird deshalb als aktuell gelesen.** Wer eine Aussage darin nicht mehr halten kann, ändert sie hier, statt sie stehen zu lassen.
 
 ## Sicherheitsgrundsätze
 

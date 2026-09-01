@@ -1,14 +1,22 @@
 # Phase 4 — Rollout-Runbook
 
-**Status: vorbereitet, nicht ausgeführt.** Gerds zehnter Zielcheck (`c4abc84`)
-schließt `G-042` und hält das GO allein wegen `G-043` an — vier Stellen, an
-denen dieses Dokument ein Verhalten unterstellte, das es nicht gibt: Schreiben
-in den gehärteten Backup-Ordner, ein Auditnachweis über einen im Fenster
-geschlossenen Kanal, `DROP ROLE` ohne `DROP OWNED BY`, und zwei Skripte, die
-aus dem Zielmanifest gefallen waren. Alle vier sind korrigiert; es fehlt Gerds
-kurzer Nachcheck. Das Anlegen von Rollen und Secrets, das Anwenden von
-Migrationen und der Austausch des v7-Containers brauchen darüber hinaus eine
-CEO-Freigabe für genau ein Fenster.
+**Status: ausgeführt am 2026-09-01.** Dieses Dokument ist damit ein
+Ausführungsprotokoll und keine Planung mehr. Das Fenster lief nach CEO-Freigabe
+im Chat und Gerds elftem Zielcheck; Nachweis im Rohtext in
+`evidence/2026-09-01_phase4_rollout.md`. Ergebnis: v8, Migrationen `001`–`003`
+sowie `005`–`007`, beide Rollen ohne `SUPERUSER`, Kanal `DISABLED`, Knowledge
+`004`/`008` nicht angewendet.
+
+**Die Versionsnummern unten sind der Stand des Fensters, nicht der von heute.**
+Es beschreibt den Weg von `v7` nach `v8`; produktiv läuft inzwischen `v9`, weil
+`G-040` danach `/openapi.json` hinter den API-Schlüssel gelegt hat. Den
+aktuellen Stand nennt `production_state.txt`, nicht dieses Dokument.
+
+Vorgeschichte: Gerds zehnter Zielcheck (`c4abc84`) schloss `G-042` und hielt
+das GO wegen `G-043` an — vier Stellen, an denen dieses Dokument ein Verhalten
+unterstellte, das es nicht gibt. Der Lauf selbst fand dann noch drei weitere
+(`G-044`); alle sieben sind unten eingearbeitet, damit ein zweiter Lauf nicht
+dieselben Fallen findet.
 
 Dieses Dokument ist so geschrieben, dass es im Fenster von oben nach unten
 abgearbeitet wird. Jeder Schritt hat einen Befehl und ein Abbruchkriterium.
