@@ -9,15 +9,23 @@ set -eu
 # has to name exactly one thing, and a later reader has to be able to check
 # that the NAS still holds it.
 #
+# Review finding G-020: the file list comes from **git**, not from `find`.
+# `find` took every regular file under the given paths, so a locally present
+# secrets/ folder or a stray *.env would have landed in the manifest and, via
+# the directory-wide tar, on the NAS. Git's index is the definition of "the
+# versioned source state", and everything the project treats as a secret is
+# gitignored - so the exclusion is structural rather than a list to maintain.
+#
 # Run on the Mac, in nas-startup/, with the paths you are about to deploy:
 #
 #   sh deploy_manifest.sh workforce-agent postgres-init
-#   tar czf - DEPLOY_MANIFEST.txt workforce-agent postgres-init \
+#   tar czf - DEPLOY_MANIFEST.txt $(git ls-files -- workforce-agent postgres-init) \
 #     | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
 #   ssh synology "cd /volume1/docker/Startup && sh verify_manifest.sh"
 #
-# The manifest travels with the files, so what is on the NAS always carries its
-# own provenance - including after everyone has forgotten which window it was.
+# Note the tar argument list: versioned files, not whole directories. A
+# directory-wide archive would carry the same unversioned files the manifest
+# now excludes, which would defeat the point (G-020).
 
 if [ "$#" -eq 0 ]; then
     echo "usage: sh deploy_manifest.sh <path> [<path> ...]" >&2
@@ -40,6 +48,23 @@ else
     dirty=no
 fi
 
+# Untracked but not ignored: a file somebody forgot to commit. It would be
+# absent from the manifest and then flagged as unexpected on the NAS, which is
+# a confusing way to learn about it. Say so here instead.
+untracked="$(git ls-files --others --exclude-standard -- "$@")"
+if [ -n "$untracked" ]; then
+    echo "BLOCKED: unversionierte, nicht ignorierte Dateien in den Deploy-Pfaden:" >&2
+    echo "$untracked" >&2
+    echo "         committen oder ignorieren, dann erneut." >&2
+    exit 2
+fi
+
+files="$(git ls-files -- "$@")"
+if [ -z "$files" ]; then
+    echo "BLOCKED: git kennt keine Dateien unter: $*" >&2
+    exit 2
+fi
+
 manifest=DEPLOY_MANIFEST.txt
 {
     echo "# Start UP deployment manifest"
@@ -52,17 +77,13 @@ manifest=DEPLOY_MANIFEST.txt
     echo "#"
 } > "$manifest"
 
-count=0
-for path in "$@"; do
-    # -type f only: directories carry no content, symlinks are not used here.
-    find "$path" -type f ! -name '._*' ! -name '.DS_Store' | sort | while read -r file; do
-        printf '%s  %s\n' "$(sha256 "$file")" "$file"
-    done >> "$manifest"
-    count=$((count + 1))
-done
+echo "$files" | while IFS= read -r file; do
+    [ -f "$file" ] || continue
+    printf '%s  %s\n' "$(sha256 "$file")" "$file"
+done >> "$manifest"
 
-files="$(grep -c '^[0-9a-f]\{64\}  ' "$manifest" || true)"
-echo "$manifest: commit $commit, dirty=$dirty, $count Pfad(e), $files Datei(en)"
+count="$(grep -c '^[0-9a-f]\{64\}  ' "$manifest" || true)"
+echo "$manifest: commit $commit, dirty=$dirty, $# Pfad(e), $count versionierte Datei(en)"
 
 if [ "$dirty" = yes ]; then
     echo "WARNUNG: nicht committete Aenderungen im Baum - der Commit allein" >&2

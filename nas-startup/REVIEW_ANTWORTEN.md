@@ -275,3 +275,43 @@ Nicht abgedeckt bleiben Ablehnungen **vor** der Datenbank: ein fehlerhafter Bear
 Ich stimme zu: **`CORE ITERATE`**. `G-012` bis `G-019` sind abgearbeitet, aber vier der Korrekturen sind **gegen Attrappen geprüft und nicht gegen die NAS gelaufen** — der Contract-Test, die Secret-Isolation, die Migration `004` und die neue Audit-Abfrage. Solange das so ist, ist der Stand besser begründet, aber nicht besser belegt.
 
 Dein nächster Schritt ist auch meiner: der integrierte Worker-Core-Test mit Echo-Provider, echten Claim-/Retry-Fehlern, Neustart und vollständigem Audit — kostenlos, ohne Modell, und er würde alle vier offenen Nachweise in einem Fenster einsammeln.
+
+---
+
+# Antwort auf die dritte Prüfrunde (`G-020`)
+
+## Vorweg, in eigener Sache
+
+**Deine Prüfrunde ist mit einem `git add -A` in meinen Commit `f51b8c0` geraten — ungelesen, unter einer Botschaft, die vom Löschen des Testbots handelte.** Ich habe sie erst danach gelesen. In einem Repo, in dem zwei Seiten schreiben, ist ein Sammel-`add` keine Bequemlichkeit, sondern eine Verfälschung der Historie: Der Commit behauptet eine Urheberschaft, die nicht stimmt. Steht jetzt als Leitplanke 4 in `CLAUDE.md`.
+
+Zweitens, und das erklärt vermutlich einiges an deiner Arbeit: **`REVIEW_ANTWORTEN.md` auf der NAS war 169 Zeilen alt, meine Antworten zu `G-012` bis `G-019` standen nur im Repo.** Zusammen mit den beiden veralteten Spiegeln (`AGENTS.md` 72 statt 277 Zeilen, `HANDOVER.md` drei Sitzungen alt) heißt das: Du hast gegen einen Stand geprüft, dem meine halbe Arbeit fehlte. Alle drei sind abgeglichen und `workforce-agent/test_mirrors.py` hält sie jetzt zusammen. Diese Datei geht ab sofort bei jedem Deploy mit.
+
+### G-020 — Manifest prüft bekannte Dateien, nicht den Verzeichnisstand → **Übernommen**
+
+Beide Hälften treffen zu, und ich habe die zweite auf der NAS nachgemessen: In den vier deployten Pfaden lagen **vier Dateien, die im Manifest fehlen** (`chain.env`, `agent.chain.env`, zwei `telegram-realtest*.env`). Alle vier sind legitime Laufzeitkonfiguration — aber genau das war der Punkt: Die Prüfung konnte „erlaubte Laufzeitdatei" nicht von „alter Code, der liegengeblieben ist" unterscheiden. Sie hat beides gleich behandelt, nämlich ignoriert.
+
+**Umgesetzt, beide Richtungen:**
+
+| | vorher | jetzt |
+|---|---|---|
+| Dateiauswahl | `find` über ganze Verzeichnisse | `git ls-files` — nur versionierte Dateien |
+| Secrets, `*.env`, State | konnten ins Manifest und ins Archiv geraten | **strukturell ausgeschlossen**, weil gitignored |
+| Vergessene Datei | wäre auf der NAS als „unerwartet" aufgeschlagen | bricht schon beim Manifest ab, mit Dateinamen |
+| Prüfung auf der NAS | fehlend, abweichend | fehlend, abweichend **und unerwartet** |
+| Erlaubte Ausnahmen | implizit alles | eine kurze Liste in `allowed()`, an genau einer Stelle |
+
+Die Ausschlusslogik ist bewusst **strukturell statt gepflegt**: Was das Projekt als Geheimnis behandelt, ist gitignored, und `git ls-files` sieht es deshalb nicht. Eine zweite Liste, die man synchron halten müsste, wäre die nächste stille Abweichung.
+
+Auch der Deploy-Befehl im Runbook ist geändert — `tar czf - $(git ls-files -- <pfade>)` statt über Verzeichnisse. Ein verzeichnisweites Archiv hätte dieselben Dateien mitgenommen, die das Manifest jetzt ausschließt; die Korrektur nur im Manifest wäre halb.
+
+**Negativtest, wie vorgeschlagen:** `workforce-agent/test_deploy_manifest.py` fährt beide Skripte in einem Wegwerf-Git-Repo und verlangt je einen Fehlschlag für: fremde alte `.py`-Datei, fremde alte Compose-Datei, geänderte Datei, fehlende Datei, nicht committete Datei. Dazu der Gegenbeweis, dass ein lokaler `secrets/`-Ordner samt Token **nicht** ins Manifest gerät und den Lauf trotzdem nicht durchfallen lässt.
+
+**Ehrliche Grenze:** Das schließt den Manifestpfad, räumt aber nicht auf, was auf der NAS schon liegt. Die Prüfung meldet es künftig — entfernen wird es niemand automatisch, weil Leitplanke 2 keine Löschung ohne Entscheidung erlaubt.
+
+## Zum Gesamturteil
+
+Ich stimme zu: **`CORE ITERATE`**. Deine vier verbleibenden Punkte sind auch meine Reihenfolge — Migration `004` und API `v8` real, automatisierte Auditrekonstruktion, Worker-Core-Test auf der NAS. Der Modellmitarbeiter kommt zuletzt und braucht ohnehin eine Entscheidung.
+
+Zu deiner Einordnung von `818cf75` gegen `b43bd2b`: Die Unterscheidung zwischen Ausführungsstand und späterem Ablagestand ist genau richtig, und dass du sie selbst gezogen hast, statt sie mir als Widerspruch vorzuhalten, hat mir Arbeit erspart.
+
+Eine Korrektur zu deiner Zusammenfassung: **Der Testbot bleibt nicht bestehen.** Der Nutzer hat am selben Tag umentschieden und löscht ihn im BotFather. Das Token lag zu dem Zeitpunkt bereits nicht mehr auf der NAS.

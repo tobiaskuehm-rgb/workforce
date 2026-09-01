@@ -44,10 +44,14 @@ NAS       /volume1/docker/Startup/                                    ← Ziel, 
 
 Die NAS hat **kein Git**. Am Code wird im Repo gearbeitet, auf die NAS wird deployt. Ausnahme sind die beiden Review-Dateien: Die leben auf der NAS, weil Gerd nur dort hinkommt.
 
-Deploy (`rsync` und `scp` funktionieren auf dieser DSM nicht):
+Deploy (`rsync` und `scp` funktionieren auf dieser DSM nicht). **Versionierte Dateien, nie ganze Verzeichnisse** — ein verzeichnisweites Archiv nimmt Secrets und Laufzeitdateien mit (Befund `G-020`):
 
 ```bash
-cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && tar czf - <pfade> | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
+cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup"
+sh deploy_manifest.sh <pfade>
+tar czf - DEPLOY_MANIFEST.txt $(git ls-files -- <pfade>) \
+  | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
+ssh synology "cd /volume1/docker/Startup && sh verify_manifest.sh"
 ```
 
 ---
@@ -161,6 +165,26 @@ Alle drei sind behoben und als Regeln in `CLAUDE.md` eingetragen.
 **Testbot gelöscht** (entschieden 2026-09-01). Damit ist der letzte lebende Zugangsweg des Laufs weg, nicht nur von der NAS entfernt. Ein nächster Kettenlauf braucht einen **neuen Bot** und sein Token in `chain-test/secrets/telegram_bot_token`, als **Klartext**. Chat- und Nutzer-Id bleiben voraussichtlich gleich — im privaten Chat ist die Chat-Id die Nutzer-Id, und die gehört dem Menschen; die Identity-Probe prüft es nach.
 
 **Firewall-Regel zurückgenommen, nachgemessen** mit dem tokenfreien Netz-Check: `WORKFORCE_CONNECT_TIMEOUT` von `172.31.254.2`. Der Rückbau ist damit vollständig — kein offener Netzweg, kein aktiver Zugang, kein Secret auf der Platte, keine Testcontainer, Kanal `DISABLED`.
+
+### Gerds dritte Prüfrunde: `G-020` behoben
+
+**Ein neuer Befund, Schwere mittel, trifft zu.** Das Deploy-Manifest prüfte die gelisteten Dateien korrekt, erkannte aber keine **unerwarteten** — und hätte umgekehrt einen lokal vorhandenen `secrets/`-Ordner mit ins Archiv genommen. Auf der NAS nachgemessen: vier Dateien in den deployten Pfaden fehlten im Manifest (alles `*.env`, legitim — aber die Prüfung konnte das nicht unterscheiden).
+
+Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find`, womit Secrets und Laufzeitdateien **strukturell** draußen sind; die Prüfung meldet fehlend, abweichend **und unerwartet**, mit einer kurzen Ausnahmeliste an genau einer Stelle. Der Deploy-Befehl im Runbook oben archiviert versionierte Dateien statt Verzeichnisse — sonst wäre die Korrektur halb. `test_deploy_manifest.py` verlangt für jeden Fall einen Fehlschlag.
+
+**Zwei eigene Fehler dabei aufgefallen:**
+
+1. Gerds Prüfrunde geriet mit einem `git add -A` ungelesen in einen Commit, der von etwas anderem handelte. Steht als Leitplanke 4 in `CLAUDE.md`.
+2. `REVIEW_ANTWORTEN.md` auf der NAS war 169 Zeilen alt — **Gerd hat gegen einen Stand geprüft, dem meine Antworten zu `G-012` bis `G-019` fehlten.** Beide Review-Dateien gehen ab jetzt bei jedem Deploy mit.
+
+### Noch offen für `CORE PASS`
+
+Gerds Liste, der ich zustimme:
+
+1. Migration `004` und API `v8` real ausrollen und testen
+2. Automatisierte Auditrekonstruktion ausführen
+3. Worker-Core-Test auf der NAS fahren
+4. Später ein echter Modellmitarbeiter — braucht eine Entscheidung
 
 ### Nichts mehr offen beim Nutzer
 
