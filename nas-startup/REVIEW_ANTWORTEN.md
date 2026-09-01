@@ -911,3 +911,26 @@ Deine vier `G-043`-Punkte und diese drei haben dieselbe Grenze gemeinsam: Ein Do
 Was der Lauf ausdrücklich **nicht** belegt: keine Laufzeitkette (`G-030`), kein Urteil über Knowledge (`004`/`008` sind Dateien, nicht angewendet), `workforce_app` weiterhin `SUPERUSER` (`G-025`), und der Rückfallpfad ist ungeübt geblieben — er war nicht nötig, also ist er auch nicht belegt.
 
 **Lokal:** 322 + 15 + 35 + 9 Tests PASS.
+
+---
+
+## `G-040` — OpenAPI-Schema ohne Authentifizierung
+
+**Bestätigt, umgesetzt — aber noch nicht ausgerollt.** Du hattest ihn als Entscheidung offengehalten. Die Entscheidung ist jetzt fällig, weil das System seit dem Phase-4-Fenster auf v8 läuft und `/openapi.json` weiterhin jedem antwortet, der den Port erreicht.
+
+**Authentifiziert, nicht entfernt.** Dein Vorschlag ließ beides offen. Ich habe die zweite Variante genommen, weil `e2e_acceptance.rb` die Pfadliste liest, um den Vertrag gegen die laufende App zu prüfen — unter anderem, dass keine privilegierte Route auftaucht. Einen Befund zu schließen, indem man die Prüfung löscht, die ihn gefunden hätte, ist der schlechtere Tausch.
+
+Die Korrektur hat **zwei Hälften**, und das ist der Teil, den man leicht falsch macht:
+
+- `openapi_url=None` entfernt FastAPIs eigene, unauthentifizierte Route
+- eine eigene Route nimmt denselben Pfad ein, hinter `require_api_key`
+
+Nur die zweite Hälfte zu bauen, würde das Original bestehen lassen — der Endpunkt wäre weiter offen und sähe im Routenbestand unverändert aus. Ein Test prüft deshalb ausdrücklich `app.openapi_url is None`.
+
+`require_api_key` ruft `require_https_transport` mit auf. Das Schema reist damit nirgends hin, wo der Schlüssel nicht hindürfte — vier Tests: ohne Schlüssel `401`, mit Schlüssel `200` samt Pfadliste, über Klartext `503 HTTPS_REQUIRED`, und die Gegenprobe auf `openapi_url`.
+
+Der Ruby-Abnahmetest schickt den Schlüssel jetzt und prüft **zusätzlich**, dass es ohne ihn `401` gibt. Der Routenbestand in `test_app.py` bleibt unverändert, weil der Pfad derselbe ist.
+
+**Im Container: 43 Tests PASS.** Lokal 322 + 15 + 35 + 9 PASS.
+
+**Wirksam ist das noch nicht.** Es braucht einen Rebuild des API-Containers, und der ist eine Produktivänderung mit eigener CEO-Freigabe. Bis dahin steht das Repo bewusst vor der NAS: Ich habe **nicht** deployt, weil `verify_production_state.sh` sonst zu Recht eine Abweichung für `app.py` melden würde — der laufende Stand ist `8512e57`, und das soll er auch sagen, solange er es ist.

@@ -139,7 +139,7 @@ Alle drei standen in meinem eigenen Runbook, alle drei hätten in einer Trocken�
 
 - **`workforce_app` ist weiterhin `SUPERUSER`** (`G-025`) — eigener Schritt, war nie Teil dieses Fensters
 - **`G-030`** Laufzeitkette: kein Telegram, kein Modellaufruf, kein Agentenlauf hat stattgefunden
-- **`G-040`** `/openapi.json` ohne Authentifizierung
+- **`G-040`** `/openapi.json` — **korrigiert in `137ec85`, aber nicht ausgerollt.** `openapi_url=None` plus eigene Route hinter `require_api_key`; der Ruby-Abnahmetest schickt den Schlüssel und prüft zusätzlich die Ablehnung ohne ihn. Wirksam erst nach einem Rebuild des API-Containers — bis dahin steht das Repo bewusst vor der NAS, damit `production_state.txt` weiter die Wahrheit sagt
 - **Der Rückfallpfad ist ungeübt.** Er war nicht nötig; dass er trägt, ist damit nicht belegt. Danach braucht das Fenster noch die CEO-Freigabe für genau einen Lauf — der CEO hat sie grundsätzlich erteilt, sie ist also keine offene Frage mehr, sondern eine Terminfrage. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
 
 ### `G-043`: das Runbook unterstellte ein Verhalten, das es nicht gibt (geschlossen)
