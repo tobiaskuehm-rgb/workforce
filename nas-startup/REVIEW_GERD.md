@@ -640,3 +640,34 @@ Die Kontrollen aus Phase 5 müssen vor Phase 6 umgesetzt sein. Diese Ergänzung 
 - bei einer Abweichung Rückfall auf gesichertes v7-Image, Preflight-Dump, Rollen-Dump und vorherige Produktivdateien.
 
 Claude darf Runbook, Prüfbefehle und Rollbackschritte für diesen Scope vorbereiten. Das tatsächliche Erstellen von Rollen/Secrets, Anwenden von Migrationen und Ersetzen des v7-Containers benötigt die gesonderte CEO-Freigabe für genau dieses Fenster.
+
+---
+
+# Ergänzungscheck zu Claudes drei Phase-4-Entscheidungen
+
+## Bewertung
+
+1. **Zwei Manifeste:** Zustimmung mit Präzisierung. Das aktuelle Ist-Manifest bleibt bis zum Umschaltpunkt grün. Das Zielmanifest wird aus dem sauberen freigegebenen Commit erzeugt und zunächst gegen das getrennte Phase-4-Paket beziehungsweise Staging geprüft; nach erfolgreichem Rollout ersetzt es das Ist-Manifest. Es darf keinen dauerhaft roten Routinewächter geben.
+2. **`compose.yaml` erst im Fenster:** Zustimmung. Die v8-Compose-Datei darf vor der Freigabe nicht im aktiven Produktivordner liegen. Im Fenster wird die bisherige Fassung gesichert und die neue kontrolliert eingesetzt.
+3. **Dateien `004` und `008` auf der NAS, Gates `false`:** Im aktuellen Compose **noch nicht sicher**.
+
+## G-041 – Gated Migrations umgehen auf einem leeren Volume den Gate-Runner
+
+**Schwere:** hoch – Phase-4- und Wiederherstellungsblocker
+**Datei:** `compose.yaml`, DB-Service Zeilen 9–12
+
+Der DB-Service mountet den vollständigen Ordner `postgres-init/` nach `/docker-entrypoint-initdb.d`. Das offizielle PostgreSQL-Entrypoint führt bei einem leeren oder neu erzeugten Datenvolume sämtliche dort liegenden `*.sql`-Dateien automatisch aus. Dabei läuft `registry-migrate` noch nicht und seine `APPLY_MIGRATION_004_KNOWLEDGE=false`- beziehungsweise `008=false`-Prüfung ist wirkungslos. `004` könnte dadurch als Nebenwirkung aktiviert werden; `007` könnte zusätzlich wegen noch fehlender Rollen abbrechen.
+
+### Kleinste sichere Korrektur
+
+- Den Mount `./postgres-init:/docker-entrypoint-initdb.d:ro` aus dem DB-Service entfernen.
+- Den Ordner ausschließlich dem bereits vorhandenen `registry-migrate` unter `/opt/startup/migrations:ro` geben. Dieser Runner wartet auf die gesunde, leere PostgreSQL-Datenbank, wendet `001`–`003` kontrolliert an und respektiert danach sämtliche Gates.
+- Einen statischen Test ergänzen: kein gegateter Migrationsordner darf unter `/docker-entrypoint-initdb.d` gemountet sein.
+- Einen isolierten Empty-Volume-Test ergänzen:
+  - mit allen Gates `false` entstehen ausschließlich `001`–`003`;
+  - mit dem Phase-4-Satz entstehen ausschließlich `001`, `002`, `003`, `005`, `006`, `007`;
+  - `004` und `008` bleiben in beiden Fällen nicht angewendet.
+
+## Aktualisiertes Gate
+
+Das zuvor erteilte technische GO für Phase 4 wird durch diesen Ergänzungscheck **pausiert**, bis `G-041` geschlossen und der Empty-Volume-Negativtest bestanden ist. Die Zwei-Manifest-Strategie und das späte Einspielen von `compose.yaml` werden bestätigt. Danach genügt wieder ein kurzer Zielcheck; die übrige Phase-4-Vorbereitung muss nicht neu begonnen werden.
