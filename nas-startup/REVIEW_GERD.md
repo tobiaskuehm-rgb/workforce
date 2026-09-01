@@ -326,3 +326,136 @@ Diese Roadmap konkretisiert die verbindliche Reihenfolge aus `DEC-027`: **CORE �
 ## Ablageregel für Gerd
 
 Auf direkte CEO-Anweisung vom 2026-09-01 wird jede **materielle** Aktualisierung von `REVIEW_GERD.md` nach lokaler Prüfung zusätzlich unter `/volume1/docker/Startup/REVIEW_GERD.md` abgelegt. Vor dem Ersetzen wird die vorhandene NAS-Fassung als Rückfallkopie bewahrt; anschließend werden Prüfsumme und wesentliche neue Überschrift kontrolliert. Diese Regel betrifft Reviews und Roadmaps, nicht Code-, Container-, Migrations- oder Produktivänderungen; solche Aktionen behalten ihre eigenen Freigabegates.
+
+---
+
+# Fünfte Prüfrunde – Gesamtscreen 2026-09-01, Stand `226d669`
+
+Der vollständige Bericht mit NAS-Iststand, Nachweisen, unabhängiger Roadmap und dem anschließenden Vergleich mit Claudes Vorschlägen steht in `GESAMTREVIEW_GERD_2026-09-01.md`.
+
+## Prüfresultat
+
+- Lokale Pakete: **194 + 15 + 35 + 9 = 253 Tests PASS**.
+- Python- und Shell-Syntaxprüfung: PASS.
+- Git-Remote auf der NAS: aktueller Commit `226d669`.
+- Produktiv-NAS: PostgreSQL und API v7 gesund, 0 Neustarts, Kanal `DISABLED`, 0 aktive Credentials, Migrationen 001–003.
+- Neues v8/Agent-/Knowledge-Merge ist nicht produktiv ausgerollt.
+- Gesamtgate bleibt **`CORE ITERATE`**.
+
+## Neue Befunde
+
+### G-022 — Backup-ACL gibt Sicherungen an `everyone` frei
+
+**Datei:** NAS `/volume1/docker/Startup-Backups`
+**Schwere:** hoch
+**Beobachtung:** SQL- und Konfigurationsbackups sind über die Synology-ACL für `everyone` lesbar. Das Konfigurationsarchiv enthält `startup.env`.
+**Warum problematisch:** Normale NAS-Benutzer können potenziell Datenbankinhalte und Zugangsdaten aus Sicherungen lesen.
+**Vorschlag:** ACL sofort auf notwendige Administrator-/Sicherungsidentitäten begrenzen, Backupjob und Negativzugriff prüfen; danach gesondert über Credential-Rotation entscheiden.
+
+### G-023 — Laufender v7-Produktivstand besitzt keinen reproduzierbaren Git-Rückfallpunkt
+
+**Datei:** NAS `/volume1/docker/Startup`; `DEPLOY_MANIFEST.txt`
+**Schwere:** hoch – Deployment-Blocker
+**Beobachtung:** Die Hashes der laufenden API-/Compose-Dateien passen zu keinem Commit des Claude-Repositories. Das aktuelle Manifest umfasst nicht den produktiven Compose-/API-/Migrationsstand.
+**Warum problematisch:** Vor einem Update ist der real laufende Stand nicht eindeutig wiederherstellbar; ein Manifest-PASS belegt nur einen Teilbestand.
+**Vorschlag:** Exakten v7-Stand mit Image-ID, Dateien, Hashes und Git-Tag/Commit einfrieren und danach alle Produktivpfade manifestieren.
+
+### G-024 — Aktuelles Backup wurde nicht wiederhergestellt und liegt nur auf derselben NAS
+
+**Datei:** NAS `/volume1/docker/Startup-Backups`; `/volume1/docker/git/`
+**Schwere:** hoch
+**Beobachtung:** Der aktuelle Dump ist nicht leer und formal abgeschlossen, wurde aber nicht isoliert restored. Git-Remote, Bundle und Backups liegen auf derselben NAS.
+**Warum problematisch:** Ein NAS-Gesamtausfall oder ein unbrauchbarer Dump kann sämtliche Rückfallwege zugleich treffen.
+**Vorschlag:** Neuesten Dump isoliert wiederherstellen und später eine verschlüsselte Off-NAS-Sicherung nach CEO-Entscheidung ergänzen.
+
+### G-025 — API-Laufzeitkonto ist PostgreSQL-Superuser
+
+**Datei:** NAS PostgreSQL-Rolle `workforce_app`
+**Schwere:** hoch
+**Beobachtung:** Das Anwendungskonto besitzt `SUPERUSER`, `CREATEROLE` und `CREATEDB`.
+**Warum problematisch:** Ein API-Fehler oder -Einbruch kann Audit und Schutzlogik umgehen und die gesamte Datenbank verändern.
+**Vorschlag:** Migration/Admin, Backup und API-Laufzeit trennen; API nur minimal notwendige Rechte geben.
+
+### G-026 — Buildkontexte besitzen keine `.dockerignore`
+
+**Datei:** Compose-Buildpfade `workforce-api/`, `workforce-agent/`, `telegram-connector/`, `chain-test/`
+**Schwere:** mittel bis hoch
+**Beobachtung:** Docker erhält ohne `.dockerignore` auch unversionierte Secret-, State- und Environmentdateien im Buildkontext.
+**Warum problematisch:** Vertrauliche Dateien können in Builder/Cache gelangen, auch wenn das Dockerfile sie nicht in das Endimage kopiert.
+**Vorschlag:** Strenge `.dockerignore` pro Kontext plus Negativtests für Secret, State, `.env`, Backup und Evidenz.
+
+### G-027 — Knowledge-Fehlerabbildung zerstört Knowledge-Fehlercodes
+
+**Datei:** `workforce-api/app.py`:52-84
+**Schwere:** mittel
+**Beobachtung:** Die Normalisierung akzeptiert nur `BUS_`; `KNOWLEDGE_...` wird vor der HTTP-Zuordnung in `BUS_DATABASE_UNAVAILABLE` verwandelt.
+**Warum problematisch:** Zugriffsschutzfehler erscheinen als Datenbankfehler und werden falsch auditiert beziehungsweise beantwortet.
+**Vorschlag:** Bus- und Knowledge-Codes explizit abbilden und sämtliche DB-Fehlerpfade testen.
+
+### G-028 — Routen-Inventartest ist nicht vollständig
+
+**Datei:** `workforce-api/test_app.py`:448-490
+**Schwere:** mittel
+**Beobachtung:** Der als vollständig bezeichnete Test lässt bestehende Kernel-, Rollen-, Worker-, Task-, Dokument- und Activity-Routen aus.
+**Warum problematisch:** Funktionsverlust kann trotz grünem Regressionstest unentdeckt bleiben.
+**Vorschlag:** Vollständigen gewollten API-Vertrag aus der realen App inventarisieren.
+
+### G-029 — Provider- und Datenpolicy sind nicht vollständig fail-closed
+
+**Datei:** `workforce-agent/providers.py`:325-345; `workforce-agent/workforce-agent.env.example`:19
+**Schwere:** hoch vor Modellbetrieb
+**Beobachtung:** Fehlender Provider fällt auf `claude` zurück; die Beispieldatei setzt Datenpolicy `FULL`. `METADATA_ONLY` überträgt zudem den Betreff.
+**Warum problematisch:** Unvollständige Konfiguration kann unbeabsichtigt Kosten und Inhaltsübertragung auslösen.
+**Vorschlag:** Explizites `disabled`/`echo` oder Startabbruch; Daten standardmäßig verweigern; Betreff als Inhalt klassifizieren.
+
+### G-030 — Core-Skript und Nachrichten-Worker ergeben noch keine integrierte Runtime-Kette
+
+**Datei:** `workforce-agent/core_roundtrip.py`; `workforce-agent/worker_core_test.py`; `workforce-agent/agent_worker.py`
+**Schwere:** hoch – Core-Blocker
+**Beobachtung:** Das erste Programm skriptet Task/Handoff direkt, das zweite testet den Worker nur mit Nachrichten. Die Runtime führt den vollständigen ENG-008-Lebenszyklus noch nicht selbst aus.
+**Warum problematisch:** Zwei Teilnachweise beweisen nicht den verbindlichen End-to-End-Mitarbeiterablauf.
+**Vorschlag:** Einen integrierten Echo-Core über den realen Runtime-/Orchestratorpfad bauen und Retry, Neustart, Ablehnung, Idempotenz und Audit gemeinsam prüfen.
+
+### G-031 — Compose aktiviert Knowledge 004 als Nebenwirkung des Core-Updates
+
+**Datei:** `compose.yaml`:75-94
+**Schwere:** hoch – Deployment-Blocker
+**Beobachtung:** Der Migrationslauf führt 004 Knowledge und danach 005 Bus-Audit aus. Produktiv sind nur 001–003 vorhanden; Knowledge besitzt ein separates Gate.
+**Warum problematisch:** Ein Core-Test würde einen nicht freigegebenen Funktionsbereich migrieren.
+**Vorschlag:** Migrationen technisch trennen; im Core-Fenster nur die ausdrücklich freigegebene 005 ausführen.
+
+### G-032 — Autoritätsquellen sind uncommittet und statusseitig nicht synchron
+
+**Datei:** `Startup_Codex/SOURCE_MANIFEST.md`, aktive Quellen 00–04, `OPEN_DECISION_GATES.md`
+**Schwere:** mittel bis hoch
+**Beobachtung:** Quellen enthalten DEC-027/ENG-008, die Manifestübersicht nennt noch DEC-026/ENG-007; spätere Testnachweise und offene Gates sind nicht durchgehend abgeglichen.
+**Warum problematisch:** Entscheidung, technischer Stand und Gate können unterschiedliche Wahrheiten behaupten.
+**Vorschlag:** Append-only konsolidieren, committen und die Zuständigkeitsgrenze zwischen Autoritäts- und Code-Repository als CEO-Entscheidung festhalten.
+
+### G-033 — Dokumentation und Manifest überzeichnen einzelne Nachweise
+
+**Datei:** `deploy_manifest.sh`:21-23; `HANDOVER.md`; `DEPLOY_MANIFEST.txt`
+**Schwere:** mittel
+**Beobachtung:** Der Skriptkopf zeigt weiter den alten Archivierungsbefehl; Manifest-PASS erfasst keinen Produktivstack; Handover enthält einzelne alte Migrations-/Statusaussagen.
+**Warum problematisch:** Ein Teilnachweis kann als Gesamtnachweis verstanden oder ein alter Befehl kopiert werden.
+**Vorschlag:** Runbooks angleichen, Manifest-Scope offen ausgeben und automatisierten Widerspruchsscan ergänzen.
+
+### G-034 — SDK-Retries/Fallback umgehen die harte Provider-Aufrufgrenze
+
+**Datei:** `workforce-agent/providers.py`:107-146; `workforce-agent/agent_worker.py`
+**Schwere:** hoch vor bezahltem Modellbetrieb
+**Beobachtung:** Ein logisch reservierter Provideraufruf kann im SDK mehrere externe Versuche und ein Fallbackmodell auslösen.
+**Warum problematisch:** Aufruf- und Kostendecken sind für echte Provider nicht hart.
+**Vorschlag:** SDK-Retries deaktivieren oder jeden tatsächlichen Versuch budgetieren; bis dahin nur Echo.
+
+## Aktualisierte Empfehlung
+
+1. **Sofort:** Backup-ACL härten und negativ testen.
+2. **Dann:** Exakten v7-Produktivstand versionieren, vollständiges Manifest und aktuellen Restore beweisen.
+3. **Lokal:** Migration 004/005 entkoppeln, API-/Build-/Providerfehler schließen und DB-Rollen trennen.
+4. **Isoliert:** Dump-Restore und Upgradeprobe von real 001–003 durchführen.
+5. **Mit neuem CEO-Gate:** kontrolliertes Foundation-Update mit 005, ohne Knowledge 004 und ohne echten Modellprovider.
+6. **Danach:** vollständig integrierter Echo-Core über die reale Runtime; erst bei vollständigem Audit formell `CORE PASS`.
+7. **Verbindlich danach:** Thorsten/Research → Finance → Gesamtvalidierung.
+
+Claudes Roadmap wird in Git-Remote, kanonischer Grenze, Auditwerkzeugen und Contract-first bestätigt. Nicht übernommen wird ein gemeinsames 004/005-Deployment. Zusätzlich priorisiert Gerd Backup-ACL, v7-Provenienz, Restore, DB-Least-Privilege, Buildkontext und den wirklich integrierten Runtime-Core.
