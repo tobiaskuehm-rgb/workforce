@@ -98,9 +98,30 @@ Ziffern*. Das Skript gibt den Wert nie aus. Es existiert, weil am 2026-09-01
 der Bot-Token mit TextEdit geschrieben wurde und als RTF-Markup in der Datei
 landete — 433 Byte, die in jedem Editor wie ein Token aussahen.
 
-Rechte stehen auf `600`, Eigentümer `TOBKUM`. Auf `0400`/`root` gehen sie im
-Fenster, nachdem die Rollen angelegt sind — vorher wäre die Datei für den
-Schritt, der sie liest, nicht mehr erreichbar.
+**Die beiden eingehängten Secrets brauchen `640` und Gruppe `101`** (`G-044`).
+Compose hängt ein `file:`-Secret als **Bind-Mount der Host-Datei** ein — am
+laufenden Container gemessen, nicht angenommen; `uid`, `gid` und `mode` in der
+Langform könnten daran nichts ändern. Der API-Container läuft als `uid=100
+gid=101`, die Dateien gehörten `TOBKUM` mit `600`, und die API ging beim ersten
+Start mit `PermissionError: /run/secrets/workforce_api_key` in einen
+Neustart-Loop.
+
+Auf dem Host ist `101` die Gruppe `administrators` — dieselbe, die bereits die
+Datenbank-Dumps im Backup-Ordner liest; die Freigabe geht also nicht über die
+bestehende Lage hinaus. `workforce_backup_password` wird nicht eingehängt und
+bleibt auf `600`.
+
+```
+ssh synology "cd /volume1/docker/Startup/secrets && \
+  chgrp 101 workforce_api_key workforce_api_db_password && \
+  chmod 640 workforce_api_key workforce_api_db_password && ls -ln ."
+```
+
+Hier stand vorher „auf `0400`/`root` im Fenster". Das hätte den Fehler nicht
+behoben, sondern festgeschrieben: An eine root-eigene `0400`-Datei kommt ein
+Container, der nicht als Root läuft, genauso wenig heran. Damit die Zahl `101`
+nicht vom Zufall der Basis-Image-Vergabe abhängt, pinnt das `Dockerfile`
+`uid`/`gid` inzwischen ausdrücklich.
 
 ## 3. Frische Sicherung (Abbruch bei jedem Fehler)
 
@@ -269,16 +290,42 @@ Abbruch bei jedem `fehlend`, `abweichend` oder `unerwartet`.
 
 ## 6. Gates öffnen und starten
 
-Genau drei Gates gehen auf. `004` und `008` bleiben geschlossen — das ist die
-Zeile, an der ein Flüchtigkeitsfehler Knowledge ungewollt aktivieren würde:
+**Die Gates werden nicht im versionierten Stand geöffnet** (`G-044`). Hier
+stand vorher, `005`–`007` müssten in der ausgerollten `compose.yaml` auf
+`"true"` stehen. Das kollidiert mit `test_review_fixes.py`, der genau diese
+Gates im versionierten Stand auf `"false"` verlangt (`G-031`) — ein Commit mit
+`"true"` macht den Wächter rot und muss hinterher zurückgenommen werden, also
+genau die Sorte Schritt, den man vergisst. Der Kommentar in `compose.yaml`
+sagt es selbst: „Flip exactly one, for exactly one window, and set it back
+afterwards."
+
+Erst prüfen, dass die Datei geschlossen ist — **alle fünf** auf `"false"`:
 
 ```
 ssh synology "cd /volume1/docker/Startup && grep -n APPLY_MIGRATION compose.yaml"
 ```
 
-Erwartet: `004` und `008` auf `"false"`, `005`, `006`, `007` auf `"true"`.
-Stimmt das nicht, wird die Datei korrigiert und Abschnitt 5 wiederholt — nicht
-auf der NAS editiert (Regel 1).
+Geöffnet wird dann für **einen einzigen Aufruf**, und `004`/`008` kommen dabei
+gar nicht erst vor:
+
+```
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose run --rm -T \
+  -e APPLY_MIGRATION_005_BUS_DENIAL_AUDIT=true \
+  -e APPLY_MIGRATION_006_LEGACY_TABLES=true \
+  -e APPLY_MIGRATION_007_LEAST_PRIVILEGE=true \
+  registry-migrate"
+```
+
+Erwartet: `applied.` für `005`, `006`, `007`, `NOT applied: gate closed` für
+`004` und `008`. Danach der Migrationsstand:
+
+```
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db \
+  psql -U workforce_app -d workforce -Atc \"SELECT migration_id FROM workforce.schema_migrations ORDER BY 1\""
+```
+
+Erwartet: genau `001`–`003`, `005`, `006`, `007`. Steht `004` oder `008` dabei,
+ist das ein Abbruch.
 
 **Der DB-Container muss mit neu erzeugt werden.** `compose.yaml` entfernt den
 Mount `./postgres-init:/docker-entrypoint-initdb.d` aus dem DB-Dienst
@@ -333,11 +380,20 @@ ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose u
    ```
    ```
    ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db psql -U niemand -d workforce -Atc \
-     \"SELECT workforce.bus_send_message('x','x','x','x','x')\" 2>&1 | head -2"
+     \"SELECT workforce.bus_send_message('x','x','x','x','x','x','x','x','x','x','x','x','x')\" 2>&1 | head -2"
    ```
-   Erwartet: `permission denied for function`. Erreicht die Rolle stattdessen
-   `BUS_AUTH_FAILED`, ist `007` wirkungslos — das war genau der Befund `G-035`,
-   weil PostgreSQL `EXECUTE` standardmäßig an `PUBLIC` vergibt.
+   **Dreizehn Argumente, nicht fünf** (`G-044`). Hier standen fünf, und
+   PostgreSQL antwortete darauf `function ... does not exist` — dieselbe
+   Meldung, die auch bei wirkungslosem `007` gekommen wäre. Der Nachweis prüfte
+   nichts. Ein Fehlschlag ist erst dann die erwartete Ablehnung, wenn die
+   Kennung stimmt (`G-014`); die Signatur steht in
+   `002_workforce_bus.sql` und lässt sich mit
+   `pg_get_function_identity_arguments` nachsehen.
+
+   Erwartet: `permission denied for function bus_send_message`. Erreicht die
+   Rolle stattdessen `BUS_AUTH_FAILED`, ist `007` wirkungslos — das war genau
+   der Befund `G-035`, weil PostgreSQL `EXECUTE` standardmäßig an `PUBLIC`
+   vergibt.
 
    **Aufräumen, unabhängig vom Ergebnis.** `DROP ROLE` allein scheitert: das
    erteilte `USAGE` ist eine Abhängigkeit, und PostgreSQL antwortet mit

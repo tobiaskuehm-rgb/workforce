@@ -281,6 +281,63 @@ def helper_script_offenders(text: str) -> list[str]:
     return sorted(name for name in executed if name not in lists)
 
 
+def function_arity() -> dict[str, int]:
+    """Parameter count per workforce function, from the migrations."""
+    arity: dict[str, int] = {}
+    for path in sorted(MIGRATIONS.glob("*.sql")):
+        if path.name[:3] in CLOSED_GATES:
+            continue
+        body = path.read_text(encoding="utf-8")
+        for match in re.finditer(
+                r"CREATE (?:OR REPLACE )?FUNCTION workforce\.([a-z_]+)\s*\((.*?)\)\s*\n?\s*RETURNS",
+                body, re.DOTALL | re.IGNORECASE):
+            params = match.group(2).strip()
+            arity[match.group(1)] = len(split_top_level(params)) if params else 0
+    return arity
+
+
+def split_top_level(argument_list: str) -> list[str]:
+    """Split on commas that are not inside parentheses or quotes."""
+    parts, depth, quoted, current = [], 0, False, ""
+    for char in argument_list:
+        if char == "'":
+            quoted = not quoted
+        if not quoted:
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+            elif char == "," and depth == 0:
+                parts.append(current.strip())
+                current = ""
+                continue
+        current += char
+    if current.strip():
+        parts.append(current.strip())
+    return parts
+
+
+def call_arity_offenders(text: str) -> list[str]:
+    """Calls whose argument count does not match the function definition.
+
+    Review finding G-044: the privilege negative test called
+    `bus_send_message` with five arguments. It takes thirteen, so PostgreSQL
+    answered `function ... does not exist` - the same answer it would give if
+    007 had never run. The proof proved nothing, and it had looked green.
+    """
+    known = function_arity()
+    offenders = []
+    for command in commands(text):
+        for name, args in re.findall(r"workforce\.([a-z_]+)\s*\((.*?)\)\s*(?:\\?\"|'|$|\s*2>)",
+                                     command, re.DOTALL):
+            if name not in known:
+                continue
+            used = len(split_top_level(args)) if args.strip() else 0
+            if used != known[name]:
+                offenders.append(f"{name}: {used} statt {known[name]}")
+    return offenders
+
+
 class RunbookTargetsTest(unittest.TestCase):
     def setUp(self) -> None:
         self.text = RUNBOOK.read_text(encoding="utf-8")
@@ -313,6 +370,9 @@ class RunbookTargetsTest(unittest.TestCase):
 
     def test_every_executed_helper_script_is_in_the_target_manifest(self) -> None:
         self.assertEqual([], helper_script_offenders(self.text))
+
+    def test_every_function_call_has_the_right_number_of_arguments(self) -> None:
+        self.assertEqual([], call_arity_offenders(self.text))
 
     def test_an_image_reference_is_not_mistaken_for_a_container(self) -> None:
         # `docker save startup-workforce-api:v7` is correct and must stay.
@@ -406,6 +466,19 @@ class WeakenedControlIsDetectedTest(unittest.TestCase):
         self.assertNotEqual(self.text, broken)
         self.assertTrue(role_cleanup_offenders(broken))
 
+    def test_the_original_five_argument_call_would_be_caught(self) -> None:
+        broken = self.text.replace(
+            "'x','x','x','x','x','x','x','x','x','x','x','x','x'", "'x','x','x','x','x'", 1)
+        self.assertNotEqual(self.text, broken)
+        self.assertIn("bus_send_message: 5 statt 13", call_arity_offenders(broken))
+
+    def test_a_wrong_arity_on_the_audit_call_would_be_caught(self) -> None:
+        # The second call in the runbook, so the check is not looking at one
+        # command and calling it a day.
+        broken = self.text.replace("'BUS_AUTH_FAILED', 401)", "'BUS_AUTH_FAILED')", 1)
+        self.assertNotEqual(self.text, broken)
+        self.assertIn("bus_record_denial: 7 statt 8", call_arity_offenders(broken))
+
     def test_a_script_missing_from_the_manifest_would_be_caught(self) -> None:
         broken = self.text.replace("check_secret_files.sh verify_production_state.sh",
                                    "verify_production_state.sh")
@@ -425,7 +498,11 @@ class ScanSourcesTest(unittest.TestCase):
 
     def test_the_runbook_still_closes_the_gates_this_scan_assumes(self) -> None:
         text = RUNBOOK.read_text(encoding="utf-8")
-        self.assertIn("`004` und `008` bleiben geschlossen", text)
+        # Section 6 was rewritten when G-044 moved the gate out of the
+        # versioned file; the invariant this scan depends on is that the two
+        # stay shut, so anchor on the abort criterion rather than on prose.
+        self.assertIn("Steht `004` oder `008` dabei,", text)
+        self.assertIn("die beiden bleiben auf `\"false\"`", text)
 
     def test_the_scan_actually_reads_the_runbook(self) -> None:
         # Every check above compares against an empty set when the parser
@@ -438,6 +515,11 @@ class ScanSourcesTest(unittest.TestCase):
         self.assertIn("bus_denials", referenced_objects(text))
         self.assertIn("CREATE ROLE niemand", "\n".join(commands(text)))
         self.assertIn("check_secret_files.sh", text)
+
+    def test_the_signature_scan_finds_the_functions_it_needs(self) -> None:
+        arity = function_arity()
+        self.assertEqual(13, arity["bus_send_message"])
+        self.assertEqual(8, arity["bus_record_denial"])
 
     def test_the_route_scan_finds_the_routes_it_needs(self) -> None:
         routes = api_routes()

@@ -847,3 +847,67 @@ Zwei Dinge daran sind mir beim Bauen aufgefallen und gehören in die Antwort:
 `nas_status.sh` meldete den „zugehörigen" Rollen-Dump als den jeweils neuesten, ohne die Zugehörigkeit je zu prüfen. Das Wort war eine Zusicherung ohne Beleg — Leitplanke 7. Der Name wird jetzt aus dem gerade genannten Datenbank-Dump abgeleitet, und ein fehlendes Gegenstück ist ein Befund. Abschnitt 3 vergibt dafür **einen** Zeitstempel für alle drei Dateien; vorher hätten drei `$(date)`-Aufrufe drei verschiedene Stempel erzeugt.
 
 **Lokal:** 311 + 15 + 35 + 9 Tests PASS, Python- und Shell-Syntax sowie `git diff --check` PASS. Runbook, Wächter, `nas_status.sh`, Regeln und Spiegel gehen im selben Commit.
+
+---
+
+## Phase 4 ausgeführt — und `G-044`, drei Fehler aus meinem eigenen Runbook
+
+Das Fenster ist gelaufen: v8, Migrationen `001`–`003`,`005`,`006`,`007`, beide Rollen ohne `SUPERUSER`, `initdb`-Mount am Container verschwunden, Kanal `DISABLED`, 0 Credentials, Knowledge `004`/`008` nicht angewendet. Alle sechs Nachweise bestanden. Rohtext in `evidence/2026-09-01_phase4_rollout.md`, Endstand `nas_status.sh` `RESULT: PASS`, Exit 0.
+
+Freigaben: CEO im Chat für genau dieses Fenster, dazu dein elfter Zielcheck.
+
+Interessant ist nicht der Erfolg, sondern was der echte Lauf gefunden hat. Drei Dinge, alle in meinem Runbook, alle an Stellen, die deine vier Nachprüfungen und meine eigenen Wächter passiert hatten. Ich führe sie als `G-044`.
+
+### 1. Die API kam nicht hoch
+
+```
+File "/app/app.py", line 51, in <module>
+    API_KEY = _api_key()
+PermissionError: [Errno 13] Permission denied: '/run/secrets/workforce_api_key'
+```
+
+Gemessen statt vermutet: Compose hängt ein `file:`-Secret als **Bind-Mount der Host-Datei** ein (`docker inspect` zeigt `bind /volume1/.../secrets/workforce_api_key -> /run/secrets/...`). Damit können `uid`, `gid` und `mode` in der Langform nichts ausrichten — die Host-Rechte sind, was der Container sieht. Der Container läuft als `uid=100 gid=101`, die Datei gehörte `TOBKUM` mit `600`.
+
+**Die Angabe im Runbook hätte den Fehler nicht behoben, sondern festgeschrieben.** Dort stand „Rechte auf `0400`/`root` im Fenster". Ein Container, der nicht als Root läuft, kommt an eine root-eigene `0400`-Datei genauso wenig heran.
+
+Behoben mit Gruppe `101` und `640` auf den beiden **eingehängten** Dateien. Auf dem Host ist `101` die Gruppe `administrators` — dieselbe, die schon die Datenbank-Dumps im Backup-Ordner liest, die Freigabe geht also nicht über die bestehende Lage hinaus. `workforce_backup_password` wird nicht eingehängt und blieb auf `600`.
+
+Und weil `100`/`101` bisher nur zufällig herauskamen — Alpines `adduser -S` vergibt den nächsten freien Systemwert —, pinnt das `Dockerfile` sie jetzt ausdrücklich. Eine Host-Freigabe nach Nummer, die an einer nicht festgelegten Nummer hängt, ist eine Zeitbombe.
+
+### 2. Die Gates kollidierten mit einem Wächter
+
+Das Runbook verlangte `005`–`007` auf `"true"` in der ausgerollten `compose.yaml`. `test_review_fixes.py` verlangt genau diese Gates im versionierten Stand auf `"false"` (`G-031`). Beide Seiten haben recht, und mein Dokument hat den Widerspruch nie benannt — es hätte mich zu einem Commit gedrängt, der einen Sicherheitswächter rot macht und hinterher zurückgenommen werden muss.
+
+Gelöst, ohne eine Seite zu beugen:
+
+```
+docker compose run --rm -T -e APPLY_MIGRATION_005_...=true -e ... registry-migrate
+```
+
+Das Gate ist offen, solange der Befehl läuft. Der Beleg, dass nichts offen blieb, kommt ohne Zutun: Beim anschließenden `up --build workforce-api` lief derselbe Runner mit den Werten aus der Datei und meldete `already applied` für `005`–`007` **und** `gate closed` für `004`/`008`. Nichts zurückzunehmen heißt: nichts zu vergessen.
+
+### 3. Ein Nachweis prüfte nichts
+
+Der Rechte-Negativtest rief `workforce.bus_send_message` mit fünf Argumenten auf. Die Funktion nimmt dreizehn:
+
+```
+ERROR:  function workforce.bus_send_message(unknown, unknown, unknown, unknown, unknown) does not exist
+```
+
+Diese Meldung wäre **identisch** gekommen, wenn `007` nie gelaufen wäre. Der Nachweis sah grün aus und unterschied eine wirksame von einer stillgelegten Kontrolle nicht — genau `G-014`, nur eine Ebene tiefer: nicht Statuscode gegen Kennung, sondern Ablehnung gegen Signaturfehler.
+
+Mit der echten Signatur, aus `pg_get_function_identity_arguments` statt aus dem Gedächtnis:
+
+```
+ERROR:  permission denied for function bus_send_message
+```
+
+`test_runbook_targets.py` vergleicht die Stelligkeit jeder `workforce.`-Funktion im Runbook jetzt gegen die Migrationen. Zwei Negativproben: die Fünf-Argument-Fassung wird erkannt, und ein falscher Aufruf von `bus_record_denial` ebenfalls — damit die Prüfung nicht an einem einzigen Befehl hängt.
+
+### Was ich daraus mitnehme
+
+Deine vier `G-043`-Punkte und diese drei haben dieselbe Grenze gemeinsam: Ein Dokument lässt sich gegen Namen prüfen, gegen Signaturen, gegen Rechte in der Quelle — aber ob ein Prozess seine eigene Datei lesen darf, sagt einem erst der Start. Drei Regeln sind als Leitplanken 10 bis 12 in den Spiegeln.
+
+Was der Lauf ausdrücklich **nicht** belegt: keine Laufzeitkette (`G-030`), kein Urteil über Knowledge (`004`/`008` sind Dateien, nicht angewendet), `workforce_app` weiterhin `SUPERUSER` (`G-025`), und der Rückfallpfad ist ungeübt geblieben — er war nicht nötig, also ist er auch nicht belegt.
+
+**Lokal:** 322 + 15 + 35 + 9 Tests PASS.

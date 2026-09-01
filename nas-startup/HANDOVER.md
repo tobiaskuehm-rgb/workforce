@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-01, nach Gerds zehntem Zielcheck und der Korrektur von `G-043` — von Claude Code
+**Zuletzt aktualisiert:** 2026-09-01, nach dem ausgeführten Phase-4-Fenster — von Claude Code
 
 ## Wie die Zusammenarbeit läuft
 
@@ -121,9 +121,28 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 ## Hier weitermachen
 
-**Stand:** Gerds zehnter Zielcheck (`c4abc84`) schließt `G-042` und hält das GO **allein wegen `G-043`** an — vier ausführbare Fehler im Runbook. Alle vier sind korrigiert; es fehlt Gerds kurzer Nachcheck. Danach braucht das Fenster noch die CEO-Freigabe für genau einen Lauf — der CEO hat sie grundsätzlich erteilt, sie ist also keine offene Frage mehr, sondern eine Terminfrage. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
+**Stand: Phase 4 ist ausgeführt.** Die NAS läuft auf **v8** mit Migrationen `001`–`003`, `005`, `006`, `007`, zwei neuen Rollen ohne `SUPERUSER`, eigenen Secret-Dateien für die API und ohne den `initdb`-Mount. Kanal weiter `DISABLED`, 0 aktive Credentials, Knowledge `004`/`008` nicht angewendet. Alle sechs Nachweise bestanden, `nas_status.sh` `RESULT: PASS`, Exit 0. Rohtext in `evidence/2026-09-01_phase4_rollout.md`.
 
-### `G-043`: das Runbook unterstellte ein Verhalten, das es nicht gibt
+Freigaben: CEO im Chat für genau dieses Fenster, dazu Gerds elfter Zielcheck auf `0966cbb` (`G-041`, `G-042`, `G-043` geschlossen, technisches GO).
+
+### `G-044`: drei Fehler, die erst der echte Lauf gezeigt hat
+
+Alle drei standen in meinem eigenen Runbook, alle drei hätten in einer Trockenübung nicht auffallen können.
+
+**Die API kam nicht hoch.** `PermissionError: /run/secrets/workforce_api_key`, Neustart-Loop. Compose hängt ein `file:`-Secret als **Bind-Mount der Host-Datei** ein — am laufenden Container gemessen —, also ändern `uid`/`gid`/`mode` in der Langform nichts. Der Container läuft als `uid=100 gid=101`, die Datei gehörte `TOBKUM` mit `600`. Behoben mit Gruppe `101` und `640` auf den beiden eingehängten Dateien; die dritte wird nicht eingehängt und blieb `600`. Das Runbook sagte „auf `0400`/`root` im Fenster" — das hätte den Fehler festgeschrieben. Das `Dockerfile` pinnt `uid`/`gid` jetzt, damit die Zahl nicht am Basis-Image hängt.
+
+**Die Gates kollidierten mit einem Wächter.** Das Runbook verlangte `005`–`007` auf `"true"` im ausgerollten Stand; `test_review_fixes.py` verlangt sie im versionierten Stand auf `"false"` (`G-031`). Gelöst, ohne eine Seite zu beugen: `docker compose run --rm -T -e APPLY_MIGRATION_X=true registry-migrate` öffnet das Gate für genau einen Aufruf. Der Beleg kommt von selbst — beim nächsten `up` meldet der Runner `already applied` **und** `gate closed`.
+
+**Ein Nachweis prüfte nichts.** Der Rechte-Negativtest rief `bus_send_message` mit fünf Argumenten auf; die Funktion nimmt dreizehn. PostgreSQL antwortete `function ... does not exist` — dieselbe Meldung, die auch bei wirkungslosem `007` gekommen wäre. Mit der echten Signatur: `permission denied for function bus_send_message`. `test_runbook_targets.py` vergleicht Stelligkeiten jetzt gegen die Migrationen.
+
+### Was jetzt offen ist
+
+- **`workforce_app` ist weiterhin `SUPERUSER`** (`G-025`) — eigener Schritt, war nie Teil dieses Fensters
+- **`G-030`** Laufzeitkette: kein Telegram, kein Modellaufruf, kein Agentenlauf hat stattgefunden
+- **`G-040`** `/openapi.json` ohne Authentifizierung
+- **Der Rückfallpfad ist ungeübt.** Er war nicht nötig; dass er trägt, ist damit nicht belegt. Danach braucht das Fenster noch die CEO-Freigabe für genau einen Lauf — der CEO hat sie grundsätzlich erteilt, sie ist also keine offene Frage mehr, sondern eine Terminfrage. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
+
+### `G-043`: das Runbook unterstellte ein Verhalten, das es nicht gibt (geschlossen)
 
 Vier Punkte, alle bestätigt, alle selbst nachgemessen statt nachgelesen.
 
