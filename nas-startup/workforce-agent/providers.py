@@ -110,7 +110,12 @@ class ClaudeProvider:
         *,
         api_key: str | None = None,
         timeout: float = 120.0,
-        max_retries: int = 3,
+        # Zero, not three (review finding G-034). The worker reserves exactly
+        # one provider call against the budget; an SDK that silently retries
+        # would turn that one reservation into several real external calls,
+        # and the hard ceiling would stop being hard. Retrying is the worker's
+        # decision, made against the budget, not the SDK's.
+        max_retries: int = 0,
     ) -> None:
         try:
             import anthropic
@@ -324,7 +329,14 @@ def read_api_key(environment: dict[str, str]) -> str | None:
 
 def build_provider(environment: dict[str, str] | None = None) -> Provider:
     env = os.environ if environment is None else environment
-    name = env.get("AGENT_PROVIDER", "claude").strip().lower()
+    # No default (review finding G-029). It used to fall back to "claude",
+    # so a forgotten variable selected the paid provider - the one choice
+    # that costs money and sends content outside. An unset provider is an
+    # incomplete configuration, and an incomplete configuration must not
+    # decide anything.
+    name = env.get("AGENT_PROVIDER", "").strip().lower()
+    if not name:
+        raise ProviderError("AGENT_PROVIDER_NOT_CONFIGURED")
 
     if name == "echo":
         return EchoProvider()

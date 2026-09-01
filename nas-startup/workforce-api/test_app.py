@@ -445,49 +445,71 @@ def test_a_broken_audit_never_turns_a_denial_into_a_server_error(monkeypatch):
 # --- Bestandswahrung (Befund G-021) -----------------------------------------
 
 
-def test_no_route_disappears_when_the_two_lineages_are_merged():
-    """Every bus and knowledge route has to survive, by name.
+def test_the_api_contract_is_exactly_this():
+    """The full route contract, both directions.
 
-    G-021: this repository's API had branched from a state before the knowledge
-    work. Deploying it would have removed seven endpoints that were already
-    accepted - and nothing would have said so, because every test that existed
-    still passed. A route inventory is the cheapest thing that notices.
+    G-021: this repository's API had branched from a state before the
+    knowledge work, and deploying it would have removed seven accepted
+    endpoints while every test stayed green.
 
-    Add a route here when you add one to the API. Removing a line is a
-    deliberate act and needs a decision, not a refactor.
+    G-028: the first version of this test listed only bus, knowledge and the
+    two health routes - so the kernel, role, worker, task, document and
+    activity routes could still have vanished unnoticed. It called itself
+    complete and was not. The set below is the whole contract, and the
+    comparison is an equality: a removed route fails, and so does one that
+    appears without being written down here.
     """
     expected = {
-        # Bus
-        ("GET", "/bus/v1/status"),
-        ("GET", "/bus/v1/messages"),
-        ("POST", "/bus/v1/messages"),
-        ("POST", "/bus/v1/messages/{message_id}/ack"),
-        ("GET", "/bus/v1/tasks"),
-        ("POST", "/bus/v1/tasks"),
-        ("POST", "/bus/v1/tasks/{task_id}/transition"),
+        ("GET", "/"),
+        ("GET", "/activities"),
         ("GET", "/bus/v1/handoffs"),
         ("POST", "/bus/v1/handoffs"),
         ("POST", "/bus/v1/handoffs/{handoff_id}/transition"),
-        # Knowledge - the seven a v8 built from the wrong base would have lost
-        ("GET", "/knowledge/v1/status"),
+        ("GET", "/bus/v1/messages"),
+        ("POST", "/bus/v1/messages"),
+        ("POST", "/bus/v1/messages/{message_id}/ack"),
+        ("GET", "/bus/v1/status"),
+        ("GET", "/bus/v1/tasks"),
+        ("POST", "/bus/v1/tasks"),
+        ("POST", "/bus/v1/tasks/{task_id}/transition"),
+        ("GET", "/db-check"),
+        ("GET", "/documents"),
+        ("POST", "/documents"),
+        ("GET", "/documents/{document_id}"),
+        ("GET", "/health"),
+        ("GET", "/kernel"),
+        ("POST", "/knowledge/v1/assessments"),
         ("POST", "/knowledge/v1/candidates"),
-        ("POST", "/knowledge/v1/objects/{knowledge_id}/versions/{version}/submit-review"),
         ("POST", "/knowledge/v1/objects/{knowledge_id}/versions/{version}/approve"),
         ("POST", "/knowledge/v1/objects/{knowledge_id}/versions/{version}/revoke"),
+        ("POST", "/knowledge/v1/objects/{knowledge_id}/versions/{version}/submit-review"),
         ("POST", "/knowledge/v1/retrieve"),
-        ("POST", "/knowledge/v1/assessments"),
-        # Operational
-        ("GET", "/health"),
-        ("GET", "/db-check"),
+        ("GET", "/knowledge/v1/status"),
+        # FastAPI's own schema route. docs_url and redoc_url are switched off,
+        # this one is not - and e2e_acceptance.rb reads it to check the path
+        # list, so it is load-bearing. Listed here because the contract is the
+        # contract: it is reachable without a credential and describes the
+        # whole API. Whether that is wanted is a decision, not a test.
+        ("GET", "/openapi.json"),
+        ("GET", "/roles"),
+        ("POST", "/roles"),
+        ("GET", "/tasks"),
+        ("POST", "/tasks"),
+        ("PATCH", "/tasks/{task_id}"),
+        ("POST", "/tasks/{task_id}/notes"),
+        ("GET", "/workers"),
+        ("POST", "/workers"),
     }
     actual = {
         (method, route.path)
         for route in workforce_app.app.routes
         for method in getattr(route, "methods", set())
-        if method in {"GET", "POST", "PATCH", "DELETE"}
+        if method in {"GET", "POST", "PATCH", "PUT", "DELETE"}
     }
-    missing = expected - actual
-    assert missing == set(), f"Routen verschwunden: {sorted(missing)}"
+    assert actual == expected, (
+        f"verschwunden: {sorted(expected - actual)}; "
+        f"neu und nicht eingetragen: {sorted(actual - expected)}"
+    )
 
 
 def test_the_api_reports_one_version_everywhere():

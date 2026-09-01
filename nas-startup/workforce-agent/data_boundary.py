@@ -10,11 +10,12 @@ Two settings decide it together, and the stricter one always wins.
 
 `AGENT_DATA_POLICY` sets the ceiling for the run:
 
-  METADATA_ONLY  subject, action class and identifiers - never the body.
-                 Safe default: the provider learns what kind of request this
-                 is, not what it says.
-  BODY           subject plus the message body. Needed for a model to actually
-                 work on the request.
+  METADATA_ONLY  action class and identifiers - never the subject, never the
+                 body. The provider learns that a request exists and of what
+                 kind, not one word of what it says.
+  BODY           subject and message body. The first policy under which any
+                 content at all leaves the NAS, and the first one a model can
+                 actually work with.
   FULL           BODY plus task and handoff references.
 
 `AGENT_DATA_POLICY_OVERRIDES` sets a ceiling per sender, e.g.
@@ -89,7 +90,11 @@ MAX_OUTBOUND_CHARS = 8000
 # Fields that may ever be forwarded, per policy. Anything not listed here
 # cannot leave, even if a future bus version adds it to the message record.
 _ALLOWED_FIELDS: dict[Policy, tuple[str, ...]] = {
-    "METADATA_ONLY": ("message_id", "sender_id", "subject", "action_class"),
+    # The subject is content, not metadata (review finding G-029). People put
+    # the actual request in it - "Kuendigung Mueller pruefen" says more than
+    # most bodies. It used to travel under METADATA_ONLY, which made the
+    # narrowest policy quietly leak the thing it was meant to hold back.
+    "METADATA_ONLY": ("message_id", "sender_id", "action_class"),
     "BODY": ("message_id", "sender_id", "subject", "action_class", "body"),
     "FULL": (
         "message_id",

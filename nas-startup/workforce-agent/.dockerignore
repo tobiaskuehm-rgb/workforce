@@ -1,0 +1,41 @@
+# Nothing unversioned reaches the build context (review finding G-026).
+#
+# Docker sends the whole context directory to the daemon before the Dockerfile
+# is even read. Files the Dockerfile never COPYs still travel, land in the
+# build cache and can end up in an intermediate layer. A .dockerignore is the
+# only place that stops it.
+#
+# Same reasoning as the deploy manifest (G-020): what the project treats as a
+# secret is gitignored, so the rule here mirrors .gitignore rather than
+# inventing a second list to keep in sync.
+
+secrets/
+*.env
+!*.env.example
+*token*
+!test_*token*
+*.key
+*.pem
+# Names without an extension slip through the patterns above - the agent's
+# anthropic_api_key was the one this test actually caught.
+*api_key*
+*secret*
+*credential*
+
+# Local state and test residue - never wanted in an image, and a state file
+# can carry message ids and reply ids.
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+__pycache__/
+*.pyc
+.venv/
+
+# Evidence, manifests and archives: large, and none of it belongs in a build.
+DEPLOY_MANIFEST.txt
+*.bundle
+*.tar
+*.tar.gz
+*.zip
+.DS_Store
+._*

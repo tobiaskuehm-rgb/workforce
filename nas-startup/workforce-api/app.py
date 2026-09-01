@@ -52,7 +52,11 @@ def row_as_dict(cursor) -> dict:
 def bus_error(exc: psycopg.Error) -> HTTPException:
     code = exc.sqlstate
     message = getattr(exc.diag, "message_primary", None) or "BUS_DATABASE_ERROR"
-    stable_message = message.startswith("BUS_") and all(
+    # Both prefixes, not just BUS_ (review finding G-027). A KNOWLEDGE_ code
+    # used to be normalised away into BUS_DATABASE_UNAVAILABLE, so an access
+    # refusal reached the caller - and the denial audit - as a database fault.
+    # A permission error that looks like an outage is worse than either.
+    stable_message = message.startswith(("BUS_", "KNOWLEDGE_")) and all(
         character.isupper() or character.isdigit() or character == "_"
         for character in message
     )

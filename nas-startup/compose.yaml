@@ -27,6 +27,13 @@ services:
     restart: "no"
     env_file:
       - startup.env
+    environment:
+      # Fail-closed gates for the two migrations that are not yet approved
+      # (review finding G-031). Flip exactly one, for exactly one window, and
+      # set it back afterwards. Migrations 001-003 stay automatic: they are
+      # long applied and the marker check makes re-running them a no-op.
+      APPLY_MIGRATION_004_KNOWLEDGE: "false"
+      APPLY_MIGRATION_005_BUS_DENIAL_AUDIT: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -72,8 +79,15 @@ services:
           echo "Unexpected Workforce Bus trigger fix marker count; refusing to continue."
           exit 1
         fi
+        # Migrations 004 and 005 belong to different gates and are therefore
+        # opt-in, fail-closed (review finding G-031). Without an explicit
+        # APPLY_..., a routine `docker compose up` applies neither. Knowledge
+        # has its own approval; a core-audit window must not migrate it as a
+        # side effect, and vice versa.
         knowledge_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '004_knowledge_capability'")"
-        if [ "$$knowledge_count" = "0" ]; then
+        if [ "$$knowledge_count" = "0" ] && [ "$${APPLY_MIGRATION_004_KNOWLEDGE:-false}" != "true" ]; then
+          echo "Knowledge & Capability migration NOT applied: gate closed (APPLY_MIGRATION_004_KNOWLEDGE is not true)."
+        elif [ "$$knowledge_count" = "0" ]; then
           psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/004_knowledge_capability.sql
           echo "Knowledge & Capability migration applied; system remains DISABLED."
         elif [ "$$knowledge_count" = "1" ]; then
@@ -83,7 +97,9 @@ services:
           exit 1
         fi
         denial_audit_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '005_bus_denial_audit'")"
-        if [ "$$denial_audit_count" = "0" ]; then
+        if [ "$$denial_audit_count" = "0" ] && [ "$${APPLY_MIGRATION_005_BUS_DENIAL_AUDIT:-false}" != "true" ]; then
+          echo "Workforce Bus denial audit NOT applied: gate closed (APPLY_MIGRATION_005_BUS_DENIAL_AUDIT is not true)."
+        elif [ "$$denial_audit_count" = "0" ]; then
           psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/005_bus_denial_audit.sql
           echo "Workforce Bus denial audit applied."
         elif [ "$$denial_audit_count" = "1" ]; then

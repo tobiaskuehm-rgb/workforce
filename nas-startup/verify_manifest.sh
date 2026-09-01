@@ -53,7 +53,7 @@ allowed() {
     esac
 }
 
-sed -n 's/^commit=/commit:   /p;s/^dirty=/dirty:    /p;s/^created=/erstellt: /p;s/^paths=/pfade:    /p' "$manifest"
+sed -n 's/^commit=/commit:   /p;s/^dirty=/dirty:    /p;s/^created=/erstellt: /p;s/^paths=/pfade:    /p;s/^scope=/umfang:   /p' "$manifest"
 
 paths="$(sed -n 's/^paths=//p' "$manifest")"
 [ -n "$paths" ] || { echo "$manifest nennt keine Pfade" >&2; exit 1; }
@@ -88,6 +88,8 @@ problems="$(wc -l < "$work/findings" | tr -d ' ')"
 
 [ "$problems" -eq 0 ] || sort "$work/findings"
 echo "manifestiert: $total Datei(en); fehlend, abweichend oder unerwartet: $problems"
+echo "Hinweis: geprueft sind nur die oben genannten Pfade. Ein PASS sagt nichts"
+echo "         ueber den Produktivstack oder ueber Pfade, die hier nicht stehen."
 
 if [ "$problems" -eq 0 ]; then
     echo "RESULT: PASS"

@@ -71,12 +71,20 @@ def message(**overrides):
 
 
 class DataBoundaryTest(unittest.TestCase):
-    def test_metadata_only_never_forwards_the_body(self):
+    def test_metadata_only_forwards_neither_body_nor_subject(self):
+        # The subject left under METADATA_ONLY until review finding G-029.
+        # It is content: people put the actual request in it, so the narrowest
+        # policy was quietly leaking the very thing it existed to hold back.
         out = data_boundary.prepare_outbound(message(), policy="METADATA_ONLY")
         self.assertNotIn("body", out.payload)
+        self.assertNotIn("subject", out.payload)
         self.assertFalse(out.disclosure.body_included)
-        self.assertEqual(("action_class", "message_id", "sender_id", "subject"),
+        self.assertEqual(("action_class", "message_id", "sender_id"),
                          out.disclosure.fields)
+
+    def test_the_subject_first_leaves_under_the_body_policy(self):
+        out = data_boundary.prepare_outbound(message(), policy="BODY")
+        self.assertEqual("Bitte pruefen", out.payload["subject"])
 
     def test_body_policy_forwards_the_body(self):
         out = data_boundary.prepare_outbound(message(), policy="BODY")

@@ -19,13 +19,19 @@ set -eu
 # Run on the Mac, in nas-startup/, with the paths you are about to deploy:
 #
 #   sh deploy_manifest.sh workforce-agent postgres-init
-#   tar czf - DEPLOY_MANIFEST.txt $(git ls-files -- workforce-agent postgres-init) \
+#   git ls-files -- workforce-agent postgres-init > /tmp/liste.txt
+#   echo DEPLOY_MANIFEST.txt >> /tmp/liste.txt
+#   tar czf - -T /tmp/liste.txt \
 #     | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
 #   ssh synology "cd /volume1/docker/Startup && sh verify_manifest.sh"
 #
-# Note the tar argument list: versioned files, not whole directories. A
-# directory-wide archive would carry the same unversioned files the manifest
-# now excludes, which would defeat the point (G-020).
+# Two things about that tar line, both learned the hard way:
+#
+#   * Versioned files, not whole directories. A directory-wide archive would
+#     carry the same unversioned files the manifest now excludes (G-020).
+#   * The list goes in through `-T`, not `$(...)`. In zsh an unquoted variable
+#     is not split into words, so every path arrives as one argument and git
+#     finds nothing (G-033: this header still showed the broken form).
 
 if [ "$#" -eq 0 ]; then
     echo "usage: sh deploy_manifest.sh <path> [<path> ...]" >&2
@@ -74,6 +80,10 @@ manifest=DEPLOY_MANIFEST.txt
     echo "dirty=$dirty"
     echo "created=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     echo "paths=$*"
+    # What this manifest does NOT cover. A PASS says "these paths hold exactly
+    # this source state" - it never said "the NAS is at this commit", and the
+    # difference was read the other way round once (G-033).
+    echo "scope=nur die oben genannten Pfade; nicht abgedeckt: alles uebrige"
     echo "#"
 } > "$manifest"
 
