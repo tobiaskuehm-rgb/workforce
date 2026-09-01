@@ -531,3 +531,53 @@ def test_the_denial_audit_knows_the_knowledge_record_type():
     text = migration.read_text(encoding="utf-8")
     assert "'KNOWLEDGE'" in text
     assert "005_bus_denial_audit" in text
+
+
+def test_the_api_no_longer_creates_tables_at_startup():
+    """The runtime must not need DDL rights (review finding G-025).
+
+    `initialize_database()` ran CREATE TABLE on every start, which is why the
+    runtime role ended up as SUPERUSER with CREATEROLE, CREATEDB and
+    BYPASSRLS. A superuser can disable the append-only triggers, so the whole
+    audit argument rested on the API choosing not to.
+
+    The definitions now live in a migration; the API checks and refuses.
+    """
+    source = pathlib.Path(workforce_app.__file__).read_text(encoding="utf-8").upper()
+    for statement in ("CREATE TABLE", "ALTER TABLE", "DROP TABLE"):
+        assert statement not in source, f"die API fuehrt wieder {statement} aus"
+    assert "def initialize_database" not in source.lower()
+    assert hasattr(workforce_app, "verify_database")
+
+
+def test_a_missing_legacy_table_stops_the_start_and_names_it(monkeypatch):
+    class MissingTable:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def execute(self, *_):
+            class Cursor:
+                def fetchone(self):
+                    return (None,)
+            return Cursor()
+
+    monkeypatch.setattr(workforce_app, "connection", MissingTable)
+    with pytest.raises(RuntimeError) as caught:
+        workforce_app.verify_database()
+    message = str(caught.value)
+    assert "WORKFORCE_LEGACY_TABLES_MISSING" in message
+    # It has to say which table and which migration provides it - a start that
+    # fails without naming the cause costs an hour.
+    assert "roles" in message
+    assert "006_legacy_registry_tables" in message
+
+
+def test_every_legacy_table_the_api_uses_is_verified():
+    # A table the API reads but does not verify would fail later, in a request,
+    # instead of at startup.
+    source = pathlib.Path(workforce_app.__file__).read_text(encoding="utf-8")
+    for table in workforce_app.LEGACY_TABLES:
+        assert f"FROM {table}" in source or f"INTO {table}" in source, table

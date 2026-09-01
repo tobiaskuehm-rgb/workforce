@@ -280,67 +280,43 @@ def execute_bus_many(sql: str, parameters: tuple,
         raise error from exc
 
 
-def initialize_database() -> None:
-    statements = """
-    CREATE TABLE IF NOT EXISTS roles (
-        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        name text NOT NULL UNIQUE,
-        description text NOT NULL DEFAULT '',
-        created_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE IF NOT EXISTS workers (
-        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        name text NOT NULL,
-        kind text NOT NULL CHECK (kind IN ('human', 'agent')),
-        role_id bigint REFERENCES roles(id) ON DELETE SET NULL,
-        active boolean NOT NULL DEFAULT true,
-        created_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE IF NOT EXISTS tasks (
-        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        title text NOT NULL,
-        description text NOT NULL DEFAULT '',
-        status text NOT NULL DEFAULT 'open'
-            CHECK (status IN ('open', 'in_progress', 'blocked', 'done')),
-        assignee_id bigint REFERENCES workers(id) ON DELETE SET NULL,
-        created_at timestamptz NOT NULL DEFAULT now(),
-        updated_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE IF NOT EXISTS activity_log (
-        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        event_type text NOT NULL,
-        entity_type text NOT NULL,
-        entity_id bigint,
-        details jsonb NOT NULL DEFAULT '{}'::jsonb,
-        created_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE IF NOT EXISTS task_notes (
-        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        task_id bigint NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-        note_type text NOT NULL CHECK (note_type IN ('note', 'result')),
-        content text NOT NULL,
-        created_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE IF NOT EXISTS documents (
-        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        title text NOT NULL UNIQUE,
-        content text NOT NULL DEFAULT '',
-        updated_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE IF NOT EXISTS document_versions (
-        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        document_id bigint NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-        content text NOT NULL,
-        created_at timestamptz NOT NULL DEFAULT now()
-    );
+# The seven legacy registry tables the API reads and writes. Their definition
+# lives in postgres-init/006_legacy_registry_tables.sql; the API only checks
+# that they are there.
+LEGACY_TABLES = (
+    "roles", "workers", "tasks", "activity_log",
+    "task_notes", "documents", "document_versions",
+)
+
+
+def verify_database() -> None:
+    """Refuse to serve on a database that is not migrated.
+
+    This used to be `initialize_database()`, which created the seven tables
+    on every start. That is why the runtime account needed DDL rights and ended up as
+    SUPERUSER - and a superuser can disable the append-only triggers the audit
+    argument depends on (review finding G-025).
+
+    Checking instead of creating costs one query and turns a silent, powerful
+    startup side effect into a loud, powerless one: a missing table now names
+    itself and the migration that provides it.
     """
+    missing = []
     with connection() as conn:
-        conn.execute(statements)
+        for table in LEGACY_TABLES:
+            if conn.execute("SELECT to_regclass(%s)", (table,)).fetchone()[0] is None:
+                missing.append(table)
+    if missing:
+        raise RuntimeError(
+            "WORKFORCE_LEGACY_TABLES_MISSING: "
+            + ", ".join(missing)
+            + " - apply postgres-init/006_legacy_registry_tables.sql"
+        )
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    initialize_database()
+    verify_database()
     yield
 
 

@@ -34,6 +34,9 @@ services:
       # long applied and the marker check makes re-running them a no-op.
       APPLY_MIGRATION_004_KNOWLEDGE: "false"
       APPLY_MIGRATION_005_BUS_DENIAL_AUDIT: "false"
+      # 006 is a no-op on the running NAS - the tables exist since August. It
+      # only records that their definition moved out of the API startup path.
+      APPLY_MIGRATION_006_LEGACY_TABLES: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -106,6 +109,18 @@ services:
           echo "Workforce Bus denial audit already applied."
         else
           echo "Unexpected Workforce Bus denial audit marker count; refusing to continue."
+          exit 1
+        fi
+        legacy_tables_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '006_legacy_registry_tables'")"
+        if [ "$$legacy_tables_count" = "0" ] && [ "$${APPLY_MIGRATION_006_LEGACY_TABLES:-false}" != "true" ]; then
+          echo "Legacy registry tables NOT applied: gate closed (APPLY_MIGRATION_006_LEGACY_TABLES is not true)."
+        elif [ "$$legacy_tables_count" = "0" ]; then
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/006_legacy_registry_tables.sql
+          echo "Legacy registry tables recorded; definitions now live in the migration."
+        elif [ "$$legacy_tables_count" = "1" ]; then
+          echo "Legacy registry tables already applied."
+        else
+          echo "Unexpected legacy registry table marker count; refusing to continue."
           exit 1
         fi
     volumes:
