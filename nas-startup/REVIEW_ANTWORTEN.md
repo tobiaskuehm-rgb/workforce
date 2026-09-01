@@ -934,3 +934,68 @@ Der Ruby-Abnahmetest schickt den Schlüssel jetzt und prüft **zusätzlich**, da
 **Im Container: 43 Tests PASS.** Lokal 322 + 15 + 35 + 9 PASS.
 
 **Wirksam ist das noch nicht.** Es braucht einen Rebuild des API-Containers, und der ist eine Produktivänderung mit eigener CEO-Freigabe. Bis dahin steht das Repo bewusst vor der NAS: Ich habe **nicht** deployt, weil `verify_production_state.sh` sonst zu Recht eine Abweichung für `app.py` melden würde — der laufende Stand ist `8512e57`, und das soll er auch sagen, solange er es ist.
+
+---
+
+## `G-025` — nicht geschlossen, und zwar aus einem Grund, den niemand vorhergesehen hat (`G-045`)
+
+Der CEO hatte im Chat freigegeben, `G-025` vorzubereiten **und auszuführen**. Ich habe es vorbereitet, geprobt — und **nicht ausgeführt**. Der dokumentierte Schritt ist auf dieser Datenbank nicht ausführbar. Die Produktion ist unverändert.
+
+### Der Befund
+
+Migration `007` nennt in ihrem Kopf den letzten Schritt wörtlich:
+
+```sql
+ALTER ROLE workforce_app NOSUPERUSER NOCREATEROLE NOCREATEDB NOBYPASSRLS;
+```
+
+Produktiv nachgesehen:
+
+```
+SELECT oid, rolname, rolsuper FROM pg_roles WHERE oid = 10;
+10|workforce_app|t
+```
+
+**`workforce_app` ist der Bootstrap-Superuser.** Das ist Bauart, nicht Zufall: `initdb` macht `POSTGRES_USER` dazu, und `startup.env` setzt dort `workforce_app`. PostgreSQL lässt dieser Rolle das Attribut nicht nehmen:
+
+```
+ERROR:  permission denied to alter role
+DETAIL:  The bootstrap superuser must have the SUPERUSER attribute.
+```
+
+Die Anweisung scheitert als Ganzes. Die drei übrigen Attribute gehen einzeln durch (`workforce_app|t|f|f|f`) — wirkungslos, weil ein Superuser `CREATEROLE`, `CREATEDB` und `BYPASSRLS` ohnehin überschreibt. Ein „teilweise geschlossen" wäre hier eine Beschönigung.
+
+### Was die Probe sonst noch ergeben hat
+
+**Es gibt genau einen Superuser.** Wäre der Entzug gelungen, hätte ihn keine Rolle zurückgeben können — der Plan enthielt eine Einbahnstraße, und keiner der Texte erwähnt sie. Ich habe das geprüft, *bevor* ich den Befehl abgesetzt hätte.
+
+**Der Rollen-Dump bräche.** Ohne `SUPERUSER` scheitert `pg_dumpall --globals-only` an `permission denied for table pg_authid` — Exit 1, 229 statt 1504 Byte. Genau der Dump, den du mit `G-024` zur Pflicht gemacht hast. `--no-role-passwords` läuft, liefert aber Rollen ohne Passwörter; ein Restore müsste sie aus den Secret-Dateien nachsetzen. Für die künftige Eigentümertrennung vorgemerkt.
+
+**Der Superuser-Entzug hätte die Audit-Trigger nicht geschützt.** Gemessen, vor und nach der Umstellung identisch:
+
+```
+Audit-Trigger abschalten (workforce_app)   erlaubt
+dito, DISABLE TRIGGER ALL                  erlaubt
+```
+
+Die Kommentare in `006` und `007` führen als Begründung an, ein Superuser könne die Append-only-Trigger abschalten. Das stimmt — aber der **Eigentümer** kann es auch, und der bleibt `workforce_app`. Die Begründung trägt weniger weit, als sie klingt.
+
+### Ein Fehler in meiner eigenen Probe, der fast durchgegangen wäre
+
+Der erste Durchlauf setzte die Testdatenbank mit dem Vorgabebenutzer `postgres` auf und lud `workforce_app` aus dem Rollen-Dump nach. Dort **ging** der Entzug durch — `f|f|f|f`, alles grün. Ich hätte einen bestandenen Nachweis für etwas gehabt, das produktiv unmöglich ist.
+
+Aufgefallen ist es erst, als ich die Rücknahme prüfen wollte. Deshalb steht das jetzt als Regel: Wer eine Rechteänderung probt, setzt `POSTGRES_USER` wie im Ziel — die Rollenlage ist Teil des Systems, nicht Kulisse.
+
+### Der Rückfallpfad ist geübt
+
+Phase A der Probe spielt die Sicherung `preflight-2026-09-01_22-18-42` zurück, erst Rollen-Dump, dann Datenbank-Dump: 3 Migrationszeilen, 15 Tabellen. Drei ist korrekt — der Dump stammt von vor dem Phase-4-Fenster. Meine erste Erwartung war 6 und damit falsch; die Wiederherstellung war es nicht.
+
+Der Phase-4-Nachweis musste festhalten, der Rückfallpfad sei ungeübt. Das gilt nicht mehr.
+
+### Was aus `G-025` wird
+
+Es ist keine `ALTER ROLE`-Frage, sondern eine **Eigentümerfrage**: eigener, nicht-privilegierter Eigentümer für Schema, Tabellen und Funktionen. Das ist kein Nachtrag, sondern Entwurfsarbeit — die zehn `SECURITY DEFINER`-Funktionen laufen als ihr Eigentümer, der Gate-Runner verbindet sich als `POSTGRES_USER`, und `REASSIGN OWNED BY` ist nicht additiv. Eigene Migration, eigene Probe, eigene Freigabe.
+
+Ich schlage vor, `G-025` in diesem Zuschnitt **zurückzustellen** und als `G-045` neu zu fassen. Deine Einschätzung dazu hätte ich gern, bevor ich einen Entwurf baue.
+
+Nachweis im Rohtext: `evidence/2026-09-01_g025_bootstrap_superuser.md`, wiederholbar mit `g025_nosuperuser_test.py`.
