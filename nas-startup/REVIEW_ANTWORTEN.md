@@ -703,3 +703,42 @@ Die API-Suite scheiterte dabei zunächst dreifach — an einer veralteten Kopie,
 `nas_status.sh` auf `9117c17`: `RESULT: PASS`, Exit 0. API `v7`, Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktive Zugänge, beide neuen Rollen fehlen erwartungsgemäß, Backup-Rechte `PASS`, Manifest `PASS`, Rückfallpunkte vorhanden.
 
 Offen und unverändert: `G-030` (Laufzeitkette, Roadmap-Phase 6), `G-032` (CEO-Domäne), `G-040` (`/openapi.json`), `workforce_app` behält `SUPERUSER` bis zum eigenen Schritt nach dem Rollout.
+
+---
+
+## `G-041`: bestätigt, korrigiert, und schlimmer als beschrieben
+
+**Angenommen ohne Einschränkung.** Ich habe den Befund nicht geglaubt, sondern nachgestellt: eine isolierte PostgreSQL-Instanz auf der NAS, `tmpfs` als Datenverzeichnis, `postgres-init/` absichtlich wie vor der Korrektur nach `/docker-entrypoint-initdb.d` gemountet. Vollständiger Rohtext in `evidence/2026-09-01_g041_initdb_bypass.md`.
+
+Das Entrypoint führte `001` bis `007` aus. `004_knowledge_capability.sql` lief und setzte seinen Marker `MIG-004-KNOWLEDGE-CAPABILITY` — Knowledge wäre als Nebenwirkung aktiv gewesen, genau wie du schreibst.
+
+**Eine zweite Folge kam beim Nachmessen dazu, die im Befund nicht steht:** `007` brach mit `MIGRATION_007_ROLE_MISSING` ab, und das Entrypoint bricht beim ersten fehlschlagenden Skript die **gesamte Initialisierung** ab. Der Container endete mit `Exited (3)`. Eine Wiederherstellung hätte also nicht nur Knowledge angewendet, sondern eine unbrauchbare Datenbank hinterlassen. Deine Einstufung als Wiederherstellungsblocker ist damit eher zu vorsichtig als zu streng.
+
+Dass `007` sich weigert, ist kein Fehler — es ist die eingebaute Fail-closed-Regel, und sie hat hier verhindert, dass eine stillschweigend durchgelaufene Rechtemigration den Schaden vergrößert.
+
+### Korrektur
+
+Deine kleinste sichere Korrektur, unverändert übernommen: Der Mount ist aus dem DB-Dienst raus. Er war reine Redundanz — `registry-migrate` mountet denselben Ordner ohnehin unter `/opt/startup/migrations` und legt `001`–`003` selbst an, wenn die Markertabelle fehlt. Ein Test hält fest, dass dieser Weg **nicht** mitentfernt wurde; eine Korrektur, die den Bypass und den einzigen verbleibenden Pfad zugleich kappt, wäre aus einem stillen Risiko ein lautes Deployment-Problem geworden.
+
+**Ein Punkt, den ich ergänzt habe:** Eine Compose-Änderung wirkt erst nach `--force-recreate`. Der laufende Container behält seine Mounts — die NAS-Instanz hat `/volume1/docker/Startup/postgres-init -> /docker-entrypoint-initdb.d` bis heute, nachgesehen mit `docker inspect`. Das Runbook zieht die Datenbank deshalb vor die API und prüft danach **am Container**, nicht in der Datei, dass das Ziel verschwunden ist. Sonst stünde die Absicherung in der Datei und nicht im System — die Fehlerklasse, die in diesem Projekt schon oft genug vorkam.
+
+### Statischer Test
+
+`test_compose_migration_mounts.py`, fünf Fälle: kein Compose-File im Baum mountet einen gegateten Migrationsordner nach `/docker-entrypoint-initdb.d`; der Gate-Runner erreicht die Migrationen weiterhin; der DB-Dienst sieht den Ordner nicht mehr; die exakt entfernte Zeile wird beim Wiedereinsetzen erkannt; und ein *ungegateter* Seed-Ordner an derselben Stelle wird **nicht** gemeldet — ein Wächter, der auf alles anspringt, wird abgeschaltet.
+
+Der Scanner musste dafür erweitert werden: Er erfasste nur die Quellseite eines Mounts. Wohin etwas gemountet wird, ist hier aber die ganze Frage — derselbe Ordner ist unter `/opt/startup` ein Dateilager und unter `/docker-entrypoint-initdb.d` ein Autostart-Verzeichnis.
+
+### Empty-Volume-Test
+
+`g041_empty_volume_test.py`. Der Runner wird **aus `compose.yaml` extrahiert**, nicht abgeschrieben — eine abgeschriebene Kopie prüft die Kopie. Die Testdatenbank hält ihre Daten in `tmpfs` und stirbt mit dem Container; es wird kein Volume angelegt und keins entfernt, damit kein Aufräumbefehl in die Nähe des Produktivvolumens kommt (`G-038`).
+
+Zwei Korrekturen an meinem eigenen ersten Entwurf, beide vom Lauf erzwungen:
+
+- Das Szenario `phase4` erwartete `007` als angewendet, bekam es aber nicht — richtig so, denn `007` verweigert sich ohne die beiden Login-Rollen. Meine Erwartung war falsch, nicht der Code. Das Szenario legt die Rollen jetzt vorher an, wie es Abschnitt 4 des Runbooks tut; sonst prüfte es eine Lage, die das Fenster nie erreicht.
+- Das Szenario `falle` wurde per Abfrage bewertet und bekam ein leeres Ergebnis. Ursache: Dieser Lauf zerstört die Datenbank, die man befragen wollte. Bewertet wird jetzt der Entrypoint-Log und der Endzustand des Containers — und dass die Initialisierung abbricht, ist selbst Teil des Befunds.
+
+### Zu den drei bestätigten Entscheidungen
+
+Deine Präzisierung zum Zielmanifest — erzeugen aus dem freigegebenen Commit, erst gegen das Phase-4-Paket prüfen, nach erfolgreichem Rollout das Ist-Manifest ersetzen — ist im Runbook so übernommen. „Kein dauerhaft roter Routinewächter" war genau mein Beweggrund; gut, dass wir da nicht auseinanderliegen.
+
+Zur Sicherung der bisherigen `compose.yaml` vor dem Einsetzen der neuen: aufgenommen.

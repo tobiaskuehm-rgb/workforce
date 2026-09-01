@@ -62,8 +62,31 @@ werden in den Container gereicht. Die dritte ist **kein** Compose-Secret: sie
 wird nur in Abschnitt 4 einmal gelesen, um die Rolle anzulegen, und danach vom
 nächtlichen Sicherungsjob auf der NAS verwendet.
 
-Alle drei werden **vom CEO abgelegt**, nicht von einem Assistenten erzeugt und nie
-im Chat genannt. Rechte `0400`, Eigentümer `root`.
+**Erledigt am 2026-09-01, nach Freigabe des CEO im Chat.** Alle drei sind auf
+der NAS erzeugt worden — je 40 Zeichen aus `/dev/urandom`, ausschließlich
+Buchstaben und Ziffern, direkt in die Datei geschrieben. Der Wert hat weder den
+Chat noch die Shell-Historie noch das Repo berührt; `secrets/` ist über
+`.gitignore` ausgeschlossen, im Index steht keine Datei daraus.
+
+Keine Sonderzeichen, und das ist kein Versehen: Das Passwort muss in
+Abschnitt 4 durch ein SQL-Stringliteral. Ein `'` darin bricht den Befehl, und
+Escaping ist eine Fehlerquelle, die 40 zufällige alphanumerische Zeichen
+mühelos aufwiegen — Rechenaufwand statt Zeichenvorrat.
+
+Vor dem Fenster ist die Form zu prüfen, nicht der Wert:
+
+```
+ssh synology "cd /volume1/docker/Startup && sh check_secret_files.sh"
+```
+
+Erwartet: `RESULT: PASS`, dreimal *40 Zeichen, eine Zeile, nur Buchstaben und
+Ziffern*. Das Skript gibt den Wert nie aus. Es existiert, weil am 2026-09-01
+der Bot-Token mit TextEdit geschrieben wurde und als RTF-Markup in der Datei
+landete — 433 Byte, die in jedem Editor wie ein Token aussahen.
+
+Rechte stehen auf `600`, Eigentümer `TOBKUM`. Auf `0400`/`root` gehen sie im
+Fenster, nachdem die Rollen angelegt sind — vorher wäre die Datei für den
+Schritt, der sie liest, nicht mehr erreichbar.
 
 ## 3. Frische Sicherung (Abbruch bei jedem Fehler)
 
@@ -138,6 +161,16 @@ cd nas-startup && MANIFEST_OUT=DEPLOY_MANIFEST.txt sh deploy_manifest.sh \
   check_backup_permissions.sh verify_production_state.sh nas_status.sh production_state.txt
 ```
 
+**Vorher die laufende `compose.yaml` sichern.** Sie wird gleich ersetzt, und
+der Rückfall in Abschnitt 8 braucht die Fassung, unter der der Stack heute
+läuft:
+
+```
+ssh synology "cd /volume1/docker/Startup && cp -p compose.yaml \
+  /volume1/docker/Startup-Backups/compose-v7-$(date +%F_%H-%M-%S).yaml && \
+  ls -l /volume1/docker/Startup-Backups/compose-v7-*.yaml | tail -1"
+```
+
 Übertragen wird die Dateiliste, nie ein Verzeichnis (`G-020`), und über `-T`,
 nie über `$(...)` — zsh trennt unquotierte Variablen nicht in Wörter (`G-033`):
 
@@ -169,6 +202,27 @@ ssh synology "cd /volume1/docker/Startup && grep -n APPLY_MIGRATION compose.yaml
 Erwartet: `004` und `008` auf `"false"`, `005`, `006`, `007` auf `"true"`.
 Stimmt das nicht, wird die Datei korrigiert und Abschnitt 5 wiederholt — nicht
 auf der NAS editiert (Regel 1).
+
+**Der DB-Container muss mit neu erzeugt werden.** `compose.yaml` entfernt den
+Mount `./postgres-init:/docker-entrypoint-initdb.d` aus dem DB-Dienst
+(`G-041`). Die Datei zu ersetzen ändert nichts am **laufenden** Container: der
+hält seine Mounts, bis er ersetzt wird. Solange er läuft, zeigt er weiter auf
+den Ordner, in den dieses Fenster gerade `004`–`008` gelegt hat.
+
+Deshalb erst die Datenbank, dann die API:
+
+```
+ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose up -d --force-recreate db"
+```
+
+Nachsehen, dass der Mount wirklich weg ist — nicht in der Datei, sondern im Container:
+
+```
+ssh synology "sudo /usr/local/bin/docker inspect startup-db-1 --format '{{range .Mounts}}{{.Destination}} {{end}}'"
+```
+
+Erwartet: **kein** `/docker-entrypoint-initdb.d`. Steht es noch da, ist die
+Korrektur nicht wirksam und das Fenster wird abgebrochen.
 
 ```
 ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose up -d --build workforce-api"

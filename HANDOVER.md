@@ -123,6 +123,16 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 **Stand:** Gerds achter Zielcheck (`0a197b0`) gibt **technisches GO für die Vorbereitung von Phase 4**. `G-035` bis `G-037` sind geschlossen. Ausgeführt ist nichts: Rollenanlage, Secrets, Migrationen und der Austausch von v7 durch v8 brauchen eine **gesonderte CEO-Freigabe für genau ein Fenster**. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
 
+### `G-041`: Gerd hat das Phase-4-GO pausiert — zu Recht
+
+Sein Ergänzungscheck bestätigt die drei Entscheidungen (zwei Manifeste, `compose.yaml` erst im Fenster, `004`/`008` als Dateien ohne Anwendung), findet dabei aber, dass die dritte **im damaligen Compose noch nicht sicher** war.
+
+`compose.yaml` mountete `./postgres-init` nach `/docker-entrypoint-initdb.d`. Das Postgres-Entrypoint führt dort bei leerem Datenverzeichnis alle `*.sql` alphabetisch aus — vor `registry-migrate` und ohne dessen Gates. Solange nur `001`–`003` im Ordner lagen, war das unsichtbar; Phase 4 legt `004`–`008` hinein.
+
+**Nachgestellt statt geglaubt.** Isolierte Instanz, `tmpfs`, Ordner absichtlich wie vorher gemountet. `004_knowledge_capability.sql` lief und setzte seinen Marker; `007` brach mit `MIGRATION_007_ROLE_MISSING` ab; das Entrypoint beendete die Initialisierung mit `Exited (3)`. Eine Wiederherstellung hätte Knowledge angewendet **und** eine kaputte Datenbank hinterlassen. Rohtext in `evidence/2026-09-01_g041_initdb_bypass.md`.
+
+Der Mount ist entfernt — er war Redundanz, `registry-migrate` erreicht denselben Ordner unter `/opt/startup/migrations`. Ergänzt: Eine Compose-Änderung wirkt erst nach `--force-recreate`; der laufende NAS-Container hat den Mount bis heute. Das Runbook zieht die Datenbank deshalb vor die API und prüft am Container, nicht in der Datei.
+
 ### Phase 4 ist vorbereitet — `PHASE4_RUNBOOK.md`
 
 Das Runbook deckt Gerds verbindlichen Scope ab und ist zum Abarbeiten von oben nach unten geschrieben: Vorbedingungen, frische Sicherung **samt Rollen-Dump**, Rollenanlage aus Secret-Dateien, Zielmanifest, Öffnen ausschließlich der Gates `005`, `006`, `007`, sechs Nachweise, Rückfallpfad in der Reihenfolge, in der er funktioniert.

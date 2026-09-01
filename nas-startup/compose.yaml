@@ -8,7 +8,17 @@ services:
       - startup.env
     volumes:
       - workforce_database_v1:/var/lib/postgresql/data
-      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+      # postgres-init is deliberately NOT mounted at
+      # /docker-entrypoint-initdb.d (review finding G-041). The official
+      # postgres entrypoint runs every *.sql it finds there, alphabetically,
+      # whenever the data directory is empty - before registry-migrate exists
+      # and with no knowledge of its gates. The folder holds 001-008; on a
+      # restore that would apply Knowledge 004 as a side effect and then abort
+      # at 007, whose roles do not exist yet, leaving a half-built database.
+      #
+      # registry-migrate mounts the same folder at /opt/startup/migrations and
+      # applies 001-003 itself when the marker table is missing, so nothing is
+      # lost by removing this line - only the path that ignores the gates.
       - ./postgres-tests:/opt/startup/tests:ro
     networks:
       - backend

@@ -24,6 +24,12 @@ class Service:
     name: str
     env_files: list[str] = field(default_factory=list)
     volume_sources: list[str] = field(default_factory=list)
+    # The full "source:destination:mode" spec. Where a directory is mounted is
+    # a security property of its own: postgres-init under /opt/startup is a
+    # file store the gate runner reads, the same folder under
+    # /docker-entrypoint-initdb.d is an auto-executed script directory
+    # (review finding G-041).
+    volume_mounts: list[str] = field(default_factory=list)
     networks: list[str] = field(default_factory=list)
     # Environment keys only, never values. What a container is handed is a
     # security property (review finding G-035); what the values are is not
@@ -121,6 +127,7 @@ def scan(path: pathlib.Path) -> dict[str, Service]:
                 current.env_files.append(stripped[2:].strip().strip("'\""))
             elif current_key == "volumes" and stripped.startswith("- "):
                 current.volume_sources.append(stripped[2:].split(":")[0].strip())
+                current.volume_mounts.append(stripped[2:].strip())
             elif current_key == "environment":
                 if stripped.startswith("- "):
                     current.environment.append(stripped[2:].split("=")[0].strip())
