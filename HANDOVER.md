@@ -44,12 +44,13 @@ NAS       /volume1/docker/Startup/                                    ← Ziel, 
 
 Die NAS hat **kein Git**. Am Code wird im Repo gearbeitet, auf die NAS wird deployt. Ausnahme sind die beiden Review-Dateien: Die leben auf der NAS, weil Gerd nur dort hinkommt.
 
-Deploy (`rsync` und `scp` funktionieren auf dieser DSM nicht). **Versionierte Dateien, nie ganze Verzeichnisse** — ein verzeichnisweites Archiv nimmt Secrets und Laufzeitdateien mit (Befund `G-020`):
+Deploy (`rsync` und `scp` funktionieren auf dieser DSM nicht). **Versionierte Dateien, nie ganze Verzeichnisse** — ein verzeichnisweites Archiv nimmt Secrets und Laufzeitdateien mit (Befund `G-020`). Die Dateiliste geht über `-T` in `tar`, nicht über `$(…)`: **zsh zerlegt eine unquotierte Variable nicht in Wörter**, und die Pfade kämen als ein einziges Argument an.
 
 ```bash
 cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup"
 sh deploy_manifest.sh <pfade>
-tar czf - DEPLOY_MANIFEST.txt $(git ls-files -- <pfade>) \
+git ls-files -- <pfade> > /tmp/liste.txt && echo DEPLOY_MANIFEST.txt >> /tmp/liste.txt
+tar czf - -T /tmp/liste.txt \
   | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
 ssh synology "cd /volume1/docker/Startup && sh verify_manifest.sh"
 ```
