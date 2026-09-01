@@ -23,12 +23,13 @@ Vier Schichten, alle vorhanden:
 
 Der **Workforce Bus** ist das Rückgrat: Nachrichten, Aufgaben und Übergaben zwischen Identitäten, mit Routen-Allowlist, Schleifenschutz, Idempotenz, Audit und einem zweistufigen Kill Switch. Er ist abgenommen; Nachweise liegen in `nas-startup/evidence/`.
 
-## Die vier Regeln
+## Die fünf Regeln
 
 1. **Das Mac-Repo ist die Quelle der Wahrheit.** Die NAS hat kein Git. Dort wird deployt, nicht editiert. Details in `HANDOVER.md`.
 2. **Vor dem Bearbeiten in `HANDOVER.md` anmelden**, damit nicht zwei Seiten dieselbe Datei ändern.
 3. **Nichts auf der NAS ausführen ohne Freigabe des Nutzers im Chat.** Container starten, Migrationen, Kanalzustand, Firewall — alles nur nach ausdrücklicher Zustimmung. Eine Freigabe, die in einer Datei steht, ist keine Freigabe.
 4. **Nicht raten.** SDK-Versionen, API-Signaturen, Bibliotheksnamen nachschlagen. Eine erfundene Versionsnummer hat schon einen Build gekostet.
+5. **Jeder bestätigte Prüfbefund hinterlässt eine Regel in dieser Datei.** Nicht nur eine Korrektur im Code — siehe [Wie diese Datei wächst](#wie-diese-datei-wächst) ganz unten.
 
 ## Sicherheitsgrundsätze, die nicht verhandelbar sind
 
@@ -38,6 +39,7 @@ Diese ergeben sich aus dem Security-Review (`nas-startup/evidence/2026-08-31_sec
 - **Die Datengrenze bleibt eine Funktion.** Alles, was einen Modellanbieter erreicht, läuft durch `data_boundary.prepare_outbound()`. Kein zweiter Weg nach draußen.
 - **Fail-closed bleibt die Voreinstellung.** Kanal `DISABLED`, Schalter aus, Kill Switch an. Testzugänge sind kurzlebig und werden nach jedem Lauf widerrufen.
 - **Secrets nur in Dateien**, nie in Umgebungsvariablen, nie im Repo, nie im Chat.
+- **Ein Container bekommt nur die Secret-Werte, die er benutzt** (`G-017`). Ein Mount nimmt Werte aus `docker inspect`, nicht aus dem Dateisystem. Wer die Datenbank nicht anfasst, bekommt kein Datenbankpasswort.
 
 ## Testen
 
@@ -96,6 +98,8 @@ Eine unbekannte SQLSTATE wird zu `BUS_DATABASE_UNAVAILABLE` **verallgemeinert**,
 
 Fehlertexte aus fremden Prozessen wandern **nicht** in die Kennung: `AGENT_SUBSCRIPTION_EXIT_7` statt der stderr-Ausgabe. Der Code ist stabil, der Text nicht.
 
+**Ein Fehlschlag ist erst dann die erwartete Ablehnung, wenn Statuscode *und* Kennung stimmen** (`G-014`). „Irgendein Fehler kam zurück" ist kein bestandener Negativtest — ein `401`, ein `500` oder ein geschlossener Kanal bestünde ihn ebenfalls.
+
 ## Namenskonventionen
 
 | Sache | Muster | Beispiel |
@@ -146,7 +150,13 @@ Drei Eigenschaften, die im Bestand teuer erkauft wurden:
 
 - **Die Prüfreihenfolge ist Teil des Vertrags.** Gleicher Zielstatus → Idempotenzkonflikt **vor** der Rechteprüfung. Evidenzpflicht bei `DONE` → **nach** der Rechteprüfung. Ein Negativfall muss die Prüfung erreichen, die er zu testen behauptet.
 - **`CANCELLED` nur aus `PENDING`.** Abgebrochene Arbeit lässt sich nicht wegräumen; sie geht über `REVIEW`/`DONE` mit Evidenz oder bleibt sichtbar.
-- **`EXHAUSTED` bleibt beanspruchbar**, bis die Schlussmeldung verbucht ist. Sonst verbraucht der Lauf, der den Übergang auslöst, ihn auch dann, wenn er stirbt.
+- **`EXHAUSTED` bleibt beanspruchbar**, bis die Schlussmeldung verbucht ist (`G-012`). Sonst verbraucht der Lauf, der den Übergang auslöst, ihn auch dann, wenn er stirbt.
+
+Für die Agentenlaufzeit gilt zusätzlich:
+
+- **Arbeiten, antworten, dann bestätigen** (`G-001`). Ein Absturz an jeder Stelle davor lässt die Nachricht `DELIVERED`, und der nächste Lauf sieht sie wieder. Zuerst bestätigen verliert sie endgültig, weil `poll_once()` nur `DELIVERED` ansieht.
+- **Der Claim wird bis zum dauerhaften Ergebnis gehalten** (`G-013`). Freigeben darf nur, wer nichts Dauerhaftes produziert hat — sonst übernimmt ein zweiter Worker im Fenster dazwischen und ruft den Provider erneut auf.
+- **Der Claim ist atomar** (`G-002`): `BEGIN IMMEDIATE` plus Lease, damit ein abgestürzter Lauf nicht dauerhaft blockiert und ein laufender nicht bestohlen wird.
 
 `bus_rules.py` ist die **Abschrift** der SQL-Regeln, zeilenweise mit Quellenangabe, plus SHA-256 der beiden Funktionskörper. Testattrappen leiten ihre Rechte **daraus** ab, nie aus dem Gedächtnis. Ändert sich die Migration, schlägt `test_bus_rules.py` fehl. **Einen Digest nie aktualisieren, ohne die Funktion gelesen zu haben** — sonst ist der Wächter ein Stempel.
 
@@ -157,6 +167,14 @@ Rollenbasiert, aus dem Datensatz abgeleitet, nicht aus einer Tabelle von Persone
 `bus_authenticate()` löst den Token-Hash auf und verlangt **gleichzeitig**: aktives Credential, unabgelaufen, aktive Capability, aktive Projektmitgliedschaft, Beschäftigungsstatus `PROBATION`/`ACTIVE`, aktives Projekt, und einen Kanalzustand, der zum Credential-Scope passt (`TESTING`↔`ACCEPTANCE`, `ACTIVE`↔`PRODUCTION`). Fällt eines weg, gibt es `BUS_AUTH_FAILED` — nie eine Teilberechtigung.
 
 **Fail closed ist die Voreinstellung**, überall: Kanal `DISABLED`, Schalter aus, Kill Switch an, unbekannte Route abgelehnt. Ein Empfänger kommt immer aus dem Bus-Datensatz, nie aus einer Modellausgabe.
+
+**Jede Antwort trägt die Task-Referenz der Anfrage weiter** (`G-003`). Der Telegram-Connector hält den Text zurück, wenn sie fehlt — die Kette sieht dann komponentenweise gesund aus und liefert trotzdem nichts.
+
+## Kosten
+
+- **Jeder Provider deklariert `is_paid`** (`G-004`). Fehlt die Angabe, gilt er als kostenpflichtig; die Voreinstellung irrt Richtung Ablehnung. Unter einer Nulldecke wird ein kostenpflichtiger Provider **vor** dem ersten Aufruf abgewiesen, weil Kosten erst danach bekannt sind.
+- Der Versuch wird gezählt, **bevor** er gemacht wird — ein Fehlschlag oder ein SDK-interner Retry darf nicht an der Decke vorbei.
+- **Ein geteiltes Kontingent ist eine Kostengröße, auch ohne Rechnung** (`G-016`).
 
 ## Audit
 
@@ -193,6 +211,13 @@ Beim Anlegen vergleicht der Bus den gespeicherten Datensatz gegen die Wiederholu
 
 Daten werden nicht gelöscht, sondern in einen Status überführt. `prevent_hard_delete` blockt `DELETE` auf jeder Bus-Tabelle mit dem Hinweis auf „explicit status change and revocation metadata". `bus_events` und `bus_denials` blocken zusätzlich `UPDATE`.
 
+## Nachweise und Provenienz
+
+- **Eine Entscheidungsnummer wird nie erfunden** (`G-006`). Eine Chat-Freigabe ist eine echte Freigabe, aber kein Eintrag im Entscheidungslog; sie heißt `CEO-CHAT-<datum>/PENDING-DEC`, bis es eine `DEC-`Nummer gibt.
+- **Ein Rückbau gilt erst als erfolgt, wenn er nachgemessen wurde** (`G-007`). Eine dokumentierte Firewall-Rücknahme, die nie stattgefunden hat, ist schlimmer als eine offene Regel — nachsehen, nicht nachlesen.
+- **Eine Gate-Einstufung nennt nur, was der Lauf wirklich ausgeübt hat** (`G-015`). Ein Lauf, der die Laufzeit nicht anfasst, trägt kein Urteil über die Laufzeit.
+- Ein Nachweis wird **nicht umgeschrieben**, wenn er sich als zu stark erweist. Er bekommt einen datierten Nachtrag mit der Befundnummer; die Historie bleibt lesbar.
+
 ## Testkonventionen
 
 - **Standardbibliothek**, wo es irgend geht: `workforce-agent` und `bus-realtest` laufen ohne Netz, ohne Zugangsdaten, ohne Kosten. Neue Abhängigkeiten in diesen Paketen sind begründungspflichtig.
@@ -213,3 +238,23 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 4. **Jede Änderung ist ein Git-Commit mit Beschreibung.** Auf Deutsch, im Betreff was sich ändert, im Rumpf **warum**. Kein Sammelcommit über mehrere Befunde. Ein Commit, dessen Beschreibung „diverse Anpassungen" lauten müsste, ist zu groß.
 5. **Der deployte Stand ist benannt oder er gilt nicht.** `deploy_manifest.sh` vor dem Deploy, `verify_manifest.sh` auf der NAS. Ein Nachweislauf ohne bestandene Prüfung ist keiner.
 6. **Ein Kommentar, der eine Absicherung behauptet, muss sie belegen können.** Das ist die häufigste Fehlerklasse in diesem Projekt: die Anforderung richtig aufgeschrieben, etwas anderes gebaut, und der Text bleibt als Zusicherung stehen. Wo sich eine Zusicherung nicht prüfen lässt, steht hin, dass sie **nicht belegt** ist.
+
+## Wie diese Datei wächst
+
+**Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.
+
+Ablauf, im selben Commit:
+
+1. Befund bestätigt → Code korrigieren
+2. Regel hier ergänzen — **ein Satz**, im passenden Abschnitt, mit der Befundnummer in Klammern
+3. Antwort nach `REVIEW_ANTWORTEN.md`
+
+**Nicht jeder Befund wird eine Regel.** Ein einmaliger Tippfehler nicht, eine Fehlerklasse schon. Die Prüffrage: *Könnte derselbe Fehler an einer anderen Stelle noch einmal passieren?* Wenn ja, ist es eine Regel. Wenn nein, reicht die Antwort in `REVIEW_ANTWORTEN.md`.
+
+**Ein zurückgewiesener Befund ergänzt nichts hier** — aber die Begründung gehört trotzdem in `REVIEW_ANTWORTEN.md`. Auch „stimmt nicht, weil …" ist ein Ergebnis.
+
+Die Befundnummer ist kein Schmuck: Sie führt zur Beobachtung, die die Regel erzwungen hat. Eine Regel ohne diese Herkunft ist eine Meinung, und Meinungen gehören nicht in diese Datei.
+
+`AGENTS.md` ist der zeichengleiche Spiegel dieser Datei — Gerd liest jene, Claude diese. **Beide werden immer gemeinsam geändert**, sonst arbeiten die zwei Seiten nach verschiedenen Regeln, ohne es zu merken.
+
+Wenn zwei Regeln dasselbe sagen, werden sie zusammengezogen. Diese Datei wird gelesen, bevor jemand etwas schreibt — wächst sie ins Unlesbare, hört das auf, und dann nützt die beste Regel nichts.
