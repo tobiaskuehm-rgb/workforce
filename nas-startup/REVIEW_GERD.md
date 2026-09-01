@@ -264,3 +264,65 @@ Während dieses Reviews wurden `HANDOVER.md` in beiden Spiegeln und `evidence/20
 Der Stand ist gegenüber der zweiten Prüfrunde substanziell verbessert. `G-012` bis `G-019` sind im Code beziehungsweise in der ehrlichen Statuskorrektur nachvollziehbar bearbeitet; der echte Kettenlauf ist ein belastbarer Integrationsmeilenstein. Die Einstufung bleibt dennoch **`CORE ITERATE`**: Der Lauf beweist Transport und Rückweg mit Echo, aber noch keinen echten Modellmitarbeiter, keinen ausgeführten Worker-Core-Test und keine vollständige automatische Auditrekonstruktion auf Migration `004`/API `v8`.
 
 `G-020` blockiert nicht die Aussage `CHAIN PASS`, schränkt aber die Aussage „exakter deployter Stand“ ein. Vor dem nächsten beweisführenden NAS-Lauf sollte der Manifestpfad geschlossen werden. Die temporäre DSM-Firewallregel `172.31.254.0/29` auf TCP 8443 ist laut dem in `ef88e04` dokumentierten tokenfreien Gegencheck entfernt; der technische Rückbau ist damit nicht mehr offen.
+
+---
+
+# Vierte Nachprüfung – Stand `37a80d9`
+
+`G-020` ist im lokalen Quellstand **technisch übernommen und geschlossen**:
+
+- `deploy_manifest.sh` bildet die Sollmenge aus `git ls-files` und blockiert nicht ignorierte, unversionierte Dateien in den Deploy-Pfaden.
+- Secrets und Laufzeit-Environmentdateien gelangen dadurch nicht in Manifest oder versioniertes Deploy-Archiv.
+- `verify_manifest.sh` unterscheidet nun `FEHLT`, `ABWEICHUNG` und `UNERWARTET`; nur eine explizite kurze Laufzeit-Allowlist bleibt ausgenommen.
+- `test_deploy_manifest.py` weist die Negativfälle für alte Python-/Compose-Dateien, geänderte und fehlende Dateien, vergessene unversionierte Dateien sowie den Ausschluss eines lokalen Secret-Ordners nach.
+- Der operative Deploy-Befehl in `HANDOVER.md` verwendet eine Dateiliste mit `tar -T` statt ganzer Verzeichnisse.
+
+Die vier lokalen Prüfpakete laufen auf diesem Stand mit **194 + 15 + 35 + 9 Tests vollständig grün**. Die aktuellen vier Deploy-Pfade enthalten 109 versionierte Dateien.
+
+**Noch kein NAS-Nachweis der neuen Kontrolle:** Die zuvor gemeldete Verifikation mit 108 Dateien stammt aus dem Stand vor `test_deploy_manifest.py` und vor der G-020-Korrektur. Geschlossen ist deshalb die Implementierung; der operative Abschluss folgt erst, wenn der Stand `37a80d9` oder ein sauberer Nachfolger auf die NAS übertragen und dort mit der neuen Prüfung als `RESULT: PASS` bestätigt wurde.
+
+**Kleiner Dokumentationsrest, kein neuer nummerierter Befund:** Der Beispielbefehl im Kopf von `deploy_manifest.sh` zeigt noch die ältere Archivierung über `$(git ls-files ...)`. Maßgeblich und robuster ist bereits der Befehl in `HANDOVER.md` mit `tar -T`. Vor dem nächsten Deploy sollten beide Beispiele identisch gemacht werden, damit niemand die veraltete Variante kopiert.
+
+Das Gesamtgate bleibt **`CORE ITERATE`**. Als nächstes gehören Migration `004`, API `v8`, der echte Contract-/Auditnachweis und der Worker-Core-Lauf in ein einziges kontrolliertes NAS-Fenster. Ein Telegram-Wiederholungslauf oder ein kostenpflichtiges Modell ist dafür nicht erforderlich.
+
+## Neuer Rollout-Blocker
+
+### G-021 — API v8 und Bus-Audit-Migration verdrängen den bestehenden Knowledge-v7-Arbeitsstand
+
+**Datei:** Claude-Repo `workforce-api/app.py`, `compose.yaml`, `postgres-init/004_bus_denial_audit.sql`; autoritativer Projektstand `infrastructure/synology/workforce-api/app.py`, `infrastructure/synology/compose.yaml`, `infrastructure/synology/postgres-init/004_knowledge_capability.sql`
+**Schwere:** hoch – Deployment-Blocker
+**Beobachtung:** Im autoritativen Projektstand ist API v7 eine Erweiterung mit `/knowledge/v1/...`-Endpunkten und der noch gesondert gegateten Migration `004_knowledge_capability`. Das Claude-Repo baut API v8 aus einem Stand ohne diese Knowledge-Endpunkte und ersetzt im Compose-Migrationslauf die Knowledge-Migration durch eine andere Datei namens `004_bus_denial_audit`. Beide Änderungen sind jeweils sinnvoll, wurden aber nicht zu einem gemeinsamen additiven Stand zusammengeführt.
+**Warum problematisch:** Ein direktes v8-Deployment kann vorhandene v7-Funktionalität entfernen und macht aus zwei verschiedenen Migrationen dieselbe laufende Nummer `004`. Das verletzt die Bestandswahrung und erzeugt zwei konkurrierende technische Wahrheiten. Selbst wenn Knowledge auf der konkreten NAS noch `DISABLED` oder nicht migriert wäre, darf die freigegebene und fachlich akzeptierte v7-Arbeit nicht still aus dem Nachfolger verschwinden.
+**Vorschlag:** Vor jeder NAS-Freigabe einen einzigen additiven Nachfolger bilden: API v8 als Obermenge von v7 plus Ablehnungs-Audit; `004_knowledge_capability` unverändert bewahren; die neue Bus-Audit-Migration eindeutig als nachfolgende Migration, vorzugsweise `005_bus_denial_audit`, führen. Compose, Migrationstabelle, Acceptance-Tests, Auditabfragen und Dokumentation gemeinsam anpassen. Ein Regressionstest muss zusätzlich beweisen, dass alle bisherigen Bus- und Knowledge-Routen vorhanden bleiben und Knowledge weiterhin default-deny beziehungsweise `DISABLED` startet. Erst dieser zusammengeführte Stand darf in das kontrollierte NAS-Fenster.
+
+---
+
+# Technische Arbeitsroadmap ab 2026-09-01
+
+Diese Roadmap konkretisiert die verbindliche Reihenfolge aus `DEC-027`: **CORE → THORSTEN → FINANCE → GESAMTVALIDIERUNG**. Sie erteilt keine noch fehlende CEO-, NAS-, Budget-, Rechte- oder Produktivfreigabe. Die jeweils genannten Gates bleiben erforderlich.
+
+| Phase | Arbeit | Abschlusskriterium |
+|---|---|---|
+| **0 – Quellen zusammenführen** | API v8 als additive Obermenge der Knowledge-API v7 bauen; `004_knowledge_capability` bewahren; Bus-Audit eindeutig als nachfolgende Migration, vorzugsweise `005_bus_denial_audit`, führen; Compose, Tests und Dokumentation gemeinsam anpassen; veraltetes Deploy-Beispiel in `deploy_manifest.sh` auf `tar -T` angleichen | Kein Funktionsverlust gegenüber v7; alle Bus- und Knowledge-Routen vorhanden; Knowledge bleibt default-deny/`DISABLED`; vollständige lokale Tests `PASS` |
+| **1 – Gerd-Review** | Zusammengeführten Stand gegen Bestandswahrung, Migration, Rechte, Audit, Rückfall und Secrets prüfen | Schriftliches `APPROVE` für die technische Vorbereitung oder neue Befunde; noch kein NAS-Deployment |
+| **2 – Entscheidungs- und Testgate** | `DEC-028` beziehungsweise eine präzise Nachfolgeentscheidung prüfen; ein konkretes kostenloses NAS-Testfenster mit Umfang, temporärer Firewallregel, Backup und Rückbau freigeben. `DEC-029`/Bezahlmodell bleibt zurückgestellt | Eindeutige CEO-Freigabe für genau das isolierte Fenster; keine stillschweigende Erweiterung |
+| **3 – NAS-Preflight** | Tatsächlichen Stand von API, `schema_migrations` und Knowledge-System nachmessen; frisches Datenbankbackup und Rückfallimage sichern; Kanal `DISABLED`; aktive Credentials `0`; Container gesund; aktuelles Manifest deployen und mit der neuen G-020-Prüfung verifizieren | Preflight-Protokoll `PASS`; bekannte Rückfallpunkte; keine unerwartete Datei; kein Secret im Deploypaket |
+| **4 – Additives Foundation-Update** | Nur den zusammengeführten API-Nachfolger und die freigegebene Bus-Audit-Migration ausrollen. Eine eventuell noch nicht freigegebene Knowledge-Migration nicht als Nebenwirkung aktivieren | DB/API gesund; bisherige Bus- und Knowledge-Funktionalität unverändert erreichbar beziehungsweise sicher `DISABLED`; Migration genau einmal registriert |
+| **5 – Contract und Audit** | PostgreSQL-Acceptance, vollständigen Contract-Test, Secret-Isolation sowie automatische positive und negative Auditrekonstruktion gegen den echten Bus ausführen | `ALLOW` vollständig, `DENY` vollständig, `WRONG_REASON = 0`; Secret-Isolation `PASS`; Audit vollständig rekonstruierbar |
+| **6 – Core-Abnahme** | Gerd/Karl/Anastasia-Roundtrip auf dem neuen Stand wiederholen; danach Worker-Core mit Echo, realem State-Volume, getrennten Containern, Retry, Idempotenz, Fehlerzustand und Neustart ausführen | Sämtliche `ENG-008`-Acceptance-Punkte einschließlich `REJECTED`, fehlender Permission, Fehler, Restart und genau einer Antwort je Anfrage `PASS` |
+| **7 – Vollständiger Rückbau** | Testcredentials widerrufen; Kanal `DISABLED`; Token-/Secretdateien und Testcontainer entfernen; temporäre Firewallregel entfernen und mit tokenfreiem Negativcheck nachmessen; Health, Persistenz, Neustart und Manifest erneut prüfen | Aktive Zugänge `0`; kein offener Testnetzweg; keine Testsecrets/-container; Produktivstack gesund; Rückbau `PASS` |
+| **8 – Formeller Core-Status** | Evidenz durch Gerd prüfen; `ENG-008`, Task Board, Roadmap, Company State und Handover konsistent fortschreiben | `CORE PASS`, `CORE ITERATE` oder `CORE FAIL` auf belastbarer Evidenz; keine Statusbehauptung nur im Handover |
+| **9 – Thorsten / Research** | Erst nach `CORE PASS`: `RAS-002` fachlich finalisieren, implementieren, Red-Team-/Qualitätsgates und reproduzierbaren Research-Lauf ausführen | `RESEARCH PASS` oder dokumentiertes `ITERATE` |
+| **10 – Finance** | Erst nach `CORE PASS`, `RESEARCH PASS` und neuem CEO-Gate: Anastasias Bedarfsanalyse, Rollenprofil und kleinsten Finance-Slice umsetzen | Gesondertes Finance-Gate `PASS`/`ITERATE`; keine automatische Einrichtung ohne CEO-Freigabe |
+| **11 – Gesamtvalidierung** | End-to-End-Prüfung von Registry, Runtime, Permissions, Bus, Audit, Backup/Restore, Kostenkontrollen, Restart, Fail-closed-Verhalten und Rückfall | Gesamtfreigabe oder klarer Restbacklog mit Owner und Gate |
+
+## Nachrangige, getrennte Spuren
+
+- **Telegram:** Für `CORE PASS` nicht erforderlich. Der Testbot ist gelöscht; jeder neue Realtest braucht einen neuen Bot und eine neue konkrete Freigabe.
+- **Echter Modellmitarbeiter:** Für das kostenlose Core-Gate nicht erforderlich. Ein API-Lauf bleibt kostenpflichtig und benötigt eine gesonderte CEO-Entscheidung, Datengrenze und Kostendecke.
+- **Knowledge-Produktivrollout:** Fachlich akzeptiert, aber weiterhin ein eigenes NAS-/Rechte-/Produktivgate. Die Codeerhaltung in API v8 ist keine Aktivierungsfreigabe.
+- **Workspace-Agent/Business-Abo:** Kein Pflichtgate für `ENG-008`; erst nach Core nach wirtschaftlichem Nutzen erneut bewerten.
+
+## Ablageregel für Gerd
+
+Auf direkte CEO-Anweisung vom 2026-09-01 wird jede **materielle** Aktualisierung von `REVIEW_GERD.md` nach lokaler Prüfung zusätzlich unter `/volume1/docker/Startup/REVIEW_GERD.md` abgelegt. Vor dem Ersetzen wird die vorhandene NAS-Fassung als Rückfallkopie bewahrt; anschließend werden Prüfsumme und wesentliche neue Überschrift kontrolliert. Diese Regel betrifft Reviews und Roadmaps, nicht Code-, Container-, Migrations- oder Produktivänderungen; solche Aktionen behalten ihre eigenen Freigabegates.
