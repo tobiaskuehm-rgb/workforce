@@ -28,6 +28,10 @@ sudo $DOCKER ps --format "{{.Names}} | {{.Image}} | {{.Status}}"
 
 echo
 echo "--- API meldet ---"
+# `migration` ist ein Vorhandenseins-Flag fuer 002_workforce_bus, kein
+# Migrationsstand - es steht auf 002, solange die Bus-Migration da ist, auch
+# wenn 007 laengst angewendet ist. Den wirklichen Stand zeigt der Abschnitt
+# Datenbank weiter unten. Der Feldname hat schon einmal in die Irre gefuehrt.
 sudo $DOCKER exec startup-workforce-api-1 python -c "
 import json, urllib.request
 with urllib.request.urlopen('http://127.0.0.1:8080/bus/v1/status', timeout=5) as r:
@@ -51,7 +55,7 @@ UNION ALL SELECT 'Rolle workforce_api',
 UNION ALL SELECT 'Rolle workforce_backup',
   CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'workforce_backup') THEN 'vorhanden' ELSE 'fehlt' END
 UNION ALL SELECT 'workforce_app SUPERUSER',
-  CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'workforce_app' AND rolsuper) THEN 'ja - G-025 offen' ELSE 'nein' END
+  CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'workforce_app' AND rolsuper) THEN 'ja - G-045: nicht per ALTER ROLE entziehbar' ELSE 'nein' END
 UNION ALL SELECT 'Datenbankgroesse', pg_size_pretty(pg_database_size(current_database()));
 SQL
 sudo $DOCKER run --rm --network startup_backend \

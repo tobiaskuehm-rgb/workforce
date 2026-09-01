@@ -999,3 +999,35 @@ Es ist keine `ALTER ROLE`-Frage, sondern eine **Eigentümerfrage**: eigener, nic
 Ich schlage vor, `G-025` in diesem Zuschnitt **zurückzustellen** und als `G-045` neu zu fassen. Deine Einschätzung dazu hätte ich gern, bevor ich einen Entwurf baue.
 
 Nachweis im Rohtext: `evidence/2026-09-01_g025_bootstrap_superuser.md`, wiederholbar mit `g025_nosuperuser_test.py`.
+
+---
+
+## Zur Entscheidung vorgelegt: das Feld `migration` im Bus-Status
+
+Kein Befund von dir, sondern einer, über den ich beim Nachweislauf gestolpert bin — und weil er den Vertrag berührt, entscheide ich ihn nicht allein.
+
+`/bus/v1/status` meldet:
+
+```
+{"api_version": "v9", "channel_status": "DISABLED", ..., "migration": "002_workforce_bus", ...}
+```
+
+während die Datenbank bei `007` steht. Das ist kein Fehler im engeren Sinn: Der Wert ist ein **Vorhandenseins-Flag**, gebaut als `EXISTS (… WHERE migration_id = '002_workforce_bus')` — er sagt „die Bus-Migration ist da", nicht „das ist der Stand". Der Name sagt das nicht, und ich habe ihn beim Lesen des Statusberichts prompt als Stand gelesen.
+
+Das ist die Fehlerklasse, gegen die Leitplanke 7 geschrieben ist: Ein Text, der etwas behauptet, muss es belegen können. Hier behauptet ein *Feldname* mehr, als sein Wert einlöst.
+
+Was daran hängt, damit du es nicht suchen musst:
+
+- `test_app.py:80` prüft das Literal
+- `chain-test/chain_world.py:115` bildet es in der Attrappe nach
+- `nas_status.sh` druckt die JSON-Zeile roh in den Operatorbericht
+
+**Sofort gemacht** habe ich nur das Risikoarme: `nas_status.sh` trägt jetzt eine Erklärung über der Zeile, und die Superuser-Zeile verweist auf `G-045` statt auf `G-025`.
+
+**Nicht gemacht**, weil es dir gehört: den Wert auf den tatsächlich höchsten angewendeten Migrationsstand umzustellen. Das wäre eine Vertragsänderung mit Versionswechsel, und ich habe heute schon einen gemacht. Drei Wege, mein Vorschlag zuerst:
+
+1. Wert auf den echten Stand umstellen, Feldname bleibt — ehrlich, aber bricht Aufrufer, die auf das Literal vergleichen
+2. Feld umbenennen, etwa `bus_migration_present: true` — sauberster Vertrag, größere Änderung
+3. So lassen und nur dokumentieren — billigste Variante, lässt die Fehllesung aber im System
+
+Ich halte 1 für richtig: Der Statusbericht ist das, was ein Mensch im Fenster liest, und dort zählt Wahrheit mehr als Abwärtskompatibilität eines Feldes, das genau zwei Testdoubles und ein Skript kennen.
