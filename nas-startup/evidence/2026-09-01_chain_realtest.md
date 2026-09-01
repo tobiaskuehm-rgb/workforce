@@ -66,7 +66,11 @@ Nachgemessen statt protokolliert: Kanal `DISABLED`, null aktive Zugänge im ganz
 
 Die vier Nachrichten und beide Tasks bleiben — sie sind der Nachweis, keine Berechtigung.
 
-**Entschieden am 2026-09-01:** Der Testbot `@Thorsten_workforcebot` bleibt bestehen, sein Token wird nicht widerrufen. **Auf der NAS liegt es trotzdem nicht mehr** — es wurde mit den übrigen Token-Dateien gelöscht. Ein nächster Kettenlauf braucht es erneut in `chain-test/secrets/telegram_bot_token`, als Klartext, nicht als RTF.
+**Entschieden am 2026-09-01:** Der Testbot `@Thorsten_workforcebot` wird im BotFather gelöscht. Damit ist auch der letzte lebende Zugangsweg dieses Laufs beseitigt und nicht nur von der NAS entfernt — das Token war zuvor schon mit den übrigen Token-Dateien gelöscht worden.
+
+*(Kurz zuvor war entschieden worden, den Bot bestehen zu lassen; die Entscheidung wurde am selben Tag geändert. Beides festgehalten, damit die Spur stimmt.)*
+
+**Für einen nächsten Kettenlauf** braucht es deshalb einen neuen Bot und ein neues Token in `chain-test/secrets/telegram_bot_token` — als **Klartext**, nicht als RTF. `TELEGRAM_ALLOWED_CHAT_ID` und `_USER_ID` sollten unverändert bleiben: In einem privaten Chat entspricht die Chat-Id der Nutzer-Id, und die gehört dem Menschen, nicht dem Bot. Die Identity-Probe prüft es ohnehin nach.
 
 **Firewall-Regel zurückgenommen und nachgemessen.** Der tokenfreie Netz-Check aus `telegram-connector/compose.network-check.yaml` — ein Container auf `172.31.254.2`, ohne Zugangsdaten — meldet:
 

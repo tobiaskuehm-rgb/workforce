@@ -158,7 +158,7 @@ Alle drei sind behoben und als Regeln in `CLAUDE.md` eingetragen.
 
 **Nebenbefund:** `AGENT-ENG-001` existiert und ist aktives Projektmitglied — vor dem Lauf gegen die Registry geprüft. Der Punkt aus `G-019` ist damit nachgemessen statt nachgelesen.
 
-**Testbot:** `@Thorsten_workforcebot` bleibt (entschieden 2026-09-01). Sein Token liegt aber **nicht mehr auf der NAS** — beim Rückbau gelöscht. Ein nächster Kettenlauf braucht es erneut in `chain-test/secrets/telegram_bot_token`, als **Klartext**.
+**Testbot gelöscht** (entschieden 2026-09-01). Damit ist der letzte lebende Zugangsweg des Laufs weg, nicht nur von der NAS entfernt. Ein nächster Kettenlauf braucht einen **neuen Bot** und sein Token in `chain-test/secrets/telegram_bot_token`, als **Klartext**. Chat- und Nutzer-Id bleiben voraussichtlich gleich — im privaten Chat ist die Chat-Id die Nutzer-Id, und die gehört dem Menschen; die Identity-Probe prüft es nach.
 
 **Firewall-Regel zurückgenommen, nachgemessen** mit dem tokenfreien Netz-Check: `WORKFORCE_CONNECT_TIMEOUT` von `172.31.254.2`. Der Rückbau ist damit vollständig — kein offener Netzweg, kein aktiver Zugang, kein Secret auf der Platte, keine Testcontainer, Kanal `DISABLED`.
 

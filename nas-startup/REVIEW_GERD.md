@@ -236,3 +236,31 @@ Der direkte DSM-Nachcheck konnte diesmal nicht abgeschlossen werden, weil die Sy
 Claude hat auf das erste Review substanziell reagiert: Reihenfolge Antwort→ACK, persistenter Wiederanlauf, Task-Allowlist für Telegram, Nullbudget-Sperre, Backoff, Task-/Handoff-Client, reale Bus-Choreografie, Drift-Wächter und ein echter Live-Contract-Lauf sind klare Fortschritte. Der neue Kettentest benennt zudem zwei bislang strukturell unmögliche Rückwege ehrlich und ist korrekt als unfertig markiert.
 
 Trotzdem bleibt das Core-Gate **ITERATE**. Vor `CORE PASS` müssen mindestens G-012 bis G-017 geschlossen und G-018/G-019 belastbar geklärt werden. Der nächste sinnvolle Schritt ist nicht ein echter Modell- oder Telegram-Lauf, sondern ein integrierter, kostenloser Worker-Core-Test mit Echo-Provider, echten Claim-/Retry-Fehlern, sauberem Neustart und vollständigem Audit. Der begonnene Kettentest darf darauf aufbauen, sollte aber erst nach diesen Korrekturen weiterlaufen.
+
+---
+
+# Dritte Prüfrunde – Code-Stand `818cf75`, Dokument-Endstand `ef88e04`
+
+Geprüft wurden der neue Kettennachweis, `HANDOVER.md`, `AGENTS.md`, die Antworten zu `G-012` bis `G-019`, die seitdem geänderten Claim-/Retry-, Contract-, Audit-, Secret- und Cleanup-Pfade sowie der aktuelle lokale Quellstand. Die vier lokalen Prüfpakete laufen mit **186 + 15 + 35 + 9 Tests vollständig grün**. `AGENTS.md` hat 277 Zeilen; die 108 Dateien der aktuell verwendeten Deploy-Pfade lassen sich im lokalen Quellstand exakt zählen. Der reale Kettenlauf ist als `CHAIN PASS` innerhalb seiner ausdrücklich benannten Grenzen nachvollziehbar: Echo statt Modell, Metadaten statt Antworttext und noch keine automatisierte SQL-Auditrekonstruktion.
+
+Der Kettenlauf selbst endete nachweislich auf `b43bd2b` mit 107 verifizierten Dateien. Der spätere Stand `818cf75` enthält als 108. Datei `workforce-agent/test_mirrors.py` und synchronisiert die ausführlichen `AGENTS.md`-/`HANDOVER.md`-Spiegel. Das ist kein Widerspruch, solange Ausführungsstand und späterer Ablagestand nicht gleichgesetzt werden.
+
+Während dieses Reviews wurden `HANDOVER.md` in beiden Spiegeln und `evidence/2026-09-01_chain_realtest.md` parallel geändert und anschließend separat als `ef88e04` eingecheckt. Diese Änderungen stammen nicht von Gerd; sie dokumentieren die nachgemessene Firewall-Rücknahme und die Entscheidung, den Testbot ohne Token auf der NAS bestehen zu lassen. Die getesteten Codepfade entsprechen weiterhin `818cf75`.
+
+## Neuer Befund
+
+### G-020 — Das Deploy-Manifest prüft bekannte Dateien, aber nicht den vollständigen Verzeichnisstand
+
+**Datei:** `deploy_manifest.sh`:43-65; `verify_manifest.sh`:31-60; `evidence/2026-09-01_chain_realtest.md`:77-85
+**Schwere:** mittel
+**Beobachtung:** `deploy_manifest.sh` nimmt jede normale Datei unter den übergebenen Pfaden auf. Damit würde es auch einen versehentlich lokal vorhandenen, durch Git ignorierten `secrets/`-Ordner erfassen; die in den Runbooks gezeigte anschließende Archivierung ganzer Verzeichnisse würde diese Dateien ebenfalls mitübertragen. Umgekehrt prüft `verify_manifest.sh` ausschließlich die Einträge des Manifests. Zusätzliche Dateien auf der NAS werden ausdrücklich ignoriert, ohne zwischen erlaubten Laufzeit-/Secretdateien und unerwarteten alten Quell-, Compose- oder Skriptdateien zu unterscheiden.
+**Warum problematisch:** „108 Dateien, keine Abweichung“ belegt korrekt, dass die 108 aufgelisteten Dateien vorhanden und unverändert sind. Es belegt aber nicht, dass in den deployten Verzeichnissen nur dieser Quellstand liegt. Da das Deployment in vorhandene Ordner entpackt und alte Dateien nicht entfernt, kann veralteter, nicht manifestierter Code oder eine alte Compose-Datei stehen bleiben. Gleichzeitig kann ein lokales Secret durch die zu breite Dateiauswahl in Manifest und Archiv geraten. Der Anspruch aus `G-019`, den exakten deployten Stand zu benennen, ist damit nur teilweise geschlossen.
+**Vorschlag:** Das Deployment aus einer expliziten Liste versionierter Dateien bauen, nicht aus ganzen Verzeichnissen; Secret-, State- und Environmentpfade technisch ausschließen. Auf der NAS zusätzlich die Dateimenge vergleichen: fehlende, geänderte **und unerwartete** Dateien müssen scheitern, mit einer kleinen expliziten Allowlist nur für notwendige Laufzeitpfade. Einen Negativtest ergänzen, der eine fremde alte `.py`-/Compose-Datei sowie einen lokalen `secrets/`-Ordner anlegt und für beide einen Fehlschlag verlangt.
+
+---
+
+## Gesamturteil nach der dritten Prüfrunde
+
+Der Stand ist gegenüber der zweiten Prüfrunde substanziell verbessert. `G-012` bis `G-019` sind im Code beziehungsweise in der ehrlichen Statuskorrektur nachvollziehbar bearbeitet; der echte Kettenlauf ist ein belastbarer Integrationsmeilenstein. Die Einstufung bleibt dennoch **`CORE ITERATE`**: Der Lauf beweist Transport und Rückweg mit Echo, aber noch keinen echten Modellmitarbeiter, keinen ausgeführten Worker-Core-Test und keine vollständige automatische Auditrekonstruktion auf Migration `004`/API `v8`.
+
+`G-020` blockiert nicht die Aussage `CHAIN PASS`, schränkt aber die Aussage „exakter deployter Stand“ ein. Vor dem nächsten beweisführenden NAS-Lauf sollte der Manifestpfad geschlossen werden. Die temporäre DSM-Firewallregel `172.31.254.0/29` auf TCP 8443 ist laut dem in `ef88e04` dokumentierten tokenfreien Gegencheck entfernt; der technische Rückbau ist damit nicht mehr offen.
