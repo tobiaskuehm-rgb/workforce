@@ -262,6 +262,8 @@ Ablauf, im selben Commit:
 
 Die Befundnummer ist kein Schmuck: Sie führt zur Beobachtung, die die Regel erzwungen hat. Eine Regel ohne diese Herkunft ist eine Meinung, und Meinungen gehören nicht in diese Datei.
 
+`HANDOVER.md` liegt ebenfalls zweimal — im Wurzelverzeichnis und in `nas-startup/`; nur die zweite erreicht die NAS. Am 2026-09-01 war die NAS-Kopie drei Sitzungen alt, und Gerd liest genau die. **Beide gehen immer gemeinsam.**
+
 `AGENTS.md` ist der zeichengleiche Spiegel dieser Datei — Gerd liest jene, Claude diese. **Beide werden immer gemeinsam geändert**, sonst arbeiten die zwei Seiten nach verschiedenen Regeln, ohne es zu merken.
 
 Wenn zwei Regeln dasselbe sagen, werden sie zusammengezogen. Diese Datei wird gelesen, bevor jemand etwas schreibt — wächst sie ins Unlesbare, hört das auf, und dann nützt die beste Regel nichts.

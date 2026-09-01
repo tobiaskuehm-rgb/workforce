@@ -231,3 +231,7 @@ Der wichtigste Fund ist A1: Der Agent nutzt das Credential von `AI-ENG-001` — 
 `ENG-008` ist gebaut: Bus-Client um Tasks und Handoffs erweitert, `core_roundtrip.py` fährt die von `DEC-027` verlangte Sequenz in 18 Schritten inklusive Negativfällen, `core_audit.sql` rekonstruiert den Lauf allein aus der Audit-Spur. Prepare für drei Zugänge, Cleanup, Compose-Dateien.
 
 **Als Nächstes:** Core-Roundtrip ausführen — braucht die temporäre Firewall-Regel und eine Freigabe. 89 Agenten-Tests, 35 Connector-Tests.
+
+---
+
+**Hinweis zur Ablage:** Diese Datei liegt zweimal im Repo — im Wurzelverzeichnis und in `nas-startup/`. Nur die zweite wird auf die NAS deployt und ist die, die Gerd liest. **Beide gehen immer gemeinsam.** Am 2026-09-01 fiel auf, dass die NAS-Kopie drei Sitzungen alt war; Gerd hätte gegen einen veralteten Stand geprüft.
