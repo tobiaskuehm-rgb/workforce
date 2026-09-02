@@ -2002,3 +2002,68 @@ sondern aus den Compose-Dateien rekonstruiert. Das ist dieselbe Bewegung, die
 Name, sondern ein erfundener Ablauf neben einem dokumentierten.
 
 **Regel 29** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
+
+
+---
+
+## `G-056` — eigener Prüfdurchgang: mein `G-053`-Fix hatte einen Fehlerpfad
+
+**Bestätigt, selbst gefunden, behoben.** Beim Durchlesen des eigenen Codes vom
+selben Tag. Kein Test hat es gefunden — die Attrappe verdeckte es sogar.
+
+### Der Befund
+
+Seit `G-053` bestätigt der Connector nach dem Versand. Was passiert, wenn
+**nur die Bestätigung** scheitert?
+
+1. Versand an Telegram: erfolgreich → lokal `SENT`
+2. Bestätigung auf dem Bus: `WORKFORCE_HTTP_503` → vermerkt, Runde geht weiter
+3. Nächste Runde: `claim_notification` findet den Datensatz auf `SENT` →
+   `DUPLICATE` → übersprungen
+
+**Die Nachricht bleibt für immer `DELIVERED`.** Genau der Zustand, gegen den
+`G-053` gebaut wurde, nur über den Fehlerpfad erreicht.
+
+Die Ursache ist allgemeiner als der Einzelfall: Versand und Bestätigung sind
+**zwei** dauerhafte Wirkungen, der lokale Speicher kannte dafür eine einzige
+Marke. Ein Dublettenschutz, der „erledigt" sagt, wo „halb erledigt" gilt,
+verschluckt den fehlenden Teil.
+
+### Der zweite Fund derselben Stelle
+
+Der Fingerabdruck, mit dem der Connector eine Benachrichtigung wiedererkennt,
+enthielt `delivery_status`. Solange nie bestätigt wurde, änderte der sich nie —
+also war es unsichtbar. Mit `G-053` ändert er sich bei jeder erledigten
+Nachricht, und aus jedem `DUPLICATE` wurde ein dauerhafter `CONFLICT`:
+harmlos in der Wirkung, aber die Meldung sagt „der Datensatz hat sich unter
+uns verändert", und das wäre ab sofort der Normalfall gewesen.
+
+Der Kommentar über der Stelle hatte die Regel längst richtig aufgeschrieben —
+„identifies the bus message, not how it is rendered" — und `delivery_status`
+steht in der Benachrichtigung. Er war also schon nach dem eigenen Maßstab
+falsch dort.
+
+### Die Korrektur
+
+Keine zweite Spalte. **Der Bus ist die Idempotenzinstanz:**
+`BUS_ACK_ALREADY_FINAL` heißt „war schon", nicht „ging schief". Die
+Bestätigung wird deshalb nachgeholt, solange der Bus die Nachricht noch offen
+führt — und die Grenze steht daneben, weil `get_inbox` eine Nachricht nie
+wieder loswird: Ist sie bestätigt, wird nicht erneut angeklopft.
+
+`delivery_status` ist aus dem Fingerabdruck raus.
+
+### Was mich das über die Attrappen lehrt
+
+`FakeWorkforce.acknowledge` **vermerkte** die Bestätigung und ließ den
+Posteingang unverändert. Damit war der Pfad, um den es hier geht, im Test gar
+nicht erreichbar — und ein Test, der ihn geprüft hätte, wäre aus dem falschen
+Grund grün gewesen. Die Attrappe modelliert jetzt den Zustandswechsel und die
+Ablehnung, so wie `chain_world` es längst tat. Dass ausgerechnet die ältere
+Attrappe die treuere war, ist kein Zufall: Sie wurde aus der Migration gebaut,
+meine aus dem Gedächtnis.
+
+Drei neue Tests, zwei Gegenproben — Nachholen entfernt und Zustand zurück in
+den Fingerabdruck, jede macht die Suite rot.
+
+**Regel 30** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.

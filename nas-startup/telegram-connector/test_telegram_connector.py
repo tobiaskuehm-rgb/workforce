@@ -59,13 +59,22 @@ class FakeWorkforce:
         return {"task_status": "PENDING"}
 
     def acknowledge(self, message_id, *, note):
-        # Modelliert das Verhalten, auf das es ankommt: Der Bus vermerkt die
-        # Bestaetigung, und ein Fehlschlag ist eine ConnectorError - nicht
-        # irgendeine Ausnahme. Die Attrappe kann beides.
+        # Modelliert das Verhalten, auf das es ankommt - aus der Quelle, nicht
+        # aus der Erinnerung: Der Bus setzt den Zustand der Nachricht, und ein
+        # zweiter Versuch auf einem nicht mehr offenen Datensatz wird mit
+        # BUS_ACK_ALREADY_FINAL abgelehnt (002_workforce_bus.sql). Die erste
+        # Fassung vermerkte nur und liess den Posteingang unveraendert - und
+        # verdeckte damit genau den Pfad, um den es bei G-056 geht.
         if self.ack_error is not None:
             raise telegram_connector.ConnectorError(self.ack_error)
+        for message in self.inbox:
+            if message.get("message_id") == message_id:
+                if message.get("delivery_status") != "DELIVERED":
+                    raise telegram_connector.ConnectorError("BUS_ACK_ALREADY_FINAL")
+                message["delivery_status"] = "ACCEPTED"
+                break
         self.acknowledged.append((message_id, note))
-        return {"message_id": message_id, "delivery_status": "ACKNOWLEDGED"}
+        return {"message_id": message_id, "delivery_status": "ACCEPTED"}
 
 
 def update(update_id, text, *, chat_id=111, user_id=222, chat_type="private"):
@@ -469,6 +478,55 @@ class TheReturnLegIsAcknowledgedTest(unittest.TestCase):
         connector.publish_inbox_notifications()
         connector.publish_inbox_notifications()
         self.assertEqual(1, len(workforce.acknowledged))
+
+    def test_a_failed_acknowledgement_is_caught_up_on_the_next_round(self):
+        """G-056: sonst bleibt die Nachricht ueber den Fehlerpfad fuer immer offen.
+
+        Erste Runde: Versand klappt, Bestaetigung scheitert. Der lokale
+        Speicher steht damit auf SENT, und beim naechsten Mal wuerde der
+        Dublettenschutz die Nachricht ueberspringen - fuer immer. Genau der
+        Zustand, gegen den G-053 gebaut wurde, nur ueber den Fehlerpfad
+        erreicht.
+        """
+        connector, telegram, workforce = self._connector()
+        workforce.ack_error = "WORKFORCE_HTTP_503"
+        self.assertEqual(1, connector.publish_inbox_notifications())
+        self.assertEqual([], workforce.acknowledged)
+        self.assertEqual("DELIVERED", workforce.inbox[0]["delivery_status"])
+
+        workforce.ack_error = None
+        connector.publish_inbox_notifications()
+        self.assertEqual(1, len(telegram.sent), "kein zweiter Versand")
+        self.assertEqual(1, len(workforce.acknowledged), "aber die Bestaetigung")
+        self.assertEqual("ACCEPTED", workforce.inbox[0]["delivery_status"])
+
+    def test_an_already_acknowledged_message_is_left_alone(self):
+        # Die Gegenprobe zum Nachholen: Ist der Bus zufrieden, wird nicht bei
+        # jedem Durchgang erneut bestaetigt. get_inbox liefert die Nachricht
+        # weiterhin - sie verschwindet nie -, also braucht es diese Grenze.
+        connector, _, workforce = self._connector()
+        connector.publish_inbox_notifications()
+        self.assertEqual(1, len(workforce.acknowledged))
+        for _ in range(3):
+            connector.publish_inbox_notifications()
+        self.assertEqual(1, len(workforce.acknowledged))
+
+    def test_the_fingerprint_ignores_the_delivery_status(self):
+        """G-056: sonst wird jede bestaetigte Nachricht zum Dauerkonflikt.
+
+        Der Fingerabdruck soll die Nachricht kennzeichnen, nicht ihren
+        Zustand. Solange der Connector nicht bestaetigte, aenderte sich der
+        Zustand nie und der Fehler war unsichtbar.
+        """
+        connector, _, workforce = self._connector()
+        connector.publish_inbox_notifications()
+        self.assertEqual("ACCEPTED", workforce.inbox[0]["delivery_status"])
+        connector.publish_inbox_notifications()
+        gruende = [eintrag["metadata"].get("reason")
+                   for eintrag in self.store.list_audit()
+                   if eintrag["event_type"] == "WORKFORCE_NOTIFICATION_SKIPPED"]
+        self.assertEqual(["DUPLICATE"], gruende,
+                         "ein CONFLICT hiesse, der Fingerabdruck haengt am Zustand")
 
     def test_the_request_id_names_the_message(self):
         # Damit die Auditrekonstruktion Bestaetigung und Nachricht ohne

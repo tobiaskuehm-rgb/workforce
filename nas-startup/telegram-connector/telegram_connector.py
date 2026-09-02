@@ -924,6 +924,33 @@ class TelegramConnector:
             return collapsed
         return collapsed[: limit - 1].rstrip() + "…"
 
+    def _acknowledge_on_bus(self, message_id: str) -> None:
+        """Bestaetigen, und einen schon bestaetigten Datensatz als Erfolg lesen.
+
+        Der Bus ist hier die Idempotenzinstanz: `BUS_ACK_ALREADY_FINAL` heisst
+        "war schon", nicht "ging schief". Das ist der Grund, warum diese
+        Nachholung ueberhaupt gefahrlos ist.
+        """
+        try:
+            self.workforce.acknowledge(
+                message_id, note="Per Telegram an den CEO zugestellt.")
+        except ConnectorError as exc:
+            if exc.code == "BUS_ACK_ALREADY_FINAL":
+                return
+            self.store.audit(
+                "WORKFORCE_NOTIFICATION_ACK_FAILED",
+                "FAIL",
+                update_id=None,
+                metadata={"message_id": message_id, "error_code": exc.code},
+            )
+            return
+        self.store.audit(
+            "WORKFORCE_NOTIFICATION_ACKNOWLEDGED",
+            "PASS",
+            update_id=None,
+            metadata={"message_id": message_id},
+        )
+
     def publish_inbox_notifications(self) -> int:
         if not self.settings.enabled or self.settings.kill_switch:
             return 0
@@ -947,11 +974,14 @@ class TelegramConnector:
                 "message_id": message_id,
                 "sender_id": sender_id,
                 "task_ref": task_ref,
-                "delivery_status": delivery_status,
                 "subject": subject,
             }
             # The fingerprint identifies the bus message, not how it is
-            # rendered - so the body excerpt stays out of it deliberately.
+            # rendered - so the body excerpt stays out of it deliberately, and
+            # so does delivery_status (G-056). That one is mutable, it is part
+            # of the rendering, and since the connector acknowledges (G-053) it
+            # actually changes: leaving it in turned every already-handled
+            # message into a permanent CONFLICT on every poll.
             # One bus message yields at most one Telegram notification, ever.
             # Including the rendering would make a policy change re-notify
             # every already-announced message at once, which is a notification
@@ -969,6 +999,15 @@ class TelegramConnector:
                     update_id=None,
                     metadata={"message_id": message_id, "reason": claim},
                 )
+                # Telegram hat die Nachricht schon bekommen, der Bus fuehrt sie
+                # aber noch als offen: Dann ist beim letzten Mal die
+                # Bestaetigung gescheitert, nicht der Versand (G-056). Ohne das
+                # Nachholen bliebe sie fuer immer DELIVERED - genau der
+                # Zustand, gegen den G-053 gebaut wurde, nur ueber den
+                # Fehlerpfad erreicht. CONFLICT bleibt aussen vor: dort passt
+                # der Fingerabdruck nicht, und das ist eine andere Lage.
+                if claim == "DUPLICATE" and delivery_status == "DELIVERED":
+                    self._acknowledge_on_bus(message_id)
                 continue
             notification = (
                 f"NACHRICHT {message_id} von {sender_id}\n"
@@ -1006,25 +1045,7 @@ class TelegramConnector:
             # sie einmal doppelt anzukuendigen. Der Fehlschlag beendet die
             # Runde nicht: die Nachricht *ist* beim CEO angekommen, nur der
             # Bus weiss es noch nicht.
-            try:
-                self.workforce.acknowledge(
-                    message_id,
-                    note="Per Telegram an den CEO zugestellt.",
-                )
-            except ConnectorError as exc:
-                self.store.audit(
-                    "WORKFORCE_NOTIFICATION_ACK_FAILED",
-                    "FAIL",
-                    update_id=None,
-                    metadata={"message_id": message_id, "error_code": exc.code},
-                )
-            else:
-                self.store.audit(
-                    "WORKFORCE_NOTIFICATION_ACKNOWLEDGED",
-                    "PASS",
-                    update_id=None,
-                    metadata={"message_id": message_id},
-                )
+            self._acknowledge_on_bus(message_id)
             sent += 1
         return sent
 
