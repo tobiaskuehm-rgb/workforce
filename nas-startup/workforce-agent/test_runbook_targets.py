@@ -69,7 +69,7 @@ CONTAINER_SUBCOMMANDS = ("exec", "cp", "restart", "stop", "start", "kill",
                          "logs", "port", "top", "pause", "unpause", "rm")
 
 
-def commands(text: str) -> list[str]:
+def all_commands(text: str) -> list[str]:
     """Shell commands from the runbook, backslash continuations joined.
 
     Two decisions matter here. Only fenced blocks count - prose about a
@@ -99,7 +99,19 @@ def commands(text: str) -> list[str]:
             buffer = []
     if buffer:
         joined.append(" ".join(buffer).strip())
-    return [c for c in joined if "docker" in c or "workforce." in c]
+    return joined
+
+
+def commands(text: str) -> list[str]:
+    """Die Teilmenge, die Container oder Datenbankobjekte adressiert.
+
+    Der Filter ist aelter als `all_commands()` und bleibt, weil die
+    Namensaufloesungen unten nur fuer diese Befehle etwas zu sagen haben. Ein
+    Waechter, der jedes `sudo` prueft, darf sich darauf aber nicht stuetzen:
+    dass `sudo sh /volume1/docker/Startup/backup_task.sh` bisher durch den
+    Filter kam, lag allein am `docker` im Pfad.
+    """
+    return [c for c in all_commands(text) if "docker" in c or "workforce." in c]
 
 
 def container_name_offenders(text: str) -> list[str]:
@@ -426,8 +438,8 @@ def deployed_paths() -> str:
     return datei.read_text(encoding="utf-8") if datei.is_file() else ""
 
 
-def deployed_file_names(liste: str) -> set[str]:
-    """Dateinamen, die die Pfadliste abdeckt - Ordnereintraege aufgeloest.
+def deployed_relative_paths(liste: str) -> set[str]:
+    """Jeder Pfad, den die Liste abdeckt - NAS-relativ und einzeln aufgeloest.
 
     Ein Verzeichnis in `deploy_paths.txt` deckt alles darunter ab. Die erste
     Fassung suchte den Skriptnamen woertlich in der Liste und verlangte
@@ -436,17 +448,45 @@ def deployed_file_names(liste: str) -> set[str]:
     Die beiden Fehler bedingen einander: Der zu enge Waechter erzeugte den
     Eintrag, der das Gate brach.
     """
-    namen: set[str] = set()
+    pfade: set[str] = set()
     for zeile in liste.splitlines():
         eintrag = zeile.split("#", 1)[0].strip()
         if not eintrag:
             continue
         ziel = NAS / eintrag
         if ziel.is_dir():
-            namen.update(p.name for p in ziel.rglob("*") if p.is_file())
+            pfade.update(str(datei.relative_to(NAS))
+                         for datei in ziel.rglob("*") if datei.is_file())
         elif ziel.is_file():
-            namen.add(ziel.name)
-    return namen
+            pfade.add(eintrag)
+    return pfade
+
+
+def deployed_file_names(liste: str) -> set[str]:
+    """Nur die Basenamen - die schwaechere Aussage, fuer Aufrufe ohne Pfad."""
+    return {pfad.rsplit("/", 1)[-1] for pfad in deployed_relative_paths(liste)}
+
+
+def script_target(command: str, prefix: str, name: str) -> str | None:
+    """NAS-relativer Pfad des aufgerufenen Skripts, oder None.
+
+    None heisst nicht "in Ordnung", sondern "aus diesem Befehl nicht
+    bestimmbar" - dann bleibt nur der Basename. Auf dem Mac ausgefuehrte
+    Befehle fallen hierunter; ihr Arbeitsverzeichnis ist das Repo, und dessen
+    Wurzel entspricht der NAS-Wurzel.
+    """
+    if prefix.startswith(PROJECT_DIR + "/"):
+        return prefix[len(PROJECT_DIR) + 1:] + name
+    if prefix in ("", "./"):
+        # Das letzte `cd` in den Projektbaum gewinnt, wie in der Shell auch.
+        verzeichnis = None
+        for treffer in re.finditer(r"cd\s+" + re.escape(PROJECT_DIR) + r"(/[A-Za-z0-9_.-]+)?",
+                                   command):
+            unter = treffer.group(1)
+            verzeichnis = unter[1:] + "/" if unter else ""
+        if verzeichnis is not None:
+            return verzeichnis + name
+    return None
 
 
 def helper_script_offenders(text: str,
@@ -464,19 +504,31 @@ def helper_script_offenders(text: str,
     Datei, und gegen die zu pruefen ist die staerkere Aussage - sie sagt, was
     wirklich ausgerollt wird, statt was eine Befehlszeile behauptet.
 
-    Beides gleichzeitig zuzulassen waere ein Rueckschritt gewesen: Die
-    Gegenprobe, die einen Pfad aus dem Runbook streicht, waere davon still
-    entschaerft worden. Genau das hat sie gemeldet, als ich es versucht habe.
+    Verglichen wird gegen eine **Menge exakter Pfade**, nicht gegen einen
+    zusammengesetzten Text (`G-073`). Die vorige Fassung haengte Pfadliste und
+    Dateinamen zu einem Block zusammen und fragte `name not in block` - eine
+    Teilstringpruefung, unter der ein fehlendes `status.sh` als abgedeckt galt,
+    sobald irgendwo `nas_status.sh` stand. Wo der Befehl einen Pfad hergibt,
+    wird der ganze Pfad gebunden: Derselbe Basename in einem anderen Paket ist
+    ein anderes Skript.
     """
-    executed: set[str] = set()
-    for command in commands(text):
-        # Auch pfadqualifiziert: `sudo sh /volume1/docker/Startup/backup_task.sh`
+    liste = deploy_paths_file if deploy_paths_file is not None else deployed_paths()
+    abgedeckt = deployed_relative_paths(liste)
+    namen = deployed_file_names(liste)
+    offenders: set[str] = set()
+    for command in all_commands(text):
+        # Auch pfadqualifiziert: `sh /volume1/docker/Startup/backup_task.sh`
         # ist derselbe Aufruf und braucht dieselbe Abdeckung. Ohne den
         # Pfadteil fiel genau diese Form still aus der Pruefung.
-        executed.update(re.findall(r"(?:^|\s)sh\s+(?:\S*/)?([A-Za-z0-9_-]+\.sh)", command))
-    liste = deploy_paths_file if deploy_paths_file is not None else deployed_paths()
-    abgedeckt = liste + "\n" + " ".join(sorted(deployed_file_names(liste)))
-    return sorted(name for name in executed if name not in abgedeckt)
+        for prefix, name in re.findall(
+                r"(?:^|\s)sh\s+(\S*/)?([A-Za-z0-9_-]+\.sh)", command):
+            ziel = script_target(command, prefix, name)
+            if ziel is not None:
+                if ziel not in abgedeckt:
+                    offenders.add(ziel)
+            elif name not in namen:
+                offenders.add(name)
+    return sorted(offenders)
 
 
 def function_arity() -> dict[str, int]:
@@ -808,6 +860,38 @@ class WeakenedControlIsDetectedTest(unittest.TestCase):
         erfunden = "```bash\nssh synology \"cd /volume1/docker/Startup && sh gibt_es_nicht.sh\"\n```\n"
         self.assertNotIn("gibt_es_nicht.sh", deployed_paths())
         self.assertEqual(["gibt_es_nicht.sh"], helper_script_offenders(erfunden))
+
+    def test_a_substring_of_a_deployed_name_is_not_coverage(self) -> None:
+        """Genau der Fall aus `G-073`.
+
+        Die vorige Fassung baute aus Pfadliste und Dateinamen einen Textblock
+        und fragte `name not in block`. `status.sh` ist ein Teilstring von
+        `nas_status.sh`, also galt ein Skript, das niemand ausrollt, als
+        abgedeckt. Der Wert der Pruefung haengt daran, dass sie hier genau
+        einen Verstoss meldet - nicht keinen und nicht zwei.
+        """
+        liste = "nas_status.sh\n"
+        fehlend = '```bash\nssh synology "cd /volume1/docker/Startup && sh status.sh"\n```\n'
+        self.assertEqual(["status.sh"],
+                         helper_script_offenders(fehlend, deploy_paths_file=liste))
+        echt = '```bash\nssh synology "cd /volume1/docker/Startup && sh nas_status.sh"\n```\n'
+        self.assertEqual([], helper_script_offenders(echt, deploy_paths_file=liste))
+
+    def test_the_same_basename_in_another_package_is_another_script(self) -> None:
+        """Ein Basename ist kein Bezeichner, solange der Befehl einen Pfad nennt.
+
+        `chain-test/validate_chain_run_config.sh` wird ausgerollt. Derselbe
+        Name unter `telegram-connector/` waere eine andere Datei, die niemand
+        ausrollt - und unter einem reinen Namensvergleich unsichtbar.
+        """
+        liste = "chain-test\n"
+        echt = ('```bash\nssh synology "cd /volume1/docker/Startup/chain-test '
+                '&& sh validate_chain_run_config.sh chain-run.env"\n```\n')
+        self.assertEqual([], helper_script_offenders(echt, deploy_paths_file=liste))
+        fremd = ('```bash\nssh synology "cd /volume1/docker/Startup/telegram-connector '
+                 '&& sh validate_chain_run_config.sh chain-run.env"\n```\n')
+        self.assertEqual(["telegram-connector/validate_chain_run_config.sh"],
+                         helper_script_offenders(fremd, deploy_paths_file=liste))
 
     def test_a_knowledge_object_would_be_caught_although_it_exists(self) -> None:
         # The point of the gate: `knowledge_objects` is real in the tree and
