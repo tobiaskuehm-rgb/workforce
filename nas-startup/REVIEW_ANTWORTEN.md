@@ -1715,3 +1715,65 @@ nur, dass Auflösung, TLS und Proxy stimmen — dass ein Testpaket durchläuft,
 kann erst das Fenster zeigen.
 
 **Regel 26** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
+
+
+---
+
+## Phase 5, CEO-Ergänzung: die fünf Kontrollen sind gebaut
+
+**Kein Befund, sondern Arbeit an deinem Auftrag.** Du hast Phase 5 um fünf
+verbindliche Prüfpunkte und sechs Nachweise erweitert und geschrieben: „Die
+Kontrollen aus Phase 5 müssen vor Phase 6 umgesetzt sein." Sie brauchen weder
+Kanal noch Zugangsdaten noch ein Modell, also habe ich sie gebaut, während das
+Fenster auf eine Freigabe wartet.
+
+### Die fünf Punkte
+
+| | Zustand |
+|---|---|
+| **1 Kostenkontrolle** | Budget prüft und **reserviert** vor dem Aufruf, fünf Decken. Neu: ein unbekanntes Modell wird abgewiesen, statt aus einem Ersatztarif bepreist zu werden. SDK-Retries stehen seit `G-034` auf `0`, ein Fallback auf ein anderes Modell wird als Wechsel behandelt |
+| **2 Datensparsamkeit** | war vorhanden — `data_boundary` mit drei Policies, Feld-Allowlist, Absenderobergrenzen. Neu: die Datenobergrenze **je Modell**, unterhalb dessen, was die Datengrenze überhaupt durchlässt |
+| **3 Dublettenschutz** | zwei Linien wie bisher (State Store, Bus-Idempotenz), neu **belegt** über den Bericht — und die zweite Hälfte deines Satzes ebenfalls: Ähnlichkeit löst nichts aus |
+| **4 Kommunikationsweg** | der Empfänger kommt aus dem Bus-Datensatz, nie aus einer Modellausgabe; das war belegt und ist jetzt im Bericht je Vorgang sichtbar. Hop-Zahl und Schleifenschutz sind Bus-seitig und aus dem Realtest belegt — daran habe ich **nichts** geändert |
+| **5 Modellanbindung** | neu: `model_allowlist.py`. Aufgabenklassen, Tarif, Datenobergrenze und Kostendeckel je Aufruf; kein selbständiger Wechsel |
+
+### Die sechs Nachweise
+
+| | |
+|---|---|
+| Budget `0` blockiert jeden bezahlten Aufruf | belegt, mit Gegenprobe: derselbe Lauf mit freiem Provider kommt durch |
+| Doppelte Zustellung → genau ein Aufruf, ein Ergebnis | belegt über Worker **und** Bericht, mit Gegenprobe: ohne Zustandsspeicher wird zweimal gefragt |
+| Nicht freigegebenes Feld, Modell oder Ziel wird verweigert und ist sichtbar | belegt — jede Ablehnung trägt ihre Kennung in den Bericht, `provider_calls` bleibt 0 |
+| Der Lauf weist je Vorgang Datenmenge, Felder, Aufrufe, Tokens, Kostenobergrenze, Route und Dublettenentscheidung aus | gebaut, Beispielbericht erzeugt |
+| Der Echo-Core bleibt funktional | die Suiten laufen durch |
+| Abschlussartefakt: maschinenlesbar plus kurze Zusammenfassung | gebaut, JSON und Logzeilen |
+
+### Drei Entscheidungen, die du sehen solltest
+
+**Ein Modellwechsel verwirft die Antwort, er vermerkt sie nicht.** Wenn ein
+Anbieter als etwas anderes antwortet als konfiguriert — ein SDK-Alias, eine
+serverseitige Aufwertung, ein Fallback nach einem Fehler —, dann wurden Preis
+und Datenobergrenze für ein anderes Modell gewählt. Der Verbrauch wird
+trotzdem gebucht: der Aufruf hat stattgefunden.
+
+**Die Datenobergrenzen sind verschieden und liegen unter der Datengrenze.**
+Meine erste Fassung setzte sie darüber; damit hätten sie nie greifen können
+und wären Zierrat gewesen. Der Test hat es gezeigt. Jetzt nimmt das günstige
+Modell kleine Anfragen, und eine große Nutzlast muss an ein Modell, das dafür
+gewählt wurde.
+
+**Der Bericht enthält bauartbedingt keine Nutzlast.** Feldnamen, Zahlen und
+den Digest, den die Datengrenze ohnehin bildet. Ein Bericht, der Nutzlasten
+zitiert, wäre eine zweite Kopie genau der Daten, deren Menge er messen soll.
+Geprüft mit einer Nachricht, deren Inhalt unverwechselbar ist.
+
+### Was das ausdrücklich nicht ist
+
+**Alles davon ist gegen Attrappen belegt, nichts am laufenden System.** Der
+Unterschied hat in diesem Projekt einen Namen, und er gehört hierher. Was
+fehlt, ist unverändert der Lauf: kein Telegram, kein Modellaufruf, kein
+Agentenlauf (`G-030`). Der Bericht ist bisher aus Testdaten erzeugt worden,
+nicht aus einem echten Durchgang.
+
+Und es ist **keine** Freigabe für einen bezahlten Provider. Der Echo-Weg
+bleibt der einzige, der ohne eine neue Entscheidung läuft.

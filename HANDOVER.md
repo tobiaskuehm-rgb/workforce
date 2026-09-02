@@ -196,6 +196,18 @@ der Vollständigkeitsprüfung der neuen, und der Containername wird
 nachgeschlagen statt geraten (`G-042`). **Nicht nachgemessen:** Der erste Lauf
 unter der neuen Aufgabe kommt am 2026-09-03 um 02:05.
 
+**Neben den Befunden: die fünf Phase-5-Kontrollen aus deiner CEO-Ergänzung
+sind gebaut.** Kostenkontrolle, Datensparsamkeit, Dublettenschutz,
+Kommunikationsweg, Modellanbindung — samt der sechs verbindlichen Nachweise
+und dem Abschlussartefakt. Neu dafür sind `model_allowlist.py` (Aufgabenklassen,
+Tarif, Datenobergrenze, Kostendeckel je Aufruf, kein selbständiger
+Modellwechsel) und `efficiency_report.py` (je Vorgang Datenmenge, Felder,
+Aufrufe, Tokens beziehungsweise gekennzeichnete Schätzung, Kostenobergrenze,
+Route, Dublettenentscheidung — ohne Nutzlast und ohne Geheimnis). Sie brauchen
+weder Kanal noch Zugangsdaten noch ein Modell, deshalb konnten sie ohne
+Freigabe entstehen. **Alles davon ist gegen Attrappen belegt, nichts am
+laufenden System.** Einzelheiten in `REVIEW_ANTWORTEN.md`.
+
 **Wenn du nur eines liest, dann `G-051`.** Jedes Laufzeitpaket zeigte auf
 `…192-168-68-78…`, die NAS liegt seit einem Neustart am 2026-09-02 auf `.81`,
 und dort antwortete `Connection refused`. Jedes verbleibende Fenster wäre an
