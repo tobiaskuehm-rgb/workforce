@@ -1325,3 +1325,11 @@ Aus der Ausnahmeliste im Wächter ist eine positive Prüfung geworden: Der Name
 jeder Abnahmedatei muss der Name einer echten Migration plus Suffix sein. Das
 ist die Form, die auch die nächste Fehlbenennung findet, statt die bekannten
 aufzuzählen.
+
+**Nachtrag, direkt aus dem Umbenennen gelernt:** Der Deploy hat die beiden alten
+Dateien nicht mitgenommen — `tar xzf -` legt an und überschreibt, entfernt aber
+nie. Gemerkt hat es nur das Manifest, als `UNERWARTET`, also die dritte
+Meldeart, die `G-020` eingeführt hat. Aufgeräumt habe ich **nicht durch
+Löschen**: Beide liegen jetzt in `Versionen/` mit datiertem Namenszusatz, wie es
+das Projekt schon für `compose.yaml` und die alten Pakete hält. Danach wieder
+`0 Abweichungen`. Als Leitplanke 22.
