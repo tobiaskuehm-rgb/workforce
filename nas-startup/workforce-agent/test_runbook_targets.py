@@ -278,22 +278,43 @@ def role_cleanup_offenders(text: str) -> list[str]:
     return offenders
 
 
-def helper_script_offenders(text: str) -> list[str]:
+def deployed_paths() -> str:
+    """The versioned deploy list, as one blob to search.
+
+    Since G-052 this is where the deployed paths live. Before that they
+    existed only as arguments on a command line, which is why the check below
+    used to look inside the runbook's own manifest commands - and why a
+    runbook that simply calls `sh deploy_manifest.sh` with no arguments, the
+    correct form today, would have failed it.
+    """
+    datei = NAS / "deploy_paths.txt"
+    return datei.read_text(encoding="utf-8") if datei.is_file() else ""
+
+
+def helper_script_offenders(text: str,
+                            deploy_paths_file: str | None = None) -> list[str]:
     """Every script the runbook runs has to be one the rollout also ships.
 
     Review finding G-043: `check_secret_files.sh` was executed by section 2
     and missing from both path lists in section 5, so the target manifest
     would have stopped covering a file the window depends on - and an
     uncovered path is not reported as missing, it is simply out of scope.
+
+    Gemessen wird gegen **deploy_paths.txt** und sonst nichts. Die erste
+    Fassung sah in den Manifest-Befehlen des Runbooks selbst nach, weil die
+    Pfadliste damals nur dort existierte; seit G-052 ist sie eine versionierte
+    Datei, und gegen die zu pruefen ist die staerkere Aussage - sie sagt, was
+    wirklich ausgerollt wird, statt was eine Befehlszeile behauptet.
+
+    Beides gleichzeitig zuzulassen waere ein Rueckschritt gewesen: Die
+    Gegenprobe, die einen Pfad aus dem Runbook streicht, waere davon still
+    entschaerft worden. Genau das hat sie gemeldet, als ich es versucht habe.
     """
-    executed = set()
-    manifest_commands = []
+    executed: set[str] = set()
     for command in commands(text):
-        if "deploy_manifest.sh" in command or "git ls-files" in command:
-            manifest_commands.append(command)
         executed.update(re.findall(r"(?:^|\s)sh\s+([A-Za-z0-9_-]+\.sh)", command))
-    lists = " ".join(manifest_commands)
-    return sorted(name for name in executed if name not in lists)
+    liste = deploy_paths_file if deploy_paths_file is not None else deployed_paths()
+    return sorted(name for name in executed if name not in liste)
 
 
 def function_arity() -> dict[str, int]:
@@ -410,6 +431,12 @@ class RunbookTargetsTest(unittest.TestCase):
     def test_every_function_call_has_the_right_number_of_arguments(self) -> None:
         self.check_each(lambda t: self.assertEqual([], call_arity_offenders(t)))
 
+    def test_the_deploy_list_is_actually_read(self) -> None:
+        # Ohne das waere die Erweiterung oben ein Freibrief: eine leere Liste
+        # deckt nichts ab, und der Test daneben wuerde es nicht merken.
+        self.assertIn("nas_status.sh", deployed_paths())
+        self.assertIn("check_secret_files.sh", deployed_paths())
+
     def test_an_image_reference_is_not_mistaken_for_a_container(self) -> None:
         # `docker save startup-workforce-api:v7` is correct and must stay.
         self.assertIn("docker save startup-workforce-api:v7", self.text)
@@ -515,11 +542,26 @@ class WeakenedControlIsDetectedTest(unittest.TestCase):
         self.assertNotEqual(self.text, broken)
         self.assertIn("bus_record_denial: 7 statt 8", call_arity_offenders(broken))
 
-    def test_a_script_missing_from_the_manifest_would_be_caught(self) -> None:
-        broken = self.text.replace("check_secret_files.sh verify_production_state.sh",
-                                   "verify_production_state.sh")
-        self.assertNotEqual(self.text, broken)
-        self.assertIn("check_secret_files.sh", helper_script_offenders(broken))
+    def test_a_script_missing_from_the_deploy_list_would_be_caught(self) -> None:
+        """Die Gegenprobe wandert mit der Quelle mit.
+
+        Sie strich frueher einen Pfad aus dem Runbook, weil die Liste dort
+        stand. Seit G-052 steht sie in deploy_paths.txt, also wird jetzt dort
+        gestrichen - sonst prueft die Gegenprobe eine Stelle, an der die
+        Entscheidung nicht mehr faellt.
+        """
+        vollstaendig = deployed_paths()
+        self.assertIn("check_secret_files.sh", vollstaendig)
+        ohne = vollstaendig.replace("check_secret_files.sh", "")
+        self.assertIn("check_secret_files.sh",
+                      helper_script_offenders(self.text, deploy_paths_file=ohne))
+        self.assertEqual([], helper_script_offenders(self.text,
+                                                     deploy_paths_file=vollstaendig))
+
+    def test_a_script_nobody_deploys_would_be_caught(self) -> None:
+        erfunden = "```bash\nssh synology \"cd /volume1/docker/Startup && sh gibt_es_nicht.sh\"\n```\n"
+        self.assertNotIn("gibt_es_nicht.sh", deployed_paths())
+        self.assertEqual(["gibt_es_nicht.sh"], helper_script_offenders(erfunden))
 
     def test_a_knowledge_object_would_be_caught_although_it_exists(self) -> None:
         # The point of the gate: `knowledge_objects` is real in the tree and

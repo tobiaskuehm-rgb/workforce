@@ -39,6 +39,7 @@ DOCUMENTS = (
     NAS / "workforce-agent" / "README.md",
     NAS / "chain-test" / "README.md",
     NAS / "PHASE4_RUNBOOK.md",
+    NAS / "PHASE5_RUNBOOK.md",
     # Both moved out of NOT_CHECKED on 2026-09-02 (G-046). The contract had
     # claimed "in workforce-api:v6 implementiert" for four versions, and the
     # README named v6 as the active API while v9 was running. Neither carries
@@ -572,9 +573,54 @@ class RunbookStatusIsCurrentTest(unittest.TestCase):
 
     HEAD_LINES = 16
 
-    def head(self) -> str:
-        text = (NAS / "PHASE4_RUNBOOK.md").read_text(encoding="utf-8")
+    # Woran ein noch nicht gelaufenes Runbook haengt. Die Sorte ist eine
+    # Angabe und keine Vermutung: Phase 4 wartete auf einen Pruefbefund,
+    # Phase 5 wartet auf eine Freigabe des CEO. Beides sind echte Blocker,
+    # aber sie sind nicht dasselbe, und ein Waechter, der nur die eine Sorte
+    # kennt, zwingt die andere zu einer falschen Aussage im Kopf.
+    BLOCKERART = {
+        "PHASE4_RUNBOOK.md": "befund",
+        "PHASE5_RUNBOOK.md": "freigabe",
+        "BUS_REALTEST_KARL_THORSTEN_RUNBOOK.md": "befund",
+    }
+
+    FREIGABE = re.compile(r"CEO-Freigabe|Freigabe des CEO|Freigabe im Chat")
+
+    def runbooks(self) -> list[pathlib.Path]:
+        return sorted(p for p in NAS.glob("*.md") if "RUNBOOK" in p.name)
+
+    def head_of(self, path: pathlib.Path) -> str:
+        text = path.read_text(encoding="utf-8")
         return "\n".join(text.split("\n")[: self.HEAD_LINES])
+
+    def head(self) -> str:
+        return self.head_of(NAS / "PHASE4_RUNBOOK.md")
+
+    def test_every_runbook_declares_its_blocker_kind(self) -> None:
+        # Sonst faellt ein neues Runbook still aus dieser Pruefung heraus -
+        # dieselbe Luecke wie eine Dokumentenliste, die niemand pflegt.
+        self.assertEqual({p.name for p in self.runbooks()}, set(self.BLOCKERART))
+
+    def test_every_runbook_head_describes_its_state(self) -> None:
+        for path in self.runbooks():
+            with self.subTest(runbook=path.name):
+                head = self.head_of(path)
+                if "ausgeführt am" in head:
+                    self.assertRegex(head, r"ausgeführt am \d{4}-\d{2}-\d{2}")
+                    named = re.findall(r"`(evidence/[\w./-]+\.md)`", head)
+                    self.assertTrue(named, "ausgefuehrt, aber kein Nachweis genannt")
+                    for name in named:
+                        self.assertTrue((NAS / name).is_file(), f"{name} fehlt")
+                elif self.BLOCKERART[path.name] == "freigabe":
+                    self.assertIn("nicht ausgeführt", head)
+                    self.assertRegex(head, self.FREIGABE)
+                else:
+                    self.assertIn(self.newest_finding(), head)
+
+    def test_a_pending_approval_head_without_the_blocker_would_be_caught(self) -> None:
+        ohne = "**Status: nicht ausgeführt.** Es fehlt noch etwas."
+        self.assertNotIn("ausgeführt am", ohne)
+        self.assertIsNone(self.FREIGABE.search(ohne))
 
     def newest_finding(self) -> str:
         review = (NAS / "REVIEW_GERD.md").read_text(encoding="utf-8")
