@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-01, nach dem ausgeführten Phase-4-Fenster — von Claude Code
+**Zuletzt aktualisiert:** 2026-09-02 — von Claude Code. **Gerd ist am Zug.**
 
 ## Wie die Zusammenarbeit läuft
 
@@ -135,12 +135,66 @@ Alle drei standen in meinem eigenen Runbook, alle drei hätten in einer Trocken�
 
 **Ein Nachweis prüfte nichts.** Der Rechte-Negativtest rief `bus_send_message` mit fünf Argumenten auf; die Funktion nimmt dreizehn. PostgreSQL antwortete `function ... does not exist` — dieselbe Meldung, die auch bei wirkungslosem `007` gekommen wäre. Mit der echten Signatur: `permission denied for function bus_send_message`. `test_runbook_targets.py` vergleicht Stelligkeiten jetzt gegen die Migrationen.
 
-### Was jetzt offen ist
+### Übergabe an Gerd, Stand 2026-09-02
 
-- **`G-025` ist nicht per `ALTER ROLE` schließbar** (`G-045`, neu). `workforce_app` ist der **Bootstrap-Superuser** (OID 10), und PostgreSQL lehnt den Entzug dort ab: `The bootstrap superuser must have the SUPERUSER attribute`. Es gibt zudem genau einen Superuser — ein gelungener Entzug wäre nicht rücknehmbar gewesen. Und der Entzug hätte die Audit-Trigger gar nicht geschützt: Der **Eigentümer** kann sie ohnehin abschalten, gemessen. `G-025` ist eine Eigentümerfrage und braucht eine eigene Migration mit eigener Freigabe. Nachweis: `evidence/2026-09-01_g025_bootstrap_superuser.md`, wiederholbar mit `g025_nosuperuser_test.py`. Die Produktion wurde dafür **nicht** angefasst
-- **`G-030`** Laufzeitkette: kein Telegram, kein Modellaufruf, kein Agentenlauf hat stattgefunden
-- **`G-040`** `/openapi.json` — **korrigiert in `137ec85`, aber nicht ausgerollt.** `openapi_url=None` plus eigene Route hinter `require_api_key`; der Ruby-Abnahmetest schickt den Schlüssel und prüft zusätzlich die Ablehnung ohne ihn. Wirksam erst nach einem Rebuild des API-Containers — bis dahin steht das Repo bewusst vor der NAS, damit `production_state.txt` weiter die Wahrheit sagt
-- **Der Rückfallpfad ist inzwischen geübt** — Phase A der `G-025`-Probe hat die Sicherung `preflight-2026-09-01_22-18-42` in einen Wegwerf-Container zurückgespielt, erst Rollen-Dump, dann Datenbank-Dump: 3 Migrationszeilen (korrekt für einen Dump von vor dem Fenster), 15 Tabellen. Auf der Produktion ausgeführt wurde er nach wie vor nicht. Danach braucht das Fenster noch die CEO-Freigabe für genau einen Lauf — der CEO hat sie grundsätzlich erteilt, sie ist also keine offene Frage mehr, sondern eine Terminfrage. Die NAS steht unverändert auf v7 mit Migrationen `001`–`003`, Kanal `DISABLED`, 0 aktiven Zugängen.
+Seit deiner elften Prüfrunde (`0966cbb`) ist Phase 4 gelaufen und danach einiges
+dazugekommen. **Der laufende Stand ist `production_state.txt`, nicht dieses
+Dokument** — dort steht der Commit, den die NAS wirklich fährt.
+
+**Produktiv jetzt:** API `v9`, Migrationen `001`–`003` und `005`–`007`, beide
+neuen Rollen ohne `SUPERUSER`, Kanal `DISABLED`, 0 aktive Credentials, Knowledge
+`004`/`008` nicht angewendet. `nas_status.sh` `RESULT: PASS`, Exit 0.
+
+**Was ich seither gefunden und beantwortet habe** — alles in `REVIEW_ANTWORTEN.md`,
+jeweils mit Nachweis:
+
+| | worum es geht | Zustand |
+|---|---|---|
+| `G-044` | drei Fehler im Runbook, die erst der echte Lauf zeigte | behoben, Regeln 10–12 |
+| `G-045` | `G-025` ist **nicht** per `ALTER ROLE` schließbar | Entscheidung nötig, siehe unten |
+| `G-046` | sieben Dokumente mit überholten Gegenwartsaussagen | behoben, Regeln 16–17 |
+| `G-047` | `postgres-tests/` gemountet, ungeprüft, halb vorhanden | teils behoben, Lücke festgeschrieben |
+| `G-048` | nächtlicher Job legt weltlesbare Sicherungen ab | **behoben, nicht geschlossen** |
+
+**Drei Dinge, bei denen ich deine Einschätzung brauche und nicht selbst
+entschieden habe:**
+
+1. **`G-045`** — `workforce_app` ist der Bootstrap-Superuser (OID 10), PostgreSQL
+   verweigert den Entzug, und es gibt genau einen Superuser. Der Entzug hätte
+   die Audit-Trigger ohnehin nicht geschützt, weil der **Eigentümer** sie
+   abschalten kann. Mein Vorschlag: `G-025` in diesem Zuschnitt zurückstellen
+   und als Eigentümertrennung neu fassen — eigene Migration, eigene Probe,
+   eigene Freigabe. Nachweis `evidence/2026-09-01_g025_bootstrap_superuser.md`,
+   wiederholbar mit `g025_nosuperuser_test.py`.
+2. **Das Feld `migration` in `/bus/v1/status`** meldet `002_workforce_bus`,
+   während die Datenbank bei `007` steht. Es ist ein Vorhandenseins-Flag, kein
+   Stand. Drei Wege mit Vorschlag stehen in `REVIEW_ANTWORTEN.md`; eine
+   Umstellung wäre eine Vertragsänderung.
+3. **Vier Migrationen ohne Abnahmetest**, `006` und `007` davon produktiv.
+   Belegt sind sie über die Runbook-Nachweise, nicht über `postgres-tests/`.
+   Die fehlenden Tests habe ich bewusst nicht geschrieben, solange ich sie
+   nicht laufen lassen konnte.
+
+**Eine Sache liegt beim CEO, nicht bei dir:** Die Zeile
+`sh /volume1/docker/Startup/harden_backup_permissions.sh` muss in die
+DSM-Sicherungsaufgabe. Bis dahin stehen morgen früh um 02:05 wieder zwei
+weltlesbare Dateien im Backup-Ordner — ein Datenbank-Dump und ein Archiv mit
+`startup.env`. An den Aufgabenplaner komme ich nicht heran.
+
+**Noch offen, unverändert:** `G-030` Laufzeitkette — kein Telegram, kein
+Modellaufruf, kein Agentenlauf hat je stattgefunden.
+
+**Der Rückfallpfad ist inzwischen geübt**, aber nur in einem Wegwerf-Container:
+Phase A der `G-045`-Probe hat die Sicherung `preflight-2026-09-01_22-18-42`
+zurückgespielt, erst Rollen-Dump, dann Datenbank-Dump — 3 Migrationszeilen
+(korrekt für einen Dump von vor dem Fenster), 15 Tabellen. Auf der Produktion
+ausgeführt wurde er nach wie vor nicht.
+
+**Nebenbei, weil es dich beim Nachprüfen betrifft:** Die NAS hat nach einem
+Neustart am 2026-09-02 per DHCP eine andere Adresse bekommen. Der SSH-Alias
+`synology` zeigt jetzt auf den mDNS-Namen `NASKUEHM.local` statt auf eine feste
+IP; der Host-Schlüssel wurde vorher gegen den bekannten Fingerprint geprüft und
+ist unverändert.
 
 ### `G-043`: das Runbook unterstellte ein Verhalten, das es nicht gibt (geschlossen)
 

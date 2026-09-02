@@ -1163,3 +1163,43 @@ Für `006` und `007` heißt das konkret: Sie sind im Fenster über die sechs Nac
 Er hat sich beim Bauen zweimal selbst korrigiert: Erst fand er `004_knowledge_capability`, das ich in meiner Aufzählung vergessen hatte, dann das fehlende `ROLLBACK`. Beides hatte ich beim Lesen der Dateiliste nicht gesehen.
 
 **Lokal:** 336 + 15 + 35 + 9 Tests PASS.
+
+---
+
+## `G-048` — der nächtliche Job legt weltlesbare Sicherungen ab
+
+Kein Befund von dir und keiner aus einem Prüfdurchgang: Der Wächter aus `G-022` hat ihn selbst gefunden, beim Routinestatus nach einem NAS-Neustart. Zum ersten Mal `nas_status.sh` mit `RESULT: FAIL`, Exit 1.
+
+```
+FAIL: 2 Datei(en) mit Welt-Leserecht:
+/volume1/docker/Startup-Backups/workforce-2026-09-02_02-05-01.sql
+/volume1/docker/Startup-Backups/config-2026-09-02_02-05-01.tar.gz
+```
+
+Ein vollständiger Datenbank-Dump und ein Konfigurationsarchiv mit `startup.env` — also dem Passwort des Eigentümerkontos — lesbar für jedes Konto auf der NAS.
+
+**Es ist kein Folgeschaden des Neustarts.** Der DSM-Job schreibt mit seiner Umask, `644 root:root`, und hat das immer getan. Am 2026-09-01 wurden beim Schließen von `G-022` die *vorhandenen* Dateien nachgezogen und die ACL entfernt; der Job blieb unverändert. In der ersten Nacht danach war es wieder offen.
+
+Der Wächter hatte das wörtlich vorhergesagt — es steht in seinem eigenen Kopf: *„Eine einmalige Verschärfung kann über Nacht erodieren, still, und nichts würde es sagen."* Er hat also getan, wofür er gebaut wurde. Was fehlte, war die andere Hälfte.
+
+**Behoben, nicht geschlossen.** Die beiden Dateien stehen nach CEO-Freigabe wieder auf `640 root:administrators`, alle 64 Dateien im Ordner `PASS`, `nas_status.sh` Exit 0. Das hält bis morgen 02:05.
+
+Der dauerhafte Teil ist `harden_backup_permissions.sh`: Es **setzt** den Zustand, statt ihn zu finden, ist idempotent, verweigert ohne Root den Dienst und misst nach dem Ändern erneut nach — ein Skript, das nur `chmod` aufruft und dann `PASS` meldet, hätte auch auf einem Ordner bestanden, den es nicht angefasst hat. Im Wegwerf-Container mit einer absichtlich weltlesbaren Datei geprobt.
+
+**Es hängt aber noch nirgends.** Die Zeile
+
+```
+sh /volume1/docker/Startup/harden_backup_permissions.sh
+```
+
+muss der CEO in der DSM-Aufgabe hinter den Sicherungsbefehl setzen; an den Aufgabenplaner komme ich nicht heran. Bis dahin bleibt der Befund offen, und ich sage das ausdrücklich, weil ein „erledigt" hier zwölf Stunden halten würde.
+
+Zwei Kleinigkeiten aus dem Bau des Wächters, weil sie dieselbe Klasse betreffen wie die letzten drei Befunde:
+
+**Mein erster Rückgabewert war der von `head`.** Ich hatte den Nicht-Root-Lauf in eine Pipe gesteckt und `Exit: 0` gelesen, während das Skript korrekt `1` lieferte. Dieselbe Falle wie damals in `nas_status.sh`, ein Verzeichnis weiter. Der Test misst jetzt über `subprocess`.
+
+**Und die Löschprüfung schlug zweimal falsch an** — erst an `docker run --rm` im eigenen Hilfetext, dann an der Zeichenfolge `rm -` innerhalb von `-perm -o=r`. Sie prüft jetzt auf den *Befehl* `rm`, nicht auf die Zeichenfolge, mit einer Gegenprobe für beide Fehlalarme und einer für ein echtes `rm`.
+
+Nachweis: `evidence/2026-09-02_g048_naechtliche_sicherung_weltlesbar.md`.
+
+**Lokal:** 349 + 15 + 35 + 9 Tests PASS.

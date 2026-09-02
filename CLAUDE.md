@@ -325,6 +325,8 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 20. **Eine bekannte Lücke wird festgeschrieben, nicht verschwiegen** (`G-047`). Vier Migrationen haben keinen Abnahmetest, zwei davon sind seit dem Phase-4-Fenster produktiv. Ein Wächter, der darauf einfach rot wird, ist am zweiten Tag abgeschaltet; einer, der die Lücke als Liste mit Begründung hält und **in beide Richtungen** anschlägt — neue Lücke *und* stillschweigend geschlossene —, hält sie sichtbar und macht das Schließen zu einer bewussten Handlung.
 
+21. **Einen Zustand zu prüfen ersetzt nicht, ihn zu setzen** (`G-048`). `check_backup_permissions.sh` sagt seit dem 2026-09-01 voraus, dass der nächtliche Job neue Dateien mit seiner eigenen Umask anlegt und die Verschärfung „über Nacht erodiert". Genau das geschah in der ersten Nacht danach: ein vollständiger Datenbank-Dump und ein Konfigurationsarchiv mit `startup.env` lagen `644 root:root` im Backup-Ordner. Der Wächter hat es gefunden — und Finden ist nicht Verhindern. Wo ein fremder Prozess regelmäßig Dateien erzeugt, gehört neben die Prüfung ein Skript, das den Zustand **setzt** (`harden_backup_permissions.sh`), aufgerufen von demselben Auftrag, der die Dateien schreibt. Solange das nicht eingehängt ist, ist der Befund behoben und nicht geschlossen.
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.
