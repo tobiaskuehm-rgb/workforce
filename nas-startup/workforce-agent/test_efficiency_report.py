@@ -217,6 +217,53 @@ class RefusalsAreVisibleTest(unittest.TestCase):
         self.assertEqual(0, operation.provider_calls)
 
 
+class AnAbortedRunSaysSoTest(unittest.TestCase):
+    """Ein Lauf, der drei von zwanzig geschafft hat, liest sich sonst wie
+    einer mit drei Nachrichten - und das ist die gefaehrlichere Lesart."""
+
+    class InboxBus(FakeBus):
+        def __init__(self, anzahl):
+            super().__init__()
+            self.messages = [message(message_id="MSG-" + chr(65 + i) * 32)
+                             for i in range(anzahl)]
+
+        def status(self):
+            return {"channel_status": "TESTING"}
+
+        def inbox(self, limit=25):
+            return self.messages[:limit]
+
+    def test_a_budget_stop_is_named_in_the_report(self) -> None:
+        report = bericht()
+        bus = self.InboxBus(5)
+        agent_worker.poll_once(
+            bus, ScriptedProvider(), policy="BODY", report=report,
+            budget=budget_module.Budget(max_messages=2))
+        totals = report.as_dict()["totals"]
+        self.assertFalse(totals["complete"])
+        self.assertIn("AGENT_BUDGET_EXHAUSTED:messages", totals["stopped_reason"])
+        self.assertEqual(3, totals["left_untouched"])
+        self.assertIn("ABGEBROCHEN", report.as_summary())
+
+    def test_a_complete_run_says_nothing_about_stopping(self) -> None:
+        # Die Gegenprobe: sonst waere jeder Lauf "abgebrochen".
+        report = bericht()
+        agent_worker.poll_once(self.InboxBus(2), ScriptedProvider(),
+                               policy="BODY", report=report)
+        totals = report.as_dict()["totals"]
+        self.assertTrue(totals["complete"])
+        self.assertIsNone(totals["stopped_reason"])
+        self.assertNotIn("ABGEBROCHEN", report.as_summary())
+
+    def test_the_first_reason_wins(self) -> None:
+        # Der Grund ist die Ursache, nicht die letzte Meldung.
+        report = bericht()
+        report.stopped("ERSTER", left_untouched=2)
+        report.stopped("ZWEITER", left_untouched=1)
+        self.assertEqual("ERSTER", report.stopped_reason)
+        self.assertEqual(3, report.left_untouched)
+
+
 class TheArtefactIsWritableTest(unittest.TestCase):
     def setUp(self) -> None:
         self.report = bericht()

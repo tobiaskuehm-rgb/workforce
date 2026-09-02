@@ -86,8 +86,25 @@ class Operation:
 
 @dataclass
 class Report:
+    """One run's operations, plus whether the run finished.
+
+    The second half matters more than it looks. A run that handled three of
+    twenty messages and stopped on its budget produces the same operation list
+    as a run that had three messages - and reads like a complete picture. The
+    ceiling that stopped it and the number left behind belong in the same
+    artefact as the numbers they explain.
+    """
+
     run_id: str
     operations: list[Operation] = field(default_factory=list)
+    stopped_reason: str | None = None
+    left_untouched: int = 0
+
+    def stopped(self, reason: str, *, left_untouched: int = 0) -> None:
+        """The run ended early. First reason wins - it is the cause."""
+        if self.stopped_reason is None:
+            self.stopped_reason = reason
+        self.left_untouched += max(0, left_untouched)
 
     def record(self, operation: Operation) -> Operation:
         if operation.duplicate_decision not in DECISIONS:
@@ -133,6 +150,9 @@ class Report:
                     1 for o in self.operations
                     if o.duplicate_decision == DUPLICATE_SUPPRESSED
                 ),
+                "complete": self.stopped_reason is None,
+                "stopped_reason": self.stopped_reason,
+                "left_untouched": self.left_untouched,
             },
         }
 
@@ -153,4 +173,8 @@ class Report:
             f"{t['tokens']} Tokens{schaetzung}",
             f"  Geschaetzte Kosten: {t['estimated_cost_usd']:.4f} USD",
         ]
+        if not t["complete"]:
+            zeilen.append(
+                f"  ABGEBROCHEN:      {t['stopped_reason']}, "
+                f"{t['left_untouched']} Nachricht(en) unberuehrt")
         return "\n".join(zeilen)

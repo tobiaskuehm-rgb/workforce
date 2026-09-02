@@ -461,9 +461,15 @@ def poll_once(
                 handle_message(client, provider, item, policy=policy,
                                budget=budget, state=state, report=report)
             )
-        except budget_module.BudgetExhausted:
+        except budget_module.BudgetExhausted as stop:
+            uebrig = len(pending) - len(results)
             log("poll_stopped_on_budget", handled=len(results),
-                left_untouched=len(pending) - len(results))
+                left_untouched=uebrig, limit=stop.limit_name)
+            # Auch in den Bericht: Ein Lauf, der drei von zwanzig Nachrichten
+            # bearbeitet hat, liest sich sonst wie ein Lauf mit drei.
+            if report is not None:
+                report.stopped(f"AGENT_BUDGET_EXHAUSTED:{stop.limit_name}",
+                               left_untouched=uebrig)
             break
     return results
 
