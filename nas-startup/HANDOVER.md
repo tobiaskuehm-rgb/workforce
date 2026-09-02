@@ -7,7 +7,10 @@ beantwortet (`REVIEW_ANTWORTEN.md`), seine Korrekturen **nachgemessen statt
 übernommen**: sechs bestätigt und wirksam, `G-066` zur Hälfte. In seiner
 `G-063`-Korrektur steckte ein neuer Fehler — der Kernfenster-Rückbau löschte
 zwei Tokendateien, die es nie gab, und ließ zwei echte liegen; das ist jetzt
-`G-068` mit Regel 40 und einem Wächter. **`G-061` habe ich unabhängig
+`G-068` mit Regel 40 und einem Wächter. Beim ersten echten Deploy über den
+neuen `G-064`-Mechanismus kam `G-069` dazu: ein überdeckter Pfad in
+`deploy_paths.txt` hätte das Manifest-Gate dauerhaft rot gehalten — genau
+das Gate, das Abschnitt 4 des Phase-5-Runbooks verlangt. **`G-061` habe ich unabhängig
 reproduziert**, indem ich die `COPY`-Menge beider Dockerfiles nachgebaut und
 den Einstiegspunkt importiert habe.
 
