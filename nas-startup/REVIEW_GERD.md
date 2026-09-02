@@ -773,3 +773,131 @@ Zusätzlich verliert das Phase-4-Zielmanifest die Abdeckung von `check_secret_fi
 Der Startpunkt ist unverändert und nachgemessen: API v7 und Datenbank gesund, Migrationen genau `001`–`003`, Kanal `DISABLED`, 0 aktive Credentials, `004`/`005` nicht angewendet und die neuen Rollen noch nicht vorhanden. Der Nachcheck selbst hat den Produktivstack nicht verändert.
 
 Das Runbook kann nun für das bereits durch den CEO freigegebene Phase-4-Fenster von oben nach unten abgearbeitet werden. Verbindlich bleiben alle dort genannten Abbruch- und Rückfallkriterien; Knowledge `004`/`008`, Telegram, Modellaufrufe und externe Tests bleiben außerhalb dieses Fensters.
+
+---
+
+# Zwölfter Gesamtcheck – Phase 5, Stand `9804f50` plus unfertiger `G-060`-Arbeitsbaum
+
+## Kurzurteil
+
+Phase 4 ist weiterhin gesund. Der laufende NAS-Stack wurde durch diesen Review nicht verändert: API v9 und Datenbank sind gesund, der Kommunikationskanal ist `DISABLED`, es gibt 0 aktive Credentials, Migration `004` ist nicht angewendet und die NAS-Prüfungen melden PASS.
+
+Für Phase 5 besteht jedoch **noch kein technisches GO**. Der aktuelle Stand enthält einen reproduzierten Container-Startblocker und mehrere ausführbare Widersprüche im Phase-5-Runbook. Zusätzlich sind Kostenkontrollen und Modellkonfiguration noch nicht so belastbar, wie die Dokumentation behauptet.
+
+Unabhängig lokal geprüft: **478 + 15 + 44 + 21 = 558 Tests PASS**, Python- und Shell-Syntax sowie `git diff --check` PASS. Die lokale API-Suite konnte in dieser Arbeitsumgebung wegen fehlendem `pytest` nicht erneut ausgeführt werden; daraus wird kein PASS abgeleitet. Es wurden keine Pakete installiert und keine kostenpflichtigen Modellaufrufe ausgelöst.
+
+## `G-061` – Agent-Container enthalten zwei zur Laufzeit benötigte Module nicht
+
+**Schwere:** kritisch – Container-Startblocker
+**Dateien:** `workforce-agent/Dockerfile`, `workforce-agent/Dockerfile.workercore`, `workforce-agent/agent_worker.py`, `workforce-agent/budget.py`, `workforce-agent/providers.py`
+
+`agent_worker.py`, `budget.py` und `providers.py` importieren `model_allowlist`; `agent_worker.py` importiert zusätzlich `efficiency_report`. Beide Dockerfiles kopieren diese neuen Module nicht ins Image. Der Fehler wurde unabhängig mit exakt dem Dateisatz des Haupt-Dockerfiles reproduziert: Bereits `import agent_worker` endet mit `ModuleNotFoundError: No module named 'model_allowlist'`. Der geplante Chain-Agent würde damit vor der Verarbeitung starten und sofort abbrechen.
+
+### Kleinste sichere Korrektur
+
+- `model_allowlist.py` und `efficiency_report.py` in beide Agent-Images aufnehmen.
+- Einen echten Image-Smoke-Test ergänzen, der beide Dockerfiles baut und mindestens den Worker-Import beziehungsweise den vorgesehenen Entrypoint ausführt. Reine Host-Unit-Tests erkennen diesen Paketierungsfehler nicht.
+
+## `G-062` – Core- und Chain-Fenster widersprechen sich bei Kanal und Credentials
+
+**Schwere:** hoch – Runbook kann die eigene Reihenfolge nicht erfolgreich durchlaufen
+**Dateien:** `PHASE5_RUNBOOK.md`, `chain-test/chain_prepare.sql`
+
+Das Runbook setzt im Core-Teil den Kanal auf `TESTING` und aktiviert drei Credentials. Danach startet es – noch vor dem Core-Cleanup – `chain_prepare.sql`. Dieses Skript verlangt ausdrücklich Kanal `DISABLED` und 0 aktive Credentials. Die dokumentierte Reihenfolge muss daher mit `CHAIN_PREPARE_CHANNEL_NOT_DISABLED` beziehungsweise dem Credential-Guard abbrechen.
+
+### Kleinste sichere Korrektur
+
+- Core-Test vollständig abschließen und bereinigen.
+- `DISABLED` und 0 aktive Credentials erneut nachweisen.
+- Erst danach das getrennte Chain-Fenster vorbereiten und ausführen.
+- Das Runbook in zwei klar getrennte, jeweils fail-closed Fenster gliedern; kein implizites Weiterlaufen zwischen beiden.
+
+## `G-063` – Chain-Identität, Task-ID, Telegram-Update-ID und Secret-Cleanup sind nicht durchgängig
+
+**Schwere:** hoch – Wiederholungsschutz/Audit nicht zuverlässig ausführbar, Secrets bleiben zurück
+**Dateien:** `PHASE5_RUNBOOK.md`, `chain-test/compose.chain-prepare.yaml`, `chain-test/compose.chain-cleanup.yaml`, `chain-test/chain.env.example`, `chain-test/chain_audit.sql`
+
+- Prepare und Cleanup verwenden noch den bereits benutzten Suffix `CHAIN20260901`; das Runbook erwartet dagegen `PHASE5`. Ein wiederverwendeter Suffix wird vom Guard zu Recht abgewiesen.
+- `chain.env.example` erlaubt noch `ENG-CHAIN-20260901`, während das Runbook `ENG-CHAIN-PHASE5` vorgibt.
+- Der Auditaufruf setzt `update_id=0`, obwohl für den Beleg die tatsächlich von Telegram gelieferte Update-ID benötigt wird.
+- Der Runbook-Cleanup entfernt nur `core_token_*`. `chain_token_*` und `telegram_bot_token` werden nach dem Chain-Test nicht verbindlich gelöscht und ihre Abwesenheit wird nicht geprüft.
+
+### Kleinste sichere Korrektur
+
+- Pro Lauf genau einen neuen, noch nie verwendeten Suffix und eine dazugehörige Task-ID festlegen.
+- Diese Werte über eine einzige validierte Laufkonfiguration an Prepare, Runtime, Audit und Cleanup geben; keine voneinander abweichenden Hardcodes.
+- Die reale Telegram-Update-ID aus dem Connector-Audit übernehmen und exakt damit prüfen.
+- Alle Chain- und Telegram-Secretdateien über explizite Pfade entfernen und anschließend den erwarteten leeren Zustand nachweisen.
+- Einen statischen Konsistenztest für Suffix, Task-ID und Cleanup-Abdeckung ergänzen.
+
+## `G-064` – Der als Deployment bezeichnete Runbook-Schritt überträgt keine Dateien; aktueller NAS-Stand ist nicht reproduzierbar
+
+**Schwere:** hoch – falscher Nachweisgegenstand möglich
+**Dateien:** `PHASE5_RUNBOOK.md`, `deploy_manifest.sh`, `DEPLOY_MANIFEST.txt`
+
+Der Phase-5-Schritt „Deploy“ erzeugt nur lokal ein Manifest und prüft danach das bereits auf der NAS vorhandene Verzeichnis. `deploy_manifest.sh` überträgt keine Dateien. Damit kann das Runbook einen alten NAS-Stand erfolgreich prüfen, statt den gerade reviewten Quellstand auszurollen.
+
+Der aktuell auf der NAS liegende Manifeststand nennt außerdem `commit=9804f50` und `dirty=yes`. Lokale und NAS-Dateien des unfertigen `G-060`-Arbeitsbaums sind zwar bytegleich, aber durch den Commit nicht reproduzierbar. Ein Phase-5-GO darf daraus nicht entstehen.
+
+### Kleinste sichere Korrektur
+
+- Im Runbook vor der Übertragung einen sauberen, festgeschriebenen und gepushten Commit verlangen.
+- Die bereits dokumentierte, allowlist-basierte Übertragung tatsächlich ausführen; danach Manifest und ausgewählte Hashes auf der NAS prüfen.
+- Für das Fenster `dirty=no` verbindlich machen. Ein manifestierter Dirty-Stand ist Diagnose, keine Freigabe.
+
+## `G-065` – Token- und Kostenbudgets werden vor Provider-Aufrufen nicht vollständig reserviert
+
+**Schwere:** hoch – die zugesagte Kostenobergrenze ist technisch nicht garantiert
+**Dateien:** `workforce-agent/agent_worker.py`, `workforce-agent/budget.py`, `workforce-agent/model_allowlist.py`, `workforce-agent/test_budget.py`
+
+Die Dokumentation verspricht eine Prüfung und Reservierung von Modell-, Call-, Token- und Kostenbudget vor jedem Provider-Aufruf. Tatsächlich wird vor dem Aufruf nur die Call-Anzahl reserviert. Token- und Kostenverbrauch werden erst danach verbucht; ein einzelner Aufruf darf die Restgrenze überschreiten. Liefert ein Provider keine Usage-Daten, verbucht das Budget sogar 0 Token und 0 USD, während lediglich der Bericht nachträglich schätzt.
+
+Auch `worst_case_cost` ist derzeit keine belastbare Obergrenze: `prompt_chars // 4` rundet ab und ist eine Schätzung, kein konservativer Guard.
+
+### Kleinste sichere Korrektur
+
+- Vor dem Provider-Aufruf Call-, maximale Ausgabe-, konservative Eingabe- und Kostenreserve atomar gegen das Restbudget reservieren.
+- Nach dem Aufruf mit den echten Usage-Daten abrechnen und die Differenz freigeben beziehungsweise nachbelasten.
+- Fehlende Usage niemals als kostenlos behandeln; mindestens die konservative Reserve beziehungsweise einen ausdrücklich fail-closed Ersatzwert verbuchen.
+- Parallelaufrufe mit einem Race-Test sowie Grenzfälle „ein Call würde Restbudget überschreiten“ und „Usage fehlt“ testen.
+
+## `G-066` – Die Modell-Allowlist enthält eine nicht lauffähige Kombination und einen veralteten Preis
+
+**Schwere:** hoch – freigegebenes günstiges Modell scheitert; Kostenbericht unterschätzt Sonnet 5
+**Dateien:** `workforce-agent/model_allowlist.py`, `workforce-agent/providers.py`
+
+- `claude-haiku-4-5` ist zugelassen, aber der gemeinsame Claude-Request sendet für jedes Modell `thinking={"type":"adaptive"}` und `output_config={"effort":"medium"}`. Haiku 4.5 unterstützt diese Kombination laut Anthropic-Dokumentation nicht; der erlaubte Pfad endet voraussichtlich mit HTTP 400.
+- Für `claude-sonnet-5-0` sind 2/10 USD je Million Input-/Output-Token hinterlegt. Dieser Einführungspreis galt laut offizieller Preisdokumentation nur bis 31.08.2026; seit 01.09.2026 gelten 3/15 USD. Am heutigen Prüftag 02.09.2026 unterschätzt die Berechnung die Kosten um ein Drittel.
+
+### Kleinste sichere Korrektur
+
+- Modellfähigkeiten in der Allowlist explizit abbilden und den Request modellabhängig erzeugen.
+- Vertragstests für die Request-Struktur jedes zugelassenen Modells ergänzen.
+- Sonnet-Preis mit Wirksamkeitsdatum und offizieller Quelle aktualisieren; Preisänderungen fail-closed beziehungsweise konservativ behandeln.
+- Quellen: `https://platform.claude.com/docs/en/build-with-claude/extended-thinking` und `https://platform.claude.com/docs/en/about-claude/pricing`.
+
+## `G-067` – Aktive Betriebsdokumentation beschreibt teilweise einen überholten Zustand
+
+**Schwere:** mittel – erhöht Bedien- und Freigaberisiko
+**Dateien:** `HANDOVER.md`, `chain-test/README.md`, `workforce-agent/README.md`
+
+- `HANDOVER.md` nennt im Kopf nur Entscheidungen bis `DEC-027`, obwohl `DEC-028` und `DEC-029` im aktiven Entscheidungslog stehen; an späterer Stelle werden diese weiterhin als offene Entwürfe dargestellt.
+- `chain-test/README.md` behauptet noch, der Chain-Test sei nie gelaufen und `chain_audit.sql` existiere nicht. Beides ist durch den Nachweis vom 01.09.2026 überholt.
+- `workforce-agent/README.md` beschreibt API v8, Migrationen und Agent-Identität teilweise noch als nicht ausgeführt beziehungsweise nicht belegt, obwohl Phase 4 und der Chain-Nachweis weiter fortgeschritten sind.
+- Die Roadmapdarstellung im Handover trennt Phase 5/6 anders als das aktuelle `PHASE5_RUNBOOK.md`.
+
+### Kleinste sichere Korrektur
+
+- Gegenwartsbehauptungen auf den belegten Stand bringen; historische Nicht-Ausführungsstände eindeutig als Historie markieren.
+- Den Handover-Kopf bis zur tatsächlich aktiven letzten Entscheidung aktualisieren.
+- Genau eine verbindliche Phasenabgrenzung benennen und Abweichungen beseitigen.
+
+## Gate und empfohlene Reihenfolge für Claude
+
+1. `G-061` schließen und beide Images wirklich bauen/importieren.
+2. `G-062` bis `G-064` gemeinsam als Runbook-Konsistenzpaket korrigieren und mit Negativproben absichern.
+3. `G-065` und `G-066` vor jedem echten Modellaufruf schließen; bis dahin keine kostenpflichtige Provider-Ausführung.
+4. `G-067` sowie den bereits begonnenen `G-060`-Wächter fertigstellen, testen, committen und pushen.
+5. Erst auf einem sauberen, manifestierten Commit einen kurzen Zielnachcheck anfordern.
+
+**Aktueller Abnahmezustand:** Phase 4 bleibt bestanden; **Phase 5 ROT / NO-GO**. Es gab durch diesen Review keine Migration, keine Kanalaktivierung, keine Credential-Erweiterung, keinen Knowledge-Zugriff und keinen Modellaufruf.
