@@ -319,6 +319,12 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 17. **Ein Runbook wechselt nach dem Lauf den Aggregatzustand** (`G-046`). Vorher nennt sein Kopf den offenen Blocker, nachher „ausgeführt am ⟨Datum⟩" samt Nachweisdatei — und die Versionsnummern darin sind ab dann historisch, nicht aktuell; den laufenden Stand nennt `production_state.txt`. Ein Wächter, der nur den Vorher-Zustand kennt, wird beim Erfolg rot und damit abgeschaltet: `test_document_consistency.py` prüft deshalb beide Zustände, jeden mit eigener Gegenprobe.
 
+18. **Ein Ordner, der in die Produktion gemountet wird, gehört ins Manifest** (`G-047`). `compose.yaml` hängt `./postgres-tests` schreibgeschützt in den Datenbankcontainer, aber der Ordner stand in keiner Deploy-Pfadliste: Das Manifest meldete `PASS`, während dort auf der NAS lag, was historisch gewachsen war. Anders als `G-041` ist das kein Ausführungsweg — nichts startet die Dateien automatisch —, aber es ist dieselbe blinde Stelle wie `G-020`. Die Prüffrage ist nicht „wird es ausgeführt", sondern „kann die Prüfung sehen, was dort liegt".
+
+19. **Ein Namensmuster ist eine Zusage, und `_acceptance.sql` sagt: läuft in einer Transaktion, endet mit `ROLLBACK`** (`G-047`). `004_visible_communication_acceptance.sql` hält das nicht — es setzt den Kanal, legt Credentials an und committet. Es ist ein Demo-Skript im Gewand eines Abnahmetests. Offen ist die Tür deswegen nicht, es verweigert den Dienst ohne `app.visible_demo = ENABLED`; aber die Ausnahme steht jetzt namentlich in `test_migration_acceptance.py`, ihre Sperre wird geprüft, und ein zweiter Ausreißer fällt auf. Dieselbe Klasse wie `G-046`: Ein Name behauptet etwas, das der Inhalt nicht einlöst.
+
+20. **Eine bekannte Lücke wird festgeschrieben, nicht verschwiegen** (`G-047`). Vier Migrationen haben keinen Abnahmetest, zwei davon sind seit dem Phase-4-Fenster produktiv. Ein Wächter, der darauf einfach rot wird, ist am zweiten Tag abgeschaltet; einer, der die Lücke als Liste mit Begründung hält und **in beide Richtungen** anschlägt — neue Lücke *und* stillschweigend geschlossene —, hält sie sichtbar und macht das Schließen zu einer bewussten Handlung.
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.

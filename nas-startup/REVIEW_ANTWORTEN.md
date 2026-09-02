@@ -1110,3 +1110,56 @@ nicht, und ein *korrekter* Verweis auf die Datei auf oberster Ebene las sich
 für ihn wie ein kaputter. Er kennt jetzt beide Ablagen.
 
 **Lokal:** 326 + 15 + 35 + 9 Tests PASS.
+
+---
+
+## `G-047` — `postgres-tests/`: gemountet, ungeprüft, halb vorhanden
+
+Weiter im eigenen Durchgang. Diesmal an einer Regel angesetzt, die sich mechanisch prüfen lässt — `CLAUDE.md`, Migrationen Punkt 6: *„Abnahmetest unter `postgres-tests/NNN_<name>_acceptance.sql` — läuft in einer Transaktion und endet mit `ROLLBACK`, damit er gegen die Produktion laufen darf."*
+
+Die Regel steht. Gehalten wird sie an drei Stellen nicht.
+
+### Der Ordner ist gemountet und steht in keinem Manifest
+
+`compose.yaml:22` hängt `./postgres-tests` schreibgeschützt in den **Produktiv-Datenbankcontainer**. Der Ordner steht in keiner Deploy-Pfadliste — weder in meiner noch in der des Phase-4-Runbooks. Das Manifest meldete also `PASS`, während dort auf der NAS lag, was historisch gewachsen ist.
+
+Das ist **nicht** `G-041`: Nichts führt die Dateien automatisch aus, der Mount ist `:ro`, und er zeigt nicht auf `/docker-entrypoint-initdb.d`. Es ist die blinde Stelle aus `G-020` — die Prüffrage ist nicht „wird es ausgeführt", sondern „kann die Prüfung sehen, was dort liegt". Der Ordner kommt in die Pfadliste.
+
+### Die Nummern der Abnahmetests sind nicht die Nummern der Migrationen
+
+- `003_knowledge_capability_acceptance.sql` gehört zu Migration **`004`_knowledge_capability**
+- `004_visible_communication_acceptance.sql` gehört zu **gar keiner** Migration
+
+Deshalb hatte ich zuerst übersehen, dass auch `004` in der Lückenliste steht: Der Test existiert, nur unter falscher Nummer — gefunden hat das erst der Wächter, nicht ich.
+
+Umbenennen ist nicht umsonst: Die alten Namen stehen in Nachweisdokumenten, und ein Nachweis wird nicht umgeschrieben. Der Zustand ist deshalb festgeschrieben statt korrigiert; wer umbenennt, sieht den Test rot und weiß, dass die Nachweise einen datierten Nachtrag brauchen.
+
+### Ein Demo-Skript trägt den Namen eines Abnahmetests
+
+`004_visible_communication_acceptance.sql` hat **kein `ROLLBACK`**. Es setzt den Kanalstatus, legt Credentials an, erzeugt Tasks und Handoffs — und committet. Der Name sagt „läuft gegen die Produktion", der Inhalt ändert sie.
+
+Offen ist die Tür trotzdem nicht: Das Skript verweigert den Dienst, solange `app.visible_demo` nicht auf `ENABLED` steht (`VISIBLE_DEMO_GUARD_REQUIRED`). Diese Sperre ist die eigentliche Absicherung, und sie wird jetzt **geprüft**, statt vorausgesetzt zu werden. Die Ausnahme steht namentlich in `test_migration_acceptance.py`, und ein zweiter Ausreißer ohne `ROLLBACK` fällt auf — ein Test vergleicht die Ausnahmeliste mit dem tatsächlichen Befund, ist also kein Freibrief.
+
+Dieselbe Klasse wie `G-046`: Ein Name behauptet etwas, das der Inhalt nicht einlöst.
+
+### Vier Migrationen ohne Abnahmetest, zwei davon produktiv
+
+| Migration | Lage |
+|---|---|
+| `003_workforce_bus_trigger_fix` | Wirkung wird von `002`s Test mitgeprüft, eigener fehlt |
+| `004_knowledge_capability` | Test existiert unter falscher Nummer |
+| `006_legacy_registry_tables` | **seit 2026-09-01 produktiv**, ohne eigenen Abnahmetest |
+| `007_least_privilege_roles` | **seit 2026-09-01 produktiv**; geprüft über die Runbook-Nachweise, nicht über `postgres-tests/` |
+| `008_knowledge_api_grants` | gegatet, nicht angewendet — Test gehört ins selbe Fenster wie die Anwendung |
+
+Für `006` und `007` heißt das konkret: Sie sind im Fenster über die sechs Nachweise belegt worden — Rechte-Negativtest, realer `pg_dump` als Backup-Rolle, Ablehnungs-Audit — aber nicht über ein Skript, das jemand jederzeit gegen die Produktion laufen lassen kann. Das ist weniger, als die Regel verlangt.
+
+**Ich habe die fehlenden Tests bewusst nicht geschrieben.** Während dieses Durchgangs war die NAS neu gestartet und nicht erreichbar; ungeprüfte SQL zu schreiben und als Abnahmetest auszuliefern wäre genau die Fehlerklasse, die ich hier seit gestern einsammle. Sie gehören in einen Lauf, in dem sie auch ausgeführt werden.
+
+### Zur Form des Wächters
+
+`test_migration_acceptance.py` schreibt die Lücke als Liste mit Begründung fest und schlägt **in beide Richtungen** an: Eine neue Migration ohne Test ist ein Rückschritt, und eine stillschweigend geschlossene Lücke heißt, dass die Liste zu lügen begonnen hat. Ein Wächter, der auf den Ist-Zustand einfach rot wird, ist am zweiten Tag abgeschaltet.
+
+Er hat sich beim Bauen zweimal selbst korrigiert: Erst fand er `004_knowledge_capability`, das ich in meiner Aufzählung vergessen hatte, dann das fehlende `ROLLBACK`. Beides hatte ich beim Lesen der Dateiliste nicht gesehen.
+
+**Lokal:** 336 + 15 + 35 + 9 Tests PASS.
