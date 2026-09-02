@@ -1395,3 +1395,67 @@ meldete prompt `ABWEICHUNG nas_status.sh` — und `check_backup_integrity.sh`
 tauchte gar nicht auf, weil eine Datei außerhalb der Pfadliste nicht geprüft
 wird. Beides ist mit diesem Commit in Ordnung; die Datei steht jetzt in der
 Liste.
+
+---
+
+## `backup_task.sh` — die Sicherungslogik lag außerhalb allem, was wir prüfen
+
+Beim Blick in die DSM-Aufgabe ist mir aufgefallen, dass ihr Skript **nur in der
+Aufgabendatenbank existiert**. Nicht in Git, nicht im Manifest, nicht geprüft,
+nicht testbar; lesbar nur, indem man die Aufgabe öffnet oder `esynoscheduler.db`
+abfragt. Das ist die tiefere Hälfte von `G-047`: Der gemountete Ordner war
+unverwaltet — und das Skript, das ihn füllt, ebenso.
+
+Es enthielt dabei genau die Fehler, gegen die wir hier Regeln haben:
+
+- **fester Containername** `startup-db-1` (`G-042`)
+- **eine Umleitung, die der Shell gehört**: Scheitert `docker exec`, entsteht
+  die Datei trotzdem, abgeschnitten, und die Aufgabe läuft weiter
+- **Aufräumen vor Prüfen**: `find … -mtime +30 -delete` lief, bevor irgendetwas
+  über die neue Sicherung feststand
+- **keine Rechte**: die Datei blieb `644 root:root` bis jemand sie zog (`G-048`)
+
+Die Logik liegt jetzt versioniert in `backup_task.sh`. Die DSM-Aufgabe wird
+dadurch **eine Zeile** — und ist damit selbst kaum noch eine Fehlerquelle.
+
+Was sich ändert: Der Container kommt aus `docker compose ps -q db`; das Skript
+wartet, bis die Datenbank **gesund** meldet (die NAS fährt 02:00 hoch, die
+Aufgabe läuft 02:05 — die alte Fassung hatte fünf Minuten Glück eingebaut); ein
+unvollständiger Dump wird auf `.unvollstaendig` **umbenannt statt gelöscht**
+(Leitplanke 2 — und der Zusatz nimmt ihn aus dem `workforce-*.sql`-Glob, sodass
+`check_backup_integrity.sh` die echte Alterslücke meldet statt eine kaputte
+Datei als neueste zu akzeptieren); die Rechte werden gesetzt; und **erst danach**
+wird geprunt. Die 30 Tage bleiben unverändert — das ist eine Entscheidung des
+CEO und nicht eine, die man beim Beheben von etwas anderem mitändert.
+
+**Auf der NAS gegen den echten Stack gelaufen**, mit `BACKUP_DIR` auf einen
+Wegwerf-Ordner, damit keine Produktivsicherung entsteht und nichts geprunt wird:
+
+```
+db gesund nach 0s
+Dump vollstaendig: 380952 Byte
+Archiv geschrieben: 27722 Byte
+FAIL: laeuft nicht als root - chown auf root-eigene Dateien schlaegt fehl
+Exit: 1
+```
+
+Dass es an Schritt 7 **anhält**, ist das gewünschte Verhalten: Als
+`TOBKUM` kann es die Rechte nicht setzen, also läuft es nicht weiter und
+prunt schon gar nicht. Die erzeugte Sicherung habe ich anschließend mit
+`check_backup_integrity.sh` gegengeprüft — `RESULT: PASS`, gleiche Größe wie der
+echte Dump. Produktivordner unverändert bei 64 Dateien, Testreste entfernt.
+
+Zwei Nebenbefunde aus dem Bauen:
+
+**Ein Fehlerfall war falsch benannt.** Mein erster Testaufruf übergab
+`DOCKER_BIN` als ein einziges gequotetes Wort; das Skript meldete daraufhin
+„kein Container für den Dienst db". Falsch — Docker war schlicht nicht
+ausführbar. Wer das liest, sucht einen gestoppten Stack, der einwandfrei läuft.
+Jetzt prüft das Skript zuerst, ob Docker überhaupt antwortet, und sagt das auch.
+
+**`/tmp` ist auf dieser NAS `noexec`.** Mein Wrapper ließ sich von dort nicht
+ausführen. Kein Fehler im Projekt, aber gut zu wissen für jeden künftigen
+Wegwerf-Helfer — er gehört aufs Volume, nicht nach `/tmp`.
+
+**Ausgetauscht ist nichts.** Die DSM-Aufgabe ist unverändert; sie zu ändern ist
+Sache des CEO. Das Skript liegt bereit und ist geprüft. Als Leitplanke 23.
