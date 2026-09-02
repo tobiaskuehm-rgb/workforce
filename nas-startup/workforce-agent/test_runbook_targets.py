@@ -38,6 +38,21 @@ import compose_scan
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 NAS = ROOT / "nas-startup"
 RUNBOOK = NAS / "PHASE4_RUNBOOK.md"
+
+
+def runbooks() -> list[pathlib.Path]:
+    """Every runbook in the folder, found rather than listed.
+
+    The first version of this file named PHASE4_RUNBOOK.md and nothing else.
+    A second runbook would then have been written, reviewed and executed
+    without a single one of these checks ever looking at it - the same failure
+    as a checked-documents list nobody updates, except that a runbook's lines
+    get pasted into a production shell.
+
+    Discovery has no list to forget. Both runbooks present on 2026-09-02 pass
+    all checks unchanged, so no exemption was needed to make this work.
+    """
+    return sorted(NAS.glob("*RUNBOOK*.md"))
 COMPOSE = NAS / "compose.yaml"
 MIGRATIONS = NAS / "postgres-init"
 
@@ -339,40 +354,61 @@ def call_arity_offenders(text: str) -> list[str]:
 
 
 class RunbookTargetsTest(unittest.TestCase):
+    """Every check runs against every runbook, one subTest per document."""
+
     def setUp(self) -> None:
+        self.runbooks = [(p.name, p.read_text(encoding="utf-8")) for p in runbooks()]
+        self.assertTrue(self.runbooks, "kein Runbook gefunden - Glob kaputt?")
+        # The single-document form the older probes below still use.
         self.text = RUNBOOK.read_text(encoding="utf-8")
 
+    def check_each(self, pruefung) -> None:
+        for name, text in self.runbooks:
+            with self.subTest(runbook=name):
+                pruefung(text)
+
+    def test_every_runbook_is_covered(self) -> None:
+        # Names the documents out loud, so a glob that silently stops matching
+        # shows up as a failure here instead of as a green run over nothing.
+        gefunden = {name for name, _ in self.runbooks}
+        self.assertIn("PHASE4_RUNBOOK.md", gefunden)
+        self.assertEqual(
+            gefunden,
+            {p.name for p in NAS.glob("*.md") if "RUNBOOK" in p.name},
+            "ein Runbook faellt aus der Abdeckung")
+
     def test_no_command_addresses_a_container_by_name(self) -> None:
-        self.assertEqual([], container_name_offenders(self.text))
+        self.check_each(lambda t: self.assertEqual([], container_name_offenders(t)))
 
     def test_every_compose_command_runs_in_the_project_directory(self) -> None:
-        self.assertEqual([], project_directory_offenders(self.text))
+        self.check_each(lambda t: self.assertEqual([], project_directory_offenders(t)))
 
     def test_every_service_exists_in_compose(self) -> None:
         defined = set(compose_scan.scan(COMPOSE))
         self.assertTrue(defined, "compose.yaml lieferte keine Dienste")
-        self.assertEqual(set(), used_services(self.text) - defined)
+        self.check_each(lambda t: self.assertEqual(set(), used_services(t) - defined))
 
     def test_every_schema_object_is_created_by_an_applied_migration(self) -> None:
-        self.assertEqual(set(), referenced_objects(self.text) - schema_objects())
+        bekannt = schema_objects()
+        self.check_each(lambda t: self.assertEqual(set(), referenced_objects(t) - bekannt))
 
     def test_every_column_in_a_query_exists(self) -> None:
-        self.assertEqual([], column_offenders(self.text))
+        self.check_each(lambda t: self.assertEqual([], column_offenders(t)))
 
     def test_no_write_into_the_backup_folder_bypasses_docker(self) -> None:
-        self.assertEqual([], backup_write_offenders(self.text))
+        self.check_each(lambda t: self.assertEqual([], backup_write_offenders(t)))
 
     def test_every_api_path_exists(self) -> None:
-        self.assertEqual([], api_route_offenders(self.text))
+        self.check_each(lambda t: self.assertEqual([], api_route_offenders(t)))
 
     def test_every_created_role_is_dropped_again(self) -> None:
-        self.assertEqual([], role_cleanup_offenders(self.text))
+        self.check_each(lambda t: self.assertEqual([], role_cleanup_offenders(t)))
 
     def test_every_executed_helper_script_is_in_the_target_manifest(self) -> None:
-        self.assertEqual([], helper_script_offenders(self.text))
+        self.check_each(lambda t: self.assertEqual([], helper_script_offenders(t)))
 
     def test_every_function_call_has_the_right_number_of_arguments(self) -> None:
-        self.assertEqual([], call_arity_offenders(self.text))
+        self.check_each(lambda t: self.assertEqual([], call_arity_offenders(t)))
 
     def test_an_image_reference_is_not_mistaken_for_a_container(self) -> None:
         # `docker save startup-workforce-api:v7` is correct and must stay.
