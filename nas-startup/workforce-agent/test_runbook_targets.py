@@ -335,6 +335,19 @@ def role_cleanup_offenders(text: str) -> list[str]:
     return offenders
 
 
+def cross_reference_offenders(text: str) -> list[str]:
+    """Every "Abschnitt N" has to be a section this runbook actually has.
+
+    Klingt nach Kosmetik und ist es im Fenster nicht: Der Verweis auf den
+    Rueckbau steht in dem Satz, der den Netzweg oeffnet, und wer ihn im
+    Abbruchfall liest, hat es eilig. Mein erster Entwurf schickte ihn nach
+    Abschnitt 9 - dem Abbruch - statt nach 8, dem Rueckbau.
+    """
+    ueberschriften = set(re.findall(r"^##\s+(\d+)\.", text, re.M))
+    genannt = re.findall(r"Abschnitt\s+(\d+)", text)
+    return sorted({n for n in genannt if n not in ueberschriften}, key=int)
+
+
 def deployed_paths() -> str:
     """The versioned deploy list, as one blob to search.
 
@@ -523,6 +536,14 @@ class RunbookTargetsTest(unittest.TestCase):
 
     def test_every_executed_helper_script_is_in_the_target_manifest(self) -> None:
         self.check_each(lambda t: self.assertEqual([], helper_script_offenders(t)))
+
+    def test_every_section_reference_points_somewhere(self) -> None:
+        self.check_each(lambda t: self.assertEqual([], cross_reference_offenders(t)))
+
+    def test_a_reference_to_a_missing_section_would_be_caught(self) -> None:
+        erfunden = "## 1. Eins\n\nWeiter in Abschnitt 4.\n"
+        self.assertEqual(["4"], cross_reference_offenders(erfunden))
+        self.assertEqual([], cross_reference_offenders("## 4. Vier\n\nSiehe Abschnitt 4.\n"))
 
     def test_every_function_call_has_the_right_number_of_arguments(self) -> None:
         self.check_each(lambda t: self.assertEqual([], call_arity_offenders(t)))

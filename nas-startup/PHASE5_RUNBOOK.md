@@ -57,21 +57,22 @@ cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && sh verify_produc
 
 ## 3. Frische Sicherung
 
-Vor jedem Fenster, und **über einen Wegwerf-Container** — der Backup-Ordner ist
-gehärtet, eine Umleitung aus der SSH-Sitzung scheitert daran (`G-043`).
-
-```bash
-ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db pg_dump -U workforce_app -d workforce > /tmp/preflight-phase5.sql"
-```
-
-Danach der reguläre Weg über das versionierte Skript, das Rechte setzt und
-Vollständigkeit prüft:
+Ein Befehl, und zwar der, der ohnehin jede Nacht läuft: Er schreibt in den
+gehärteten Backup-Ordner, prüft die Abschlusszeile des Dumps, setzt die Rechte
+und räumt erst danach Altes weg.
 
 ```bash
 ssh synology "sudo sh /volume1/docker/Startup/backup_task.sh"
 ```
 
 Abbruch, wenn nicht `RESULT: PASS`.
+
+**Kein Rollen-Dump, und das ist Absicht.** Dieses Fenster legt keine Rolle an
+und ändert keine — die Rollenlage ist die vom Phase-4-Fenster, und der
+zugehörige `*.globals.sql` liegt dort seit dem 2026-09-01 neben seinem Dump.
+`nas_status.sh` nennt beide unter „Rückfallpunkte" und prüft, dass sie
+zusammengehören. Wer hier trotzdem einen zweiten Rollen-Dump zieht, sichert
+denselben Inhalt ein zweites Mal.
 
 ## 4. Zielmanifest und Deploy
 
@@ -88,7 +89,7 @@ fehlt, wird nicht als fehlend gemeldet, sondern ist schlicht nicht abgedeckt.
 
 Der Contract-Test und der Core-Lauf sprechen über HTTPS mit der API und
 brauchen die temporäre DSM-Regel für `172.31.254.2/32` auf TCP 8443. Der
-Rückbau steht in Abschnitt 9 und wird dort **nachgemessen**, nicht nachgelesen
+Rückbau steht in Abschnitt 8 und wird dort **nachgemessen**, nicht nachgelesen
 (`G-007`).
 
 ## 6. Das Fenster
@@ -231,12 +232,19 @@ Erwartet: Kanal `DISABLED`, 0 aktive Credentials, fünf Gates `PASS`, Exit 0.
 
 **Die Firewall-Regel wird nachgesehen, nicht nachgelesen** (`G-007`). Eine
 dokumentierte Rücknahme, die nie stattgefunden hat, ist schlimmer als eine
-offene Regel. Ebenso die Token-Dateien: Der Ordner `workforce-agent/secrets/`
-muss danach leer sein.
+offene Regel.
+
+**Die Token-Dateien löscht der Rückbau nicht** — `core_cleanup` erinnert nur
+daran. Also von Hand, und danach hinsehen:
 
 ```bash
-ssh synology "cd /volume1/docker/Startup && sh check_secret_files.sh"
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo rm -f secrets/core_token_* && ls -A secrets/"
 ```
+
+Erwartet: **keine Ausgabe.** `check_secret_files.sh` ist hier das falsche
+Werkzeug — es prüft die *Form* vorhandener Geheimnisse (Länge, Zeichenklasse,
+RTF-Signaturen) und sagt über einen leeren Ordner nichts. Ein Skript, das
+nichts findet und nichts meldet, liest sich sonst wie ein bestandener Test.
 
 ## 9. Abbruch
 

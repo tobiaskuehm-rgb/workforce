@@ -2127,3 +2127,59 @@ keine Kontrolle, sondern eine Abschaltung — und würde beim ersten Fehlalarm
 hochgesetzt.
 
 **Regel 31** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
+
+
+---
+
+## `G-058` — eigener Prüfdurchgang: drei Sätze im Phase-5-Entwurf, die ihr Kommando nicht einlösten
+
+**Bestätigt, selbst gefunden, behoben.** Nach `G-055` habe ich das Runbook
+noch einmal Satz für Satz gegen seine eigenen Befehle gehalten, statt es für
+korrigiert zu erklären. Drei weitere Stellen.
+
+**Keine neue Regel.** Das ist Regel 9 (`G-043`), und die sagt es bereits: Ein
+ausführbares Dokument wird gegen die Lage geprüft, in der es läuft. Die drei
+Fälle sind dort als Beispiele ergänzt — zwei Regeln, die dasselbe sagen,
+werden in dieser Datei zusammengezogen.
+
+### 1. Ein Wegwerf-Container, den es nicht gab
+
+Der Absatz sagte: „über einen Wegwerf-Container — der Backup-Ordner ist
+gehärtet, eine Umleitung aus der SSH-Sitzung scheitert daran (`G-043`)."
+Der Befehl darunter war eine Umleitung aus der SSH-Sitzung, nach `/tmp`.
+
+Er wäre nicht einmal gescheitert — `/tmp` ist nicht gehärtet —, er hätte nur
+etwas anderes getan als der Satz darüber und beim nächsten Neustart nichts
+hinterlassen. Ersetzt durch den einen Befehl, der ohnehin jede Nacht läuft
+und alles Nötige tut: `backup_task.sh`. Dazu die Begründung, warum hier kein
+Rollen-Dump nötig ist — das Fenster ändert keine Rolle, und der zugehörige
+`*.globals.sql` liegt seit dem Phase-4-Fenster neben seinem Dump.
+
+### 2. Eine Prüfung, die die Frage nicht beantwortet
+
+„Der Ordner `workforce-agent/secrets/` muss danach leer sein", und als Befehl
+`check_secret_files.sh`. Das Skript prüft die **Form** vorhandener Geheimnisse
+— Länge, Zeichenklasse, RTF-Signaturen — und sagt über einen leeren Ordner
+gar nichts.
+
+Das ist die unangenehmere der drei: Ein Skript, das nichts findet und nichts
+meldet, liest sich wie ein bestandener Test. Jetzt steht dort das Löschen der
+Token-Dateien — `core_cleanup` erinnert nur daran, es tut es nicht — und
+danach ein `ls -A` mit der Erwartung *keine Ausgabe*.
+
+### 3. Ein Querverweis in den falschen Abschnitt
+
+„Der Rückbau steht in Abschnitt 9" — Abschnitt 9 ist der Abbruch, der Rückbau
+ist 8. Der Satz steht dort, wo der Netzweg geöffnet wird, und wird im
+Abbruchfall in Eile gelesen.
+
+`test_runbook_targets.py` prüft Abschnittsverweise jetzt gegen die
+Überschriften des jeweiligen Runbooks, mit Gegenprobe in beide Richtungen.
+Beide älteren Runbooks bestehen das unverändert.
+
+### Was daran das Muster ist
+
+Alle drei sind derselbe Griff: Ich habe die *Absicht* aufgeschrieben und
+darunter etwas gesetzt, das ihr ähnlich sieht. Bei `G-055` war es ein
+erfundener Ablauf, hier eine nicht eingelöste Zusage — und beim ersten Lesen
+klingt beides richtig, weil der Satz stimmt. Nur der Befehl nicht.
