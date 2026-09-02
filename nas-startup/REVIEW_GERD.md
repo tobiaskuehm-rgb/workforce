@@ -1155,3 +1155,140 @@ Korrektur von `G-070` bis `G-073`.** Noch **kein OK** für
 Kanal-/Credential-Aktivierung oder einen Modellaufruf. Nach den vier
 Korrekturen genügt ein kurzer Zielnachcheck; `G-061` braucht anschließend
 weiterhin den echten Build beider Images vor jedem Berechtigungsfenster.
+
+---
+
+# Fünfzehnter Zielnachcheck – Claudes Korrektur von `G-070` bis `G-073`
+
+## Ergebnis
+
+Geprüft wurde Commit `ea5ae2a` einschließlich der tatsächlichen Diffs, der
+vier lokalen Testsuiten und des auf die NAS übertragenen Quellmanifests.
+
+- **`G-070` im Kern geschlossen:** Das Urteil verlangt jetzt jeden benannten
+  Messwert, den erfolgreichen Schreibvorgang, exakt einen Eventzuwachs und das
+  an Request-ID, Akteur, Datensatztyp und Operation gebundene Audit-Ereignis.
+- **`G-072` geschlossen:** Das nicht ausführbare `sudo sh`/`sudo rm` ist aus
+  dem Runbook entfernt. Backupstart über DSM plus Frischeprüfung und der
+  eng gemountete Docker-Rückbau entsprechen der nachgewiesenen NAS-sudo-Regel.
+- **`G-073` geschlossen:** Der Helper-Wächter vergleicht aufgelöste Pfade als
+  Mengen und erkennt sowohl den Teilstring- als auch den Paketpfad-Gegenfall.
+- **`G-071` wesentlich verbessert, aber noch nicht geschlossen:** Knowledge
+  wird nicht mehr dynamisch übernommen, die Tabellenrechte sind eingegrenzt
+  und die Rollenattribute sind vollständiger geprüft. Drei neue Restbefunde
+  verhindern jedoch noch die Freigabe des Owner-Probes.
+
+## `G-074` – Der `public`-Schema-Test ist auf PostgreSQL 17 konstruktionsbedingt rot
+
+**Schwere:** hoch – Migration 009 kann ihren eigenen Acceptance-Test auf der
+vorgesehenen frischen Instanz nicht bestehen
+
+**Dateien:** `postgres-init/009_bus_function_owner.sql`,
+`postgres-tests/009_bus_function_owner_acceptance.sql`
+
+Die Migration führt `REVOKE ALL ON SCHEMA public FROM workforce_owner` aus.
+Der Abnahmetest fragt anschließend mit
+`has_schema_privilege('workforce_owner', 'public', 'USAGE')` nach dem
+**effektiven** Recht und erwartet `false`. PostgreSQL 17 gewährt `USAGE` auf
+dem Schema `public` standardmäßig über die Pseudorolle `PUBLIC`, also an jede
+Rolle. Ein Widerruf nur von `workforce_owner` kann dieses über `PUBLIC`
+geerbte Recht nicht negieren. Die vor 009 angewendeten Migrationen widerrufen
+`USAGE ON SCHEMA public FROM PUBLIC` ebenfalls nicht.
+
+Damit wird der Abnahmetest bei Abschnitt 4b mit
+`ACCEPTANCE_009_PUBLIC_SCHEMA_GRANTED` abbrechen, obwohl 009 der Rolle selbst
+keine direkte Freigabe erteilt hat. Die 619 lokalen Tests sehen das nicht, weil
+sie SQL nur statisch untersuchen.
+
+### Kleinste sichere Korrektur
+
+- Nicht global `PUBLIC` einschränken; das wäre eine breitere Rechteentscheidung
+  außerhalb dieser Busmigration.
+- Falls die Zusicherung „kein direkter Grant an `workforce_owner`“ lautet,
+  im Katalog den direkten ACL-Eintrag prüfen statt
+  `has_schema_privilege()` zu verwenden.
+- Direkte Tabellen- und Sequenzrechte außerhalb von `workforce` weiterhin
+  schemaqualifiziert ablehnen; Tabellen gleichen Namens in zwei Schemata
+  dürfen im Mengenvergleich nicht zusammenfallen.
+- Eine Katalog-/Integrationsgegenprobe auf einer unveränderten PostgreSQL-17-
+  Instanz muss beweisen, dass Standard-`PUBLIC`-USAGE den Test nicht
+  fälschlich rot macht.
+
+Offizielle Grundlage:
+`https://www.postgresql.org/docs/17/ddl-schemas.html` – Abschnitt 5.10.4 hält
+fest, dass standardmäßig jeder `USAGE` auf dem Schema `public` besitzt.
+
+## `G-075` – Name plus Stelligkeit ist noch keine gepinnte Funktionssignatur
+
+**Schwere:** mittel – ein gleichstellig veränderter Overload kann als die
+freigegebene SECURITY-DEFINER-Funktion gelten
+
+**Dateien:** `postgres-init/009_bus_function_owner.sql`,
+`postgres-tests/009_bus_function_owner_acceptance.sql`,
+`workforce-agent/test_bus_function_owner.py`
+
+Die Review verlangte explizite Identitätssignaturen. Die Korrektur pinnt
+stattdessen Werte wie `bus_send_message:13`. Das unterscheidet verschiedene
+Stelligkeiten, aber nicht verschiedene Parametertypen mit demselben Namen und
+derselben Argumentzahl. Migration, Acceptance-Test und statischer Wächter
+verwenden dieselbe verkürzte Identität.
+
+Die Gegenprobe ist reproduzierbar: Wird in der Quellmigration ein Parametertyp
+von `bus_send_message` geändert und die Zahl der Argumente beibehalten, liefert
+`security_definer()` weiterhin exakt `bus_send_message:13`; der neue
+Pinned-Set-Test bleibt grün. Auch die API-EXECUTE-Prüfung sucht nur nach dem
+Funktionsnamen und kann durch einen anderen Overload gleichen Namens erfüllt
+werden.
+
+### Kleinste sichere Korrektur
+
+- Die zwölf Funktionen mit ihrer vollständigen PostgreSQL-Identitätssignatur
+  pinnen und über `to_regprocedure()` beziehungsweise die exakten OIDs
+  auflösen. Die vom Katalog gelieferte kanonische Schreibweise kann verwendet
+  werden; unterschiedliche Alias-Schreibweisen sind kein Grund, die Typen
+  wegzulassen.
+- Eigentümer- und API-EXECUTE-Prüfung an dieselben exakten OIDs binden.
+- Eine Negativprobe ändert nur einen Parametertyp bei gleicher Stelligkeit und
+  muss Migration beziehungsweise Wächter rot machen.
+
+## `G-076` – Der Probe erklärt einen nicht ausgeführten SQL-Test zum `PASS`
+
+**Schwere:** hoch – ein Transport- oder Containerfehler im letzten Prüfschritt
+kann falschgrün werden
+
+**Dateien:** `g045_owner_probe.py`,
+`workforce-agent/test_owner_probe_verdict.py`
+
+`ssh()` kennt den Prozess-Exitcode, gibt bei `check=False` aber nur den Text
+zurück. Der finale Acceptance-Aufruf wird anschließend als `PASS` gewertet,
+sobald die Ausgabe nicht die exakt großgeschriebene Teilzeichenfolge `ERROR`
+enthält. Ein typischer Fehler wie `psql: error: connection ...`, ein
+Docker-Fehler `Error response from daemon ...`, Exit 127 oder auch ein leerer
+Fehlertext kann damit als bestandener SQL-Abnahmetest in die sonst vollständige
+`ERWARTET`-Tabelle eingehen.
+
+### Kleinste sichere Korrektur
+
+- Für Befehle, deren Fehlschlag ausgewertet werden soll, Exitcode und Ausgabe
+  gemeinsam zurückgeben; Erfolg ausschließlich bei Exitcode 0.
+- Den SQL-Abnahmetest zusätzlich an seinen eindeutigen abschließenden
+  PASS-Marker binden, nicht an die Abwesenheit eines Fehlerwortes.
+- Dieselbe robuste Auswertung für die Migrationsaufrufe verwenden.
+- Negativtests für Exitcode ungleich 0 mit kleingeschriebenem `psql: error`,
+  Docker-Fehler und leerer Ausgabe ergänzen.
+
+## Nachweis und Gate
+
+- `workforce-agent`: **533 Tests PASS**
+- `bus-realtest`: **15 Tests PASS**
+- `telegram-connector`: **44 Tests PASS**
+- `chain-test`: **27 Tests PASS**
+- Gesamt: **619 Tests PASS**
+- `git diff --check`: **PASS**
+- NAS-Quellmanifest für `ea5ae2a`: **228 Dateien, 0 Abweichungen**
+- NAS-Betriebsstatus: **PASS**, API v9 und Datenbank gesund, Kanal
+  `DISABLED`, 0 aktive Credentials, Migrationen 004 und 009 nicht angewendet
+
+**Freigabe an Claude:** lokal mit `G-074` bis `G-076` weitermachen. Noch kein
+OK für `g045_owner_probe.py`, Migration 009 oder das Phase-5-Fenster. Nach den
+drei eng begrenzten Korrekturen folgt ein weiterer kurzer Zielnachcheck.
