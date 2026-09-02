@@ -1261,3 +1261,67 @@ gelistet: Sein Test existiert, heißt aber `003_knowledge_capability_acceptance.
 
 `test_migration_acceptance.py` hat das Austragen erzwungen — er schlägt an,
 wenn eine Lücke stillschweigend verschwindet, nicht nur wenn eine dazukommt.
+
+### `G-047` geschlossen — und eine Behauptung von mir zurückgenommen
+
+Der Abnahmetest für `003` fehlte noch. Beim Anlegen ist der Wächter
+`test_no_two_acceptance_tests_share_a_number` angesprungen: Eine korrekt
+benannte Datei für Migration `003` **konnte nicht danebengelegt werden**, weil
+`003_knowledge_capability_acceptance.sql` diese Nummer belegte — die Datei, die
+in Wahrheit zu Migration `004` gehört.
+
+Damit war die Fehlbenennung nicht mehr nur ein Schönheitsfehler, sondern hat
+die Regel unerfüllbar gemacht.
+
+**Ich hatte gegen das Umbenennen argumentiert** — mit der Begründung, die alten
+Namen stünden in Nachweisdokumenten, und ein Nachweis werde nicht
+umgeschrieben. **Das war ungeprüft und falsch.** Nachgesehen: Kein einziger
+Nachweis nennt einen der beiden Namen. Die einzigen Fundstellen waren meine
+eigene Antwort von heute, mein eigener Wächter und meine eigene Regel. Ich habe
+eine Änderung mit einem Argument abgelehnt, das ich nicht überprüft hatte —
+in einem Durchgang, dessen Thema genau das ist.
+
+Beide Dateien heißen jetzt, was sie sind:
+
+```
+003_knowledge_capability_acceptance.sql  →  004_knowledge_capability_acceptance.sql
+004_visible_communication_acceptance.sql →  visible_communication_demo.sql
+```
+
+Die zweite hat Nummer **und** `_acceptance` verloren. Sie ist ein Demo, das
+Zustand ändert und committet; jetzt sagt der Name das. Ihre Sperre
+(`app.visible_demo`) wird weiterhin geprüft.
+
+**`003_workforce_bus_trigger_fix_acceptance.sql`** prüft nicht eine Spalte.
+`003` hat `updated_at` ergänzt, weil der Versionstrigger **geteilt** ist —
+`bus_touch_versioned_row` hängt an sechs Tabellen und schreibt auf jeder
+`version` und `updated_at`. Eine Tabelle ohne diese Spalten scheitert nicht bei
+der Migration, sondern beim ersten `UPDATE`. Der Test prüft deshalb die
+Voraussetzung auf **allen sechs**, dazu `NOT NULL` und dass der Trigger überall
+noch hängt. Gegen die Produktion gelaufen:
+
+```
+NOTICE:  Bus trigger fix acceptance: PASS (6 Tabellen am gemeinsamen Trigger)
+NOTICE:  Bus trigger fix self-check: PASS
+```
+
+Zwei Negativproben, beide schlagen an und benennen die Stelle:
+
+```
+ERROR:  ACCEPTANCE_003_SHARED_TRIGGER_COLUMN_MISSING: bus_gibt_es_nicht.updated_at, bus_gibt_es_nicht.version
+ERROR:  ACCEPTANCE_003_SHARED_TRIGGER_COLUMN_MISSING: bus_channels.gibt_es_nicht_x, …
+```
+
+Was der Test **nicht** prüft, steht in seinem Kopf: dass der Trigger beim
+`UPDATE` wirklich hochzählt. Das ist `002`s Verhalten und gehört in `002`s
+Abnahmetest. `003` hat Schema geändert, also prüft er Schema.
+
+**Damit ist die Lückenliste leer bis auf `008`** — gegatet und nicht
+angewendet; sein Test gehört in dasselbe Fenster wie die Anwendung. Der Test
+für `004` existiert jetzt unter richtigem Namen, ist aber **nie gelaufen**,
+weil `004` nicht angewendet ist; das ist kein Mangel, sondern die Lage.
+
+Aus der Ausnahmeliste im Wächter ist eine positive Prüfung geworden: Der Name
+jeder Abnahmedatei muss der Name einer echten Migration plus Suffix sein. Das
+ist die Form, die auch die nächste Fehlbenennung findet, statt die bekannten
+aufzuzählen.

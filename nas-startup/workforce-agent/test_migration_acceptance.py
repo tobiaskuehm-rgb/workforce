@@ -29,18 +29,12 @@ ACCEPTANCE = NAS / "postgres-tests"
 # Migration id -> why it has no acceptance test yet. Emptying an entry is the
 # way to close a gap: write the test, then delete the line here.
 KNOWN_GAPS = {
-    "003_workforce_bus_trigger_fix":
-        "Korrektur an 002; die Wirkung wird von 002_workforce_bus_acceptance mitgeprueft, "
-        "ein eigener Test fehlt trotzdem",
-    # 006 und 007 sind am 2026-09-02 geschlossen worden: beide Tests laufen
+    # 003, 006 und 007 sind am 2026-09-02 geschlossen worden: beide Tests laufen
     # gegen die Produktion (Katalog lesen, ROLLBACK) und wurden mit je einer
     # umgedrehten Erwartung geprueft, die auch anschlug.
     "008_knowledge_api_grants":
         "gegatet und nicht angewendet - der Abnahmetest gehoert in dasselbe Fenster "
         "wie die Anwendung",
-    "004_knowledge_capability":
-        "der Test existiert, heisst aber 003_knowledge_capability_acceptance.sql - "
-        "gefunden erst von diesem Waechter, weil die Nummer nicht zur Migration passt",
 }
 
 # `_acceptance.sql` promises: runs in a transaction, ends with ROLLBACK, may be
@@ -51,16 +45,21 @@ KNOWN_GAPS = {
 # it relies on is asserted, so this stays a known property instead of a
 # surprise.
 STATE_CHANGING = {
-    "004_visible_communication_acceptance.sql": "VISIBLE_DEMO_GUARD_REQUIRED",
+    "visible_communication_demo.sql": "VISIBLE_DEMO_GUARD_REQUIRED",
 }
 
-# Acceptance files whose number does not match the migration they belong to.
-# Renaming them is not free: the numbers appear in evidence documents that must
-# not be rewritten (a proof gets a dated addendum, never an edit).
-MISNUMBERED = {
-    "003_knowledge_capability_acceptance.sql": "004_knowledge_capability",
-    "004_visible_communication_acceptance.sql": None,  # keine Migration dieses Namens
-}
+# On 2026-09-02 two files were renamed, because the numbering had become an
+# obstacle rather than a wart: a correctly named acceptance test for migration
+# 003 could not be added while another file already occupied that number.
+#
+#   003_knowledge_capability_acceptance.sql -> 004_knowledge_capability_acceptance.sql
+#   004_visible_communication_acceptance.sql -> visible_communication_demo.sql
+#
+# I had argued against renaming, on the grounds that the old names appear in
+# evidence documents. That was asserted without checking, and it was wrong: no
+# evidence file mentions either name. The second file lost its number and its
+# `_acceptance` suffix as well, because it is a demo that changes state - the
+# name now says what the content is.
 
 
 def migrations() -> list[str]:
@@ -97,16 +96,24 @@ class AcceptanceCoverageTest(unittest.TestCase):
             with self.subTest(migration=name):
                 self.assertGreater(len(reason.strip()), 30, name)
 
-    def test_the_misnumbered_files_are_still_misnumbered(self) -> None:
-        # Documents the second half of G-047: the acceptance numbering is not
-        # the migration numbering. If somebody renames them, this fails and the
-        # evidence documents that cite the old names need an addendum.
-        present = set(acceptance_files())
-        for name, belongs_to in MISNUMBERED.items():
+    def test_every_acceptance_file_names_a_real_migration(self) -> None:
+        # The positive form of what used to be a list of exceptions: an
+        # acceptance file's name has to be a migration's name plus the suffix.
+        # Anything else is either misnumbered or is not an acceptance test.
+        for name in acceptance_files():
+            if name in STATE_CHANGING:
+                continue
             with self.subTest(datei=name):
-                self.assertIn(name, present)
-                if belongs_to is not None:
-                    self.assertTrue((MIGRATIONS / f"{belongs_to}.sql").is_file())
+                self.assertTrue(name.endswith("_acceptance.sql"), name)
+                migration = name[: -len("_acceptance.sql")]
+                self.assertTrue((MIGRATIONS / f"{migration}.sql").is_file(),
+                                f"{name} gehoert zu keiner Migration")
+
+    def test_a_misnumbered_file_would_be_caught(self) -> None:
+        erfunden = "003_knowledge_capability_acceptance.sql"
+        migration = erfunden[: -len("_acceptance.sql")]
+        self.assertFalse((MIGRATIONS / f"{migration}.sql").is_file(),
+                         "genau diese Fehlbenennung wurde am 2026-09-02 behoben")
 
     def test_a_new_migration_without_a_test_would_be_caught(self) -> None:
         erfunden = "009_neue_migration"
