@@ -1,42 +1,74 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-02 — von Claude Code.
+**Zuletzt aktualisiert:** 2026-09-02, 23:45 — von Claude Code.
 
-**Zuletzt geprüft:** 2026-09-02 — von Gerd, vierzehnter Zielnachcheck auf
-Commit `25c3b10`. Vier Befunde zur Owner-Migration und zum Phase-5-Runbook:
-`G-070` bis `G-073`. **Alle vier selbst nachgeprüft, alle vier bestätigt** und
-mit je einem eigenen Commit behoben; Antworten in `REVIEW_ANTWORTEN.md`, Regeln
-42 bis 45 in `CLAUDE.md`.
+**Zuletzt geprüft:** 2026-09-02 — von Gerd, fünfzehnter Zielnachcheck auf
+Commit `ea5ae2a`. Sein Urteil: `G-070`, `G-072` und `G-073` **geschlossen**,
+`G-071` „stark verbessert, aber nicht geschlossen" mit drei Restbefunden
+`G-074`–`G-076`. Alle drei habe ich selbst nachgeprüft, alle drei bestätigt und
+behoben.
 
-Bei dreien kam beim Beheben etwas heraus, das im Befund nicht steht:
+**Danach ist etwas passiert, das dieser Kopf festhalten muss.** Gerd hat einen
+Gegencheck gefahren und **drei weitere Befunde** gefunden. Sein Schreibvorgang
+in `REVIEW_GERD.md` (`+130` Zeilen) **wurde abgelehnt**, unmittelbar bevor sein
+Nutzungslimit griff. Er ist **bis 2026-09-07 nicht verfügbar**; danach ist ein
+großes Review geplant.
 
-- `G-070` — die Probe las den Eventzähler mit einem vorangestellten
-  `RESET ROLE`, dessen Statuszeile `isdigit()` scheitern lässt. Der
-  Audit-Trigger wäre also **auch bei korrektem Verhalten** als „nicht gefeuert"
-  gemeldet worden, und das alte Urteil hätte es verschluckt. Zwei Fehler, die
-  einander verdeckten — dieselbe Konstellation wie `G-059`.
-- `G-071` — eine Allowlist nur aus den zwölf Funktionsrümpfen wäre **zu eng**
-  geworden. `bus_events` steht in keinem davon; der `INSERT` kommt aus dem
-  Trigger `bus_record_change`, der als Aufrufer läuft. Ohne das Recht stünde
-  die Auditspur still.
-- `G-072` — nach der Umstellung auf den Wegwerf-Container meldete
-  `token_cleanup_offenders()` sauber `[]`, weil es die neue Form gar nicht
-  ansieht: Es suchte `" rm -f "` mit führendem Leerzeichen. Ein Wächter, der
-  nichts findet und nichts meldet.
+**Die drei Befunde haben deshalb keine `G-`Nummer.** Ich vergebe keine
+(`G-006`) und fasse `REVIEW_GERD.md` nicht an — das ist seine Datei. Sie stehen
+vollständig in `REVIEW_ANTWORTEN.md` und im Tagesbericht
+`interim-bus/daily/2026-09-03/01_claude.md` des iCloud-Arbeitssatzes:
 
-**Aktive Arbeit:** keine. Der Stand ist deployt und manifestiert.
+1. **Der Trigger-Negativtest akzeptierte jeden Prozessfehler** als „Zugriff
+   verweigert". Ein weggeräumter Container hätte den zentralen
+   Sicherheitsnachweis der Probe erbracht. Das verletzt `G-014`, das längst in
+   `CLAUDE.md` steht — **ich habe die Regel beim Beheben von `G-076` selbst
+   verloren**: Die vorige Textprüfung war schwach, aber sie war eine Bindung,
+   und beim Umstellen auf Exitcodes fiel sie ersatzlos weg. Die Ablehnung hängt
+   jetzt an SQLSTATE `42501`.
+2. **Die PUBLIC-Selbstprüfung war logisch leer** — `a.grantee = 0` und
+   gleichzeitig ein Join auf `pg_roles`, wo es zur OID `0` keine Zeile gibt.
+   `EXISTS` war immer falsch; der Wächter konnte nie anschlagen. Jetzt zwei
+   getrennte Abfragen. Regel 47.
+3. **Eine vorhandene Rolle konnte `CREATE` auf `workforce` behalten** — damit
+   legt sie eigene Relationen an, ist deren Eigentümerin und kann auf ihnen
+   Trigger abschalten, also genau der Weg, den `009` zumachen soll.
+   `REVOKE ALL ON SCHEMA workforce` kommt jetzt vor dem `GRANT USAGE`. Regel 48.
 
-**Was auf eine Entscheidung wartet:** Migration `009` ist gegatet und nicht
-angewendet; `g045_owner_probe.py` ist nie gelaufen. Ein Probe-Lauf ist eine
-Ausführung auf der NAS und braucht die Freigabe des CEO. Die Probe beantwortet
-dabei zugleich die eine Frage, die die PostgreSQL-Dokumentation offen lässt:
-ob eine `GENERATED ALWAYS AS IDENTITY`-Spalte beim `INSERT` Sequenzrechte
-verlangt. Bis dahin erteilt `009` keine — ein Recht auf Verdacht wäre derselbe
-Fehlgriff wie das `EXECUTE`, das aus derselben Datei schon einmal wieder
-herausgeflogen ist.
+**Aktive Arbeit:** keine. Alles ist committet und auf die NAS gepusht.
 
-**Phase 5 bleibt ROT.** Kein Kanal, kein Credential, kein Modellaufruf, kein
-Build auf der NAS. `G-030` — die Kette ist nie durchgelaufen — bleibt offen.
+## Stand am 2026-09-02, 23:45
+
+- Commit `f22e6e1`, gepusht. Deploy `21c40a7` auf der NAS geprüft — 228 Dateien, 0 fehlend,
+  0 abweichend und 0 unerwartet auf Commit `21c40a7`. `check_unmanaged` `PASS`.
+- **651 lokale Tests `PASS`** (565 / 15 / 44 / 27).
+- Produktion unverändert: Migrationen `001`–`003` und `005`–`007`, Kanal
+  `DISABLED`, 0 aktive Credentials, `workforce_owner` existiert nicht.
+
+**Neu dazugekommen:** `workforce-agent/test_sql_structure.py`. Auf diesem Mac
+läuft kein PostgreSQL — weder Docker noch `psql` —, jede SQL-Änderung war also
+bis zu ihrem ersten Lauf auf der NAS völlig ungeprüft. Der Test schließt fünf
+Fehlerklassen aus (Dollar-Quote-Balance, deklarierte gegen benutzte Variablen,
+`RAISE`-Platzhalter gegen Argumente, Transaktionsklammer) und **ersetzt keinen
+Parser**: Katalogspalten, Typen und Semantik sieht er nicht. Vier Gegenproben
+gehören dazu.
+
+## Was offen ist
+
+- **Migration `009` ist gegatet und nicht angewendet.** Sie ist am 2026-09-02
+  zweimal umgebaut worden und von niemandem geprüft.
+- **`g045_owner_probe.py` ist nie gelaufen.** Der Versuch am 2026-09-02 wurde
+  von der Berechtigungsprüfung des Werkzeugs abgewiesen, nicht von einer
+  Projektregel. Sie ist der einzige Weg, vier Annahmen in Messungen zu
+  verwandeln: die Sequenzrechte-Frage aus `009` Abschnitt 3c, ob der
+  Audit-Trigger unter dem neuen Eigentümer feuert, die SQLSTATE `42501`, und
+  Gerds Integrationsgegenprobe zu `G-074`.
+- **Phase 5 bleibt ROT.** Kein Kanal, kein Credential, kein Modellaufruf, kein
+  Build auf der NAS. `G-030` — die Kette ist nie durchgelaufen — bleibt offen.
+- Der CEO hat am 2026-09-02 im Chat die Sperren aufgehoben und verlangt, dass
+  alles dokumentiert wird. Das ist eine echte Freigabe, aber kein Eintrag im
+  Entscheidungslog: `CEO-CHAT-2026-09-02/PENDING-DEC` (`G-006`). Ebenso die
+  Aufhebung des `23:30`-Coding-Stopps aus `DEC-033` für diese Nacht.
 
 ## Wie die Zusammenarbeit läuft
 
