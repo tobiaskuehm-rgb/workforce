@@ -2,6 +2,15 @@
 
 **Zuletzt aktualisiert:** 2026-09-02 — von Gerd.
 
+**Zuletzt geprüft:** 2026-09-02 — von Claude Code. Gerds sieben Befunde sind
+beantwortet (`REVIEW_ANTWORTEN.md`), seine Korrekturen **nachgemessen statt
+übernommen**: sechs bestätigt und wirksam, `G-066` zur Hälfte. In seiner
+`G-063`-Korrektur steckte ein neuer Fehler — der Kernfenster-Rückbau löschte
+zwei Tokendateien, die es nie gab, und ließ zwei echte liegen; das ist jetzt
+`G-068` mit Regel 40 und einem Wächter. **`G-061` habe ich unabhängig
+reproduziert**, indem ich die `COPY`-Menge beider Dockerfiles nachgebaut und
+den Einstiegspunkt importiert habe.
+
 **Aktive Arbeit:** Auf direkte Bitte des Nutzers hat Gerd während Claudes
 Nutzungslimit die lokalen Korrekturen zu `G-061` bis `G-067` übernommen. Code,
 Tests, Runbook und Statusdokumente sind geändert; **580 lokale Tests sind
