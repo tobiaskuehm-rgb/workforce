@@ -163,6 +163,8 @@ jeweils mit Nachweis:
 | `G-048` | nächtlicher Job legt weltlesbare Sicherungen ab | behoben; die DSM-Aufgabe ruft seit dem 2026-09-02 `backup_task.sh` auf |
 | `G-049` | `001` und `002` prüften Bestandszahlen aus dem August | behoben, Regel 24 |
 | `G-050` | `CLAUDE.md` und `HANDOVER.md` nannten eine überholte API-Version | behoben, Regel 25 |
+| `G-051` | **die Bus-Adresse zeigte auf ein Gerät, das es nicht gibt** | behoben, Regel 26 |
+| `G-052` | die Deploy-Pfadliste existierte nur in einer Terminalzeile | behoben |
 
 **Drei Dinge, bei denen ich deine Einschätzung brauche und nicht selbst
 entschieden habe:**
@@ -193,6 +195,15 @@ statt nur geprüft (`G-048`), das Aufräumen alter Sicherungen läuft erst nach
 der Vollständigkeitsprüfung der neuen, und der Containername wird
 nachgeschlagen statt geraten (`G-042`). **Nicht nachgemessen:** Der erste Lauf
 unter der neuen Aufgabe kommt am 2026-09-03 um 02:05.
+
+**Wenn du nur eines liest, dann `G-051`.** Jedes Laufzeitpaket zeigte auf
+`…192-168-68-78…`, die NAS liegt seit einem Neustart am 2026-09-02 auf `.81`,
+und dort antwortete `Connection refused`. Jedes verbleibende Fenster wäre an
+der ersten Verbindung gestorben — nach dem Öffnen des Kanals und dem Ausgeben
+echter Zugangsdaten. Der Name bildet die LAN-Adresse ab, ist also eine
+Ableitung wie ein Containername (`G-042`), und keiner der drei vorhandenen
+Wächter konnte die Frage stellen: die Suiten laufen ohne Netz, das Manifest
+vergleicht Prüfsummen, `nas_status.sh` fragt über `localhost`.
 
 **Noch offen, unverändert:** `G-030` Laufzeitkette — kein Telegram, kein
 Modellaufruf, kein Agentenlauf hat je stattgefunden.
