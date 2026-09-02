@@ -183,7 +183,7 @@ Das Runbook deckt Gerds verbindlichen Scope ab und ist zum Abarbeiten von oben n
 Drei Entscheidungen darin, die ein Prüfer kennen sollte:
 
 - **Zwei Manifeste statt einem.** Die NAS hält `postgres-init/` nur bis `003`, dazu `compose.yaml` und `app.py` in der v7-Fassung. Nähme das *laufende* Manifest diese Pfade jetzt auf, stünde die Routineprüfung bis zum Rollout dauerhaft auf rot — und ein Wächter, der immer rot ist, wird ignoriert. `deploy_manifest.sh` nimmt deshalb `MANIFEST_OUT` entgegen; das Zielmanifest entsteht **im Fenster**, weil es den dann gültigen Commit nennen muss.
-- **`compose.yaml` erreicht die NAS erst im Fenster.** Sie zeigt auf `startup-workforce-api:v8`. Läge sie vorher dort, würde ein versehentliches `docker compose up` Phase 4 auslösen.
+- **`compose.yaml` erreichte die NAS erst im Fenster** — bis dahin hätte ein versehentliches `docker compose up` Phase 4 ausgelöst. Erledigt: Sie liegt seit dem 2026-09-01 dort und zeigt inzwischen auf `startup-workforce-api:v9`.
 - **`004` und `008` liegen danach als Dateien auf der NAS, angewendet sind sie nicht.** Angewendet wird ausschließlich über das Gate; beide bleiben `"false"`. Wer den Zustand prüft, prüft die Tabellen, nicht die Dateiliste.
 
 Der Umfang ist gemessen, nicht geschätzt: auf `ec8df2e` deckt das laufende Manifest 130 Dateien und das Zielmanifest 144; das Fenster fasst genau elf an (vier geändert, sieben neu — Tabelle im Runbook).

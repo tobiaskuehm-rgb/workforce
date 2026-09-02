@@ -4,7 +4,9 @@
 **Ziel:** genau ein bidirektionaler Nachrichtenwechsel über den echten HTTPS-Weg zwischen Karl (`SAO-001`) und Thorsten (`RAS-001`)
 **Endzustand:** beide Testzugänge widerrufen, Kanal `DISABLED`, Nachrichten/Audit bleiben als Nachweis in PostgreSQL erhalten
 
-Diese Anleitung ist für einen einmaligen Test. Sie ist keine Freigabe für Dauerbetrieb oder `ACTIVE`.
+**Status: ausgeführt am 2026-08-31.** Nachweis in `evidence/2026-08-31_bus_realtest_karl_thorsten.md`: alle vier Schritte `PASS`, beide Testzugänge widerrufen, Kanal wieder `DISABLED`. Dieses Dokument ist damit ein Ausführungsprotokoll; ein zweiter Lauf bräuchte eine neue Freigabe (`G-046`).
+
+Diese Anleitung war für einen einmaligen Test. Sie ist keine Freigabe für Dauerbetrieb oder `ACTIVE`.
 
 Alle Dateien liegen in `bus-realtest/`. Details/Sicherheitsgrenzen: `bus-realtest/README.md`.
 

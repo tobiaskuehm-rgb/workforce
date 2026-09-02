@@ -1,6 +1,6 @@
 # Kill-Switch-Dokumentation und Testplan Karl ↔ Thorsten
 
-**Status:** Rein planerisch/dokumentierend. Kein Kill-Switch wurde aktiviert, keine Migration ausgeführt, kein Container verändert oder neu gestartet. Alle Angaben basieren auf Code-/Config-Analyse des vorhandenen Repository-Stands (`/workspace/startup`).
+**Stand: 2026-08-31, historisch.** Beim Schreiben rein planerisch — kein Kill-Switch aktiviert, keine Migration ausgeführt, kein Container verändert. Diese Sätze beschreiben den Zustand von damals und **nicht den von heute**: Der geplante Test hat am 2026-08-31 stattgefunden (`evidence/2026-08-31_bus_realtest_karl_thorsten.md`), und seit dem Phase-4-Fenster am 2026-09-01 sind die Migrationen `005`–`007` angewendet. Den laufenden Stand nennt `production_state.txt` (`G-046`).
 
 **Bezug:** `DEC-015`, `DEC-016`, `ENG-003`, `DG-003`, `HO-020`
 

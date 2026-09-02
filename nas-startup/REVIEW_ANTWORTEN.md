@@ -1067,3 +1067,46 @@ Das ist die dritte Fassung dieses Kopfes, die veraltet war. Der Wächter, den ic
 Die drei hängen zusammen. Alle sind Aussagen, die zum Zeitpunkt des Schreibens stimmten und die niemand zurücknahm, als sie aufhörten zu stimmen — und in zwei von drei Fällen war der Wächter, der es hätte merken sollen, entweder nicht zuständig oder auf den falschen Zustand geeicht. Als Leitplanken 16 und 17.
 
 **Lokal:** 326 + 15 + 35 + 9 Tests PASS.
+
+### Nachtrag zu `G-046`: die Fehlerklasse war größer als die drei Funde
+
+Nachdem drei Dokumente veraltete Gegenwartsaussagen trugen, habe ich alle
+Dokumente unter `nas-startup/` danach durchgesehen, ob sie ein Datum im Kopf
+tragen — denn genau daran hing es. Vier weitere Funde:
+
+**`README.md` nannte `startup-workforce-api:v6` als „Aktive API"**, während `v9`
+lief. Das ist die Einstiegsdatei; wer das Projekt zum ersten Mal öffnet, liest
+sie zuerst. Sie ist jetzt ausdrücklich als Paketstand vom 2026-08-13
+gekennzeichnet und verweist für den laufenden Stand auf `production_state.txt`
+und `nas_status.sh`.
+
+**`README.md` nannte außerdem zwei „vollständige Nachweise", die so nicht
+existieren.** Einer liegt woanders — `2026-08-13_workforce_bus_nas_deployment.md`
+steht auf oberster Ebene, nicht unter `evidence/`. Den anderen gibt es
+überhaupt nicht: kein Registry-Migrations-Nachweis vom 13. August, weder unter
+`evidence/` noch daneben. Beides steht jetzt so da.
+
+**`NEXT_STEPS_KARL_THORSTEN.md`** behauptete „keine Migration ausgeführt, kein
+Container verändert" — geschrieben am 2026-08-31, gelesen als Gegenwart, und
+seit dem Phase-4-Fenster falsch.
+
+**`BUS_REALTEST_KARL_THORSTEN_RUNBOOK.md`** sagte nicht, dass es ausgeführt
+wurde — obwohl der Nachweis dazu seit dem 2026-08-31 unter `evidence/` liegt.
+Dieselbe Sorte wie beim Phase-4-Runbook.
+
+Zwei Dinge zur Methode, weil sie für den nächsten Durchgang zählen:
+
+**Einen mechanischen Versionswächter habe ich bewusst *nicht* gebaut.** Er
+hätte an `AGENTS.md` angeschlagen — dort steht `workforce-api:v6` in meinem
+eigenen Regeltext, als Zitat der alten Falschaussage. Ein Wächter, der ein
+Zitat für einen Fehler hält, erzeugt Rauschen und wird abgeschaltet.
+Stattdessen sind `README.md` und `WORKFORCE_BUS_API_CONTRACT.md` aus
+`NOT_CHECKED` in die geprüfte Liste gewandert — die Ausnahmeliste war nie für
+undatierte Dokumente gedacht, und der Abdeckungstest existiert genau dafür.
+
+**Der Nachweisprüfer hatte selbst eine falsche Annahme.** Er verlangte, dass
+jedes genannte datierte `.md` unter `evidence/` liegt. Das stimmt seit jeher
+nicht, und ein *korrekter* Verweis auf die Datei auf oberster Ebene las sich
+für ihn wie ein kaputter. Er kennt jetzt beide Ablagen.
+
+**Lokal:** 326 + 15 + 35 + 9 Tests PASS.

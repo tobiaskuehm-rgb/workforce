@@ -39,6 +39,13 @@ DOCUMENTS = (
     NAS / "workforce-agent" / "README.md",
     NAS / "chain-test" / "README.md",
     NAS / "PHASE4_RUNBOOK.md",
+    # Both moved out of NOT_CHECKED on 2026-09-02 (G-046). The contract had
+    # claimed "in workforce-api:v6 implementiert" for four versions, and the
+    # README named v6 as the active API while v9 was running. Neither carries
+    # a date, so both are read as current - which is exactly the case the
+    # exclusion list was never meant to cover.
+    NAS / "WORKFORCE_BUS_API_CONTRACT.md",
+    NAS / "README.md",
 )
 
 # Documents deliberately outside the checks above. Reviews belong to the
@@ -53,8 +60,8 @@ NOT_CHECKED = {
     "DEC_ENTWUERFE_2026-08-31.md", "2026-08-13_workforce_bus_nas_deployment.md",
     "ACCEPTANCE_CHECKLIST.md", "BUS_PACKAGE_MANIFEST.md",
     "BUS_REALTEST_KARL_THORSTEN_RUNBOOK.md", "NEXT_STEPS_KARL_THORSTEN.md",
-    "WORKFORCE_BUS_API_CONTRACT.md", "WORKFORCE_BUS_ROLLOUT.md",
-    "README.md", "AGENTS.md", "HANDOVER.md",
+    "WORKFORCE_BUS_ROLLOUT.md",
+    "AGENTS.md", "HANDOVER.md",
 }
 
 
@@ -92,7 +99,12 @@ class ReferencedFilesExistTest(unittest.TestCase):
         self.assertEqual([], missing, f"vorhanden: {sorted(available)}")
 
     def test_every_evidence_document_mentioned_exists(self) -> None:
+        # Not every dated document lives under evidence/:
+        # 2026-08-13_workforce_bus_nas_deployment.md sits at the top level and
+        # always has. The scan assumed otherwise, so a correct reference to it
+        # read as a broken one (G-046).
         available = {p.name for p in (NAS / "evidence").glob("*.md")}
+        available |= {p.name for p in NAS.glob("20*.md")}
         missing = [
             f"{path.name}: {name}"
             for path, text in documents()

@@ -1,10 +1,15 @@
 # Synology Start UP – Registry und deaktivierter Workforce Bus abgenommen
 
-**Status:** NAS-/Registry-Stufe und deaktivierte Workforce-Bus-Basis am 2026-08-13 mit `PASS` abgenommen; Kommunikationsaktivierung weiterhin gesperrt  
-**Zielpfad:** `/docker/Startup`  
-**Container-Manager-Projekt:** `startup`  
-**Bestehende Basis:** PostgreSQL 17, Volume `workforce_database_v1`, Rückfall-Image `workforce-api:v5`, `startup.env`  
-**Aktive API:** `startup-workforce-api:v6`; die bisherigen Endpunkte bleiben erhalten, Bus-Endpunkte bleiben durch Kanalstatus `DISABLED` und HTTPS-Pflicht gesperrt
+**Dieses Dokument beschreibt den Paketstand vom 2026-08-13**, mit dem die
+NAS-/Registry-Stufe und die deaktivierte Workforce-Bus-Basis abgenommen wurden.
+Es ist eine Momentaufnahme, kein Statusbericht.
+
+**Den laufenden Stand nennt `production_state.txt`**, nicht diese Datei — und
+den aktuellen Iststand der NAS liefert `sh nas_status.sh` mit einem einzigen
+Lesebefehl. Bis 2026-09-02 stand hier „Aktive API: `startup-workforce-api:v6`",
+zu einem Zeitpunkt, als produktiv `v9` lief (`G-046`).
+
+**Zielpfad:** `/volume1/docker/Startup` · **Container-Manager-Projekt:** `startup`
 
 ## Was erhalten bleibt
 
@@ -84,7 +89,12 @@ Der NAS-Rollout der Bus-Datenbasis und API v6 ist abgeschlossen. Als nächster S
 - `/health`: `ok`
 - `/db-check`: `ok`
 - `001_employee_registry_acceptance.sql`: `PASS`
-- vollständiger Nachweis: `evidence/2026-08-13_registry_migration_and_acceptance.md`
+- vollständiger Nachweis: **fehlt.** Hier stand bis 2026-09-02 ein Verweis auf
+  eine Nachweisdatei zur Registry-Migration vom 13. August; eine solche Datei
+  gibt es in diesem Repo nicht, weder unter `evidence/` noch daneben (`G-046`).
+  Der Dateiname ist hier bewusst nicht ausgeschrieben — er würde die
+  Nachweisprüfung erneut auslösen. Was von dieser Abnahme belegt ist, steht in
+  `ACCEPTANCE_CHECKLIST.md`.
 - Post-Migration-Dump `workforce-2026-08-13_10-18-29.sql`: statische Strukturprüfung `PASS`
 - isoliertes Restore-Testprojekt: frischer PostgreSQL-17-Import und Healthcheck `PASS`
 - Persistenz: DB-Stopp/-Start sowie getrennte Wiederherstellung `PASS`
@@ -94,4 +104,5 @@ Der NAS-Rollout der Bus-Datenbasis und API v6 ist abgeschlossen. Als nächster S
 - `startup-workforce-api:v6`: gebaut und gesund
 - `002_workforce_bus_acceptance.sql`: vollständiger Positiv-/Negativtest `PASS`, anschließend `ROLLBACK`
 - `/bus/v1/status`: API `v6`, Projekt `START-UP`, Kanal `DISABLED`
-- vollständiger Bus-Nachweis: `evidence/2026-08-13_workforce_bus_nas_deployment.md`
+- vollständiger Bus-Nachweis: `2026-08-13_workforce_bus_nas_deployment.md`
+  — liegt neben dieser Datei, nicht unter `evidence/`; der Pfad hier war falsch.
