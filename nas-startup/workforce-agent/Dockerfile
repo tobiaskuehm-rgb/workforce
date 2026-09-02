@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir "anthropic==1.2.0" \
     && mkdir -p /var/lib/startup-agent \
     && chown -R startup:startup /var/lib/startup-agent
 
-COPY --chown=startup:startup agent_worker.py budget.py bus_client.py data_boundary.py providers.py state_store.py /app/
+COPY --chown=startup:startup agent_worker.py budget.py bus_client.py data_boundary.py efficiency_report.py model_allowlist.py providers.py state_store.py /app/
 
 USER 10001:10001
 

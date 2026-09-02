@@ -141,8 +141,9 @@ class ClaudeProvider:
         # purpose: build_provider() has already resolved the name, so a model
         # that is not listed here means somebody built this class directly
         # with something the configuration does not permit.
-        self._max_output_tokens = model_allowlist.for_task(
-            model, task_class="BUS_REPLY").max_output_tokens
+        self._model_config = model_allowlist.for_task(
+            model, task_class="BUS_REPLY")
+        self._max_output_tokens = self._model_config.max_output_tokens
         # A zero-arg client resolves ANTHROPIC_API_KEY or an `ant auth login`
         # profile on its own; only pass a key when one was handed to us.
         self._client = (
@@ -153,14 +154,22 @@ class ClaudeProvider:
 
     def complete(self, *, system: str, content: str) -> Reply:
         anthropic = self._anthropic
+        request: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": self._max_output_tokens,
+            "system": system,
+            "messages": [{"role": "user", "content": content}],
+        }
+        # Capabilities belong to the model entry, not to the provider as a
+        # whole. Haiku 4.5 rejects adaptive thinking and effort with HTTP 400;
+        # Sonnet/Opus may receive the reviewed configuration (G-066).
+        if self._model_config.thinking_mode is not None:
+            request["thinking"] = {"type": self._model_config.thinking_mode}
+        if self._model_config.effort is not None:
+            request["output_config"] = {"effort": self._model_config.effort}
         try:
             response = self._client.beta.messages.create(
-                model=self.model,
-                max_tokens=self._max_output_tokens,
-                system=system,
-                messages=[{"role": "user", "content": content}],
-                thinking={"type": "adaptive"},
-                output_config={"effort": "medium"},
+                **request,
                 # No server-side fallback (review finding G-036). It used to be
                 # enabled here so a policy decline would be re-run on a second
                 # model inside the same call - which is the same defect G-034

@@ -1,10 +1,19 @@
 # Kettentest — Telegram → Bus → Agent → Bus → Telegram
 
-**Status:** **startbereit.** Lokal grün, auf der NAS noch nie gelaufen. Der Lauf braucht eine Freigabe, ein Firewall-Fenster und einen Telegram-Testbot.
+**Status:** Ein echter Kettenlauf war am 2026-09-01 erfolgreich; der später
+ergänzte PostgreSQL-Audit rekonstruierte davon vier von fünf Etappen und
+belegte damit den inzwischen behobenen fehlenden Connector-ACK (`G-053`). Der
+aktuelle Code nach `G-053` ist lokal grün, aber als vollständige Kette noch
+nicht erneut auf der NAS gelaufen. Ein neuer Lauf braucht eine Freigabe, ein
+Firewall-Fenster und einen Telegram-Testbot.
 
 ## Wozu
 
-Jedes Stück der Zielkette ist einzeln belegt — Telegram-Realtest, Agenten-Trockenlauf, Core-Roundtrip. **Zusammen gelaufen sind sie nie.** Dieser Test zeigt die Kette einmal als Ganzes, mit dem Echo-Provider und damit ohne Kosten und ohne Modell.
+Jedes Stück der Zielkette ist einzeln belegt — Telegram-Realtest,
+Agenten-Trockenlauf, Core-Roundtrip. Die Kette lief am 2026-09-01 einmal als
+Ganzes; nach der aus diesem Lauf abgeleiteten ACK-Korrektur steht die
+Wiederholung noch aus. Der Wiederholungslauf verwendet den Echo-Provider und
+damit weder Kosten noch ein Modell.
 
 ```
 Telegram  /task AGENT-ENG-001 ENG-CHAIN-… | Titel | Output
@@ -66,24 +75,44 @@ Läuft seit dem 2026-09-01 auch mit Python 3.9: `telegram_connector.py` benutzt 
 
 Telegram-Bot-Chats sind Cloud-Chats ohne Ende-zu-Ende-Verschlüsselung. `BODY` heißt, dass interne Arbeitsinhalte bei Telegram liegen. Ein späterer Wechsel auf `BODY` ist eine eigene Entscheidung und gehört dokumentiert — es ist eine Datengrenze, kein Ausführlichkeitsschalter.
 
+## Eindeutige Laufkonfiguration
+
+Vor dem Fenster `chain-run.env.example` nach `chain-run.env` kopieren und dort
+einen **neuen** Suffix setzen. Dieselbe Datei steuert Connector-Identität,
+Task-Allowlist, Audit und Cleanup. Sie bleibt bis nach Audit und Rückbau liegen.
+
+```bash
+cd /volume1/docker/Startup/chain-test
+sh validate_chain_run_config.sh chain-run.env
+```
+
+Abbruch, wenn nicht `PASS`. Ein ausgelassener Wert, der alte Suffix
+`CHAIN20260901`, ein abweichender Task oder eine zusätzliche ausführbare Zeile
+werden verweigert.
+
 ## Schrittfolge
 
 ```bash
 # 1  Vorbereiten: Identität, beide Routen, zwei Zugänge, Kanal auf TESTING
-sudo /usr/local/bin/docker compose -f compose.chain-prepare.yaml up --abort-on-container-exit
+sudo /usr/local/bin/docker compose --env-file chain-run.env \
+  -f compose.chain-prepare.yaml run --rm --no-deps -T chain-prepare
 
 # 2  Firewall-Fenster in DSM öffnen: 172.31.254.0/29 auf TCP 8443
 
 # 3  Kette starten, beide Container zusammen
-sudo /usr/local/bin/docker compose -f compose.chain-run.yaml up --build
+sudo /usr/local/bin/docker compose --env-file chain-run.env \
+  -f compose.chain-run.yaml up --build
 
 # 4  In Telegram senden:
-#    /task AGENT-ENG-001 ENG-CHAIN-20260901 | Kurze Lagebeurteilung | Drei Saetze
+#    Den exakten CHAIN_TASK_ID aus chain-run.env verwenden:
+#    /task AGENT-ENG-001 <CHAIN_TASK_ID> | Kurze Lagebeurteilung | Drei Saetze
 #    Erwartung: "PENDING … registriert", dann eine NACHRICHT-Benachrichtigung
 
 # 5  Rückbau — läuft in jedem Fall, auch nach Abbruch
-sudo /usr/local/bin/docker compose -f compose.chain-run.yaml down
-sudo /usr/local/bin/docker compose -f compose.chain-cleanup.yaml up --abort-on-container-exit
+sudo /usr/local/bin/docker compose --env-file chain-run.env \
+  -f compose.chain-run.yaml down
+sudo /usr/local/bin/docker compose --env-file chain-run.env \
+  -f compose.chain-cleanup.yaml run --rm --no-deps -T chain-cleanup
 
 # 6  Firewall-Regel zurücknehmen, Token-Dateien löschen, nachmessen statt nachlesen
 ```
@@ -94,6 +123,11 @@ Der volle Docker-Pfad ist nicht kosmetisch: Die passwortlose sudo-Regel lautet a
 
 Ein `PASS` heißt: Die Kette ist geschlossen. Es heißt **nicht**, dass ein Modell je geantwortet hat — der Provider ist Echo, und das ist so gewollt. Der bezahlte Lauf ist ein eigener Schritt mit eigener Entscheidung.
 
-## Was noch fehlt
+## Auditgrenze
 
-- `chain_audit.sql` — Rekonstruktion des Laufs aus `bus_events` und `bus_denials`, nach dem Muster von `workercore_audit.sql`. Sinnvoll erst, wenn Migration `004` auf der NAS ist.
+`chain_audit.sql` rekonstruiert die fünf Bus-Etappen aus `bus_events` und
+`bus_denials`. Die Telegram-`update_id` wird dabei aus dem eindeutig benannten
+Task abgeleitet und nicht von Hand geraten. Ob Telegram die Nachricht wirklich
+im Chat angezeigt hat, bleibt eine zweite Evidenzquelle; PostgreSQL belegt die
+erfolgreiche Übergabe und den danach geschriebenen Connector-ACK. Migration
+`004` wird dafür nicht benötigt und bleibt geschlossen.

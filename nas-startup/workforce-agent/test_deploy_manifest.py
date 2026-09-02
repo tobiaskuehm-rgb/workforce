@@ -53,8 +53,15 @@ class DeployManifestTest(unittest.TestCase):
     def tearDown(self) -> None:
         self._temp.cleanup()
 
-    def make(self, *paths: str) -> subprocess.CompletedProcess:
-        return sh(DEPLOY, *paths, cwd=self.root)
+    def make(self, *paths: str, environment: dict[str, str] | None = None
+             ) -> subprocess.CompletedProcess:
+        env = os.environ.copy()
+        env.update(environment or {})
+        return subprocess.run(
+            ["sh", str(DEPLOY), *paths],
+            cwd=self.root, capture_output=True, text=True, check=False,
+            env=env,
+        )
 
     def check(self) -> subprocess.CompletedProcess:
         return sh(VERIFY, cwd=self.root)
@@ -124,6 +131,28 @@ class DeployManifestTest(unittest.TestCase):
         (self.root / "paket" / "code.py").write_text("print('geaendert')\n")
         self.assertEqual(0, self.make("paket").returncode)
         self.assertIn("dirty=yes", (self.root / "DEPLOY_MANIFEST.txt").read_text())
+
+    def test_a_rollout_can_require_a_clean_tree(self) -> None:
+        (self.root / "paket" / "code.py").write_text("print('geaendert')\n")
+        result = self.make("paket", environment={"REQUIRE_CLEAN": "1"})
+        self.assertEqual(2, result.returncode)
+        self.assertIn("sauberen Git-Baum", result.stderr)
+        self.assertFalse((self.root / "DEPLOY_MANIFEST.txt").exists())
+
+    def test_transfer_list_is_the_same_versioned_set_plus_manifest(self) -> None:
+        transfer = self.root / "transfer.txt"
+        result = self.make(
+            "paket",
+            environment={
+                "REQUIRE_CLEAN": "1",
+                "DEPLOY_FILE_LIST_OUT": str(transfer),
+            },
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(
+            {"paket/code.py", "paket/compose.yaml", "DEPLOY_MANIFEST.txt"},
+            set(transfer.read_text(encoding="utf-8").splitlines()),
+        )
 
 
 if __name__ == "__main__":

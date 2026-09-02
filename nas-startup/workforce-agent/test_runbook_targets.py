@@ -131,7 +131,7 @@ _VORSPANN = r"(?:-\S+\s+|\S+=\S+\s+)*"
 # `-f <datei>` steht **vor** dem Unterbefehl: `docker compose -f x.yaml up`.
 # Das Muster ohne diesen Teil traf genau die Aufrufe nicht, um die es geht -
 # jeden Aufruf einer Paketdatei.
-_GLOBAL = r"(?:-f\s+\S+\s+|--\S+\s+)*"
+_GLOBAL = r"(?:-f\s+\S+\s+|--env-file\s+\S+\s+|--\S+\s+)*"
 
 SERVICE_PATTERNS = (
     rf"docker compose\s+{_GLOBAL}exec\s+{_VORSPANN}([A-Za-z0-9_][A-Za-z0-9_-]*)",

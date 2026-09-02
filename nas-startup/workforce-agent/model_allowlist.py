@@ -30,8 +30,9 @@ and `assert_no_switch()` treats any difference as an error rather than as a
 detail - an SDK alias that silently resolves to a bigger model is exactly the
 case the rule is about.
 
-Prices are USD per 1M tokens, Claude list prices as of 2026-06. They are an
-estimate for a safety stop, not billing; see budget.py.
+Prices are USD per 1M tokens. The source and verification date live next to
+the values below. They are a conservative safety stop, not a replacement for
+provider billing; see budget.py.
 """
 
 from __future__ import annotations
@@ -73,6 +74,8 @@ class Model:
     max_input_chars: int
     max_cost_usd_per_call: float
     task_classes: tuple[str, ...]
+    thinking_mode: str | None
+    effort: str | None
 
     def estimated_cost(self, input_tokens: int, output_tokens: int) -> float:
         return (input_tokens * self.price_input_per_million
@@ -87,6 +90,8 @@ class Model:
             "max_output_tokens": self.max_output_tokens,
             "max_cost_usd_per_call": self.max_cost_usd_per_call,
             "task_classes": list(self.task_classes),
+            "thinking_mode": self.thinking_mode,
+            "effort": self.effort,
         }
 
 
@@ -103,6 +108,8 @@ ALLOWLIST: dict[str, Model] = {
         max_input_chars=GROSS,
         max_cost_usd_per_call=0.0,
         task_classes=("BUS_REPLY",),
+        thinking_mode=None,
+        effort=None,
     ),
     "claude-haiku-4-5": Model(
         name="claude-haiku-4-5",
@@ -114,17 +121,26 @@ ALLOWLIST: dict[str, Model] = {
         max_input_chars=KLEIN,
         max_cost_usd_per_call=0.05,
         task_classes=("BUS_REPLY",),
+        # Haiku 4.5 supports neither adaptive thinking nor the effort
+        # parameter. Sending either produces a 400 instead of a cheap call.
+        thinking_mode=None,
+        effort=None,
     ),
     "claude-sonnet-5": Model(
         name="claude-sonnet-5",
         provider="claude",
         is_paid=True,
+        # Verified 2026-09-02. Anthropic made the launch tariff permanent and
+        # explicitly cancelled the announced 2026-09-01 increase to 3/15:
+        # https://platform.claude.com/docs/en/about-claude/pricing
         price_input_per_million=2.00,
         price_output_per_million=10.00,
         max_output_tokens=4096,
         max_input_chars=GROSS,
         max_cost_usd_per_call=0.10,
         task_classes=("BUS_REPLY",),
+        thinking_mode="adaptive",
+        effort="medium",
     ),
     "claude-opus-5": Model(
         name="claude-opus-5",
@@ -136,6 +152,8 @@ ALLOWLIST: dict[str, Model] = {
         max_input_chars=GROSS,
         max_cost_usd_per_call=0.25,
         task_classes=("BUS_REPLY",),
+        thinking_mode="adaptive",
+        effort="medium",
     ),
 }
 
@@ -205,25 +223,40 @@ def assert_within_data_ceiling(model: Model, chars: int) -> None:
             f"AGENT_MODEL_INPUT_TOO_LARGE:{model.name}:{chars}>{model.max_input_chars}")
 
 
-# Characters per token for the pre-call estimate. Deliberately the same figure
-# efficiency_report uses; a second, different one would make two numbers in the
-# same run mean different things.
-CHARS_PER_TOKEN = 4
+# Provider tokenizers can split one Unicode character into several tokens and
+# message framing adds tokens that are not visible in the user content. A
+# four-characters-per-token estimate is useful in a report but cannot guard a
+# hard ceiling. One token per UTF-8 byte plus explicit framing headroom errs
+# towards refusing and is therefore suitable for a pre-call reservation.
+INPUT_FRAMING_TOKENS = 256
 
 
-def worst_case_cost(model: Model, prompt_chars: int) -> float:
+def conservative_input_tokens(*, system: str, content: str) -> int:
+    """A tokenizer-independent upper reservation for one request.
+
+    This is deliberately not called a measured token count. Provider usage
+    replaces it after a successful call; if usage is absent the reservation is
+    retained rather than treating an unknown amount as free.
+    """
+    return (len((system or "").encode("utf-8"))
+            + len((content or "").encode("utf-8"))
+            + INPUT_FRAMING_TOKENS)
+
+
+def worst_case_cost(model: Model, *, system: str, content: str) -> float:
     """What this call can cost at most, before it is made.
 
-    Input is estimated from the prompt; output is bounded by the model's own
-    ceiling, which the provider passes to the API. So the product is a real
-    upper bound rather than a guess, and that is what makes a *pre*-call check
-    possible at all - the run-wide cost ceiling can only ever act afterwards.
+    Input is conservatively reserved from all bytes sent plus framing headroom;
+    output is bounded by the model's own ceiling, which the provider passes to
+    the API. The provider's measured usage reconciles this reservation later.
     """
-    return model.estimated_cost(max(0, prompt_chars) // CHARS_PER_TOKEN,
-                                model.max_output_tokens)
+    return model.estimated_cost(
+        conservative_input_tokens(system=system, content=content),
+        model.max_output_tokens,
+    )
 
 
-def assert_within_call_cost(model: Model, prompt_chars: int) -> None:
+def assert_within_call_cost(model: Model, *, system: str, content: str) -> None:
     """Kostenbudget je Aufruf, geprueft **vor** dem Aufruf.
 
     "Vor jedem Provideraufruf werden Modell, Aufruf-, Token- und Kostenbudget
@@ -232,7 +265,7 @@ def assert_within_call_cost(model: Model, prompt_chars: int) -> None:
     eine Zusicherung, die sich nicht pruefen laesst, haelt den naechsten Leser
     vom Nachsehen ab (Leitplanke 7).
     """
-    schlimmstenfalls = worst_case_cost(model, prompt_chars)
+    schlimmstenfalls = worst_case_cost(model, system=system, content=content)
     if schlimmstenfalls > model.max_cost_usd_per_call:
         raise ModelNotAllowed(
             f"AGENT_MODEL_CALL_TOO_EXPENSIVE:{model.name}:"

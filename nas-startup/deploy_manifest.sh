@@ -21,11 +21,11 @@ set -eu
 #   sh deploy_manifest.sh workforce-agent postgres-init
 #
 # MANIFEST_OUT redirects the output, for a rollout target that is prepared
-# before the NAS holds it:
+# before the NAS holds it. DEPLOY_FILE_LIST_OUT writes the exact archive list
+# from the same Git query; REQUIRE_CLEAN=1 makes a rollout refuse a dirty tree:
 #
-#   MANIFEST_OUT=DEPLOY_MANIFEST_PHASE4.txt sh deploy_manifest.sh <paths>
-#   git ls-files -- workforce-agent postgres-init > /tmp/liste.txt
-#   echo DEPLOY_MANIFEST.txt >> /tmp/liste.txt
+#   REQUIRE_CLEAN=1 DEPLOY_FILE_LIST_OUT=/tmp/liste.txt \
+#     MANIFEST_OUT=DEPLOY_MANIFEST_PHASE4.txt sh deploy_manifest.sh <paths>
 #   tar czf - -T /tmp/liste.txt \
 #     | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
 #   ssh synology "cd /volume1/docker/Startup && sh verify_manifest.sh"
@@ -70,6 +70,12 @@ else
     dirty=no
 fi
 
+if [ "${REQUIRE_CLEAN:-0}" = 1 ] && [ "$dirty" = yes ]; then
+    echo "BLOCKED: Deploy verlangt einen sauberen Git-Baum (REQUIRE_CLEAN=1)." >&2
+    echo "         Erst committen und erneut pruefen; kein Manifest wurde erzeugt." >&2
+    exit 2
+fi
+
 # Untracked but not ignored: a file somebody forgot to commit. It would be
 # absent from the manifest and then flagged as unexpected on the NAS, which is
 # a confusing way to learn about it. Say so here instead.
@@ -111,6 +117,15 @@ echo "$files" | while IFS= read -r file; do
     [ -f "$file" ] || continue
     printf '%s  %s\n' "$(sha256 "$file")" "$file"
 done >> "$manifest"
+
+# The transfer must consume the same set that was hashed. Repeating
+# `git ls-files` in the runbook opens a gap between proof and payload; a
+# directory-wide archive would additionally carry ignored runtime secrets.
+if [ -n "${DEPLOY_FILE_LIST_OUT:-}" ]; then
+    : > "$DEPLOY_FILE_LIST_OUT"
+    printf '%s\n' "$files" >> "$DEPLOY_FILE_LIST_OUT"
+    printf '%s\n' "$manifest" >> "$DEPLOY_FILE_LIST_OUT"
+fi
 
 count="$(grep -c '^[0-9a-f]\{64\}  ' "$manifest" || true)"
 echo "$manifest: commit $commit, dirty=$dirty, $# Pfad(e), $count versionierte Datei(en)"

@@ -233,6 +233,7 @@ def handle_message(
     sent: dict[str, Any] | None = None
     refused = False
     provider_error: str | None = None
+    provider_reservation: budget_module.ProviderReservation | None = None
 
     # A previous run already put the reply on the bus and only failed to
     # acknowledge. Skip straight to that - the model has been paid for once.
@@ -292,7 +293,8 @@ def handle_message(
                 # Und was dieser eine Aufruf hoechstens kosten kann - vor dem
                 # Aufruf, nicht nach der Rechnung. Die laufweite Kostendecke
                 # kann das nicht: Kosten sind erst hinterher bekannt.
-                model_allowlist.assert_within_call_cost(erlaubt, len(prompt))
+                model_allowlist.assert_within_call_cost(
+                    erlaubt, system=SYSTEM_PROMPT, content=prompt)
             except model_allowlist.ModelNotAllowed as denial:
                 log("model_refused", message_id=message_id, detail=str(denial))
                 vorgang["refusal"] = str(denial)
@@ -307,24 +309,48 @@ def handle_message(
                 #    failure or an SDK-internal retry cannot slip past the ceiling.
                 if budget is not None:
                     try:
-                        # Refuse a paid provider under a zero ceiling *before* the
-                        # call, not after the bill arrives.
-                        budget.check_provider(is_paid=getattr(provider, "is_paid", True))
+                        # One atomic reservation covers call count, conservative
+                        # input/output tokens and cost before external work begins
+                        # (G-065). An undeclared provider is paid by default.
+                        provider_reservation = budget.reserve_provider_call(
+                            model=erlaubt,
+                            system=SYSTEM_PROMPT,
+                            content=prompt,
+                            is_paid=getattr(provider, "is_paid", True),
+                        )
                     except budget_module.BudgetExhausted as stop:
                         log("provider_blocked_by_budget", message_id=message_id,
                             limit=stop.limit_name, ceiling=stop.ceiling)
                         raise
-                    budget.reserve_provider_call()
                 # Der Versuch zaehlt, bevor er gemacht wird - genauso wie im
                 # Budget, und aus demselben Grund (G-004).
                 vorgang["provider_calls"] += 1
                 vorgang["model"] = erlaubt.name
+                # The report and the hard budget use the same conservative
+                # fallback. Otherwise a failed call or missing SDK usage would
+                # be safely charged in Budget but understated in the Phase-5
+                # efficiency artefact (G-065).
+                conservative_in = model_allowlist.conservative_input_tokens(
+                    system=SYSTEM_PROMPT, content=prompt)
+                conservative_out = erlaubt.max_output_tokens
+                conservative_cost = erlaubt.estimated_cost(
+                    conservative_in, conservative_out)
                 try:
                     reply = provider.complete(
                         system=SYSTEM_PROMPT, content=prompt
                     )
                 except providers.ProviderError as error:
                     log("provider_failed", message_id=message_id, detail=str(error))
+                    vorgang["tokens_estimated"] = True
+                    vorgang["input_tokens"] = conservative_in
+                    vorgang["output_tokens"] = conservative_out
+                    vorgang["estimated_cost_usd"] = conservative_cost
+                    if budget is not None and provider_reservation is not None:
+                        # No usage is not zero usage. A failed paid attempt may
+                        # still have consumed work, so retain the conservative
+                        # reservation rather than reopening the budget.
+                        budget.record_provider_failure(provider_reservation)
+                        log("budget", **budget.as_log_record())
                     # Deliberately *not* releasing the claim here (review finding
                     # G-013). record_failure() sets claimed_at = 0 and makes the
                     # message claimable at once - a second worker could take it and
@@ -345,8 +371,8 @@ def handle_message(
                     # aussieht, ist schlechter als keine.
                     if reply.input_tokens is None or reply.output_tokens is None:
                         vorgang["tokens_estimated"] = True
-                        vorgang["input_tokens"] = efficiency_report.estimate_tokens(len(prompt))
-                        vorgang["output_tokens"] = efficiency_report.estimate_tokens(len(reply.text))
+                        vorgang["input_tokens"] = conservative_in
+                        vorgang["output_tokens"] = conservative_out
                     else:
                         vorgang["input_tokens"] = reply.input_tokens
                         vorgang["output_tokens"] = reply.output_tokens
@@ -356,7 +382,10 @@ def handle_message(
                     # entschieden wird: Der Aufruf hat stattgefunden und
                     # gekostet, auch wenn das Ergebnis gleich verworfen wird.
                     if budget is not None:
+                        if provider_reservation is None:  # defensive invariant
+                            raise RuntimeError("AGENT_BUDGET_RESERVATION_MISSING")
                         budget.record_provider_usage(
+                            reservation=provider_reservation,
                             model=reply.model,
                             input_tokens=reply.input_tokens,
                             output_tokens=reply.output_tokens,

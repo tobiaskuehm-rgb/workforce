@@ -32,7 +32,7 @@
 -- Read-only by construction: BEGIN TRANSACTION READ ONLY and ROLLBACK, so it
 -- may be pointed at production at any time.
 --
---   psql -v run_suffix=CHAIN1 -v update_id=4711 -v task_id=CEO-TG-CHAIN-001 \
+--   psql -v run_suffix=CHAIN1 -v task_id=ENG-CHAIN-CHAIN1 \
 --        -f chain_audit.sql
 --
 -- **Was hier nicht rekonstruierbar ist.** Ob der Text tatsaechlich in Telegram
@@ -50,7 +50,26 @@ SELECT set_config('chain.project_id', 'START-UP', false);
 SELECT set_config('chain.connector', 'CEO-TG-' || :'run_suffix', false);
 SELECT set_config('chain.agent', 'AGENT-ENG-001', false);
 SELECT set_config('chain.task_id', :'task_id', false);
-SELECT set_config('chain.tg_prefix', 'TG-' || :'update_id' || '-', false);
+
+-- Telegram assigns update_id; an operator must not guess or copy it into the
+-- audit command. Derive the exact request family from the uniquely named task
+-- and connector of this run. The sentinel makes a missing binding return FAIL
+-- rather than falling back to another run.
+SELECT set_config(
+    'chain.tg_prefix',
+    coalesce((
+        SELECT regexp_replace(ev.request_id, '-TASK$', '-')
+        FROM workforce.bus_events AS ev
+        WHERE ev.project_id = current_setting('chain.project_id')
+          AND ev.actor_id = current_setting('chain.connector')
+          AND ev.record_type = 'TASK'
+          AND ev.record_key = current_setting('chain.task_id')
+          AND ev.request_id ~ '^TG-[0-9]+-TASK$'
+        ORDER BY ev.event_id DESC
+        LIMIT 1
+    ), 'CHAIN-AUDIT-MISSING-'),
+    false
+);
 
 \echo '=== Voraussetzung: Ablehnungsprotokoll vorhanden ==='
 

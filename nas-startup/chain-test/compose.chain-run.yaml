@@ -22,6 +22,11 @@ services:
     restart: "no"
     env_file:
       - chain.env
+    environment:
+      # Overrides the static connector settings with the one task id that
+      # belongs to this run. Supplied by the same chain-run.env as prepare,
+      # audit and cleanup; no second editable copy may drift from it.
+      TELEGRAM_ALLOWED_TASK_IDS: "${CHAIN_TASK_ID:?use the chain-run.env from prepare}"
     secrets:
       - telegram_bot_token
       - workforce_bus_token

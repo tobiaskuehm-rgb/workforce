@@ -81,6 +81,13 @@ Der Claude-Provider behandelt eine Modell-Ablehnung (`stop_reason: refusal`) als
 
 Ein unbekannter Name wird abgewiesen, bevor etwas gebaut wird — vorher ging er ungeprüft ans SDK und wurde aus einem Ersatztarif bepreist. Und was antwortet, muss sein, was konfiguriert war: Meldet der Anbieter ein anderes Modell, wird die **Antwort verworfen**, nicht bloß vermerkt. Preis und Datenobergrenze waren für das andere Modell gewählt.
 
+Auch Request-Fähigkeiten gehören zum Eintrag: Haiku 4.5 erhält weder
+`adaptive thinking` noch `effort`, Sonnet/Opus nur die dort ausdrücklich
+genannten Parameter. Der Sonnet-5-Tarif ist mit Prüftag 2026-09-02 an der
+offiziellen Preisquelle dokumentiert (`G-066`): Anthropic hat die angekündigte
+Erhöhung ausdrücklich abgesagt, 2/10 USD bleiben Standard. Preisänderungen
+werden nicht aus einem stillen Fallback geraten.
+
 ## Effizienzbericht
 
 `efficiency_report.py` schreibt je Vorgang auf, was er gekostet hat: Datenmenge, Felder, Provideraufrufe, Tokens beziehungsweise eine als solche gekennzeichnete Schätzung, Kostenobergrenze, Route und Dublettenentscheidung. Maschinenlesbar als JSON unter `AGENT_REPORT_PATH`, dazu eine kurze Zusammenfassung im Protokoll.
@@ -159,7 +166,12 @@ Der Nachweis, den `ENG-008` verlangt und den `core_roundtrip.py` **nicht** erbri
 cd nas-startup/workforce-agent && python3 -m unittest test_worker_core_test -v
 ```
 
-**Noch nicht auf der NAS gelaufen.** Der Lauf braucht `AGENT-ENG-001` in der Registry, die Migration `004`, die API `v8`, zwei kurzlebige Zugänge und die temporäre Firewall-Regel. `workercore_prepare.sql` prüft jede dieser Voraussetzungen und bricht ab, statt halb zu laufen.
+**Der integrierte Worker-Core ist noch nicht auf der NAS gelaufen.** Die
+Agenten-Identität wurde beim Kettenlauf real belegt; vor einem neuen Fenster
+misst `workercore_prepare.sql` sie dennoch erneut. Erforderlich sind die
+Migrationen `003` und `005`, die laufende API laut `production_state.txt`,
+zwei kurzlebige Zugänge und die temporäre Firewall-Regel. Knowledge-Migration
+`004` ist keine Voraussetzung und bleibt geschlossen.
 
 ## Was der Audit belegt — und was nicht
 
@@ -178,13 +190,20 @@ Was dort landen darf, ist eng: Identitäten, Bezeichner, stabiler Fehlercode, HT
 
 Fehlt die Migration, bricht das Negativ-Audit ab, statt eine leere Menge als Bestehen zu melden.
 
-**Noch nicht ausgeführt.** Migration, API-Änderung (`v8`) und die neue Audit-Abfrage sind auf diesem Mac nicht gegen ein echtes PostgreSQL gelaufen — hier gibt es weder `psql` noch Docker. Das braucht einen Lauf auf der NAS mit Freigabe.
+Migration `005` und die dazugehörige API-Fassung sind seit Phase 4 auf der NAS
+produktiv; die Abnahmetests gegen die laufende Produktion sind dokumentiert in
+`evidence/2026-09-02_abnahmetests_produktion.md`. **Noch nicht ausgeführt ist
+der integrierte Worker-Core samt `workercore_audit.sql`.** Er braucht ein
+eigenes freigegebenes NAS-Fenster.
 
 ## Vor einem echten Lauf
 
 Nicht ausführen, bevor das nicht steht:
 
-1. **Bus-Identität und Credential** — `agent_identity_create.sql` legt `AGENT-ENG-001` an, und `agent_prepare.sql` setzt voraus, dass es die Identität gibt. **Ob sie auf der NAS existiert, ist nicht belegt.** Eine frühere Fassung dieser Zeile behauptete „erledigt"; der Trockenlauf lief nachweislich unter `AI-ENG-001`, und `HANDOVER.md` führt `agent_identity_create.sql` als nicht ausgeführt. Vor dem nächsten Lauf gegen die Registry nachsehen, nicht gegen die Dokumentation (Befund `G-019`).
+1. **Bus-Identität und Credential** — `AGENT-ENG-001` existierte beim echten
+   Kettenlauf und war aktives Projektmitglied. Das ist historische Evidenz,
+   kein heutiger Zustand; `workercore_prepare.sql` prüft die Registry vor dem
+   nächsten Lauf erneut (Befund `G-019`).
 2. ~~Eigenes Security-Review~~ — erledigt: `evidence/2026-08-31_security_review_agent.md`.
 3. ~~Erster Trockenlauf mit `echo`~~ — erledigt: `evidence/2026-08-31_agent_dryrun.md`.
 4. **Eine Entscheidung, die den kostenpflichtigen Modellbetrieb überhaupt erlaubt.** `DEC-027` und `ENG-008` untersagen ihn ausdrücklich („keine neuen kostenpflichtigen externen Dienste", „kein externer kostenpflichtiger Dienst"). Ohne neue CEO-Entscheidung ist `AGENT_PROVIDER=claude` gesperrt.
@@ -207,9 +226,17 @@ Zwei Eigenschaften, die dabei zählen:
 
 **Geprüft wird vor der Bestätigung, nie danach.** Ein erschöpftes Budget lässt die Nachricht unberührt auf `DELIVERED` stehen, damit ein späterer Lauf sie noch sieht. Bestätigen und dann die Arbeit verweigern würde sie stillschweigend verschlucken.
 
-**Die Kostendecke ist rückblickend — mit einer Ausnahme.** Kosten stehen erst fest, wenn ein Aufruf zurückkommt; die Decke kann also um einen Aufruf überschritten werden. Die Aufruf- und Tokendecken begrenzen deshalb vorausschauend, Geld ist der Rückhalt dahinter.
+**Alle drei Providergrenzen werden vor dem Aufruf atomar reserviert:** ein
+Aufrufslot, konservative Eingabetoken aus UTF-8-Bytes plus Protokollreserve,
+die maximale erlaubte Ausgabe und daraus die Kosten. Ein einzelner Aufruf darf
+damit weder Resttoken noch Restbudget planmäßig überschreiten. Nach Erfolg
+ersetzen echte Usage-Daten die Reserve; fehlen sie oder scheitert der Aufruf,
+bleibt die konservative Buchung bestehen (`G-065`).
 
-Die Ausnahme ist die Decke `0`. Jeder Provider deklariert über `is_paid`, ob er Geld kostet, und ein kostenpflichtiger Provider wird unter einer Nulldecke **vor** dem ersten Aufruf abgewiesen — nicht danach. Ein Provider, der die Angabe vergisst, gilt als kostenpflichtig; die Voreinstellung irrt in Richtung Ablehnung. Der Echo-Provider läuft unter `0` weiter, weil er nichts kostet.
+Jeder Provider deklariert über `is_paid`, ob er Geld kostet. Ein Provider, der
+die Angabe vergisst, gilt als kostenpflichtig; die Voreinstellung irrt in
+Richtung Ablehnung. Der Echo-Provider läuft unter einer Kostendecke von `0`
+weiter, weil seine reservierten Kosten ebenfalls `0` sind.
 
 Damit heißt eine Decke von `0` genau das, wonach es aussieht: „dieser Lauf darf nichts kosten".
 

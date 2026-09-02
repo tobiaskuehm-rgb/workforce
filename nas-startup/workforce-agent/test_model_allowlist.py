@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import dataclasses
 import pathlib
+import types
 import unittest
 import unittest.mock
 
@@ -89,34 +90,45 @@ class TheListIsClosedTest(unittest.TestCase):
         haelt den naechsten Leser vom Nachsehen ab (Leitplanke 7).
         """
         quelle = pathlib.Path(providers.__file__).read_text(encoding="utf-8")
-        self.assertIn("max_tokens=self._max_output_tokens", quelle)
+        self.assertIn('"max_tokens": self._max_output_tokens', quelle)
         self.assertNotIn("max_tokens=MAX_REPLY_TOKENS", quelle)
 
     def test_the_call_cost_ceiling_is_checked_before_the_call(self) -> None:
         klein = model_allowlist.ALLOWLIST["claude-haiku-4-5"]
-        model_allowlist.assert_within_call_cost(klein, klein.max_input_chars)
+        model_allowlist.assert_within_call_cost(
+            klein, system="System", content="x" * klein.max_input_chars)
         teuer = dataclasses.replace(klein, max_cost_usd_per_call=0.001)
         with self.assertRaises(model_allowlist.ModelNotAllowed) as caught:
-            model_allowlist.assert_within_call_cost(teuer, 100)
+            model_allowlist.assert_within_call_cost(
+                teuer, system="System", content="x" * 100)
         self.assertIn("AGENT_MODEL_CALL_TOO_EXPENSIVE", str(caught.exception))
 
     def test_the_worst_case_is_an_upper_bound_and_not_a_guess(self) -> None:
-        # Eingabe geschaetzt, Ausgabe durch die Decke begrenzt, die der
-        # Provider der API mitgibt - deshalb ist das Produkt eine echte
-        # Obergrenze und ein Vorabtest ueberhaupt moeglich.
+        # Eingabe konservativ aus Bytes plus Protokollreserve, Ausgabe durch
+        # die Decke begrenzt, die der Provider der API mitgibt.
         m = model_allowlist.ALLOWLIST["claude-opus-5"]
-        wenig = model_allowlist.worst_case_cost(m, 100)
-        viel = model_allowlist.worst_case_cost(m, m.max_input_chars)
+        wenig = model_allowlist.worst_case_cost(
+            m, system="System", content="x" * 100)
+        viel = model_allowlist.worst_case_cost(
+            m, system="System", content="x" * m.max_input_chars)
         self.assertLess(wenig, viel)
-        self.assertGreater(wenig, m.estimated_cost(25, 0),
+        self.assertGreater(wenig, m.estimated_cost(100, 0),
                            "die Ausgabe muss mitgerechnet sein")
+
+    def test_the_input_reservation_is_conservative_for_unicode_and_framing(self) -> None:
+        text = "🚀ä"
+        reserved = model_allowlist.conservative_input_tokens(
+            system="System", content=text)
+        self.assertGreater(reserved, len("System") + len(text))
+        self.assertGreaterEqual(reserved, len(text.encode("utf-8")))
 
     def test_every_listed_model_stays_under_its_own_call_ceiling(self) -> None:
         # Eine Decke, die schon der Normalfall reisst, waere keine Kontrolle,
         # sondern eine Abschaltung.
         for name, m in model_allowlist.ALLOWLIST.items():
             with self.subTest(modell=name):
-                model_allowlist.assert_within_call_cost(m, m.max_input_chars)
+                model_allowlist.assert_within_call_cost(
+                    m, system="System", content="x" * m.max_input_chars)
 
     def test_every_entry_is_complete(self) -> None:
         # A ceiling of zero would read as "unlimited" to a careless caller.
@@ -126,6 +138,8 @@ class TheListIsClosedTest(unittest.TestCase):
                 self.assertGreater(m.max_input_chars, 0)
                 self.assertGreater(m.max_output_tokens, 0)
                 self.assertTrue(m.task_classes)
+                self.assertIn(m.thinking_mode, (None, "adaptive"))
+                self.assertIn(m.effort, (None, "medium"))
                 self.assertTrue(set(m.task_classes) <= set(model_allowlist.TASK_CLASSES))
                 if m.is_paid:
                     self.assertGreater(m.price_input_per_million, 0)
@@ -151,6 +165,60 @@ class TheTariffHasOneSourceTest(unittest.TestCase):
             with self.subTest(modell=name):
                 self.assertGreaterEqual(ein, p_in)
                 self.assertGreaterEqual(aus, p_out)
+
+    def test_sonnet_uses_the_permanent_launch_tariff_verified_2026_09_02(self) -> None:
+        sonnet = model_allowlist.ALLOWLIST["claude-sonnet-5"]
+        self.assertEqual((2.0, 10.0), (
+            sonnet.price_input_per_million,
+            sonnet.price_output_per_million,
+        ))
+
+
+class ClaudeRequestCapabilitiesTest(unittest.TestCase):
+    class Messages:
+        def __init__(self, model):
+            self.model = model
+            self.request = None
+
+        def create(self, **kwargs):
+            self.request = kwargs
+            return types.SimpleNamespace(
+                model=self.model,
+                usage=types.SimpleNamespace(input_tokens=10, output_tokens=5),
+                stop_reason="end_turn",
+                content=[types.SimpleNamespace(type="text", text="Antwort")],
+            )
+
+    @staticmethod
+    def provider(model):
+        provider = object.__new__(providers.ClaudeProvider)
+        provider.model = model
+        provider._model_config = model_allowlist.ALLOWLIST[model]
+        provider._max_output_tokens = provider._model_config.max_output_tokens
+        messages = ClaudeRequestCapabilitiesTest.Messages(model)
+        provider._client = types.SimpleNamespace(
+            beta=types.SimpleNamespace(messages=messages))
+        error = type("FakeAnthropicError", (Exception,), {})
+        provider._anthropic = types.SimpleNamespace(
+            RateLimitError=error,
+            AuthenticationError=error,
+            BadRequestError=error,
+            APIConnectionError=error,
+            APIStatusError=error,
+        )
+        return provider, messages
+
+    def test_haiku_gets_no_unsupported_thinking_or_effort(self) -> None:
+        provider, messages = self.provider("claude-haiku-4-5")
+        provider.complete(system="System", content="Inhalt")
+        self.assertNotIn("thinking", messages.request)
+        self.assertNotIn("output_config", messages.request)
+
+    def test_sonnet_gets_only_its_declared_capabilities(self) -> None:
+        provider, messages = self.provider("claude-sonnet-5")
+        provider.complete(system="System", content="Inhalt")
+        self.assertEqual({"type": "adaptive"}, messages.request["thinking"])
+        self.assertEqual({"effort": "medium"}, messages.request["output_config"])
 
 
 class TheProviderFactoryRefusesTest(unittest.TestCase):

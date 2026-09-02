@@ -90,6 +90,11 @@ class EveryRequiredFigureIsPresentTest(unittest.TestCase):
         # waere schlechter als gar keine.
         self.assertTrue(self.operation["tokens_estimated"])
         self.assertGreater(self.operation["input_tokens"], 0)
+        self.assertEqual(
+            model_allowlist.ALLOWLIST["echo-v1"].max_output_tokens,
+            self.operation["output_tokens"],
+            "fehlende Usage muss die konservative Ausgabe-Reserve behalten",
+        )
 
     def test_the_cost_ceiling_stands_next_to_the_estimate(self) -> None:
         # Eine Zahl ohne ihre Grenze sagt nichts darueber, ob der Lauf drin blieb.
@@ -215,6 +220,18 @@ class RefusalsAreVisibleTest(unittest.TestCase):
         self.assertEqual("REFUSED", operation.outcome)
         self.assertIn("AGENT_MODEL_NOT_CONFIGURED", operation.refusal or "")
         self.assertEqual(0, operation.provider_calls)
+
+    def test_a_failed_provider_is_not_reported_as_zero_usage(self) -> None:
+        report = bericht()
+        agent_worker.handle_message(
+            FakeBus(), ScriptedProvider(error="AGENT_PROVIDER_UNREACHABLE"),
+            message(), policy="BODY", report=report,
+            budget=budget_module.Budget(max_cost_usd=1.0),
+        )
+        operation = report.operations[0]
+        self.assertEqual(1, operation.provider_calls)
+        self.assertTrue(operation.tokens_estimated)
+        self.assertGreater(operation.input_tokens + operation.output_tokens, 0)
 
 
 class AnAbortedRunSaysSoTest(unittest.TestCase):

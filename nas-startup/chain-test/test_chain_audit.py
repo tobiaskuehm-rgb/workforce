@@ -125,6 +125,14 @@ class TheRequiredStepsAreTheChainTest(unittest.TestCase):
         # nicht in die Erinnerung dessen, der sie geschrieben hat.
         self.assertIn("nicht rekonstruierbar", self.sql)
 
+    def test_telegram_update_id_is_derived_not_operator_supplied(self) -> None:
+        # Telegram owns this id. A hard-coded -v update_id=0 selected no run,
+        # while a copied id could silently select the wrong one.
+        self.assertNotIn(":'update_id'", self.sql)
+        self.assertIn("regexp_replace(ev.request_id, '-TASK$', '-')", self.sql)
+        self.assertIn("ev.record_key = current_setting('chain.task_id')", self.sql)
+        self.assertIn("ev.actor_id = current_setting('chain.connector')", self.sql)
+
 
 if __name__ == "__main__":
     unittest.main()

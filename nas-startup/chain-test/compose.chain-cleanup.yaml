@@ -8,9 +8,9 @@ services:
     image: postgres:17-alpine
     environment:
       DB_HOST: db
-      # Must match the prepare step, or nothing is revoked and the final check
-      # inside the SQL fails loudly rather than quietly.
-      CHAIN_RUN_SUFFIX: "CHAIN20260901"
+      # Must come from the same chain-run.env as prepare and runtime. An
+      # omitted value stops Compose before a mismatched cleanup can run.
+      CHAIN_RUN_SUFFIX: "${CHAIN_RUN_SUFFIX:?use the chain-run.env from prepare}"
     volumes:
       - ../startup.db.env:/run/startup.db.env:ro
       - ./chain_cleanup.sql:/opt/startup-chain/chain_cleanup.sql:ro

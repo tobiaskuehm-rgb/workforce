@@ -15,9 +15,9 @@ services:
       # DEC-023/ENG-007 into bus records because its validator demands that
       # shape - see chain.env.example.
       CHAIN_SOURCE_REF: "CEO-CHAT-2026-09-01/PENDING-DEC"
-      # Bump per run. A REVOKED identity can never be reactivated, so the
-      # connector identity CEO-TG-<suffix> must be new every time.
-      CHAIN_RUN_SUFFIX: "CHAIN20260901"
+      # One fresh value from chain-run.env drives prepare, runtime, audit and
+      # cleanup. No reusable default: an omitted value must stop the window.
+      CHAIN_RUN_SUFFIX: "${CHAIN_RUN_SUFFIX:?copy chain-run.env.example to chain-run.env and set a fresh suffix}"
       CHAIN_SECRET_DIR: /run/startup-chain-secrets
     volumes:
       - ../startup.db.env:/run/startup.db.env:ro

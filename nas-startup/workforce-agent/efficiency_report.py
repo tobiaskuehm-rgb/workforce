@@ -16,10 +16,11 @@ opposite of data minimisation.
 Two numbers deserve care.
 
 *Tokens.* A provider may or may not report usage; the echo provider never
-does. Where a count is missing it is estimated at four characters per token
-and the record says `tokens_estimated: true`. An estimate that cannot be told
-apart from a measurement is worse than no estimate, so the flag is not
-optional and the summary repeats it.
+does. Where a count is missing, the worker records the same conservative
+reservation as the hard budget: UTF-8 input bytes plus framing headroom and
+the model's maximum output. The record says `tokens_estimated: true`. An
+estimate that cannot be told apart from a measurement is worse than no
+estimate, so the flag is not optional and the summary repeats it.
 
 *Cost.* Always an estimate from the listed tariff, never a bill. It is
 reported next to the ceiling it is measured against, because a number without

@@ -349,6 +349,22 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 31. **Ein Feld in einer Allowlist, das niemand liest, ist eine Zusicherung ohne Deckung** (`G-057`). `model_allowlist.py` erklärte je Modell `max_output_tokens` und `max_cost_usd_per_call` — und der Provider gab weiter die Modulkonstante `MAX_REPLY_TOKENS` an die API, während den Kostendeckel gar nichts las. Beides am selben Tag geschrieben wie die Datei selbst, beides beim Nachlesen gefunden, nicht beim Schreiben. Das ist Leitplanke 7 in ihrer unauffälligsten Form: Nicht ein Kommentar behauptet die Absicherung, sondern ein **Konfigurationsfeld** — und das wirkt noch verbindlicher. Die Ausgabedecke ist jetzt die des Modells; der Kostendeckel wird **vor** dem Aufruf geprüft, und das geht nur, weil die Ausgabe durch dieselbe Decke begrenzt ist: geschätzte Eingabe mal Tarif plus maximale Ausgabe mal Tarif ist eine echte Obergrenze, keine Schätzung. Die laufweite Kostendecke kann das nicht leisten — Kosten sind erst hinterher bekannt, und genau deshalb steht in der CEO-Ergänzung „vor jedem Provideraufruf … geprüft und reserviert". **Eine Decke, die schon der Normalfall reißt, wäre keine Kontrolle, sondern eine Abschaltung**; ein Test hält deshalb fest, dass jedes gelistete Modell bei voller Datenmenge unter seiner eigenen Decke bleibt.
 
+32. **Der Manifestumfang braucht eine zweite Prüfung auf der obersten Ebene** (`G-060`): `verify_manifest.sh` sieht nur genannte Pfade, deshalb muss `check_unmanaged.sh` jeden übrigen Top-Level-Namen ohne Shell-Worttrennung entweder begründet erlauben oder als genau einen Fund melden.
+
+33. **Ein Container-Build wird gegen die Importmenge seines tatsächlichen `COPY` geprüft** (`G-061`): Ein lokal grünes Modul nützt nichts, wenn der Dockerfile seine Abhängigkeit nicht ins Image nimmt; der Einstiegspunkt muss aus einem nachgebauten Copy-Set importierbar sein.
+
+34. **Zwei Testpakete mit Kanal und Credentials sind zwei Berechtigungsfenster** (`G-062`): Das erste wird vollständig zurückgebaut und mit `DISABLED` plus null aktiven Credentials nachgemessen, bevor der Prepare des zweiten startet.
+
+35. **Ein Lauf hat genau eine validierte Parameterquelle** (`G-063`): Identität, Task, Prepare, Audit und Cleanup leiten sich daraus ab, fremd vergebene IDs werden aus der Auditspur ermittelt, und jede Secretdatei wird über ihren exakten Pfad gelöscht und auf Abwesenheit geprüft.
+
+36. **Ein Deploy-Schritt überträgt genau die Dateimenge, die sein Manifest gehasht hat** (`G-064`): Ein Rollout verlangt einen sauberen Git-Baum, verwendet eine gemeinsam erzeugte Transferliste und akzeptiert auf dem Ziel nur `dirty=no`; Manifest-Erzeugung allein ist kein Deploy.
+
+37. **Providerbudget wird vor externer Arbeit atomar reserviert** (`G-065`): Aufrufslot, konservative Eingabe, maximale Ausgabe und Kosten müssen gemeinsam in den Rest passen; fehlende oder fehlerhafte Usage darf die Reserve niemals zu null machen.
+
+38. **Modellname, Tarif und Request-Fähigkeiten sind ein Vertrag mit Prüftag** (`G-066`): Jeder Allowlist-Eintrag sendet nur unterstützte Parameter; angekündigte Preisänderungen werden am Wirksamkeitstag erneut gegen die offizielle Quelle geprüft und weder vorschnell noch aus einem stillen Fallback übernommen.
+
+39. **Aktive Betriebsdokumentation trennt belegte Gegenwart, datierte Historie und geplante Phase** (`G-067`): Entscheidungskopf und Roadmap nennen den aktuellen Autoritätsstand, während alte Versionen oder „noch nie gelaufen" nur in eindeutig historischem Kontext stehen dürfen.
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.

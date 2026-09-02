@@ -95,6 +95,11 @@ run_gate "Backup-Inhalt" check_backup_integrity.sh
 # Am 2026-09-02 zeigte er einen Tag lang auf ein fremdes Geraet, ohne dass
 # irgendetwas es gemerkt haette - die lokalen Suiten laufen ohne Netz.
 run_gate "Bus-Adresse" check_bus_address.sh
+# Das Manifest prueft, was *innerhalb* der genannten Pfade liegt. Diese
+# Pruefung stellt die andere Frage: was liegt daneben und wird von gar
+# keiner Liste gesehen (G-060)? Ein ganzer Ordner faellt sonst durch,
+# und das Manifest meldet dazu PASS.
+run_gate "Unverwaltetes" check_unmanaged.sh
 
 echo
 echo "--- Rueckfallpunkte ---"

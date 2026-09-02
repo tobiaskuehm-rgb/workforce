@@ -77,13 +77,36 @@ denselben Inhalt ein zweites Mal.
 ## 4. Zielmanifest und Deploy
 
 ```bash
-cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && sh deploy_manifest.sh
-ssh synology "cd /volume1/docker/Startup && sh verify_manifest.sh"
+cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && REQUIRE_CLEAN=1 DEPLOY_FILE_LIST_OUT=/tmp/startup-phase5-files.txt sh deploy_manifest.sh
+cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && COPYFILE_DISABLE=1 tar czf - -T /tmp/startup-phase5-files.txt | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
+ssh synology "cd /volume1/docker/Startup && grep -qx 'dirty=no' DEPLOY_MANIFEST.txt && sh verify_manifest.sh && sh check_unmanaged.sh"
 ```
 
-Abbruch bei `fehlend`, `abweichend` oder `unerwartet` ungleich 0. Die Pfadliste
-steht seit `G-052` versioniert in `deploy_paths.txt`; ein Skript, das dort
-fehlt, wird nicht als fehlend gemeldet, sondern ist schlicht nicht abgedeckt.
+Der erste Befehl bricht bei einem schmutzigen Git-Baum ab und erzeugt die
+Transferliste aus genau derselben Git-Dateimenge, deren Hashes im Manifest
+stehen. Der zweite Befehl **überträgt** diese Dateien; ein nur lokal erzeugtes
+Manifest ist noch kein Deploy (`G-064`). Der dritte verlangt auf der NAS
+`dirty=no`, keine fehlende, abweichende oder unerwartete Datei und keinen
+unverwalteten Top-Level-Pfad. Die Pfadliste steht seit `G-052` versioniert in
+`deploy_paths.txt`; ein Skript, das dort fehlt, ist sonst schlicht nicht
+abgedeckt.
+
+### 4.1 Beide Agent-Images bauen und aus ihrem echten Dateisatz importieren
+
+Der lokale Wächter baut den `COPY`-Satz beider Dockerfiles nach. Der
+verbindliche zweite Beleg ist der echte Build auf der NAS — **vor** Kanal,
+Credentials und Firewall. Die beiden temporären Prüftags ersetzen kein
+Produktivimage und werden unmittelbar danach entfernt (`G-061`).
+
+```bash
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker build --pull=false -t startup-workforce-agent:phase5-smoke -f Dockerfile . && sudo /usr/local/bin/docker run --rm --entrypoint python startup-workforce-agent:phase5-smoke -c 'import agent_worker'"
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker build --pull=false -t startup-worker-core:phase5-smoke -f Dockerfile.workercore . && sudo /usr/local/bin/docker run --rm --entrypoint python startup-worker-core:phase5-smoke -c 'import worker_core_test'"
+ssh synology "sudo /usr/local/bin/docker image rm startup-workforce-agent:phase5-smoke startup-worker-core:phase5-smoke"
+```
+
+Abbruch, wenn ein Build oder Import scheitert. Auch dann die zwei exakten
+Prüftags entfernen; es wurde zu diesem Zeitpunkt noch kein Berechtigungsfenster
+geöffnet.
 
 ## 5. Netzweg öffnen — beim CEO
 
@@ -145,7 +168,22 @@ Erwartet: `BUS LIFECYCLE PASS`, danach `positiv_audit = PASS` und
 `negativ_audit = PASS`. Die Audit-Abfragen binden an exakte Ids, Akteure und
 die vollständige Reihenfolge — „irgendein Datensatz dieses Typs" genügt nicht.
 
-### 6.4 Die zwei liegengebliebenen Nachrichten schließen
+### 6.4 Kernfenster vollständig schließen
+
+Core und Kette sind zwei getrennte Berechtigungsfenster. Der Ketten-Prepare
+verlangt zu Recht `DISABLED` und null aktive Credentials; deshalb wird der
+Core **vor** jedem Ketten-Prepare zurückgebaut und nachgemessen (`G-062`).
+
+```bash
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core-cleanup.yaml run --rm --no-deps -T -e CORE_RUN_SUFFIX=20260902-PHASE5 core-cleanup"
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo rm -f secrets/core_token_connector secrets/core_token_karl secrets/core_token_thorsten"
+ssh synology "cd /volume1/docker/Startup && sh nas_status.sh"
+```
+
+Abbruch, wenn nicht Kanal `DISABLED`, 0 aktive Credentials, fünf Gates
+`PASS` und Exit 0. Erst danach darf ein separates Kettenfenster beginnen.
+
+### 6.5 Die zwei liegengebliebenen Nachrichten
 
 `G-053`: Zwei Antworten des Agenten vom 2026-09-01 stehen im Posteingang der
 Identität `CEO-TG-CHAIN20260901` auf `DELIVERED`. Sie werden über die Regeln
@@ -161,43 +199,59 @@ neuer Identität läuft. Ich schlage das Zweite vor — der Befund ist behoben,
 der Altbestand ist benannt, und ein Zugang für eine stillgelegte Identität
 schafft mehr Angriffsfläche als er Ordnung schafft.
 
-### 6.5 Kettenlauf und `chain_audit.sql`
+### 6.6 Separates Kettenfenster und `chain_audit.sql`
 
 Braucht zusätzlich einen Telegram-Testbot und die breitere Firewall-Regel.
 **Ohne Bot-Token entfällt dieser Schritt**, und dann bleibt `G-030` offen —
 das ist der Preis und er gehört benannt, nicht übersprungen.
 
-Die Schrittfolge steht in `chain-test/README.md` und wird hier **nicht neu
-erfunden** — sie ist einmal real gelaufen und hat dabei ihre Form bekommen:
+Vor Beginn wird genau eine frische Laufkonfiguration angelegt. Sie bleibt bis
+nach Audit und Cleanup dieselbe; dadurch können Suffix, Identität, Task und
+Rückbau nicht mehr auseinanderlaufen (`G-063`):
 
 ```bash
-ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-prepare.yaml up --abort-on-container-exit"
-ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-run.yaml up --build"
+ssh synology "cd /volume1/docker/Startup/chain-test && cp chain-run.env.example chain-run.env"
+```
+
+Jetzt in `chain-run.env` einen neuen Suffix und den dazu passenden Task setzen,
+dann prüfen. Keine Zugangsdaten gehören in diese Datei.
+
+```bash
+ssh synology "cd /volume1/docker/Startup/chain-test && sh validate_chain_run_config.sh chain-run.env"
+```
+
+Die weitere Schrittfolge steht auch in `chain-test/README.md`:
+
+```bash
+ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose --env-file chain-run.env -f compose.chain-prepare.yaml run --rm --no-deps -T chain-prepare"
+ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose --env-file chain-run.env -f compose.chain-run.yaml up --build"
 ```
 
 **Der nächste Schritt ist von Hand.** Der Kettenlauf startet zwei Container,
 die auf Telegram warten; die Anfrage tippt der CEO im Chat:
 
 ```text
-/task AGENT-ENG-001 ENG-CHAIN-PHASE5 | Kurze Lagebeurteilung | Drei Saetze
+/task AGENT-ENG-001 <CHAIN_TASK_ID aus chain-run.env> | Kurze Lagebeurteilung | Drei Saetze
 ```
 
 Erwartet: erst `PENDING … registriert`, dann eine `NACHRICHT`-Benachrichtigung.
 Danach beide Container beenden:
 
 ```bash
-ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-run.yaml down"
+ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose --env-file chain-run.env -f compose.chain-run.yaml down"
 ```
 
 Danach die Rekonstruktion, lesend:
 
 ```bash
-ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose cp chain-test/chain_audit.sql db:/tmp/chain_audit.sql && sudo /usr/local/bin/docker compose exec -T db psql -U workforce_app -d workforce -v ON_ERROR_STOP=1 -v run_suffix=PHASE5 -v update_id=0 -v task_id=ENG-CHAIN-PHASE5 -f /tmp/chain_audit.sql"
+ssh synology "cd /volume1/docker/Startup/chain-test && sh validate_chain_run_config.sh chain-run.env && . ./chain-run.env && sudo /usr/local/bin/docker compose -f ../compose.yaml cp chain_audit.sql db:/tmp/chain_audit.sql && sudo /usr/local/bin/docker compose -f ../compose.yaml exec -T db psql -U workforce_app -d workforce -v ON_ERROR_STOP=1 -v run_suffix=\"\$CHAIN_RUN_SUFFIX\" -v task_id=\"\$CHAIN_TASK_ID\" -f /tmp/chain_audit.sql"
 ```
 
 Erwartet: `positiv_audit = PASS` mit fünf von fünf Etappen — einschließlich
 `connector_acknowledges_the_reply`, das vor `G-053` strukturell fehlte — und
-`nichts_offen = PASS`. Danach die Kopie im Container entfernen:
+`nichts_offen = PASS`. Die Telegram-Update-ID wird aus dem Task-Ereignis
+abgeleitet; `update_id=0` oder eine manuell kopierte ID gibt es nicht mehr.
+Danach die Kopie im Container entfernen:
 
 ```bash
 ssh synology "cd /volume1/docker/Startup && sudo /usr/local/bin/docker compose exec -T db rm -f /tmp/chain_audit.sql"
@@ -213,13 +267,13 @@ Gelesen wird er als Ganzes: Datenmenge, Felder, Provideraufrufe, Tokens
 beziehungsweise gekennzeichnete Schätzung, Kostenobergrenze, Route und
 Dublettenentscheidung je Vorgang.
 
-## 8. Rückbau
+## 8. Rückbau des Kettenfensters
 
 In dieser Reihenfolge, und jeder Schritt wird **nachgemessen**:
 
 ```bash
-ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core-cleanup.yaml run --rm --no-deps -T -e CORE_RUN_SUFFIX=20260902-PHASE5 core-cleanup"
-ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-cleanup.yaml up --abort-on-container-exit"
+ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose --env-file chain-run.env -f compose.chain-cleanup.yaml run --rm --no-deps -T chain-cleanup"
+ssh synology "cd /volume1/docker/Startup/chain-test && sudo rm -f secrets/chain_token_connector secrets/chain_token_agent secrets/telegram_bot_token && test ! -e secrets/chain_token_connector && test ! -e secrets/chain_token_agent && test ! -e secrets/telegram_bot_token"
 ```
 
 Danach:
@@ -234,24 +288,20 @@ Erwartet: Kanal `DISABLED`, 0 aktive Credentials, fünf Gates `PASS`, Exit 0.
 dokumentierte Rücknahme, die nie stattgefunden hat, ist schlimmer als eine
 offene Regel.
 
-**Die Token-Dateien löscht der Rückbau nicht** — `core_cleanup` erinnert nur
-daran. Also von Hand, und danach hinsehen:
-
-```bash
-ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo rm -f secrets/core_token_* && ls -A secrets/"
-```
-
-Erwartet: **keine Ausgabe.** `check_secret_files.sh` ist hier das falsche
-Werkzeug — es prüft die *Form* vorhandener Geheimnisse (Länge, Zeichenklasse,
-RTF-Signaturen) und sagt über einen leeren Ordner nichts. Ein Skript, das
-nichts findet und nichts meldet, liest sich sonst wie ein bestandener Test.
+Die drei exakten Ketten-Tokenpfade werden gelöscht und ihre Abwesenheit wird
+im selben Befehl geprüft. Wildcards und ein bloßes leeres `ls` sind kein
+Nachweis. `chain-run.env` enthält keine Zugangsdaten; sie bleibt für die
+Zuordnung des Nachweises erhalten und kann anschließend in `Versionen/`
+datiert abgelegt werden.
 
 ## 9. Abbruch
 
-Bei jedem Abbruchkriterium: Rückbau nach Abschnitt 8 fahren, dann
-`nas_status.sh`. Das Fenster ändert weder Schema noch Image, ein Rückfall auf
-die Sicherung ist deshalb **nicht** nötig — was zurückzunehmen ist, sind
-Kanalzustand und Credentials, und beides tut der Rückbau.
+Bei einem Abbruch im Core-Fenster: Abschnitt 6.4 fahren. Bei einem Abbruch
+**nach erfolgreichem Ketten-Prepare**: Abschnitt 8 fahren. Chain-Cleanup darf
+nicht mit einem unbekannten Suffix probeweise gestartet werden; sein Guard
+verweigert das zu Recht. Danach immer `nas_status.sh`. Das Fenster ändert weder
+Schema noch Image, ein Rückfall auf die Sicherung ist deshalb **nicht** nötig
+— zurückzunehmen sind Kanalzustand, Credentials und Token-Dateien.
 
 Sollte doch ein Schemazustand entstanden sein, der nicht vorgesehen war: Die
 Sicherung aus Abschnitt 3 ist der Rückfallpunkt, und der Weg dahin steht in

@@ -15,7 +15,11 @@
 #   sh deploy_manifest.sh <pfad> ...   # nimmt stattdessen die Argumente
 
 # --- Laufzeitpakete ---
+bus-realtest
 chain-test
+# Runbook helper: keep its name explicit so the runbook/deploy guard can
+# prove that the exact validation command is shipped.
+chain-test/validate_chain_run_config.sh
 telegram-connector
 workforce-agent
 workforce-api
@@ -31,6 +35,7 @@ nas_status.sh
 check_backup_permissions.sh
 check_backup_integrity.sh
 check_bus_address.sh
+check_unmanaged.sh
 check_secret_files.sh
 harden_backup_permissions.sh
 backup_task.sh
@@ -55,3 +60,10 @@ NEXT_STEPS_KARL_THORSTEN.md
 BUS_REALTEST_KARL_THORSTEN_RUNBOOK.md
 PHASE4_RUNBOOK.md
 PHASE5_RUNBOOK.md
+2026-08-13_workforce_bus_nas_deployment.md
+ACCEPTANCE_CHECKLIST.md
+BERICHT_FUER_GERD.md
+BUS_PACKAGE_MANIFEST.md
+DEC_ENTWUERFE_2026-08-31.md
+GESAMTREVIEW_GERD_2026-09-01.md
+WORKFORCE_BUS_ROLLOUT.md
