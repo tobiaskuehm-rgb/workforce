@@ -141,6 +141,41 @@ class ADoubleDeliveryCostsOneCallTest(unittest.TestCase):
              efficiency_report.DUPLICATE_SUPPRESSED], entscheidungen)
         self.assertEqual(1, report.as_dict()["totals"]["duplicates_suppressed"])
 
+    def test_identical_content_under_two_ids_is_two_operations(self) -> None:
+        """"Inhaltsaehnlichkeit allein darf keine automatische Wiederverwendung
+        ausloesen, weil dadurch Daten zwischen Aufgaben vermischt werden
+        koennten." (CEO-Ergaenzung Phase 5, Punkt 3.)
+
+        Die Kontrolle ist hier eine Abwesenheit - es gibt keinen
+        Aehnlichkeitsvergleich -, und Abwesenheiten verschwinden lautlos.
+        Deshalb steht sie als Test da: zwei Nachrichten mit identischem Rumpf
+        und verschiedener Id sind zwei Vorgaenge, nicht einer.
+        """
+        report = bericht()
+        provider = ScriptedProvider()
+        bus = FakeBus()
+        for kennung in ("MSG-" + "C" * 32, "MSG-" + "D" * 32):
+            agent_worker.handle_message(
+                bus, provider, message(message_id=kennung, body="Wortgleich."),
+                policy="BODY", state=self.store, report=report)
+
+        self.assertEqual(2, len(provider.seen), "beide muessen gefragt werden")
+        self.assertEqual(2, report.provider_calls)
+        self.assertEqual(
+            [efficiency_report.FIRST_DELIVERY, efficiency_report.FIRST_DELIVERY],
+            [o.duplicate_decision for o in report.operations])
+        # Und der Digest taugt auch nicht versehentlich als
+        # Wiederverwendungsschluessel: Er deckt die ganze uebertragene Nutzlast
+        # ab, zu der die Nachrichten-Id gehoert. Zwei wortgleiche Nachrichten
+        # haben deshalb verschiedene Digests. Er weist aus, *was uebertragen
+        # wurde*, nicht *welcher Text darin stand* - was die staerkere
+        # Eigenschaft ist, aber nicht die, die ich zuerst erwartet hatte.
+        self.assertNotEqual(report.operations[0].payload_sha256,
+                            report.operations[1].payload_sha256)
+        self.assertEqual(report.operations[0].chars_sent,
+                         report.operations[1].chars_sent,
+                         "gleich lang waren sie trotzdem")
+
     def test_without_the_store_the_suppression_would_not_happen(self) -> None:
         # Die Gegenprobe: der Nachweis oben belegt eine Kontrolle, nicht einen
         # Zufall. Ohne Zustandsspeicher wird zweimal gefragt - genau der
