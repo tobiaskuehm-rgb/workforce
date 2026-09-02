@@ -1,28 +1,42 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-02 — von Gerd.
+**Zuletzt aktualisiert:** 2026-09-02 — von Claude Code.
 
-**Zuletzt geprüft:** 2026-09-02 — von Claude Code. Gerds sieben Befunde sind
-beantwortet (`REVIEW_ANTWORTEN.md`), seine Korrekturen **nachgemessen statt
-übernommen**: sechs bestätigt und wirksam, `G-066` zur Hälfte. In seiner
-`G-063`-Korrektur steckte ein neuer Fehler — der Kernfenster-Rückbau löschte
-zwei Tokendateien, die es nie gab, und ließ zwei echte liegen; das ist jetzt
-`G-068` mit Regel 40 und einem Wächter. Beim ersten echten Deploy über den
-neuen `G-064`-Mechanismus kam `G-069` dazu: ein überdeckter Pfad in
-`deploy_paths.txt` hätte das Manifest-Gate dauerhaft rot gehalten — genau
-das Gate, das Abschnitt 4 des Phase-5-Runbooks verlangt. **`G-061` habe ich unabhängig
-reproduziert**, indem ich die `COPY`-Menge beider Dockerfiles nachgebaut und
-den Einstiegspunkt importiert habe.
+**Zuletzt geprüft:** 2026-09-02 — von Gerd, vierzehnter Zielnachcheck auf
+Commit `25c3b10`. Vier Befunde zur Owner-Migration und zum Phase-5-Runbook:
+`G-070` bis `G-073`. **Alle vier selbst nachgeprüft, alle vier bestätigt** und
+mit je einem eigenen Commit behoben; Antworten in `REVIEW_ANTWORTEN.md`, Regeln
+42 bis 45 in `CLAUDE.md`.
 
-**Aktive Arbeit:** Auf direkte Bitte des Nutzers hat Gerd während Claudes
-Nutzungslimit die lokalen Korrekturen zu `G-061` bis `G-067` übernommen. Code,
-Tests, Runbook und Statusdokumente sind geändert; **580 lokale Tests sind
-PASS**. Die API-Suite wurde mangels lokalem `pytest` nicht erneut ausgeführt;
-API-Code wurde in diesem Paket nicht geändert. Der echte Build beider
-Agent-Images und jeder NAS-Lauf bleiben Bestandteil des gesondert
-freizugebenden Phase-5-Fensters. Auf der NAS wurde dadurch weder Code deployt
-noch ein Kanal, Credential, Gate oder Modell aktiviert. Einzelheiten und die
-Korrektur von Gerds eigener Sonnet-Preisannahme stehen in `REVIEW_GERD.md`.
+Bei dreien kam beim Beheben etwas heraus, das im Befund nicht steht:
+
+- `G-070` — die Probe las den Eventzähler mit einem vorangestellten
+  `RESET ROLE`, dessen Statuszeile `isdigit()` scheitern lässt. Der
+  Audit-Trigger wäre also **auch bei korrektem Verhalten** als „nicht gefeuert"
+  gemeldet worden, und das alte Urteil hätte es verschluckt. Zwei Fehler, die
+  einander verdeckten — dieselbe Konstellation wie `G-059`.
+- `G-071` — eine Allowlist nur aus den zwölf Funktionsrümpfen wäre **zu eng**
+  geworden. `bus_events` steht in keinem davon; der `INSERT` kommt aus dem
+  Trigger `bus_record_change`, der als Aufrufer läuft. Ohne das Recht stünde
+  die Auditspur still.
+- `G-072` — nach der Umstellung auf den Wegwerf-Container meldete
+  `token_cleanup_offenders()` sauber `[]`, weil es die neue Form gar nicht
+  ansieht: Es suchte `" rm -f "` mit führendem Leerzeichen. Ein Wächter, der
+  nichts findet und nichts meldet.
+
+**Aktive Arbeit:** keine. Der Stand ist deployt und manifestiert.
+
+**Was auf eine Entscheidung wartet:** Migration `009` ist gegatet und nicht
+angewendet; `g045_owner_probe.py` ist nie gelaufen. Ein Probe-Lauf ist eine
+Ausführung auf der NAS und braucht die Freigabe des CEO. Die Probe beantwortet
+dabei zugleich die eine Frage, die die PostgreSQL-Dokumentation offen lässt:
+ob eine `GENERATED ALWAYS AS IDENTITY`-Spalte beim `INSERT` Sequenzrechte
+verlangt. Bis dahin erteilt `009` keine — ein Recht auf Verdacht wäre derselbe
+Fehlgriff wie das `EXECUTE`, das aus derselben Datei schon einmal wieder
+herausgeflogen ist.
+
+**Phase 5 bleibt ROT.** Kein Kanal, kein Credential, kein Modellaufruf, kein
+Build auf der NAS. `G-030` — die Kette ist nie durchgelaufen — bleibt offen.
 
 ## Wie die Zusammenarbeit läuft
 
