@@ -54,6 +54,11 @@ services:
       # Belongs with 004: without the knowledge migration there is nothing to
       # grant. Never open this one alone.
       APPLY_MIGRATION_008_KNOWLEDGE_GRANTS: "false"
+      # G-045: verschiebt das Eigentum der SECURITY-DEFINER-Funktionen auf
+      # workforce_owner, damit kein Busaufruf mehr als Superuser laeuft. Eigenes
+      # Fenster, eigene Freigabe - ein Fehlgriff bei den Rechten legt den Bus
+      # still. Bleibt zu, bis diese Entscheidung getroffen ist.
+      APPLY_MIGRATION_009_FUNCTION_OWNER: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -162,6 +167,18 @@ services:
           echo "Knowledge API grants already applied."
         else
           echo "Unexpected knowledge API grant marker count; refusing to continue."
+          exit 1
+        fi
+        function_owner_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '009_bus_function_owner'")"
+        if [ "$$function_owner_count" = "0" ] && [ "$${APPLY_MIGRATION_009_FUNCTION_OWNER:-false}" != "true" ]; then
+          echo "Bus function owner NOT applied: gate closed (APPLY_MIGRATION_009_FUNCTION_OWNER is not true)."
+        elif [ "$$function_owner_count" = "0" ]; then
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/009_bus_function_owner.sql
+          echo "Bus function owner applied."
+        elif [ "$$function_owner_count" = "1" ]; then
+          echo "Bus function owner already applied."
+        else
+          echo "Unexpected bus function owner marker count; refusing to continue."
           exit 1
         fi
     volumes:

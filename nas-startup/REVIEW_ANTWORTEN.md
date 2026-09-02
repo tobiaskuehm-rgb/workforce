@@ -2458,3 +2458,86 @@ der das Gate brach. Der Wächter löst Ordnereinträge jetzt auf, und ein Skript
 das nirgends ausgerollt wird, fällt weiterhin auf.
 
 **Regel 41** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
+
+
+---
+
+## `G-045` — die Eigentümertrennung liegt jetzt als Migration vor
+
+**Kein neuer Befund, sondern die Erledigung eines zurückgestellten.** Du hattest
+`G-025` als „nicht per `ALTER ROLE` schließbar" zurückgegeben und die
+Eigentümertrennung als eigene Migration mit eigener Probe und eigener Freigabe
+verlangt. Sie liegt jetzt da — **gegatet und nicht angewendet.**
+
+Ich habe sie bewusst in `postgres-init/` und `postgres-tests/` gebaut: Das sind
+die einzigen beiden Ordner, die deine zwölfte Runde gar nicht berührt hat.
+Solange du an `workforce-agent/` und `chain-test/` arbeitest, kommen wir uns
+dort nicht in die Quere.
+
+### Der gemessene Ausgangszustand
+
+```
+security_definer | eigentuemer   | anzahl
+t                | workforce_app |     12
+f                | workforce_app |     15
+workforce_app: rolsuper = t  (einziger Superuser)
+```
+
+Eine SECURITY-DEFINER-Funktion läuft als ihr Eigentümer. **Zwölf Busaufrufe
+laufen damit heute mit Superuserrechten.**
+
+### Was die Migration tut — und was ausdrücklich nicht
+
+`workforce_owner` wird angelegt: `NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
+NOINHERIT NOBYPASSRLS`. Er bekommt `SELECT, INSERT, UPDATE` auf die Tabellen —
+**kein `DELETE`**, weil hier nichts gelöscht, sondern in einen Status überführt
+wird; `prevent_hard_delete` ist dann die zweite Linie und das fehlende Recht die
+erste.
+
+Die zwölf SECURITY-DEFINER-Funktionen wechseln zu ihm. **Die Tabellen nicht.**
+Das ist der ganze Gewinn: Nur der Eigentümer einer Tabelle oder ein Superuser
+kann `ALTER TABLE … DISABLE TRIGGER`. Ein Funktionseigentümer ohne
+Tabelleneigentum kann das Audit nicht abschalten — genau die Begründung, die
+`006`/`007` für ihre Append-only-Zusicherungen brauchen und die `G-025` in
+seinem alten Zuschnitt nicht eingelöst hätte.
+
+Die fünfzehn übrigen Funktionen bleiben, wo sie sind: Sie laufen ohnehin als
+Aufrufer.
+
+### Zwei Dinge, die erst die Messung gezeigt hat
+
+**Mein eigener Abnahmetest verlangte eine Aufweichung.** Er prüfte, dass
+`workforce_api` `bus_authenticate` ausführen darf. Gegen die Produktion gefahren
+kam `PROBE: ohne EXECUTE: bus_authenticate` — und das ist **richtig so**:
+`bus_authenticate` und `bus_identify_for_audit` sind interne Helfer, die `007`
+der API absichtlich nicht erteilt hat. Hätte jemand den Test „erfüllt", wäre die
+Datenbank weiter geöffnet worden. Der Test prüft jetzt beide Richtungen: die
+zehn aufrufbaren Funktionen bleiben aufrufbar, die zwei internen bleiben
+unerreichbar.
+
+**Eine Annahme steht offen und ist als solche markiert.** Die neun
+Trigger- und Guardfunktionen sind nicht SECURITY DEFINER und bleiben bei
+`workforce_app`. Nach dem Wechsel feuern sie in einem Kontext, in dem
+`workforce_owner` der ausführende Nutzer ist. Nach meinem Verständnis prüft
+PostgreSQL `EXECUTE` auf eine Triggerfunktion beim `CREATE TRIGGER` und nicht
+beim Auslösen — **geprüft habe ich das nicht.** `007` hat EXECUTE von `PUBLIC`
+entzogen; träfe die Annahme nicht zu, stünde der Bus nach dieser Migration
+still.
+
+Deshalb erteilt die Migration `workforce_owner` ausdrücklich `EXECUTE` auf diese
+neun. Der Block steht mit genau dieser Begründung im Code: Er kostet nichts und
+nimmt die Frage aus dem Fenster heraus. Wer sie beantwortet, misst es in einem
+Wegwerf-Container nach und kann den Block dann mit Begründung entfernen.
+
+### Was noch fehlt
+
+**Eine Probe, die die Rollenlage der Produktion nachbaut** (Regel 15) — also ein
+Wegwerf-Container mit `POSTGRES_USER=workforce_app`, in dem die Migration
+wirklich läuft und danach ein Busaufruf gemacht wird. Das ist eine Ausführung
+auf der NAS und braucht die Freigabe des CEO; ich habe sie deshalb nicht
+gefahren.
+
+Belegt ist bisher: Die SQL beider Dateien parst gegen den echten Katalog, jeder
+Block läuft, und der Abnahmetest meldet ohne die Migration korrekt
+`ACCEPTANCE_009_MIGRATION_MISSING`. **Das ist Syntax und Katalogbezug, nicht
+Wirkung.** Der Unterschied gehört hierher.
