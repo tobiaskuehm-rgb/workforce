@@ -123,17 +123,74 @@ def project_directory_offenders(text: str) -> list[str]:
             if "docker compose" in c and f"cd {PROJECT_DIR}" not in c]
 
 
+# Flags and inline environment assignments sit between the subcommand and the
+# service name: `run --rm -T -e CORE_RUN_ID=x prepare`. Both have to be
+# skipped, or the assignment is read as the service.
+_VORSPANN = r"(?:-\S+\s+|\S+=\S+\s+)*"
+
+# `-f <datei>` steht **vor** dem Unterbefehl: `docker compose -f x.yaml up`.
+# Das Muster ohne diesen Teil traf genau die Aufrufe nicht, um die es geht -
+# jeden Aufruf einer Paketdatei.
+_GLOBAL = r"(?:-f\s+\S+\s+|--\S+\s+)*"
+
+SERVICE_PATTERNS = (
+    rf"docker compose\s+{_GLOBAL}exec\s+{_VORSPANN}([A-Za-z0-9_][A-Za-z0-9_-]*)",
+    rf"docker compose\s+{_GLOBAL}cp\s+\S+\s+([A-Za-z0-9_][A-Za-z0-9_-]*):",
+    rf"docker compose\s+{_GLOBAL}(?:restart|start|stop|logs|build|kill|rm)\s+{_VORSPANN}([A-Za-z0-9_][A-Za-z0-9_-]*)",
+    rf"docker compose\s+{_GLOBAL}ps\s+{_VORSPANN}([A-Za-z0-9_][A-Za-z0-9_-]*)",
+    rf"docker compose\s+{_GLOBAL}up\s+{_VORSPANN}([A-Za-z0-9_][A-Za-z0-9_-]*)",
+    rf"docker compose\s+{_GLOBAL}run\s+{_VORSPANN}([A-Za-z0-9_][A-Za-z0-9_-]*)",
+)
+
+
+def compose_file_of(command: str) -> pathlib.Path:
+    """Which compose file a command addresses.
+
+    Without `-f` that is the production compose.yaml. With `-f` it is a
+    package file, resolved relative to the directory the command changes into
+    - `cd /volume1/docker/Startup/workforce-agent` means the file lives in
+    `workforce-agent/`.
+    """
+    treffer = re.search(r"-f\s+(\S+\.ya?ml)", command)
+    if not treffer:
+        return COMPOSE
+    verzeichnis = re.search(
+        r"cd\s+" + re.escape(PROJECT_DIR) + r"(/[A-Za-z0-9_.-]+)?", command)
+    unter = (verzeichnis.group(1) or "").strip("/") if verzeichnis else ""
+    return (NAS / unter / treffer.group(1)) if unter else (NAS / treffer.group(1))
+
+
+def service_offenders(text: str) -> list[str]:
+    """Every service name checked against the file the command really names.
+
+    The first version resolved every name against the production
+    compose.yaml, and had no pattern for `docker compose run` at all. So a
+    package file's services were invisible twice over: wrong file, wrong
+    subcommand. Four invented service names in the first draft of
+    PHASE5_RUNBOOK.md passed it without a word - the same class as G-042, in
+    the same kind of document.
+    """
+    offenders = []
+    for command in commands(text):
+        if "docker compose" not in command:
+            continue
+        datei = compose_file_of(command)
+        if not datei.is_file():
+            offenders.append(f"{datei.name}: Datei fehlt")
+            continue
+        vorhanden = set(compose_scan.scan(datei))
+        for pattern in SERVICE_PATTERNS:
+            for name in re.findall(pattern, command):
+                if name not in vorhanden:
+                    offenders.append(f"{datei.name}: {name}")
+    return sorted(set(offenders))
+
+
 def used_services(text: str) -> set[str]:
-    patterns = (
-        r"docker compose exec\s+(?:-\S+\s+)*([A-Za-z0-9_-]+)",
-        r"docker compose cp\s+\S+\s+([A-Za-z0-9_-]+):",
-        r"docker compose (?:restart|start|stop|logs|build|kill|rm)\s+(?:-\S+\s+)*([A-Za-z0-9_-]+)",
-        r"docker compose ps\s+(?:-\S+\s+)*([A-Za-z0-9_-]+)",
-        r"docker compose up\s+(?:-\S+\s+)*([A-Za-z0-9_-]+)",
-    )
+    """Service names a text mentions, without judging them."""
     found: set[str] = set()
     for command in commands(text):
-        for pattern in patterns:
+        for pattern in SERVICE_PATTERNS:
             found.update(re.findall(pattern, command))
     return found
 
@@ -407,10 +464,46 @@ class RunbookTargetsTest(unittest.TestCase):
     def test_every_compose_command_runs_in_the_project_directory(self) -> None:
         self.check_each(lambda t: self.assertEqual([], project_directory_offenders(t)))
 
-    def test_every_service_exists_in_compose(self) -> None:
-        defined = set(compose_scan.scan(COMPOSE))
-        self.assertTrue(defined, "compose.yaml lieferte keine Dienste")
-        self.check_each(lambda t: self.assertEqual(set(), used_services(t) - defined))
+    def test_every_service_exists_in_the_file_the_command_names(self) -> None:
+        self.assertTrue(set(compose_scan.scan(COMPOSE)),
+                        "compose.yaml lieferte keine Dienste")
+        self.check_each(lambda t: self.assertEqual([], service_offenders(t)))
+
+    def test_an_invented_service_would_be_caught(self) -> None:
+        erfunden = ('```bash\nssh synology "cd /volume1/docker/Startup/workforce-agent '
+                    '&& sudo /usr/local/bin/docker compose -f compose.core.yaml '
+                    'up --abort-on-container-exit gibt-es-nicht"\n```\n')
+        self.assertEqual(["compose.core.yaml: gibt-es-nicht"],
+                         service_offenders(erfunden))
+
+    def test_a_real_service_in_a_package_file_passes(self) -> None:
+        # Ohne diese Gegenprobe waere der Test darueber auch mit einer
+        # Pruefung gruen, die grundsaetzlich alles ablehnt.
+        echt = ('```bash\nssh synology "cd /volume1/docker/Startup/workforce-agent '
+                '&& sudo /usr/local/bin/docker compose -f compose.core.yaml '
+                'up --abort-on-container-exit prepare"\n```\n')
+        self.assertEqual([], service_offenders(echt))
+
+    def test_an_inline_environment_assignment_is_not_a_service(self) -> None:
+        mit_env = ('```bash\nssh synology "cd /volume1/docker/Startup/workforce-agent '
+                   '&& sudo /usr/local/bin/docker compose -f compose.core.yaml '
+                   'run --rm -T -e CORE_RUN_ID=x prepare"\n```\n')
+        self.assertEqual([], service_offenders(mit_env))
+
+    def test_a_bare_flag_is_not_read_as_a_service(self) -> None:
+        # `up --abort-on-container-exit` nennt gar keinen Dienst. Das erste
+        # Muster las das Flag als Namen und meldete drei Verstoesse, die
+        # keine waren - ein Waechter mit Fehlalarmen wird entschaerft.
+        ohne = ('```bash\nssh synology "cd /volume1/docker/Startup/chain-test '
+                '&& sudo /usr/local/bin/docker compose -f compose.chain-prepare.yaml '
+                'up --abort-on-container-exit"\n```\n')
+        self.assertEqual([], service_offenders(ohne))
+        self.assertEqual(set(), used_services(ohne))
+
+    def test_a_compose_file_that_does_not_exist_is_reported(self) -> None:
+        fehlt = ('```bash\nssh synology "cd /volume1/docker/Startup '
+                 '&& sudo /usr/local/bin/docker compose -f compose.erfunden.yaml up"\n```\n')
+        self.assertEqual(["compose.erfunden.yaml: Datei fehlt"], service_offenders(fehlt))
 
     def test_every_schema_object_is_created_by_an_applied_migration(self) -> None:
         bekannt = schema_objects()

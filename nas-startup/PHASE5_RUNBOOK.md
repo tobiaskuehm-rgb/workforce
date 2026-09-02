@@ -100,10 +100,17 @@ versionierten Compose-Dateien geschrieben — dieselbe Begründung wie beim
 Migrations-Gate (`G-044`): Ein Commit mit dem Wert müsste hinterher
 zurückgenommen werden, und das ist der Schritt, den man vergisst.
 
+**Deshalb `run --rm --no-deps` statt `up` für das Core-Paket.** `up` kennt
+keine Umgebungsüberschreibung, und `run` ohne `--no-deps` würde `prepare` über
+`depends_on` ein zweites Mal starten — beim zweiten Mal steht der Kanal schon
+auf `TESTING`, und `core_prepare.sql` bricht genau darauf ab. Die Reihenfolge
+macht damit dieses Dokument, nicht Compose: Die drei Schritte werden von oben
+nach unten gefahren und keiner übersprungen.
+
 ### 6.1 Zugänge ausgeben und Kanal öffnen
 
 ```bash
-ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core.yaml run --rm -T -e CORE_RUN_SUFFIX=20260902-PHASE5 prepare"
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core.yaml run --rm --no-deps -T -e CORE_RUN_SUFFIX=20260902-PHASE5 prepare"
 ```
 
 Erwartet: drei Token mit `mode 600`, drei Credentials `ACTIVE`, Kanal
@@ -129,8 +136,8 @@ gelesen und nicht überflogen.
 ### 6.3 Core-Roundtrip und Auditrekonstruktion
 
 ```bash
-ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core.yaml run --rm -T -e CORE_RUN_ID=20260902CORE1 run"
-ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core.yaml run --rm -T -e CORE_RUN_ID=20260902CORE1 audit"
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core.yaml run --rm --no-deps -T -e CORE_RUN_ID=20260902CORE1 run"
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core.yaml run --rm --no-deps -T -e CORE_RUN_ID=20260902CORE1 audit"
 ```
 
 Erwartet: `BUS LIFECYCLE PASS`, danach `positiv_audit = PASS` und
@@ -159,9 +166,26 @@ Braucht zusätzlich einen Telegram-Testbot und die breitere Firewall-Regel.
 **Ohne Bot-Token entfällt dieser Schritt**, und dann bleibt `G-030` offen —
 das ist der Preis und er gehört benannt, nicht übersprungen.
 
+Die Schrittfolge steht in `chain-test/README.md` und wird hier **nicht neu
+erfunden** — sie ist einmal real gelaufen und hat dabei ihre Form bekommen:
+
 ```bash
-ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-prepare.yaml run --rm -T prepare"
-ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-run.yaml run --rm -T chain"
+ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-prepare.yaml up --abort-on-container-exit"
+ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-run.yaml up --build"
+```
+
+**Der nächste Schritt ist von Hand.** Der Kettenlauf startet zwei Container,
+die auf Telegram warten; die Anfrage tippt der CEO im Chat:
+
+```text
+/task AGENT-ENG-001 ENG-CHAIN-PHASE5 | Kurze Lagebeurteilung | Drei Saetze
+```
+
+Erwartet: erst `PENDING … registriert`, dann eine `NACHRICHT`-Benachrichtigung.
+Danach beide Container beenden:
+
+```bash
+ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-run.yaml down"
 ```
 
 Danach die Rekonstruktion, lesend:
@@ -193,8 +217,8 @@ Dublettenentscheidung je Vorgang.
 In dieser Reihenfolge, und jeder Schritt wird **nachgemessen**:
 
 ```bash
-ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core-cleanup.yaml run --rm -T -e CORE_RUN_SUFFIX=20260902-PHASE5 cleanup"
-ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-cleanup.yaml run --rm -T cleanup"
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core-cleanup.yaml run --rm --no-deps -T -e CORE_RUN_SUFFIX=20260902-PHASE5 core-cleanup"
+ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose -f compose.chain-cleanup.yaml up --abort-on-container-exit"
 ```
 
 Danach:

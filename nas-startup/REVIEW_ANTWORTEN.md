@@ -1936,3 +1936,69 @@ Das README beschreibt jetzt auch die Modell-Allowlist und den
 Effizienzbericht. Beides ist neu und stand nirgends, wo es jemand findet.
 
 **Regel 28** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
+
+
+---
+
+## `G-055` — eigener Prüfdurchgang: vier erfundene Dienstnamen im eigenen Runbook
+
+**Bestätigt, selbst gefunden, behoben** — und zwar bevor du es tun musstest.
+Ich habe den ersten Entwurf von `PHASE5_RUNBOOK.md` gegen die Compose-Dateien
+gehalten, statt ihn für fertig zu erklären.
+
+### Der Befund
+
+Vier Dienstnamen im Runbook existieren nicht:
+
+| geschrieben | tatsächlich |
+|---|---|
+| `compose.core-cleanup.yaml … cleanup` | `core-cleanup` |
+| `compose.chain-prepare.yaml … prepare` | `chain-prepare` |
+| `compose.chain-cleanup.yaml … cleanup` | `chain-cleanup` |
+| `compose.chain-run.yaml … chain` | `chain-connector` **und** `chain-agent` — zwei |
+
+Dazu eine falsche Aufrufform: `run --rm <dienst>` statt
+`up --abort-on-container-exit`. Bei `compose.core.yaml` ist das nicht nur
+Stil — `run` startet über `depends_on` das `prepare` ein zweites Mal, und beim
+zweiten Mal steht der Kanal schon auf `TESTING`, worauf `core_prepare.sql`
+abbricht. Das Fenster wäre im dritten Schritt gestorben.
+
+Und der Kettenlauf braucht einen **Menschen**: Der Befehl `/task …` wird im
+Telegram-Chat getippt. Mein Entwurf ließ es wie einen Skriptlauf aussehen.
+
+### Warum der Wächter das nicht gesehen hat
+
+Zwei Gründe, beide strukturell:
+
+- `used_services()` löste jeden Dienstnamen gegen die **Produktions**-`compose.yaml`
+  auf. Paketdateien kamen darin nicht vor.
+- `-f <datei>` steht **vor** dem Unterbefehl (`docker compose -f x.yaml up`).
+  Das Muster verlangte `docker compose up` direkt hintereinander und traf
+  damit ausgerechnet jeden Aufruf einer Paketdatei nicht. Für
+  `docker compose run` gab es gar kein Muster.
+
+Der Wächter prüft jetzt gegen die Datei, die der Befehl wirklich nennt, samt
+Auflösung des Verzeichnisses aus dem `cd`. Eine Compose-Datei, die es nicht
+gibt, wird ebenfalls gemeldet.
+
+### Zwei Fallen beim Nachziehen, beide gemessen
+
+**Ein Dienstname beginnt nie mit `-`.** Mein erstes Muster las
+`--abort-on-container-exit` als Dienstnamen und meldete drei Verstöße, die
+keine waren. Ein Wächter mit Fehlalarmen wird entschärft, nicht gelesen.
+
+**`-e VAR=wert` muss übersprungen werden**, sonst wird `VAR` zum Dienst.
+
+Beide stehen als Gegenprobe da, zusammen mit der Probe, dass ein erfundener
+Name weiterhin auffällt und ein echter durchkommt.
+
+### Was ich daraus gelernt habe
+
+Die Schrittfolge des Kettenlaufs stand die ganze Zeit in
+`chain-test/README.md`, war einmal real gelaufen und hatte dabei ihre Form
+bekommen — einschließlich des Handschritts. Ich habe sie nicht gelesen,
+sondern aus den Compose-Dateien rekonstruiert. Das ist dieselbe Bewegung, die
+`G-042` bis `G-044` erzeugt hat, nur eine Ebene höher: nicht ein erfundener
+Name, sondern ein erfundener Ablauf neben einem dokumentierten.
+
+**Regel 29** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
