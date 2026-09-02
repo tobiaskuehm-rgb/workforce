@@ -37,6 +37,20 @@ class ConnectorGateway:
     def get_inbox(self, limit: int = 20) -> Sequence[Mapping[str, Any]]:
         return self.world.inbox(self.world.connector_id, limit=limit)
 
+    def acknowledge(self, message_id: str, *, note: str) -> Mapping[str, Any]:
+        # Der Rueckweg bestaetigt seit G-053. Die Attrappe modelliert dabei
+        # das Verhalten, auf das es ankommt - auch die Ablehnung mit
+        # BUS_ACK_ALREADY_FINAL, wenn dieselbe Nachricht zweimal bestaetigt
+        # wird -, und uebersetzt sie in denselben Fehlertyp wie propose_task.
+        try:
+            return self.world.acknowledge(
+                actor=self.world.connector_id,
+                message_id=message_id,
+                decision="ACCEPTED",
+            )
+        except BusRefusal as refusal:
+            raise telegram_connector.ConnectorError(refusal.detail) from refusal
+
     def propose_task(self, *, update_id: int, recipient_id: str, task_id: str,
                      title: str, expected_output: str) -> Mapping[str, Any]:
         # Mirrors WorkforceApiClient.propose_task: a task *and* a message that

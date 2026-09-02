@@ -1,9 +1,11 @@
 import json
 import sqlite3
+import pathlib
 import tempfile
 import unittest
 from pathlib import Path
 
+import telegram_connector
 from telegram_connector import (
     MAX_OUTBOUND_BODY_CHARS,
     AuditStore,
@@ -37,6 +39,8 @@ class FakeWorkforce:
     def __init__(self):
         self.tasks = []
         self.inbox = []
+        self.acknowledged = []
+        self.ack_error = None
         self.status = {
             "project_id": "START-UP",
             "api_version": "v8",
@@ -53,6 +57,15 @@ class FakeWorkforce:
     def propose_task(self, **kwargs):
         self.tasks.append(kwargs)
         return {"task_status": "PENDING"}
+
+    def acknowledge(self, message_id, *, note):
+        # Modelliert das Verhalten, auf das es ankommt: Der Bus vermerkt die
+        # Bestaetigung, und ein Fehlschlag ist eine ConnectorError - nicht
+        # irgendeine Ausnahme. Die Attrappe kann beides.
+        if self.ack_error is not None:
+            raise telegram_connector.ConnectorError(self.ack_error)
+        self.acknowledged.append((message_id, note))
+        return {"message_id": message_id, "delivery_status": "ACKNOWLEDGED"}
 
 
 def update(update_id, text, *, chat_id=111, user_id=222, chat_type="private"):
@@ -360,6 +373,108 @@ class ConfigurationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TheReturnLegIsAcknowledgedTest(unittest.TestCase):
+    """G-053: der Rueckweg bestaetigte nie, und das kostete zwei Dinge.
+
+    Erstens den Nachweis. Ohne Bestaetigung bleibt eine Nachricht fuer immer
+    `DELIVERED`, und aus der Datenbank allein laesst sich damit nie sagen, ob
+    eine Benachrichtigung den CEO erreicht hat - genau das, was Phase 5
+    rekonstruierbar verlangt.
+
+    Zweitens die zweite Verteidigungslinie. Der Dublettenschutz des Rueckwegs
+    lag ausschliesslich im lokalen SQLite-Speicher. Geht der Datentraeger
+    verloren - der Fall, den dieses Projekt fuer den Agenten seit `G-002`
+    ausdruecklich testet -, wird jede Nachricht im Posteingang erneut
+    angekuendigt. Der Agent hat dafuer zwei Linien; der Rueckweg hatte eine.
+
+    Reihenfolge wie im Agenten (`G-001`): erst senden, dann bestaetigen.
+    """
+
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.state_path = Path(self.tempdir.name) / "state.sqlite3"
+        self.store = AuditStore(self.state_path)
+        self.settings = Settings(
+            enabled=True, kill_switch=False, telegram_bot_token=BOT_TOKEN,
+            allowed_chat_id=111, allowed_user_id=222,
+            allowed_recipient_ids=frozenset({"AI-ENG-001"}),
+            allowed_task_ids=frozenset({"CEO-TG-TEST-001"}),
+            workforce_base_url="https://nas.example.test:8443",
+            workforce_bus_token=BUS_TOKEN, state_path=self.state_path,
+            poll_timeout_seconds=1,
+        )
+
+    def tearDown(self):
+        self.store.close()
+        self.tempdir.cleanup()
+
+    def _connector(self):
+        telegram = FakeTelegram()
+        workforce = FakeWorkforce()
+        workforce.inbox = [{
+            "message_id": "MSG-" + "A" * 32,
+            "sender_id": "AI-ENG-001",
+            "subject": "Re: Bitte pruefen",
+            "body": "Antworttext.",
+            "task_ref": "CEO-TG-TEST-001",
+            "delivery_status": "DELIVERED",
+        }]
+        connector = TelegramConnector(self.settings, self.store, telegram, workforce)
+        connector.workforce = workforce
+        return connector, telegram, workforce
+
+    def test_a_delivered_notification_is_acknowledged(self):
+        connector, telegram, workforce = self._connector()
+        self.assertEqual(1, connector.publish_inbox_notifications())
+        self.assertEqual(1, len(telegram.sent))
+        self.assertEqual([("MSG-" + "A" * 32, "Per Telegram an den CEO zugestellt.")],
+                         workforce.acknowledged)
+
+    def test_a_failed_send_is_not_acknowledged(self):
+        # Die Reihenfolge ist der ganze Punkt: Bestaetigen, was nie ankam,
+        # macht aus einer verlorenen Nachricht eine erledigte.
+        connector, telegram, workforce = self._connector()
+
+        def kaputt(chat_id, text):
+            raise telegram_connector.ConnectorError("TELEGRAM_SEND_FAILED")
+
+        telegram.send_message = kaputt
+        self.assertEqual(0, connector.publish_inbox_notifications())
+        self.assertEqual([], workforce.acknowledged)
+
+    def test_a_failed_acknowledgement_does_not_lose_the_notification(self):
+        # Umgekehrt: Die Nachricht *ist* beim CEO. Dass der Bus es noch nicht
+        # weiss, darf die Runde nicht abbrechen - es wird vermerkt.
+        connector, telegram, workforce = self._connector()
+        workforce.ack_error = "WORKFORCE_HTTP_503"
+        self.assertEqual(1, connector.publish_inbox_notifications())
+        self.assertEqual(1, len(telegram.sent))
+        ereignisse = [eintrag["event_type"] for eintrag in self.store.list_audit()]
+        self.assertIn("WORKFORCE_NOTIFICATION_ACK_FAILED", ereignisse)
+        self.assertIn("WORKFORCE_NOTIFICATION_SENT", ereignisse)
+
+    def test_the_acknowledgement_is_audited_locally_as_well(self):
+        connector, _, _ = self._connector()
+        connector.publish_inbox_notifications()
+        ereignisse = [eintrag["event_type"] for eintrag in self.store.list_audit()]
+        self.assertIn("WORKFORCE_NOTIFICATION_ACKNOWLEDGED", ereignisse)
+        self.assertLess(ereignisse.index("WORKFORCE_NOTIFICATION_SENT"),
+                        ereignisse.index("WORKFORCE_NOTIFICATION_ACKNOWLEDGED"),
+                        "erst senden, dann bestaetigen")
+
+    def test_a_suppressed_duplicate_is_not_acknowledged_twice(self):
+        connector, _, workforce = self._connector()
+        connector.publish_inbox_notifications()
+        connector.publish_inbox_notifications()
+        self.assertEqual(1, len(workforce.acknowledged))
+
+    def test_the_request_id_names_the_message(self):
+        # Damit die Auditrekonstruktion Bestaetigung und Nachricht ohne
+        # Zwischenschicht aneinanderbinden kann.
+        quelle = pathlib.Path(telegram_connector.__file__).read_text(encoding="utf-8")
+        self.assertIn('request_id=f"TG-ACK-{message_id}"', quelle)
 
 
 class OutboundDataBoundaryTest(unittest.TestCase):

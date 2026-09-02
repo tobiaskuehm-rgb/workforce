@@ -148,6 +148,19 @@ class ChainTest(unittest.TestCase):
                    if m["recipient_id"] == AGENT and m["delivery_status"] == "DELIVERED"]
         self.assertEqual([], pending)
 
+        # Und seit G-053 auch der Rueckweg. Vorher blieb die Antwort fuer
+        # immer DELIVERED im Posteingang des Connectors: Aus der Datenbank
+        # allein war nicht zu sagen, ob sie den CEO je erreicht hat - und der
+        # Dublettenschutz haette nur noch am lokalen Speicher gehangen.
+        offen = [m for m in self.world.messages.values()
+                 if m["recipient_id"] == CONNECTOR and m["delivery_status"] == "DELIVERED"]
+        self.assertEqual([], offen, "die Antwort an den Connector bleibt unbestaetigt")
+
+        zugestellt = [m for m in self.world.messages.values()
+                      if m["recipient_id"] == CONNECTOR]
+        self.assertTrue(zugestellt, "ohne Antwort an den Connector prueft der Test nichts")
+        self.assertEqual(["ACCEPTED"], sorted({m["delivery_status"] for m in zugestellt}))
+
     def test_a_second_pass_answers_nothing_twice(self):
         connector = self.build_connector()
         connector.poll_once()

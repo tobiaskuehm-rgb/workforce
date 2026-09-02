@@ -247,6 +247,8 @@ class WorkforceGateway(Protocol):
 
     def get_inbox(self, limit: int = 20) -> Sequence[Mapping[str, Any]]: ...
 
+    def acknowledge(self, message_id: str, *, note: str) -> Mapping[str, Any]: ...
+
     def propose_task(
         self,
         *,
@@ -396,6 +398,30 @@ class WorkforceApiClient:
         )
         if not isinstance(result, list) or any(not isinstance(item, dict) for item in result):
             raise ConnectorError("WORKFORCE_INBOX_INVALID")
+        return result
+
+    def acknowledge(self, message_id: str, *, note: str) -> Mapping[str, Any]:
+        """Tell the bus the notification reached its reader.
+
+        Without this the message stays DELIVERED for good, and two things
+        follow. The database alone can then never say whether a notification
+        reached the CEO - which is exactly what Phase 5 asks to be able to
+        reconstruct. And the duplicate protection for the return leg rests on
+        one line only, the local SQLite store: lose that volume and every
+        message still in the inbox is announced again. The agent has had two
+        lines for this reason since G-002; the return leg had one.
+
+        The request id names the message it acknowledges, so the audit can
+        bind the two together without trusting anything in between.
+        """
+        result = self._request(
+            "POST",
+            f"/bus/v1/messages/{message_id}/ack",
+            payload={"decision": "ACCEPTED", "note": note[:1000]},
+            request_id=f"TG-ACK-{message_id}",
+        )
+        if not isinstance(result, dict):
+            raise ConnectorError("WORKFORCE_ACK_INVALID")
         return result
 
     def propose_task(
@@ -974,6 +1000,31 @@ class TelegramConnector:
                     "task_ref": task_ref,
                 },
             )
+            # Erst senden, dann bestaetigen - dieselbe Reihenfolge wie im
+            # Agenten (G-001). Bestaetigen bevor die Nachricht draussen ist,
+            # verlieren wir sie; bestaetigen danach heisst schlimmstenfalls,
+            # sie einmal doppelt anzukuendigen. Der Fehlschlag beendet die
+            # Runde nicht: die Nachricht *ist* beim CEO angekommen, nur der
+            # Bus weiss es noch nicht.
+            try:
+                self.workforce.acknowledge(
+                    message_id,
+                    note="Per Telegram an den CEO zugestellt.",
+                )
+            except ConnectorError as exc:
+                self.store.audit(
+                    "WORKFORCE_NOTIFICATION_ACK_FAILED",
+                    "FAIL",
+                    update_id=None,
+                    metadata={"message_id": message_id, "error_code": exc.code},
+                )
+            else:
+                self.store.audit(
+                    "WORKFORCE_NOTIFICATION_ACKNOWLEDGED",
+                    "PASS",
+                    update_id=None,
+                    metadata={"message_id": message_id},
+                )
             sent += 1
         return sent
 

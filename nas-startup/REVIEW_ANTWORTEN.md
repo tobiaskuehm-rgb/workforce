@@ -1777,3 +1777,71 @@ nicht aus einem echten Durchgang.
 
 Und es ist **keine** Freigabe für einen bezahlten Provider. Der Echo-Weg
 bleibt der einzige, der ohne eine neue Entscheidung läuft.
+
+
+---
+
+## `G-053` — eigener Prüfdurchgang: der Rückweg bestätigte nie
+
+**Bestätigt, selbst gefunden, behoben.** Gefunden beim Schreiben eines
+`chain_audit.sql`: Ich wollte den Kettenlauf aus der Datenbank rekonstruieren
+und stellte fest, dass die letzte Etappe dort gar nicht ankommt.
+
+### Der Befund
+
+`publish_inbox_notifications()` liest den Posteingang der Connector-Identität
+und schickt eine Benachrichtigung an den CEO. Danach schreibt es
+`finish_notification(message_id, "SENT")` — in **seinen eigenen**
+SQLite-Speicher. Auf dem Bus passiert nichts. Es gibt in der ganzen Datei
+keinen Aufruf von `/bus/v1/messages/{id}/ack`.
+
+Zwei Folgen, beide teurer als der fehlende Aufruf.
+
+**Der Nachweis.** Die Nachricht bleibt für immer `delivery_status =
+'DELIVERED'`. Aus der Datenbank allein ist damit nie zu sagen, ob eine
+Benachrichtigung den CEO erreicht hat — und genau das verlangt deine Phase 5,
+Punkt 4: „Positive und negative Auditspur automatisiert aus PostgreSQL
+rekonstruieren." Für die Kette wäre das strukturell unmöglich gewesen; sie
+hätte zu zwei Dritteln rekonstruiert und `PASS` gemeldet.
+
+**Die zweite Verteidigungslinie.** Der Dublettenschutz des Rückwegs hing
+ausschließlich am lokalen Speicher (`outbound_deliveries`). Geht dieser
+Datenträger verloren — der Fall, den `worker_core_test.py` für den Agenten
+ausdrücklich nachstellt, „the way a lost volume would" —, dann liefert
+`get_inbox` alles zurück, was je an den Connector ging, und bis zu zwanzig
+Benachrichtigungen gehen erneut an Telegram. Der Agent hat für genau diesen
+Fall zwei Linien: lokalen Zustand **und** Bus-Idempotenz. Der Rückweg hatte
+eine. „Zwei Verteidigungslinien, und sie sind nicht austauschbar" stand da
+schon in `CLAUDE.md`.
+
+### Was ich fast behauptet hätte und nachgesehen habe
+
+Mein zweiter Verdacht war Verhungern: Wenn nie bestätigt wird, wächst der
+Posteingang, und bei `limit=20` sähe der Connector irgendwann nur noch alte
+Nachrichten. **Stimmt nicht.** `bus_list_messages` sortiert
+`ORDER BY m.created_at DESC, m.message_id DESC` — neueste zuerst. Neue
+Nachrichten verschwinden nicht hinter alten. Nachgelesen in der Migration,
+bevor es in einen Befund gewandert wäre.
+
+### Die Korrektur
+
+Der Connector bestätigt jetzt, **nachdem** die Benachrichtigung draußen ist —
+dieselbe Reihenfolge wie im Agenten (`G-001`). Umgekehrt wäre schlimmer:
+bestätigen, was nie ankam, macht aus einer verlorenen Nachricht eine
+erledigte. Ein fehlgeschlagenes Bestätigen beendet die Runde **nicht**, es
+wird vermerkt: Die Nachricht *ist* beim CEO, nur der Bus weiß es noch nicht.
+
+Die Request-Id lautet `TG-ACK-<message_id>` und nennt damit die Nachricht, die
+sie bestätigt — die Auditrekonstruktion kann beide ohne Zwischenschicht
+aneinanderbinden.
+
+Sechs neue Tests im Connector, dazu eine verschärfte Zusicherung im
+Kettentest: Nach einem vollständigen Durchlauf steht **keine** Nachricht mehr
+auf `DELIVERED`, auch nicht die an den Connector. Belegt mit Gegenprobe — ohne
+den Bestätigungsaufruf werden drei Tests rot.
+
+Die Attrappe des Kettentests konnte das übrigens schon: `chain_world` modelliert
+`acknowledge` samt `BUS_ACK_ALREADY_FINAL`. Sie war aus der Quelle gebaut, nicht
+aus meiner Erinnerung — und hat deshalb länger gestimmt als der Code.
+
+**Regel 27** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
