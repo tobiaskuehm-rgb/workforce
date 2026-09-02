@@ -610,5 +610,115 @@ class RunbookStatusIsCurrentTest(unittest.TestCase):
         self.assertNotIn(self.newest_finding(), pending)
 
 
+def section(path: pathlib.Path, heading: str) -> str:
+    """The body under one Markdown heading, up to the next of same or higher level."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if heading not in lines:
+        raise LookupError(heading)
+    level = len(heading) - len(heading.lstrip("#"))
+    out = []
+    for line in lines[lines.index(heading) + 1:]:
+        if line.startswith("#") and (len(line) - len(line.lstrip("#"))) <= level:
+            break
+        out.append(line)
+    return "\n".join(out)
+
+
+class StatusSectionsNameNoVersionTest(unittest.TestCase):
+    """G-050: three documents named a running API version that was two behind.
+
+    CLAUDE.md's layer table said the API is `v7` and HANDOVER.md said the NAS
+    runs on `v8`, while `v9` had been running since 2026-09-01. CLAUDE.md is
+    the first file every assistant reads and HANDOVER.md is the only thing the
+    two sides know about each other, so both were wrong in the place where it
+    costs the most - and 35 tests in this file were green.
+
+    The fix is not a cleverer scanner. `production_state.txt` already is the
+    one place that names the running state, and HANDOVER.md already says so in
+    words: "Der laufende Stand ist production_state.txt, nicht dieses
+    Dokument." A second statement of the same fact is a copy, and copies go
+    stale. So the status sections state no version at all - they point at the
+    source. A version that is never written down cannot rot.
+
+    Deliberately narrow: everywhere else a version number is part of a story
+    ("v7 -> v8 im Fenster", the rollback tag, a `docker save` command) and
+    those stay true. Only sections that describe the system **now** are held
+    to this.
+    """
+
+    # Sections whose subject is the current state of the system.
+    SECTIONS = (
+        (ROOT / "CLAUDE.md", "## Worum es geht"),
+        (ROOT / "HANDOVER.md", "### Fertig und nachgewiesen"),
+        (ROOT / "HANDOVER.md", "### Systemzustand"),
+    )
+
+    # The two files that answer "what is running": the named source state and
+    # the single read command that measures it.
+    QUELLEN = ("production_state.txt", "nas_status.sh")
+
+    # A version token in the API sense. `/bus/v1/messages`, `echo-v1` and
+    # `Projektanweisung v1.2` are excluded by shape rather than by a list -
+    # a list of exceptions is the thing that stops being maintained.
+    VERSION = re.compile(r"(?<![/\w-])v(\d+)\b(?![\d.])")
+
+    def test_no_status_section_states_a_version(self) -> None:
+        offenders = []
+        for path, heading in self.SECTIONS:
+            treffer = sorted({m.group(0) for m in self.VERSION.finditer(section(path, heading))})
+            if treffer:
+                offenders.append(f"{path.name} :: {heading} -> {treffer}")
+        self.assertEqual([], offenders,
+                         "eine Versionsnummer im Statusabschnitt veraltet still - "
+                         "auf production_state.txt verweisen statt sie zu nennen")
+
+    def test_every_status_section_points_at_the_source(self) -> None:
+        # Removing the number is only half of it. Without the pointer the
+        # reader is left with no way to find out, and writes one back in.
+        for path, heading in self.SECTIONS:
+            with self.subTest(abschnitt=heading):
+                body = section(path, heading)
+                self.assertTrue(any(q in body for q in self.QUELLEN),
+                                f"{path.name} :: {heading} nennt keine Quelle")
+
+    def test_every_named_section_exists(self) -> None:
+        # A renamed heading would silently switch this guard off - the same
+        # failure as a checked-documents list nobody updates.
+        for path, heading in self.SECTIONS:
+            with self.subTest(abschnitt=heading):
+                section(path, heading)
+
+    def test_it_would_catch_the_lines_that_were_actually_wrong(self) -> None:
+        for zeile in (
+            "| Workforce-API (FastAPI, `v7`) | `nas-startup/workforce-api/` | laeuft |",
+            "Die NAS laeuft auf **v8** mit Migrationen `001`-`003`.",
+            "| Workforce-API `v7` (FastAPI) | laeuft, gesund | - |",
+        ):
+            with self.subTest(zeile=zeile[:40]):
+                self.assertTrue(self.VERSION.search(zeile))
+
+    def test_the_pattern_does_not_fire_on_paths_or_suffixes(self) -> None:
+        # A guard that also flags `/bus/v1/messages` would be turned off within
+        # a day, because every second sentence in this project names a route.
+        for harmlos in (
+            "Die Route `/bus/v1/messages` nimmt den Text entgegen.",
+            "Sieben `/knowledge/v1`-Endpunkte liegen in `004`.",
+            "Der Echo-Provider meldet sich als `echo-v1`.",
+            "Projektanweisung v1.2 ist der gueltige Stand.",
+            "Der Tag `produktiv-v8` bleibt als Rueckfallmarke stehen.",
+        ):
+            with self.subTest(satz=harmlos[:40]):
+                self.assertIsNone(self.VERSION.search(harmlos))
+
+    def test_the_section_reader_stops_at_the_next_heading(self) -> None:
+        # If it read to the end of the file, every section would contain every
+        # version in the document and the guard would be permanently red -
+        # which is the same as switched off.
+        body = section(ROOT / "HANDOVER.md", "### Systemzustand")
+        self.assertIn("nas_status.sh", body)
+        self.assertNotIn("### Technisch offen", body)
+        self.assertLess(len(body), len((ROOT / "HANDOVER.md").read_text(encoding="utf-8")) / 2)
+
+
 if __name__ == "__main__":
     unittest.main()

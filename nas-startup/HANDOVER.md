@@ -66,10 +66,10 @@ ssh synology "cd /volume1/docker/Startup && sh verify_manifest.sh"
 
 | Baustein | Zustand | Nachweis in `evidence/` |
 |---|---|---|
-| PostgreSQL-Schema (Migrationen 001–003) | produktiv | — |
-| Migration `005` (Ablehnungs-Audit) | **geschrieben, nie angewendet** | — |
-| Migration `004` (Knowledge) | aus dem autoritativen Satz übernommen, nie angewendet, **eigenes Gate** | — |
-| Workforce-API `v7` (FastAPI) | läuft, gesund — **im Repo steht `v8`**, nicht ausgerollt | — |
+| PostgreSQL-Schema (`001`–`003`, `005`–`007`) | produktiv seit dem Phase-4-Fenster | `2026-09-01_phase4_rollout.md` |
+| Abnahmetests zu allen angewendeten Migrationen | **PASS** gegen die laufende Produktion | `2026-09-02_abnahmetests_produktion.md` |
+| Migrationen `004`/`008` (Knowledge) | liegen als Dateien auf der NAS, **nicht angewendet**, je eigenes Gate | — |
+| Workforce-API (FastAPI) | läuft, gesund — welche Version, sagt `production_state.txt` | `2026-09-01_phase4_rollout.md` |
 | HTTPS über Reverse Proxy 8443 | verifiziert | — |
 | Bus-Realtest Karl ↔ Thorsten | **PASS** | `2026-08-31_bus_realtest_karl_thorsten.md` |
 | 20 Negativtests über die echte API | **PASS** | dito |
@@ -92,9 +92,15 @@ Die Kette **Telegram → NAS → Bus → PostgreSQL** ist real belegt. Der Bus i
 
 ### Systemzustand
 
-Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporären Firewall-Regeln, nur der Produktivstack läuft.
+**Diesen Abschnitt nicht lesen, sondern messen.** Ein Lesebefehl nennt Container, API-Version, Migrationsstand, Kanal, Rollen, Manifest, Backup-Rechte, Backup-Inhalt und Rückfallpunkte und endet mit `RESULT: PASS` oder `FAIL`:
 
-**Das ist der Stand laut letztem Rückbauprotokoll, nicht laut Nachmessung.** Einmal an diesem Tag stimmte eine dokumentierte Firewall-Rücknahme nicht mit der Wirklichkeit überein (Nachtrag im Trockenlauf-Nachweis). Vor dem nächsten Lauf nachsehen, nicht nachlesen.
+```bash
+ssh synology "cd /volume1/docker/Startup && sh nas_status.sh"
+```
+
+Am **2026-09-02 um 11:50** gemessen: beide Container `healthy`, Kanal `DISABLED`, 0 aktive Credentials, Knowledge `004` nicht angewendet, vier Gates `PASS`, Exit 0.
+
+Warum hier eine Uhrzeit steht statt einer Zusicherung: Einmal stimmte eine dokumentierte Firewall-Rücknahme nicht mit der Wirklichkeit überein (Nachtrag im Trockenlauf-Nachweis). Vor dem nächsten Lauf nachsehen, nicht nachlesen.
 
 ---
 
@@ -121,7 +127,7 @@ Kanal `DISABLED`, 0 aktive Credentials, keine Secrets abgelegt, keine temporäre
 
 ## Hier weitermachen
 
-**Stand: Phase 4 ist ausgeführt.** Die NAS läuft auf **v8** mit Migrationen `001`–`003`, `005`, `006`, `007`, zwei neuen Rollen ohne `SUPERUSER`, eigenen Secret-Dateien für die API und ohne den `initdb`-Mount. Kanal weiter `DISABLED`, 0 aktive Credentials, Knowledge `004`/`008` nicht angewendet. Alle sechs Nachweise bestanden, `nas_status.sh` `RESULT: PASS`, Exit 0. Rohtext in `evidence/2026-09-01_phase4_rollout.md`.
+**Stand: Phase 4 ist ausgeführt.** Im Fenster ausgerollt wurden die Migrationen `001`–`003`, `005`, `006`, `007`, zwei neue Rollen ohne `SUPERUSER`, eigene Secret-Dateien für die API und der Wegfall des `initdb`-Mounts. Die damals ausgerollte API-Version ist seither überholt; den laufenden Stand nennt `production_state.txt`. Kanal weiter `DISABLED`, 0 aktive Credentials, Knowledge `004`/`008` nicht angewendet. Alle sechs Nachweise bestanden, `nas_status.sh` `RESULT: PASS`, Exit 0. Rohtext in `evidence/2026-09-01_phase4_rollout.md`.
 
 Freigaben: CEO im Chat für genau dieses Fenster, dazu Gerds elfter Zielcheck auf `0966cbb` (`G-041`, `G-042`, `G-043` geschlossen, technisches GO).
 
@@ -154,7 +160,9 @@ jeweils mit Nachweis:
 | `G-045` | `G-025` ist **nicht** per `ALTER ROLE` schließbar | Entscheidung nötig, siehe unten |
 | `G-046` | sieben Dokumente mit überholten Gegenwartsaussagen | behoben, Regeln 16–17 |
 | `G-047` | `postgres-tests/` gemountet, ungeprüft, halb vorhanden | teils behoben, Lücke festgeschrieben |
-| `G-048` | nächtlicher Job legt weltlesbare Sicherungen ab | **behoben, nicht geschlossen** |
+| `G-048` | nächtlicher Job legt weltlesbare Sicherungen ab | behoben; die DSM-Aufgabe ruft seit dem 2026-09-02 `backup_task.sh` auf |
+| `G-049` | `001` und `002` prüften Bestandszahlen aus dem August | behoben, Regel 24 |
+| `G-050` | `CLAUDE.md` und `HANDOVER.md` nannten eine überholte API-Version | behoben, Regel 25 |
 
 **Drei Dinge, bei denen ich deine Einschätzung brauche und nicht selbst
 entschieden habe:**
@@ -170,16 +178,21 @@ entschieden habe:**
    während die Datenbank bei `007` steht. Es ist ein Vorhandenseins-Flag, kein
    Stand. Drei Wege mit Vorschlag stehen in `REVIEW_ANTWORTEN.md`; eine
    Umstellung wäre eine Vertragsänderung.
-3. **Vier Migrationen ohne Abnahmetest**, `006` und `007` davon produktiv.
-   Belegt sind sie über die Runbook-Nachweise, nicht über `postgres-tests/`.
-   Die fehlenden Tests habe ich bewusst nicht geschrieben, solange ich sie
-   nicht laufen lassen konnte.
+3. **Ein Abnahmetest fehlt noch**, `008_knowledge_api_grants`. Die anderen
+   fünf sind seit dem 2026-09-02 geschrieben und gegen die laufende Produktion
+   gelaufen — Nachweis `evidence/2026-09-02_abnahmetests_produktion.md`, samt
+   zwei Gegenproben mit echten Zahlen. `008` ist gegatet und nicht angewendet;
+   sein Test gehört in dasselbe Fenster wie seine Anwendung. Die Lücke steht
+   mit Begründung in `workforce-agent/test_migration_acceptance.py` und der
+   Wächter schlägt in beide Richtungen an.
 
-**Eine Sache liegt beim CEO, nicht bei dir:** Die Zeile
-`sh /volume1/docker/Startup/harden_backup_permissions.sh` muss in die
-DSM-Sicherungsaufgabe. Bis dahin stehen morgen früh um 02:05 wieder zwei
-weltlesbare Dateien im Backup-Ordner — ein Datenbank-Dump und ein Archiv mit
-`startup.env`. An den Aufgabenplaner komme ich nicht heran.
+**Erledigt, war beim CEO:** Die DSM-Sicherungsaufgabe ruft seit dem 2026-09-02
+`sh /volume1/docker/Startup/backup_task.sh` auf. Damit liegt die nächtliche
+Logik im Repo statt in der Aufgabendatenbank, die Rechte werden **gesetzt**
+statt nur geprüft (`G-048`), das Aufräumen alter Sicherungen läuft erst nach
+der Vollständigkeitsprüfung der neuen, und der Containername wird
+nachgeschlagen statt geraten (`G-042`). **Nicht nachgemessen:** Der erste Lauf
+unter der neuen Aufgabe kommt am 2026-09-03 um 02:05.
 
 **Noch offen, unverändert:** `G-030` Laufzeitkette — kein Telegram, kein
 Modellaufruf, kein Agentenlauf hat je stattgefunden.
@@ -294,7 +307,7 @@ Keiner davon kostet Geld, keiner braucht ein Modell. Alle brauchen **eine Freiga
 3. **Contract-Test in der neuen Fassung gegen den echten Bus.** Erwartung: `deny` vollständig, `allow` 17/17 und 5/5, `wrong_reason` 0.
 4. **`verify_secret_isolation_once.sh`** — braucht keine Firewall-Regel und keine Zugangsdaten.
 5. **Der Kettenlauf** (`chain-test/`) — braucht zusätzlich einen Telegram-Testbot und die breitere Firewall-Regel
-6. **Der Worker-Core-Lauf** (`compose.workercore.yaml`) — setzt `AGENT-ENG-001` in der Registry, Migration `005` und API `v8` voraus; `workercore_prepare.sql` prüft alle drei und bricht ab, statt halb zu laufen.
+6. **Der Worker-Core-Lauf** (`compose.workercore.yaml`) — `workercore_prepare.sql` prüft sieben Vorbedingungen und bricht ab, statt halb zu laufen: Migration `003` und `005` angewendet, Kanal `DISABLED`, kein aktives Credential, `AGENT-ENG-001` in der Registry, je eine Route zum und vom Agenten. Die API-Version prüft es **nicht** — wer sie voraussetzt, misst sie selbst.
 
 **Erledigt:** `startup.db.env` liegt auf der NAS — `root:users` mit `660`, genau drei Schlüssel, kein API-Schlüssel darin. `startup.env` unverändert.
 

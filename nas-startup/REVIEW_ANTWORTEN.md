@@ -1542,5 +1542,94 @@ Negativproben, beide schlagen an:
 
 Damit ist der erste von vier Punkten der Phase 5 erledigt. Offen bleiben
 Contract-Test und Auditrekonstruktion **auf dem neuen Stand** — die vorhandenen
-`PASS` dafür stammen vom 2026-08-31 und damit von `v6`/`v7` mit nur `001`–`003`.
-Beide brauchen echte Zugangsdaten und den Kanal auf `TESTING`.
+`PASS` dafür stammen vom 2026-08-31 und damit von einem älteren API-Stand mit
+nur `001`–`003`. Beide brauchen echte Zugangsdaten und den Kanal auf `TESTING`.
+
+**Nachgetragen am 2026-09-02:** Der Lauf hatte keinen Nachweis — die `PASS`
+standen nur hier, und dieses Projekt hat eine Regel gegen genau das. Alle sechs
+Tests sind deshalb noch einmal gelaufen, diesmal mit vollständiger Aufzeichnung
+in `evidence/2026-09-02_abnahmetests_produktion.md`, samt Umgebung, Exit-Codes
+und zwei Gegenproben, die mit echten Produktionszahlen anschlagen.
+
+---
+
+## `G-050` — eigener Prüfdurchgang: zwei Dateien nannten eine überholte API-Version
+
+**Bestätigt, selbst gefunden, behoben.** Gefunden beim Nachmessen des
+Iststands, bevor ich `HANDOVER.md` für die Übergabe an dich anfassen wollte.
+
+### Der Befund
+
+`CLAUDE.md` — die Datei, die jeder Assistent als erstes liest — hatte in ihrer
+Schichtentabelle stehen:
+
+```
+| Workforce-API (FastAPI, `v7`) | `nas-startup/workforce-api/` | läuft |
+```
+
+und `HANDOVER.md`, das einzige, was du und ich voneinander wissen:
+
+```
+| Workforce-API `v7` (FastAPI) | läuft, gesund — **im Repo steht `v8`**, nicht ausgerollt | — |
+...
+**Stand: Phase 4 ist ausgeführt.** Die NAS läuft auf **v8** ...
+```
+
+Produktiv lief zu dem Zeitpunkt `v9`, seit dem 2026-09-01. Beide Aussagen sind
+im Präsens, beide undatiert, beide in der Zeile, auf die man zuerst schaut.
+Dieselbe Tabelle behauptete außerdem, Migration `005` sei „geschrieben, nie
+angewendet" — sie ist seit dem Phase-4-Fenster produktiv.
+
+### Warum kein Test das gesehen hat
+
+Es gibt einen Wächter für Versionsangaben, `test_the_api_version_is_stated_the_same_everywhere`.
+Er vergleicht `app.py`, `Dockerfile` und `compose.yaml` **untereinander** und
+nie gegen ein Dokument. Der zweite,
+`test_the_production_reference_names_the_running_version`, prüft nur die *Form*
+von `production_state.txt` per regulärem Ausdruck — dass dort überhaupt eine
+Version steht, nicht dass irgendjemand dieselbe nennt.
+
+Das ist unangenehm nah an `G-046`. Dort war die Klasse dieselbe — der
+Bus-Vertrag und ein README nannten `v6`, während `v9` lief — und meine Abhilfe
+war, **die beiden Dateien** in die geprüfte Liste aufzunehmen. Die Liste war
+danach vollständiger, die geprüfte **Aussage** blieb dieselbe. `CLAUDE.md` und
+`HANDOVER.md` standen längst auf der Liste und waren trotzdem falsch.
+35 Dokumententests waren grün.
+
+### Die Korrektur
+
+Kein besserer Scanner. Der laufende Stand steht schon an genau einer Stelle —
+`production_state.txt` nennt ihn, `nas_status.sh` misst ihn — und `HANDOVER.md`
+sagt das sogar wörtlich. Jede zweite Angabe derselben Tatsache ist eine Kopie,
+und Kopien veralten. **Die Statusabschnitte nennen deshalb gar keine Version
+mehr, sie verweisen.** Eine Zahl, die nirgends steht, kann nicht veralten.
+
+Anderswo bleibt eine Versionsnummer richtig, weil sie dort zu einer Geschichte
+gehört: `v7` → `v8` im Fenster, die Rückfallmarke `produktiv-v8`, ein
+`docker save`. Der Wächter arbeitet deshalb **abschnittsweise** über drei
+benannte Überschriften und nicht dateiweit — ein dateiweites Verbot hätte rund
+zwanzig historisch richtige Sätze getroffen und wäre binnen eines Tages
+aufgeweicht worden.
+
+Drei Gegenproben, weil eine Regel mit Ausnahmen ohne sie nichts wert ist:
+
+- das Muster trifft `/bus/v1/messages`, `echo-v1`, `Projektanweisung v1.2` und
+  `produktiv-v8` **nicht** — sonst wäre der Wächter unbenutzbar
+- die drei echten Falschzeilen von oben trifft es **doch**
+- die genannten Überschriften existieren — ein umbenannter Abschnitt schaltet
+  den Wächter sonst still ab, dieselbe Falle wie eine Dokumentenliste, die
+  niemand pflegt
+
+Belegt: Mit der wieder eingesetzten `v7`-Zeile schlägt der Wächter fehl
+(`CLAUDE.md :: ## Worum es geht -> ['v7']`), ohne sie läuft die Suite durch.
+
+### Nebenbei mitgenommen
+
+`HANDOVER.md` behauptete, `workercore_prepare.sql` setze „`AGENT-ENG-001`,
+Migration `005` und API `v8` voraus" und „prüft alle drei". Nachgelesen in der
+Datei: Es prüft **sieben** Dinge — Migration `003` und `005`, Kanal `DISABLED`,
+kein aktives Credential, `AGENT-ENG-001`, je eine Route zum und vom Agenten —
+und die API-Version ist **nicht** darunter. Leitplanke 7: ein Kommentar, der
+eine Absicherung behauptet, muss sie belegen können. Korrigiert.
+
+**Regel 25** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
