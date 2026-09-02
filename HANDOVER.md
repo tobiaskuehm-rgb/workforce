@@ -166,6 +166,7 @@ jeweils mit Nachweis:
 | `G-051` | **die Bus-Adresse zeigte auf ein Gerät, das es nicht gibt** | behoben, Regel 26 |
 | `G-052` | die Deploy-Pfadliste existierte nur in einer Terminalzeile | behoben |
 | `G-053` | **der Rückweg der Kette bestätigte nie auf dem Bus** | behoben, Regel 27 |
+| `G-054` | zwei falsche Zusicherungen im Agenten-README (`G-029`, `G-036`) | behoben, Regel 28 |
 
 **Drei Dinge, bei denen ich deine Einschätzung brauche und nicht selbst
 entschieden habe:**
