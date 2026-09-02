@@ -2407,3 +2407,54 @@ core_token_thorsten: kein Paket legt diese Datei an
 ```
 
 **Regel 40** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
+
+
+---
+
+## `G-069` — eigener Prüfdurchgang: ein Pfad zu viel hielt das Manifest rot
+
+**Bestätigt, selbst gefunden, behoben.** Aufgefallen beim ersten echten Deploy
+über den neuen `G-064`-Mechanismus — also genau dort, wo er auffallen soll.
+
+### Der Befund
+
+`verify_manifest.sh` meldete nach einem sauberen Deploy:
+
+```
+UNERWARTET  chain-test/validate_chain_run_config.sh
+manifestiert: 223 Datei(en); fehlend, abweichend oder unerwartet: 1
+RESULT: FAIL
+```
+
+Die Datei ist versioniert, ausgerollt und korrekt. Der Fehler lag in
+`deploy_paths.txt`: Dort stand sowohl `chain-test` als auch
+`chain-test/validate_chain_run_config.sh`.
+
+`verify_manifest.sh` läuft `find $paths -type f`. Mit beiden Einträgen findet
+`find` die Datei **zweimal**, während `git ls-files` sie einmal nennt — die
+zweite Fundstelle ist dann „unerwartet".
+
+**Warum das mehr ist als Kosmetik:** Abschnitt 4 des Phase-5-Runbooks verlangt
+`verify_manifest.sh` als Gate. Es wäre nie grün geworden, und das Fenster hätte
+im vierten Schritt gestanden — an einem Fehler, der nichts mit dem Fenster zu
+tun hat. Ein Wächter, der immer rot ist, wird abgeschaltet statt gelesen.
+
+### Die Korrektur
+
+Der redundante Eintrag ist weg; ein Pfad deckt sich selbst und alles darunter
+ab. `test_deploy_paths.py` weist jetzt jeden Eintrag zurück, der bereits durch
+einen anderen abgedeckt ist — mit Gegenprobe in beide Richtungen, damit die
+Regel nicht versehentlich `chain-testing` neben `chain-test` verbietet.
+
+### Warum der überflüssige Eintrag überhaupt dastand
+
+Beim Entfernen wurde ein zweiter Wächter rot: `helper_script_offenders()`
+suchte den Skriptnamen **wörtlich** in `deploy_paths.txt` und verlangte damit
+für jedes ausgeführte Skript einen Einzeleintrag — auch für eines, das längst
+über seinen Ordner abgedeckt ist.
+
+Die beiden Fehler bedingen einander: Der zu enge Wächter erzeugte den Eintrag,
+der das Gate brach. Der Wächter löst Ordnereinträge jetzt auf, und ein Skript,
+das nirgends ausgerollt wird, fällt weiterhin auf.
+
+**Regel 41** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.

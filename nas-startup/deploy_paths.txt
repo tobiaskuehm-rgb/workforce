@@ -19,7 +19,6 @@ bus-realtest
 chain-test
 # Runbook helper: keep its name explicit so the runbook/deploy guard can
 # prove that the exact validation command is shipped.
-chain-test/validate_chain_run_config.sh
 telegram-connector
 workforce-agent
 workforce-api

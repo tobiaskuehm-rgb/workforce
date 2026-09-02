@@ -61,6 +61,33 @@ class TheListIsRealTest(unittest.TestCase):
         doppelt = sorted({p for p in self.pfade if self.pfade.count(p) > 1})
         self.assertEqual([], doppelt)
 
+    def test_no_path_is_already_covered_by_another(self) -> None:
+        """G-069: ein Unterpfad neben seinem Ordner macht das Manifest rot.
+
+        `verify_manifest.sh` laeuft `find $paths -type f`. Steht sowohl
+        `chain-test` als auch `chain-test/validate_chain_run_config.sh` in der
+        Liste, findet `find` die Datei **zweimal**, waehrend `git ls-files` sie
+        einmal nennt - die zweite Fundstelle wird als UNERWARTET gemeldet und
+        das Gate ist dauerhaft rot. Ein Waechter, der immer rot ist, wird
+        abgeschaltet.
+        """
+        ueberdeckt = sorted(
+            p for p in self.pfade
+            if any(a != p and p.startswith(a.rstrip("/") + "/") for a in self.pfade)
+        )
+        self.assertEqual([], ueberdeckt,
+                         "schon durch einen anderen Eintrag abgedeckt")
+
+    def test_that_coverage_rule_actually_distinguishes(self) -> None:
+        # Gegenprobe in beide Richtungen: der echte Fall faellt auf, zwei
+        # unabhaengige Pfade nicht.
+        eng = ["chain-test", "chain-test/validate_chain_run_config.sh"]
+        self.assertTrue([p for p in eng
+                         if any(a != p and p.startswith(a.rstrip("/") + "/") for a in eng)])
+        weit = ["chain-test", "chain-testing"]
+        self.assertFalse([p for p in weit
+                          if any(a != p and p.startswith(a.rstrip("/") + "/") for a in weit)])
+
     def test_no_path_escapes_the_folder(self) -> None:
         # Ein `..` im Deploy-Pfad waere ein Archiv ueber halb den Mac.
         for p in self.pfade:

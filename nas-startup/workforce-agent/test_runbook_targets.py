@@ -426,6 +426,29 @@ def deployed_paths() -> str:
     return datei.read_text(encoding="utf-8") if datei.is_file() else ""
 
 
+def deployed_file_names(liste: str) -> set[str]:
+    """Dateinamen, die die Pfadliste abdeckt - Ordnereintraege aufgeloest.
+
+    Ein Verzeichnis in `deploy_paths.txt` deckt alles darunter ab. Die erste
+    Fassung suchte den Skriptnamen woertlich in der Liste und verlangte
+    deshalb einen Einzeleintrag je Skript - und genau so ein Einzeleintrag
+    neben seinem Ordner hat als `G-069` das Manifest dauerhaft rot gemacht.
+    Die beiden Fehler bedingen einander: Der zu enge Waechter erzeugte den
+    Eintrag, der das Gate brach.
+    """
+    namen: set[str] = set()
+    for zeile in liste.splitlines():
+        eintrag = zeile.split("#", 1)[0].strip()
+        if not eintrag:
+            continue
+        ziel = NAS / eintrag
+        if ziel.is_dir():
+            namen.update(p.name for p in ziel.rglob("*") if p.is_file())
+        elif ziel.is_file():
+            namen.add(ziel.name)
+    return namen
+
+
 def helper_script_offenders(text: str,
                             deploy_paths_file: str | None = None) -> list[str]:
     """Every script the runbook runs has to be one the rollout also ships.
@@ -452,7 +475,8 @@ def helper_script_offenders(text: str,
         # Pfadteil fiel genau diese Form still aus der Pruefung.
         executed.update(re.findall(r"(?:^|\s)sh\s+(?:\S*/)?([A-Za-z0-9_-]+\.sh)", command))
     liste = deploy_paths_file if deploy_paths_file is not None else deployed_paths()
-    return sorted(name for name in executed if name not in liste)
+    abgedeckt = liste + "\n" + " ".join(sorted(deployed_file_names(liste)))
+    return sorted(name for name in executed if name not in abgedeckt)
 
 
 def function_arity() -> dict[str, int]:
