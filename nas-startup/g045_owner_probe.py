@@ -82,6 +82,27 @@ AKTEUR = "SYSTEM-PROBE"
 REQUEST_ID = "PROBE-G045-WRITE"
 MARKE = "PROBE-G045"
 
+# Die letzte Aussage des Abnahmetests. Ohne sie ist ein Exitcode 0 nur
+# "psql hat nichts zu meckern gehabt" - zum Beispiel, weil die Datei gar
+# nicht ankam (`G-076`).
+ABNAHME_MARKER = "Bus function owner acceptance: PASS"
+
+# Der Negativtest "kann der Eigentuemer das Audit abschalten" braucht eine
+# gebundene Ablehnung, keinen beliebigen Fehlschlag. `CLAUDE.md` haelt das seit
+# `G-014` fest - "irgendein Fehler kam zurueck" ist kein bestandener
+# Negativtest -, und die erste Fassung dieser Probe hat trotzdem jeden
+# Prozessfehler als "Zugriff verweigert" gewertet: ein weggeraeumter Container,
+# eine abgerissene SSH-Sitzung, ein Tippfehler im Tabellennamen oder eine
+# fehlende Rolle haetten den Nachweis erbracht, um den es hier geht.
+#
+# PostgreSQL weist `ALTER TABLE ... DISABLE TRIGGER` durch einen Nicht-
+# Eigentuemer mit `insufficient_privilege` ab. Die Probe faengt die Ausnahme
+# und druckt die **tatsaechliche** SQLSTATE, statt eine zu behaupten; erwartet
+# wird genau `42501`. Kommt eine andere, faellt die Probe auf und nennt sie.
+TRIGGER_ERWARTETE_SQLSTATE = "42501"
+TRIGGER_ABGELEHNT = "PROBE_TRIGGER_DENIED_" + TRIGGER_ERWARTETE_SQLSTATE
+TRIGGER_ERLAUBT = "PROBE_TRIGGER_ALLOWED"
+
 # Jede Zusicherung, die diese Probe belegen soll, mit ihrem genauen Sollwert.
 # Ein Schluessel, der im Ergebnis fehlt, ist ein Fehlschlag - nicht ein
 # uebergangener Punkt. Genau daran ist die erste Fassung gescheitert.
@@ -92,8 +113,18 @@ ERWARTET = {
     "Schreibversuch als workforce_owner": "ok",
     "Eventzuwachs": "1",
     "Audit-Event mit Request-Id, Akteur, Typ und Operation": "1",
-    "Trigger abschaltbar": "NEIN",
-    "Abnahmetest 009": "PASS",
+    "Trigger abschaltbar": "NEIN - abgewiesen mit SQLSTATE 42501",
+    # Die Integrationsgegenprobe zu `G-074`, und sie hat zwei Haelften. Die
+    # erste belegt, dass die Voreinstellung wirklich existiert: PostgreSQL
+    # erteilt `USAGE` auf `public` an die Pseudorolle `PUBLIC`, also meldet
+    # `has_schema_privilege` fuer jede Rolle `t`. Genau daran waere mein
+    # erster Abnahmetest auf jeder frischen Instanz gescheitert. Die zweite
+    # zeigt, dass 009 trotzdem keinen **direkten** Eintrag hinterlaesst - die
+    # Aussage, die die Migration wirklich macht. Ohne die erste Haelfte waere
+    # die zweite gruen, ohne dass jemand wuesste warum.
+    "public-USAGE ueber PUBLIC (Voreinstellung)": "t",
+    "direkte Schema-Grants ausserhalb workforce": "0",
+    "Abnahmetest 009": "ok",
 }
 
 
@@ -115,37 +146,89 @@ def bewertung(ergebnisse: list[tuple[str, str]]) -> tuple[bool, list[str]]:
     return not beanstandungen, beanstandungen
 
 
-def ssh(command: str, check: bool = True) -> str:
+def ssh(command: str) -> tuple[int, str]:
+    """(Exitcode, Ausgabe). Beides, immer.
+
+    Review finding G-076. Die erste Fassung gab bei `check=False` nur den Text
+    zurueck, und der Aufrufer entschied ueber `"ERROR" not in ausgabe`. Damit
+    haetten `psql: error: connection ...` (klein geschrieben),
+    `Error response from daemon ...` mit anderem Wortlaut, ein Exit 127 oder
+    eine leere Ausgabe als bestandener Schritt gegolten. Der Exitcode ist die
+    einzige Auskunft, die nicht von einer Wortwahl abhaengt - also wird er
+    zurueckgegeben und ausgewertet.
+    """
     result = subprocess.run(
         ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=600", HOST, command],
         capture_output=True, text=True,
     )
-    if check and result.returncode != 0:
-        raise RuntimeError(f"{command}\n{result.stdout}\n{result.stderr}")
-    return (result.stdout + result.stderr).strip()
+    return result.returncode, (result.stdout + result.stderr).strip()
 
 
-def psql(sql: str) -> str:
+def lauf_ergebnis(code: int, ausgabe: str, marker: str | None = None) -> str:
+    """"ok" nur bei Exitcode 0 und - wo verlangt - eindeutigem Schlussmarker.
+
+    Rein und ohne NAS, damit `test_owner_probe_verdict.py` die Negativfaelle
+    lokal fahren kann. Eine leere Ausgabe wird benannt statt weggekuerzt: Sie
+    ist der Fall, in dem eine Textpruefung am staerksten luegt.
+    """
+    schwanz = ausgabe.strip()[-200:] or "(keine Ausgabe)"
+    if code != 0:
+        return f"Exitcode {code}: {schwanz}"
+    if marker is not None and marker not in ausgabe:
+        return f"Schlussmarker fehlt: {schwanz}"
+    return "ok"
+
+
+def trigger_urteil(code: int, ausgabe: str) -> str:
+    """Hat PostgreSQL das Abschalten mit der erwarteten SQLSTATE abgelehnt?
+
+    Rein und ohne NAS, damit die Negativfaelle lokal laufen. Drei Ausgaenge,
+    und nur der erste ist ein bestandener Nachweis:
+
+      * abgelehnt mit `42501` - der Eigentuemer kommt an das Audit nicht heran
+      * durchgelassen - die Migration verfehlt ihren Zweck
+      * alles andere - der Versuch hat gar nicht stattgefunden
+
+    Der dritte Fall ist der, den die erste Fassung als Erfolg gewertet hat.
+    """
+    if code != 0:
+        return f"unbestimmt: Exitcode {code}: {ausgabe.strip()[-160:] or '(keine Ausgabe)'}"
+    if TRIGGER_ABGELEHNT in ausgabe:
+        return f"NEIN - abgewiesen mit SQLSTATE {TRIGGER_ERWARTETE_SQLSTATE}"
+    if TRIGGER_ERLAUBT in ausgabe:
+        return "JA - die Migration verfehlt ihren Zweck"
+    if "PROBE_TRIGGER_DENIED_" in ausgabe:
+        fremd = ausgabe.split("PROBE_TRIGGER_DENIED_", 1)[1].split()[0].strip()
+        return f"abgewiesen, aber mit SQLSTATE {fremd} statt {TRIGGER_ERWARTETE_SQLSTATE}"
+    return f"unbestimmt: kein Marker: {ausgabe.strip()[-160:] or '(keine Ausgabe)'}"
+
+
+def psql(sql: str) -> tuple[int, str]:
     escaped = sql.replace("'", "'\\''")
-    return ssh(f"{DOCKER} exec {NAME} psql -U workforce_app -d workforce -Atc '{escaped}' 2>&1",
-               check=False)
+    return ssh(f"{DOCKER} exec {NAME} psql -U workforce_app -d workforce -Atc '{escaped}' 2>&1")
 
 
 def skalar(sql: str) -> str:
-    """Der letzte Ausgabewert - psql schreibt Statuszeilen mit in denselben Strom."""
-    ausgabe = psql(sql)
+    """Der letzte Ausgabewert - psql schreibt Statuszeilen in denselben Strom.
+
+    Bei einem Fehlschlag wird das Ergebnis ausdruecklich als Fehler
+    gekennzeichnet, damit es unter keinen Umstaenden wie eine Zahl aussieht.
+    """
+    code, ausgabe = psql(sql)
+    if code != 0:
+        return f"FEHLER (Exitcode {code}): {ausgabe[-160:] or '(keine Ausgabe)'}"
     zeilen = [z.strip() for z in ausgabe.splitlines() if z.strip()]
-    return zeilen[-1] if zeilen else ""
+    return zeilen[-1] if zeilen else "(keine Ausgabe)"
 
 
 def aufraeumen() -> None:
     # Gezielt, nie ein prune: der wirkt NAS-weit (G-038).
-    ssh(f"{DOCKER} rm -f {NAME} >/dev/null 2>&1", check=False)
+    ssh(f"{DOCKER} rm -f {NAME} >/dev/null 2>&1")
 
 
 def start() -> None:
     aufraeumen()
-    ssh(
+    code, ausgabe = ssh(
         f"{DOCKER} run -d --name {NAME} "
         f"-e POSTGRES_USER=workforce_app "        # Regel 15: wie in der Produktion
         f"-e POSTGRES_DB=workforce "
@@ -153,19 +236,24 @@ def start() -> None:
         f"-v {SRC}:/probe/migrations:ro -v {TESTS}:/probe/tests:ro "
         f"{IMAGE} >/dev/null"
     )
+    if code != 0:
+        raise RuntimeError(f"Probe-Container startete nicht (Exitcode {code}): {ausgabe[-200:]}")
     for _ in range(60):
         if "accepting connections" in ssh(
-                f"{DOCKER} exec {NAME} pg_isready -U workforce_app -d workforce 2>&1",
-                check=False):
+                f"{DOCKER} exec {NAME} pg_isready -U workforce_app -d workforce 2>&1")[1]:
             return
-        ssh("sleep 2", check=False)
+        ssh("sleep 2")
     raise RuntimeError("Probe-Datenbank wurde nicht bereit")
 
 
 def anwenden(datei: str) -> str:
-    return ssh(
+    """"ok" oder eine benannte Fehlerursache. Dieselbe Auswertung wie beim
+    Abnahmetest (`G-076`): `ON_ERROR_STOP=1` laesst psql mit einem Exitcode
+    ungleich 0 enden, und der entscheidet - nicht die Frage, ob irgendwo das
+    Wort ERROR steht."""
+    return lauf_ergebnis(*ssh(
         f"{DOCKER} exec {NAME} psql -U workforce_app -d workforce "
-        f"-v ON_ERROR_STOP=1 -f /probe/migrations/{datei} 2>&1", check=False)
+        f"-v ON_ERROR_STOP=1 -f /probe/migrations/{datei} 2>&1"))
 
 
 def messen(ergebnisse: list[tuple[str, str]]) -> None:
@@ -177,9 +265,9 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
     psql("CREATE ROLE workforce_backup LOGIN PASSWORD 'wegwerf2'")
 
     for datei in MIGRATIONEN:
-        ausgabe = anwenden(datei)
-        if "ERROR" in ausgabe:
-            ergebnisse.append((f"Migration {datei}", f"FEHLER: {ausgabe[-200:]}"))
+        ergebnis = anwenden(datei)
+        if ergebnis != "ok":
+            ergebnisse.append((f"Migration {datei}", ergebnis))
             return
     ergebnisse.append(("Ausgangsstand", f"{len(MIGRATIONEN)} Migrationen angewendet"))
 
@@ -192,11 +280,10 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
                        skalar(superuser_definer)))
 
     # --- 009 anwenden -------------------------------------------------------
-    ausgabe = anwenden("009_bus_function_owner.sql")
-    if "ERROR" in ausgabe:
-        ergebnisse.append(("009 angewendet", f"FEHLER: {ausgabe[-200:]}"))
+    ergebnis = anwenden("009_bus_function_owner.sql")
+    ergebnisse.append(("009 angewendet", "ja" if ergebnis == "ok" else ergebnis))
+    if ergebnis != "ok":
         return
-    ergebnisse.append(("009 angewendet", "ja"))
     ergebnisse.append(("SECURITY DEFINER beim Superuser, nachher",
                        skalar(superuser_definer)))
     ergebnisse.append(("Relationen im Besitz von workforce_owner", skalar(
@@ -213,7 +300,7 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
     # Der abschliessende SELECT belegt den Schreibvorgang aus den Daten heraus,
     # statt sich auf psqls Statuszeile zu verlassen. Er laeuft noch als
     # workforce_owner und braucht damit auch dessen SELECT-Recht.
-    schreiben = psql(
+    schreib_code, schreiben = psql(
         f"SET ROLE workforce_owner; "
         f"SELECT set_config('app.actor_id', '{AKTEUR}', true); "
         f"SELECT set_config('app.request_id', '{REQUEST_ID}', true); "
@@ -221,8 +308,10 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
         f"WHERE project_id = 'START-UP'; "
         f"SELECT source_ref FROM workforce.bus_channels WHERE project_id = 'START-UP'")
     geschrieben = schreiben.splitlines()[-1].strip() if schreiben.strip() else ""
-    ergebnisse.append(("Schreibversuch als workforce_owner",
-                       "ok" if geschrieben == MARKE else schreiben[-200:]))
+    ergebnisse.append((
+        "Schreibversuch als workforce_owner",
+        "ok" if schreib_code == 0 and geschrieben == MARKE
+        else lauf_ergebnis(schreib_code, schreiben, MARKE)))
 
     # Jede psql-Sitzung ist eine eigene Verbindung; das SET ROLE oben ist hier
     # schon wieder weg. Ein `RESET ROLE` haette nur eine Statuszeile in den
@@ -243,20 +332,41 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
                f"WHERE request_id = '{REQUEST_ID}' AND actor_id = '{AKTEUR}' "
                "AND record_type = 'CHANNEL' AND event_type = 'UPDATE'")))
 
+    # --- G-074: die Gegenprobe zur Schemafreigabe ---------------------------
+    ergebnisse.append(("public-USAGE ueber PUBLIC (Voreinstellung)", skalar(
+        "SELECT has_schema_privilege('workforce_owner', 'public', 'USAGE')")))
+    ergebnisse.append(("direkte Schema-Grants ausserhalb workforce", skalar(
+        "SELECT count(*) FROM pg_namespace n "
+        "CROSS JOIN LATERAL aclexplode(n.nspacl) AS a "
+        "JOIN pg_roles r ON r.oid = a.grantee "
+        "WHERE r.rolname = 'workforce_owner' AND n.nspname <> 'workforce'")))
+
     # --- Frage 3: kann er das Audit abschalten? -----------------------------
-    abschalten = psql(
+    # Hier ist der Fehlschlag das erwuenschte Ergebnis - und genau deshalb
+    # muss er **gebunden** sein. Der Aufruf laeuft erfolgreich durch (Exitcode
+    # 0) und meldet in der Ausgabe, ob die Anweisung durchging oder mit welcher
+    # SQLSTATE sie abgewiesen wurde. Ein Container-, Verbindungs- oder
+    # Tippfehler hat dann weder Exitcode 0 noch einen der beiden Marker.
+    abschalt_code, abschalten = psql(
         "SET ROLE workforce_owner; "
-        "ALTER TABLE workforce.bus_messages DISABLE TRIGGER USER")
+        "DO $x$ BEGIN "
+        "EXECUTE 'ALTER TABLE workforce.bus_messages DISABLE TRIGGER USER'; "
+        f"RAISE NOTICE '{TRIGGER_ERLAUBT}'; "
+        "EXCEPTION WHEN OTHERS THEN "
+        "RAISE NOTICE 'PROBE_TRIGGER_DENIED_%', SQLSTATE; "
+        "END $x$;")
     ergebnisse.append(("Trigger abschaltbar",
-                       "NEIN" if "ERROR" in abschalten
-                       else "JA - die Migration verfehlt ihren Zweck"))
+                       trigger_urteil(abschalt_code, abschalten)))
 
     # --- Abnahmetest --------------------------------------------------------
-    test = ssh(
+    # Exitcode **und** der eindeutige Schlussmarker, den der Test als letzte
+    # Aussage schreibt (`G-076`). Ein Transport- oder Containerfehler kann so
+    # nicht mehr als bestandener SQL-Abnahmetest durchgehen: Er hat entweder
+    # keinen Exitcode 0 oder er hat den Marker nicht.
+    ergebnisse.append(("Abnahmetest 009", lauf_ergebnis(*ssh(
         f"{DOCKER} exec {NAME} psql -U workforce_app -d workforce "
-        f"-v ON_ERROR_STOP=1 -f /probe/tests/009_bus_function_owner_acceptance.sql 2>&1",
-        check=False)
-    ergebnisse.append(("Abnahmetest 009", "PASS" if "ERROR" not in test else test[-200:]))
+        f"-v ON_ERROR_STOP=1 -f /probe/tests/009_bus_function_owner_acceptance.sql 2>&1"),
+        ABNAHME_MARKER)))
 
 
 def main() -> int:

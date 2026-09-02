@@ -57,56 +57,65 @@ BEGIN
 END;
 $$;
 
--- 2. Genau die zwoelf, mit Stelligkeit und Eigentuemer. Die erste Fassung
---    fragte "0 beim Superuser" und ">0 vorhanden" - eine zu breite
---    Verschiebung haette das bestanden (`G-071`).
+-- 2. Genau die zwoelf, ueber ihre vollstaendige Identitaetssignatur.
+--
+--    Die erste Fassung fragte "0 beim Superuser" und ">0 vorhanden" - eine zu
+--    breite Verschiebung haette das bestanden (`G-071`). Die zweite pinnte
+--    `name:stelligkeit` und haette eine gleichnamige Funktion mit gleicher
+--    Argumentzahl und anderen Parametertypen nicht unterschieden (`G-075`).
+--    Aufgeloest wird deshalb ueber `to_regprocedure()`, und jede weitere
+--    Aussage haengt an der **OID** - derselben, die auch die Migration
+--    verwendet hat.
 DO $$
 DECLARE
-    v_erwartet text[] := ARRAY[
-        'bus_authenticate:2', 'bus_send_message:13', 'bus_acknowledge_message:6',
-        'bus_list_messages:4', 'bus_create_task:11', 'bus_list_tasks:4',
-        'bus_transition_task:6', 'bus_create_handoff:12', 'bus_list_handoffs:4',
-        'bus_transition_handoff:6', 'bus_identify_for_audit:2',
-        'bus_record_denial:8'
+    v_signaturen text[] := ARRAY[
+        'workforce.bus_authenticate(text, text)',
+        'workforce.bus_send_message(text, text, text, text, text, text, text, text, text, text, text, text, text)',
+        'workforce.bus_acknowledge_message(text, text, text, text, text, text)',
+        'workforce.bus_list_messages(text, text, text, integer)',
+        'workforce.bus_create_task(text, text, text, text, text, text, text, text, text, text, timestamptz)',
+        'workforce.bus_list_tasks(text, text, text, integer)',
+        'workforce.bus_transition_task(text, text, text, text, text, text)',
+        'workforce.bus_create_handoff(text, text, text, text, text, text, text, text, text, text, text, text)',
+        'workforce.bus_list_handoffs(text, text, text, integer)',
+        'workforce.bus_transition_handoff(text, text, text, text, text, text)',
+        'workforce.bus_identify_for_audit(text, text)',
+        'workforce.bus_record_denial(text, text, text, text, text, text, text, integer)'
     ];
-    v_gehoert text[];
-    v_fehlend text[];
+    v_signatur text;
+    v_proc regprocedure;
+    v_oids oid[] := '{}';
     v_zuviel text[];
 BEGIN
-    -- Alles, was workforce_owner gehoert - ohne Filter auf den Namen, damit
-    -- eine unerwartete Eigentumsverschiebung als Zuviel auffaellt.
-    SELECT coalesce(array_agg(p.proname || ':' || p.pronargs
-                              ORDER BY p.proname, p.pronargs), '{}')
-      INTO v_gehoert
+    FOREACH v_signatur IN ARRAY v_signaturen LOOP
+        v_proc := to_regprocedure(v_signatur);
+        IF v_proc IS NULL THEN
+            RAISE EXCEPTION 'ACCEPTANCE_009_SIGNATURE_NOT_FOUND: %', v_signatur;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid = v_proc::oid AND prosecdef) THEN
+            RAISE EXCEPTION 'ACCEPTANCE_009_NOT_SECURITY_DEFINER: %', v_signatur;
+        END IF;
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid = p.proowner
+            WHERE p.oid = v_proc::oid AND r.rolname = 'workforce_owner'
+        ) THEN
+            RAISE EXCEPTION 'ACCEPTANCE_009_NOT_TRANSFERRED: %', v_signatur;
+        END IF;
+        v_oids := v_oids || v_proc::oid;
+    END LOOP;
+
+    -- Die Gegenrichtung: nichts ausserhalb der zwoelf gehoert ihm. Ohne das
+    -- bestuende der Test auch ueber einer zu breiten Verschiebung.
+    SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY 1), '{}')
+      INTO v_zuviel
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
     JOIN pg_roles r ON r.oid = p.proowner
-    WHERE n.nspname = 'workforce' AND r.rolname = 'workforce_owner';
-
-    SELECT coalesce(array_agg(x), '{}') INTO v_fehlend
-    FROM unnest(v_erwartet) AS x WHERE x <> ALL (v_gehoert);
-    SELECT coalesce(array_agg(x), '{}') INTO v_zuviel
-    FROM unnest(v_gehoert) AS x WHERE x <> ALL (v_erwartet);
-
-    IF array_length(v_fehlend, 1) IS NOT NULL THEN
-        RAISE EXCEPTION 'ACCEPTANCE_009_NOT_TRANSFERRED: %',
-            array_to_string(v_fehlend, ', ');
-    END IF;
+    WHERE n.nspname = 'workforce' AND r.rolname = 'workforce_owner'
+      AND NOT (p.oid = ANY (v_oids));
     IF array_length(v_zuviel, 1) IS NOT NULL THEN
         RAISE EXCEPTION 'ACCEPTANCE_009_UNEXPECTED_OWNERSHIP: %',
             array_to_string(v_zuviel, ', ');
-    END IF;
-
-    -- Und sie sind noch SECURITY DEFINER. Ohne das waere die Uebertragung
-    -- vollzogen und wirkungslos.
-    IF EXISTS (
-        SELECT 1 FROM pg_proc p
-        JOIN pg_namespace n ON n.oid = p.pronamespace
-        JOIN pg_roles r ON r.oid = p.proowner
-        WHERE n.nspname = 'workforce' AND r.rolname = 'workforce_owner'
-          AND NOT p.prosecdef
-    ) THEN
-        RAISE EXCEPTION 'ACCEPTANCE_009_OWNED_BUT_NOT_SECURITY_DEFINER';
     END IF;
 END;
 $$;
@@ -157,25 +166,33 @@ BEGIN
 END;
 $$;
 
--- 4. Die Tabellenrechte sind **genau** die Allowlist. Ein `ALL TABLES` waere
---    hier sofort sichtbar, und nach einer Anwendung von `004` haette es auch
+-- 4. Die Rechte sind **genau** die Allowlist. Ein `ALL TABLES` waere hier
+--    sofort sichtbar, und nach einer Anwendung von `004` haette es auch
 --    saemtliche Knowledge-Tabellen umfasst (`G-071`).
+--
+--    Gelesen wird der **Katalog**, nicht `information_schema.role_table_grants`
+--    (`G-074`). Zwei Gruende: Die Sicht zeigt nur Rechte, bei denen der
+--    aufrufende Benutzer Erteiler, Empfaenger oder Mitglied ist, und die erste
+--    Fassung gruppierte ohne Schema - zwei gleichnamige Tabellen in zwei
+--    Schemata waeren zu einer Zeile verschmolzen. Der Schluessel traegt das
+--    Schema deshalb mit, und `aclexplode` erfasst jede Relationsart, also auch
+--    eine Sequenz oder eine Sicht ausserhalb von `workforce`.
 DO $$
 DECLARE
     v_erwartet text[] := ARRAY[
-        'active_project_members=SELECT',
-        'bus_channels=SELECT',
-        'bus_credentials=SELECT',
-        'bus_denials=INSERT',
-        'bus_events=INSERT',
-        'bus_handoffs=INSERT,SELECT,UPDATE',
-        'bus_member_capabilities=SELECT',
-        'bus_messages=INSERT,SELECT,UPDATE',
-        'bus_route_allowlist=SELECT',
-        'bus_tasks=INSERT,SELECT,UPDATE',
-        'employee_project_memberships=SELECT',
-        'employees=SELECT',
-        'projects=SELECT'
+        'workforce.active_project_members=SELECT',
+        'workforce.bus_channels=SELECT',
+        'workforce.bus_credentials=SELECT',
+        'workforce.bus_denials=INSERT',
+        'workforce.bus_events=INSERT',
+        'workforce.bus_handoffs=INSERT,SELECT,UPDATE',
+        'workforce.bus_member_capabilities=SELECT',
+        'workforce.bus_messages=INSERT,SELECT,UPDATE',
+        'workforce.bus_route_allowlist=SELECT',
+        'workforce.bus_tasks=INSERT,SELECT,UPDATE',
+        'workforce.employee_project_memberships=SELECT',
+        'workforce.employees=SELECT',
+        'workforce.projects=SELECT'
     ];
     v_ist text[];
     v_fehlend text[];
@@ -183,11 +200,14 @@ DECLARE
 BEGIN
     SELECT coalesce(array_agg(zeile ORDER BY zeile), '{}') INTO v_ist
     FROM (
-        SELECT table_name || '=' ||
-               string_agg(DISTINCT privilege_type, ',' ORDER BY privilege_type) AS zeile
-        FROM information_schema.role_table_grants
-        WHERE grantee = 'workforce_owner'
-        GROUP BY table_schema, table_name
+        SELECT n.nspname || '.' || c.relname || '=' ||
+               string_agg(DISTINCT a.privilege_type, ',' ORDER BY a.privilege_type) AS zeile
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        CROSS JOIN LATERAL aclexplode(c.relacl) AS a
+        JOIN pg_roles r ON r.oid = a.grantee
+        WHERE r.rolname = 'workforce_owner'
+        GROUP BY n.nspname, c.relname
     ) AS g;
 
     SELECT coalesce(array_agg(x), '{}') INTO v_fehlend
@@ -206,79 +226,134 @@ BEGIN
 END;
 $$;
 
--- 4b. Und nichts ausserhalb von `workforce`: kein Schema `public`, keine
---     Sequenz. Beides stand in der ersten Fassung und wurde von nichts
---     gebraucht (`G-071`).
+-- 4b. Kein **direkter** Grant auf das Schema `public`.
+--
+--     Die erste Fassung fragte hier `has_schema_privilege(..., 'public',
+--     'USAGE')` und erwartete `false`. Das waere auf jeder frischen
+--     PostgreSQL-17-Instanz falsch rot geworden (`G-074`): Die Funktion
+--     beantwortet das **effektive** Recht, und die Dokumentation zu Schemata
+--     sagt fuer `public` ausdruecklich "By default, everyone has that
+--     privilege on the schema public" - erteilt an die Pseudorolle `PUBLIC`.
+--     Ein Widerruf allein bei `workforce_owner` kann ein ueber `PUBLIC`
+--     geerbtes Recht nicht negieren, und keine der Migrationen `001` bis `009`
+--     entzieht `USAGE ON SCHEMA public FROM PUBLIC`.
+--
+--     Das global zu tun waere eine Rechteentscheidung weit ausserhalb dieser
+--     Busmigration. Die Zusicherung, die 009 wirklich macht, lautet deshalb:
+--     **kein direkter Eintrag fuer `workforce_owner`**. Genau das wird hier
+--     gelesen. `aclexplode` gibt fuer `PUBLIC` die Grantee-OID `0`, zu der es
+--     keine Zeile in `pg_roles` gibt - der Join blendet die Pseudorolle also
+--     aus, ohne dass es dafuer eine Sonderregel braucht. Ist `nspacl` NULL,
+--     gilt die Voreinstellung und es gibt definitionsgemaess keinen direkten
+--     Eintrag.
 DO $$
+DECLARE
+    v_direkt text[];
+    v_schema_rechte text;
 BEGIN
-    IF has_schema_privilege('workforce_owner', 'public', 'USAGE') THEN
-        RAISE EXCEPTION 'ACCEPTANCE_009_PUBLIC_SCHEMA_GRANTED';
+    SELECT coalesce(array_agg(n.nspname || ':' || a.privilege_type
+                              ORDER BY n.nspname, a.privilege_type), '{}')
+      INTO v_direkt
+    FROM pg_namespace n
+    CROSS JOIN LATERAL aclexplode(n.nspacl) AS a
+    JOIN pg_roles r ON r.oid = a.grantee
+    WHERE r.rolname = 'workforce_owner'
+      AND n.nspname <> 'workforce';
+    IF array_length(v_direkt, 1) IS NOT NULL THEN
+        RAISE EXCEPTION 'ACCEPTANCE_009_FOREIGN_SCHEMA_GRANTED: %',
+            array_to_string(v_direkt, ', ');
     END IF;
-    IF EXISTS (
-        SELECT 1 FROM information_schema.usage_privileges
-        WHERE grantee = 'workforce_owner' AND object_type = 'SEQUENCE'
-    ) THEN
-        RAISE EXCEPTION 'ACCEPTANCE_009_SEQUENCE_GRANTED';
+
+    -- Und auf `workforce` hat er **genau** USAGE - nicht mindestens USAGE.
+    --
+    -- Die erste Fassung fragte nur nach dem Vorhandensein. Eine Rolle, die
+    -- diese Migration bereits vorfindet, koennte `CREATE` auf dem Schema
+    -- mitbringen; die Migration entzog es nicht und der Test sah es nicht.
+    -- `CREATE` ist hier kein kleines Extra: Damit legt die Rolle eigene
+    -- Relationen in `workforce` an, ist deren Eigentuemerin und kann auf
+    -- ihnen Trigger abschalten. Das ist genau der Weg, den 009 zumachen soll.
+    SELECT coalesce(string_agg(DISTINCT a.privilege_type, ',' ORDER BY a.privilege_type),
+                    '(keine)')
+      INTO v_schema_rechte
+    FROM pg_namespace n
+    CROSS JOIN LATERAL aclexplode(n.nspacl) AS a
+    JOIN pg_roles r ON r.oid = a.grantee
+    WHERE r.rolname = 'workforce_owner' AND n.nspname = 'workforce';
+    IF v_schema_rechte <> 'USAGE' THEN
+        RAISE EXCEPTION 'ACCEPTANCE_009_WORKFORCE_SCHEMA_PRIVILEGES: % statt USAGE',
+            v_schema_rechte;
     END IF;
 END;
 $$;
 
--- 5. Die API kann ihre Funktionen weiterhin aufrufen. Ein Eigentuemerwechsel
---    nimmt GRANTs nicht weg - aber ein Abnahmetest, der nur Verbote prueft,
---    besteht auch auf einem stillgelegten Bus.
+-- 5. Die API kann ihre Funktionen weiterhin aufrufen - und nur die.
+--
+--    Ein Eigentuemerwechsel nimmt GRANTs nicht weg, aber ein Abnahmetest, der
+--    nur Verbote prueft, besteht auch auf einem stillgelegten Bus. Geprueft
+--    wird an derselben OID (`G-075`): Die erste Fassung suchte nur den
+--    Funktionsnamen, und ein zweiter Overload gleichen Namens haette die
+--    Bedingung miterfuellt.
+--
+--    `bus_authenticate` und `bus_identify_for_audit` sind interne Helfer, die
+--    nur aus den anderen Funktionen heraus laufen; `007` hat der API das
+--    EXECUTE darauf absichtlich nicht erteilt. Meine erste Fassung dieses
+--    Tests verlangte es - das waere eine Aufweichung gewesen, und die Messung
+--    gegen die Produktion hat sie gefunden. Die zehn aufrufbaren werden
+--    deshalb nicht als dritte Liste gefuehrt, sondern aus den zwoelf minus
+--    diesen beiden abgeleitet; zwei Listen koennen nicht auseinanderlaufen.
 DO $$
 DECLARE
-    v_name text;
+    v_signaturen text[] := ARRAY[
+        'workforce.bus_authenticate(text, text)',
+        'workforce.bus_send_message(text, text, text, text, text, text, text, text, text, text, text, text, text)',
+        'workforce.bus_acknowledge_message(text, text, text, text, text, text)',
+        'workforce.bus_list_messages(text, text, text, integer)',
+        'workforce.bus_create_task(text, text, text, text, text, text, text, text, text, text, timestamptz)',
+        'workforce.bus_list_tasks(text, text, text, integer)',
+        'workforce.bus_transition_task(text, text, text, text, text, text)',
+        'workforce.bus_create_handoff(text, text, text, text, text, text, text, text, text, text, text, text)',
+        'workforce.bus_list_handoffs(text, text, text, integer)',
+        'workforce.bus_transition_handoff(text, text, text, text, text, text)',
+        'workforce.bus_identify_for_audit(text, text)',
+        'workforce.bus_record_denial(text, text, text, text, text, text, text, integer)'
+    ];
+    v_intern text[] := ARRAY[
+        'workforce.bus_authenticate(text, text)',
+        'workforce.bus_identify_for_audit(text, text)'
+    ];
+    v_signatur text;
+    v_proc regprocedure;
+    v_darf boolean;
+    v_hat boolean;
     v_fehlend text := '';
+    v_zuviel text := '';
+    v_aufrufbar integer := 0;
 BEGIN
-    -- Die zehn, die die API wirklich aufruft. `bus_authenticate` und
-    -- `bus_identify_for_audit` stehen bewusst **nicht** hier: Sie sind interne
-    -- Helfer, die nur aus den anderen Funktionen heraus laufen, und `007` hat
-    -- der API das EXECUTE darauf absichtlich nicht erteilt. Meine erste
-    -- Fassung dieses Tests verlangte es - das waere eine Aufweichung gewesen,
-    -- und die Messung gegen die Produktion hat sie gefunden.
-    FOREACH v_name IN ARRAY ARRAY[
-        'bus_send_message', 'bus_acknowledge_message', 'bus_list_messages',
-        'bus_create_task', 'bus_list_tasks', 'bus_create_handoff',
-        'bus_list_handoffs', 'bus_transition_task', 'bus_transition_handoff',
-        'bus_record_denial'
-    ] LOOP
-        IF NOT EXISTS (
-            SELECT 1
-            FROM pg_proc p
-            JOIN pg_namespace n ON n.oid = p.pronamespace
-            WHERE n.nspname = 'workforce' AND p.proname = v_name
-              AND has_function_privilege('workforce_api', p.oid, 'EXECUTE')
-        ) THEN
-            v_fehlend := v_fehlend || ' ' || v_name;
+    FOREACH v_signatur IN ARRAY v_signaturen LOOP
+        v_proc := to_regprocedure(v_signatur);
+        IF v_proc IS NULL THEN
+            RAISE EXCEPTION 'ACCEPTANCE_009_SIGNATURE_NOT_FOUND: %', v_signatur;
+        END IF;
+        v_darf := NOT (v_signatur = ANY (v_intern));
+        v_hat := has_function_privilege('workforce_api', v_proc::oid, 'EXECUTE');
+        IF v_darf THEN
+            v_aufrufbar := v_aufrufbar + 1;
+            IF NOT v_hat THEN
+                v_fehlend := v_fehlend || ' ' || v_signatur;
+            END IF;
+        ELSIF v_hat THEN
+            v_zuviel := v_zuviel || ' ' || v_signatur;
         END IF;
     END LOOP;
+
     IF v_fehlend <> '' THEN
         RAISE EXCEPTION 'ACCEPTANCE_009_API_LOST_EXECUTE:%', v_fehlend;
     END IF;
-END;
-$$;
-
--- 5b. Und die Gegenrichtung: Die internen Helfer bleiben fuer die API
---     unerreichbar. Ein Test, der nur prueft, dass genug erlaubt ist, wuerde
---     eine zu weit geoeffnete Datenbank nicht bemerken.
-DO $$
-DECLARE
-    v_name text;
-    v_zuviel text := '';
-BEGIN
-    FOREACH v_name IN ARRAY ARRAY['bus_authenticate', 'bus_identify_for_audit'] LOOP
-        IF EXISTS (
-            SELECT 1 FROM pg_proc p
-            JOIN pg_namespace n ON n.oid = p.pronamespace
-            WHERE n.nspname = 'workforce' AND p.proname = v_name
-              AND has_function_privilege('workforce_api', p.oid, 'EXECUTE')
-        ) THEN
-            v_zuviel := v_zuviel || ' ' || v_name;
-        END IF;
-    END LOOP;
     IF v_zuviel <> '' THEN
         RAISE EXCEPTION 'ACCEPTANCE_009_API_REACHES_INTERNALS:%', v_zuviel;
+    END IF;
+    IF v_aufrufbar <> 10 THEN
+        RAISE EXCEPTION 'ACCEPTANCE_009_CALLABLE_COUNT: % statt 10', v_aufrufbar;
     END IF;
 END;
 $$;
@@ -306,9 +381,48 @@ BEGIN
     END IF;
 
     SELECT count(*) INTO v_count
-    FROM information_schema.role_table_grants WHERE grantee = 'workforce_owner';
+    FROM pg_class c
+    CROSS JOIN LATERAL aclexplode(c.relacl) AS a
+    JOIN pg_roles r ON r.oid = a.grantee
+    WHERE r.rolname = 'workforce_owner';
     IF v_count = 0 THEN
         RAISE EXCEPTION 'ACCEPTANCE_009_SELF_CHECK_FAILED: keine Rechte sichtbar';
+    END IF;
+
+    -- Und die Gegenprobe zu `G-074`: Der Katalogblick muss die Pseudorolle
+    -- PUBLIC ausblenden, sonst haette der Test oben denselben Fehler wie die
+    -- erste Fassung - nur an einer anderen Stelle. `public` traegt die
+    -- Vorgabefreigabe an PUBLIC; sie darf hier nicht als direkter Eintrag
+    -- auftauchen.
+    -- Diese Pruefung war in ihrer ersten Fassung **logisch leer**: Sie
+    -- verlangte `a.grantee = 0` und jointe gleichzeitig auf `pg_roles`, wo es
+    -- zur OID 0 keine Zeile gibt. Der Join hat jede Zeile entfernt, `EXISTS`
+    -- war immer falsch, und der Waechter konnte nie anschlagen - ein Waechter,
+    -- der nicht hinsehen kann, meldet PASS. Die beiden Tatsachen brauchen
+    -- deshalb zwei getrennte Abfragen.
+    --
+    -- (a) Die Vorgabefreigabe an PUBLIC existiert wirklich. Ohne sie waere
+    --     die Aussage von Abschnitt 4b gruen ueber einer leeren Menge.
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_namespace n
+        CROSS JOIN LATERAL aclexplode(n.nspacl) AS a
+        WHERE n.nspname = 'public' AND a.grantee = 0 AND a.privilege_type = 'USAGE'
+    ) THEN
+        RAISE EXCEPTION
+            'ACCEPTANCE_009_SELF_CHECK_FAILED: keine PUBLIC-Vorgabe auf public - '
+            'dann prueft Abschnitt 4b nichts';
+    END IF;
+
+    -- (b) Und der Join auf `pg_roles`, den Abschnitt 4b verwendet, blendet
+    --     genau diesen Eintrag aus. Erst beides zusammen belegt, dass dort
+    --     die Pseudorolle uebergangen wird und nicht etwa alles.
+    IF EXISTS (
+        SELECT 1 FROM pg_namespace n
+        CROSS JOIN LATERAL aclexplode(n.nspacl) AS a
+        JOIN pg_roles r ON r.oid = a.grantee
+        WHERE n.nspname = 'public' AND a.grantee = 0
+    ) THEN
+        RAISE EXCEPTION 'ACCEPTANCE_009_SELF_CHECK_FAILED: PUBLIC nicht ausgeblendet';
     END IF;
 
     RAISE NOTICE 'Bus function owner acceptance: PASS';

@@ -80,65 +80,23 @@ ALTER ROLE workforce_owner
     NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
     NOINHERIT NOBYPASSRLS NOREPLICATION;
 
--- 2. Die zwoelf, als Name und Stelligkeit. Die Stelligkeit steht dabei, weil
---    sie eine Ueberladung von der gemeinten Funktion unterscheidet - dieselbe
---    Frage wie in `G-044`, wo fuenf Argumente statt dreizehn einen Nachweis
---    erzeugt haben, der gruen aussah und nichts pruefte. Die Typen stehen
---    nicht dabei: Ihre Schreibweise im Katalog ist eine andere als in der
---    Quelle (`timestamptz` wird `timestamp with time zone`), und ein
---    abgeschriebener Typname waere genau die Sorte Gedaechtnisleistung, die
---    dieses Projekt nicht will. `test_bus_function_owner.py` haelt die Liste
---    stattdessen gegen `002` und `005`.
+-- 2. Die zwoelf, mit ihrer vollstaendigen Identitaetssignatur.
 --
--- 2a. Und die Gegenprobe: Der Katalog muss **genau** diese Menge enthalten.
---     Ein Zuviel heisst, dass eine fremde Migration SECURITY-DEFINER-
---     Funktionen mitgebracht hat - heute waere das Knowledge aus `004`.
---     Dann bricht diese Migration ab, statt eine Entscheidung zu treffen,
---     die ihr nicht gehoert.
-DO $$
-DECLARE
-    v_erwartet text[] := ARRAY[
-        'bus_authenticate:2',
-        'bus_send_message:13',
-        'bus_acknowledge_message:6',
-        'bus_list_messages:4',
-        'bus_create_task:11',
-        'bus_list_tasks:4',
-        'bus_transition_task:6',
-        'bus_create_handoff:12',
-        'bus_list_handoffs:4',
-        'bus_transition_handoff:6',
-        'bus_identify_for_audit:2',
-        'bus_record_denial:8'
-    ];
-    v_gefunden text[];
-    v_zuviel text[];
-    v_fehlend text[];
-BEGIN
-    SELECT coalesce(array_agg(p.proname || ':' || p.pronargs
-                              ORDER BY p.proname, p.pronargs), '{}')
-      INTO v_gefunden
-    FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'workforce' AND p.prosecdef;
+--    Die erste Fassung pinnte `name:stelligkeit`. Das unterscheidet zwar eine
+--    Ueberladung mit anderer Argumentzahl, aber nicht zwei Funktionen gleichen
+--    Namens und gleicher Stelligkeit mit anderen Parametertypen (`G-075`).
+--    Genau die waere hier die gefaehrliche: Wer `bus_send_message` mit
+--    dreizehn anderen Typen anlegt, haette eine Funktion, die als die
+--    freigegebene durchgeht.
+--
+--    Aufgeloest wird ueber `to_regprocedure()`. Das nimmt die Schreibweise der
+--    Quelle - `timestamptz` muss nicht als `timestamp with time zone`
+--    abgeschrieben werden, der Parser normalisiert selbst - und liefert `NULL`
+--    statt eines Fehlers, wenn es die Signatur nicht gibt. Damit ist eine
+--    veraenderte Signatur ein benannter Abbruch und kein stiller Treffer.
+--    Alles Weitere haengt danach an der **OID**: Mengenvergleich,
+--    Eigentumsuebergang und Nachpruefung sehen dasselbe Objekt.
 
-    SELECT coalesce(array_agg(x), '{}') INTO v_zuviel
-    FROM unnest(v_gefunden) AS x WHERE x <> ALL (v_erwartet);
-    SELECT coalesce(array_agg(x), '{}') INTO v_fehlend
-    FROM unnest(v_erwartet) AS x WHERE x <> ALL (v_gefunden);
-
-    IF array_length(v_zuviel, 1) IS NOT NULL THEN
-        RAISE EXCEPTION
-            'MIGRATION_009_UNEXPECTED_SECURITY_DEFINER: % - diese Funktionen '
-            'gehoeren nicht zum Bus. Ihr Eigentum ist eine eigene Entscheidung '
-            'mit eigener Migration (G-071).', array_to_string(v_zuviel, ', ');
-    END IF;
-    IF array_length(v_fehlend, 1) IS NOT NULL THEN
-        RAISE EXCEPTION 'MIGRATION_009_MISSING_BUS_FUNCTIONS: %',
-            array_to_string(v_fehlend, ', ');
-    END IF;
-END;
-$$;
 
 -- 3. Rechte, als Allowlist statt als `ALL TABLES` (`G-071`). Die Liste ist aus
 --    den Rumpfen der zwoelf Funktionen abgeleitet und nicht geschaetzt;
@@ -157,7 +115,26 @@ $$;
 --    diese Datei nicht gibt.
 REVOKE ALL ON ALL TABLES IN SCHEMA workforce FROM workforce_owner;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA workforce FROM workforce_owner;
+
+-- Nimmt nur einen **direkten** Eintrag fuer diese Rolle zurueck, mehr nicht
+-- (`G-074`). `USAGE` auf `public` hat in PostgreSQL jede Rolle ueber die
+-- Pseudorolle `PUBLIC` - "By default, everyone has that privilege on the
+-- schema public", Dokumentation zu Schemata und Rechten, nachgeschlagen am
+-- 2026-09-02. Dieser REVOKE hebt das nicht auf und soll es auch nicht:
+-- `REVOKE ... FROM PUBLIC` waere eine datenbankweite Rechteentscheidung weit
+-- ausserhalb einer Busmigration. Die Zusicherung dieser Datei lautet
+-- ausschliesslich "kein direkter Grant an workforce_owner", und genau so
+-- prueft der Abnahmetest sie. Meine erste Fassung prüfte stattdessen das
+-- **effektive** Recht und waere auf jeder frischen Instanz falsch rot geworden.
 REVOKE ALL ON SCHEMA public FROM workforce_owner;
+
+-- Auch das Schema selbst wird zurueckgesetzt, bevor der eine Grant kommt.
+-- Ohne diese Zeile behaelt eine Rolle, die diese Migration bereits vorfindet,
+-- ein etwaiges `CREATE` auf `workforce` - und `CREATE` ist hier kein kleines
+-- Extra: Damit legt sie eigene Relationen an, ist deren Eigentuemerin und kann
+-- auf ihnen Trigger abschalten. Genau diesen Weg soll 009 zumachen; der
+-- Eigentuemer ohne Tabelleneigentum waere sonst nur eine Momentaufnahme.
+REVOKE ALL ON SCHEMA workforce FROM workforce_owner;
 
 GRANT USAGE ON SCHEMA workforce TO workforce_owner;
 
@@ -231,65 +208,110 @@ TO workforce_owner;
 --     Geht es durch, braucht es nichts; scheitert es, nennt der Fehler die
 --     Sequenz und das Recht kommt gezielt dazu.
 
--- 4. Eigentumsuebergang, ausschliesslich fuer die gepinnte Menge. Die
---    Signatur kommt aus dem Katalog (`regprocedure`), nie aus dem Gedaechtnis.
+-- 4. Pruefung und Eigentumsuebergang, in einem Block und ueber dieselben OIDs.
+--
+--    Drei Fragen in dieser Reihenfolge, und die Reihenfolge ist Teil der
+--    Aussage: Existiert jede gepinnte Signatur? Ist der Katalog frei von
+--    fremden SECURITY-DEFINER-Funktionen? Erst dann wird uebertragen.
 DO $$
 DECLARE
-    v_erwartet text[] := ARRAY[
-        'bus_authenticate:2', 'bus_send_message:13', 'bus_acknowledge_message:6',
-        'bus_list_messages:4', 'bus_create_task:11', 'bus_list_tasks:4',
-        'bus_transition_task:6', 'bus_create_handoff:12', 'bus_list_handoffs:4',
-        'bus_transition_handoff:6', 'bus_identify_for_audit:2',
-        'bus_record_denial:8'
+    v_signaturen text[] := ARRAY[
+        'workforce.bus_authenticate(text, text)',
+        'workforce.bus_send_message(text, text, text, text, text, text, text, text, text, text, text, text, text)',
+        'workforce.bus_acknowledge_message(text, text, text, text, text, text)',
+        'workforce.bus_list_messages(text, text, text, integer)',
+        'workforce.bus_create_task(text, text, text, text, text, text, text, text, text, text, timestamptz)',
+        'workforce.bus_list_tasks(text, text, text, integer)',
+        'workforce.bus_transition_task(text, text, text, text, text, text)',
+        'workforce.bus_create_handoff(text, text, text, text, text, text, text, text, text, text, text, text)',
+        'workforce.bus_list_handoffs(text, text, text, integer)',
+        'workforce.bus_transition_handoff(text, text, text, text, text, text)',
+        'workforce.bus_identify_for_audit(text, text)',
+        'workforce.bus_record_denial(text, text, text, text, text, text, text, integer)'
     ];
-    v_signature text;
+    v_signatur text;
+    v_proc regprocedure;
+    v_oids oid[] := '{}';
+    v_fremd text[];
+    v_ohne_secdef text[];
     v_count integer := 0;
 BEGIN
-    FOR v_signature IN
-        SELECT p.oid::regprocedure::text
-        FROM pg_proc p
-        JOIN pg_namespace n ON n.oid = p.pronamespace
-        WHERE n.nspname = 'workforce'
-          AND p.prosecdef
-          AND p.proname || ':' || p.pronargs = ANY (v_erwartet)
-    LOOP
-        EXECUTE format('ALTER FUNCTION %s OWNER TO workforce_owner', v_signature);
-        v_count := v_count + 1;
+    -- 4a. Jede gepinnte Signatur muss es geben. `to_regprocedure` liefert
+    --     NULL statt eines Fehlers, also wird ein veraenderter Parametertyp
+    --     hier zu einem benannten Abbruch - und nicht zu einem stillen
+    --     Treffer auf eine gleichnamige Funktion (`G-075`).
+    FOREACH v_signatur IN ARRAY v_signaturen LOOP
+        v_proc := to_regprocedure(v_signatur);
+        IF v_proc IS NULL THEN
+            RAISE EXCEPTION 'MIGRATION_009_SIGNATURE_NOT_FOUND: %', v_signatur;
+        END IF;
+        v_oids := v_oids || v_proc::oid;
     END LOOP;
 
-    IF v_count <> array_length(v_erwartet, 1) THEN
-        RAISE EXCEPTION 'MIGRATION_009_OWNER_TRANSFER_INCOMPLETE: % von %',
-            v_count, array_length(v_erwartet, 1);
+    -- 4b. Und sie sind wirklich SECURITY DEFINER. Ohne das koennte eine
+    --     gleichnamige Funktion ohne dieses Attribut die Liste erfuellen und
+    --     der Eigentumswechsel waere wirkungslos.
+    SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY 1), '{}')
+      INTO v_ohne_secdef
+    FROM pg_proc p WHERE p.oid = ANY (v_oids) AND NOT p.prosecdef;
+    IF array_length(v_ohne_secdef, 1) IS NOT NULL THEN
+        RAISE EXCEPTION 'MIGRATION_009_PINNED_NOT_SECURITY_DEFINER: %',
+            array_to_string(v_ohne_secdef, ', ');
     END IF;
+
+    -- 4c. Die Gegenrichtung: Der Katalog enthaelt keine weitere
+    --     SECURITY-DEFINER-Funktion in `workforce`. Heute ist die Menge leer;
+    --     nach einer Anwendung von `004` waeren es die sieben
+    --     Knowledge-Funktionen, und die haette die dynamische Auswahl der
+    --     ersten Fassung stillschweigend mituebernommen (`G-071`).
+    SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY 1), '{}')
+      INTO v_fremd
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'workforce' AND p.prosecdef
+      AND NOT (p.oid = ANY (v_oids));
+    IF array_length(v_fremd, 1) IS NOT NULL THEN
+        RAISE EXCEPTION
+            'MIGRATION_009_UNEXPECTED_SECURITY_DEFINER: % - diese Funktionen '
+            'gehoeren nicht zum Bus. Ihr Eigentum ist eine eigene Entscheidung '
+            'mit eigener Migration (G-071).', array_to_string(v_fremd, ', ');
+    END IF;
+
+    -- 4d. Uebertragen, adressiert ueber die OID. `regprocedure` rendert die
+    --     kanonische, korrekt gequotete Signatur; sie kommt damit aus dem
+    --     Katalog und nie aus dem Gedaechtnis (`G-044`).
+    FOREACH v_proc IN ARRAY v_oids::regprocedure[] LOOP
+        EXECUTE format('ALTER FUNCTION %s OWNER TO workforce_owner', v_proc::text);
+        v_count := v_count + 1;
+    END LOOP;
+    IF v_count <> array_length(v_signaturen, 1) THEN
+        RAISE EXCEPTION 'MIGRATION_009_OWNER_TRANSFER_INCOMPLETE: % von %',
+            v_count, array_length(v_signaturen, 1);
+    END IF;
+
+    -- 4e. Nachgemessen, in derselben Transaktion und an denselben OIDs. Die
+    --     Aussage reicht genau so weit wie der Zugriff: Was nach einer
+    --     spaeteren `004` mit den Knowledge-Funktionen ist, verspricht diese
+    --     Migration nicht (`G-071`).
+    IF EXISTS (
+        SELECT 1 FROM pg_proc p
+        JOIN pg_roles r ON r.oid = p.proowner
+        WHERE p.oid = ANY (v_oids) AND r.rolname <> 'workforce_owner'
+    ) THEN
+        RAISE EXCEPTION 'MIGRATION_009_STILL_SUPERUSER_OWNED';
+    END IF;
+
     RAISE NOTICE 'Eigentuemer gewechselt: % Funktionen', v_count;
 END;
 $$;
 
--- 5. Die Zusicherung, in derselben Transaktion geprueft. Sie ist auf die
---    zwoelf eingegrenzt und nicht auf "alles im Schema": Nach einer spaeteren
---    Anwendung von `004` waeren die Knowledge-Funktionen wieder beim
---    Bootstrap-Superuser, und eine schemaweite Aussage waere ab dann
---    stillschweigend falsch (`G-071`). Was diese Migration verspricht, ist
---    genau das, was sie angefasst hat.
+-- 5. Der Eigentuemer hat keine Relation bekommen. Besaesse er eine, koennte
+--    er ihre Trigger abschalten, und die Migration haette das Problem nur
+--    umbenannt.
 DO $$
 DECLARE
-    v_rest integer;
     v_fremd integer;
 BEGIN
-    SELECT count(*) INTO v_rest
-    FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    JOIN pg_roles r ON r.oid = p.proowner
-    WHERE n.nspname = 'workforce' AND p.prosecdef
-      AND p.proname LIKE 'bus\_%'
-      AND r.rolname <> 'workforce_owner';
-    IF v_rest <> 0 THEN
-        RAISE EXCEPTION 'MIGRATION_009_STILL_SUPERUSER_OWNED: %', v_rest;
-    END IF;
-
-    -- Und der Eigentuemer hat keine Tabelle bekommen. Besaesse er eine,
-    -- koennte er ihre Trigger abschalten, und die Migration haette das
-    -- Problem nur umbenannt.
     SELECT count(*) INTO v_fremd
     FROM pg_class c
     JOIN pg_namespace n ON n.oid = c.relnamespace

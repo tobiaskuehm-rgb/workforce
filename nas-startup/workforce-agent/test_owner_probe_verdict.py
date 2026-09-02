@@ -97,6 +97,148 @@ class VerdictTest(unittest.TestCase):
         self.assertFalse(probe.bewertung([])[0])
 
 
+class RunResultTest(unittest.TestCase):
+    """`lauf_ergebnis()` - Exitcode und Ausgabe gemeinsam.
+
+    Review finding G-076. Die erste Fassung wertete den Abnahmetest ueber
+    `"ERROR" not in ausgabe` aus und kannte den Prozess-Exitcode gar nicht.
+    Die vier Faelle unten sind genau die, die damit als bestandener SQL-Test
+    durchgegangen waeren - drei davon enthalten das Wort `error` in einer
+    Schreibweise, die die Grossbuchstabenpruefung nicht trifft, und der vierte
+    enthaelt ueberhaupt nichts.
+    """
+
+    def test_a_clean_run_with_the_marker_is_ok(self) -> None:
+        self.assertEqual("ok", probe.lauf_ergebnis(
+            0, f"NOTICE:  {probe.ABNAHME_MARKER}\nROLLBACK", probe.ABNAHME_MARKER))
+
+    def test_a_lowercase_psql_error_is_not_ok(self) -> None:
+        code, ausgabe = 2, "psql: error: connection to server failed"
+        self.assertNotIn("ERROR", ausgabe)          # die alte Pruefung sah nichts
+        ergebnis = probe.lauf_ergebnis(code, ausgabe, probe.ABNAHME_MARKER)
+        self.assertNotEqual("ok", ergebnis)
+        self.assertIn("Exitcode 2", ergebnis)
+
+    def test_a_docker_error_is_not_ok(self) -> None:
+        code, ausgabe = 125, "Error response from daemon: No such container: g045probe"
+        self.assertNotEqual("ok", probe.lauf_ergebnis(code, ausgabe, probe.ABNAHME_MARKER))
+
+    def test_a_nonzero_exit_without_any_error_word_is_not_ok(self) -> None:
+        # Exit 127 = command not found. Die Ausgabe nennt kein Fehlerwort.
+        ergebnis = probe.lauf_ergebnis(127, "sh: psql: not found", probe.ABNAHME_MARKER)
+        self.assertNotEqual("ok", ergebnis)
+        self.assertIn("Exitcode 127", ergebnis)
+
+    def test_an_empty_output_is_not_ok(self) -> None:
+        # Der gefaehrlichste Fall: nichts zu lesen liest sich wie nichts zu
+        # beanstanden. Beide Richtungen - mit und ohne Exitcode.
+        self.assertIn("Exitcode 1", probe.lauf_ergebnis(1, "", probe.ABNAHME_MARKER))
+        stiller_erfolg = probe.lauf_ergebnis(0, "", probe.ABNAHME_MARKER)
+        self.assertNotEqual("ok", stiller_erfolg)
+        self.assertIn("Schlussmarker fehlt", stiller_erfolg)
+        self.assertIn("(keine Ausgabe)", stiller_erfolg)
+
+    def test_exit_zero_without_the_marker_is_not_ok(self) -> None:
+        """Der Fall, den der Exitcode allein nicht faengt.
+
+        `psql -f` auf eine Datei, die nicht angekommen ist, oder ein Test, der
+        vor seiner letzten Aussage endet: Der Prozess kann sauber enden und
+        trotzdem nichts belegt haben.
+        """
+        ergebnis = probe.lauf_ergebnis(0, "BEGIN\nROLLBACK", probe.ABNAHME_MARKER)
+        self.assertNotEqual("ok", ergebnis)
+        self.assertIn("Schlussmarker fehlt", ergebnis)
+
+    def test_without_a_marker_the_exit_code_alone_decides(self) -> None:
+        # So werden die Migrationsaufrufe ausgewertet: dieselbe Funktion,
+        # nur ohne Schlussmarker.
+        self.assertEqual("ok", probe.lauf_ergebnis(0, "COMMIT"))
+        self.assertNotEqual("ok", probe.lauf_ergebnis(3, "COMMIT"))
+
+    def test_the_acceptance_test_really_writes_that_marker(self) -> None:
+        # Sonst waere der Waechter oben gruen ueber einem Marker, den niemand
+        # schreibt - und der Abnahmetest dauerhaft rot.
+        abnahme = (ROOT / "nas-startup" / "postgres-tests"
+                   / "009_bus_function_owner_acceptance.sql").read_text(encoding="utf-8")
+        self.assertIn(probe.ABNAHME_MARKER, abnahme)
+
+
+class TriggerDenialTest(unittest.TestCase):
+    """Der Negativtest muss die **erwartete** Ablehnung erkennen, nicht irgendeine.
+
+    `CLAUDE.md` haelt das seit `G-014` fest: "Ein Fehlschlag ist erst dann die
+    erwartete Ablehnung, wenn Statuscode *und* Kennung stimmen." Die erste
+    Fassung dieser Probe wertete `Exitcode != 0` als "Zugriff verweigert" - ein
+    weggeraeumter Container, eine abgerissene Verbindung oder ein Tippfehler im
+    Tabellennamen haetten den zentralen Sicherheitsnachweis erbracht.
+    """
+
+    def test_the_expected_denial_is_recognised(self) -> None:
+        ergebnis = probe.trigger_urteil(0, f"NOTICE:  {probe.TRIGGER_ABGELEHNT}")
+        self.assertEqual(probe.ERWARTET["Trigger abschaltbar"], ergebnis)
+
+    def test_a_successful_disable_is_not_a_pass(self) -> None:
+        ergebnis = probe.trigger_urteil(0, f"NOTICE:  {probe.TRIGGER_ERLAUBT}")
+        self.assertNotEqual(probe.ERWARTET["Trigger abschaltbar"], ergebnis)
+        self.assertIn("verfehlt ihren Zweck", ergebnis)
+
+    def test_a_foreign_sqlstate_is_not_a_pass(self) -> None:
+        """Abgelehnt, aber aus einem anderen Grund - etwa weil die Tabelle fehlt.
+
+        Das ist der Fall, den eine reine "wurde abgelehnt"-Pruefung nicht von
+        der gemeinten Ablehnung unterscheidet.
+        """
+        ergebnis = probe.trigger_urteil(0, "NOTICE:  PROBE_TRIGGER_DENIED_42P01")
+        self.assertNotEqual(probe.ERWARTET["Trigger abschaltbar"], ergebnis)
+        self.assertIn("42P01", ergebnis)
+
+    def test_a_process_failure_is_not_a_denial(self) -> None:
+        # Genau der Befund: jeder dieser Faelle galt vorher als bestanden.
+        for code, ausgabe in ((125, "Error response from daemon: No such container"),
+                              (2, "psql: error: connection to server failed"),
+                              (127, "sh: psql: not found"),
+                              (1, "")):
+            with self.subTest(code=code):
+                ergebnis = probe.trigger_urteil(code, ausgabe)
+                self.assertNotEqual(probe.ERWARTET["Trigger abschaltbar"], ergebnis)
+                self.assertTrue(ergebnis.startswith("unbestimmt"), ergebnis)
+
+    def test_exit_zero_without_any_marker_is_not_a_denial(self) -> None:
+        ergebnis = probe.trigger_urteil(0, "SET")
+        self.assertTrue(ergebnis.startswith("unbestimmt"), ergebnis)
+
+    def test_the_probe_sends_a_statement_that_can_report_its_sqlstate(self) -> None:
+        # Ohne den EXCEPTION-Block gaebe es keinen Marker, und die Auswertung
+        # oben waere gruen ueber einer Ausgabe, die es nie gibt.
+        quelle = PROBE.read_text(encoding="utf-8")
+        for teil in ("EXCEPTION WHEN OTHERS THEN",
+                     "RAISE NOTICE 'PROBE_TRIGGER_DENIED_%', SQLSTATE",
+                     "DISABLE TRIGGER USER"):
+            with self.subTest(teil=teil):
+                self.assertIn(teil, quelle)
+
+
+class ProbeUsesExitCodesTest(unittest.TestCase):
+    """Statisch: die Textpruefung ist wirklich weg, nicht nur ueberschrieben."""
+
+    def _baum(self) -> ast.AST:
+        return ast.parse(PROBE.read_text(encoding="utf-8"))
+
+    def test_no_call_passes_a_check_flag_any_more(self) -> None:
+        # `ssh(..., check=False)` war die Stelle, an der der Exitcode verloren
+        # ging. Es gibt den Parameter nicht mehr.
+        for knoten in ast.walk(self._baum()):
+            if isinstance(knoten, ast.Call):
+                for schluesselwort in knoten.keywords:
+                    self.assertNotEqual("check", schluesselwort.arg)
+
+    def test_the_migration_and_acceptance_calls_go_through_lauf_ergebnis(self) -> None:
+        aufrufe = [k for k in ast.walk(self._baum())
+                   if isinstance(k, ast.Call) and isinstance(k.func, ast.Name)
+                   and k.func.id == "lauf_ergebnis"]
+        self.assertGreaterEqual(len(aufrufe), 3)
+
+
 class VerdictCoversEveryAssuranceTest(unittest.TestCase):
     """Die Erwartungsliste selbst ist die Zusicherung - also wird sie gebunden.
 
@@ -112,10 +254,12 @@ class VerdictCoversEveryAssuranceTest(unittest.TestCase):
                            "Eventzuwachs",
                            "Audit-Event mit Request-Id, Akteur, Typ und Operation",
                            "Trigger abschaltbar",
+                           "public-USAGE ueber PUBLIC (Voreinstellung)",
+                           "direkte Schema-Grants ausserhalb workforce",
                            "Abnahmetest 009"):
             with self.subTest(schluessel=schluessel):
                 self.assertIn(schluessel, probe.ERWARTET)
-        self.assertEqual(8, len(probe.ERWARTET))
+        self.assertEqual(10, len(probe.ERWARTET))
 
     def test_the_probe_binds_the_audit_event_to_the_run(self) -> None:
         quelle = PROBE.read_text(encoding="utf-8")
