@@ -38,6 +38,7 @@ from typing import Any
 import budget as budget_module
 import bus_client
 import data_boundary
+import efficiency_report
 import model_allowlist
 import providers
 import state_store
@@ -145,6 +146,7 @@ def handle_message(
     policy: data_boundary.Policy | None = None,
     budget: budget_module.Budget | None = None,
     state: state_store.AgentStateStore | None = None,
+    report: efficiency_report.Report | None = None,
 ) -> dict[str, Any]:
     """Process exactly one inbound message. Never raises for expected failures.
 
@@ -156,8 +158,55 @@ def handle_message(
     """
     message_id = str(message.get("message_id", ""))
     sender_id = str(message.get("sender_id", ""))
+
+    # What this one message consumed. Collected as it happens rather than
+    # reconstructed at the end: whether a message was new, suppressed as a
+    # duplicate or resumed after a crash is a decision made here, and deriving
+    # it later from counts would be guesswork.
+    vorgang: dict[str, Any] = {
+        "provider_calls": 0,
+        "disclosure": None,
+        "model": None,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "tokens_estimated": False,
+        "estimated_cost_usd": 0.0,
+        "cost_ceiling_usd": budget.max_cost_usd if budget is not None else None,
+        "duplicate_decision": efficiency_report.FIRST_DELIVERY,
+        "refusal": None,
+    }
+
+    def abschluss(result: str, **extra: Any) -> dict[str, Any]:
+        """Record the operation and return the result. One exit shape."""
+        if report is not None:
+            offenlegung = vorgang["disclosure"]
+            report.record(efficiency_report.Operation(
+                message_id=message_id,
+                sender_id=sender_id,
+                # Only set where a reply really went out - and always the
+                # sender from the bus record, never anything a model said.
+                reply_recipient_id=(
+                    sender_id if result in ("ANSWERED", "REFUSED") else None),
+                task_class=TASK_CLASS,
+                outcome=result,
+                duplicate_decision=vorgang["duplicate_decision"],
+                data_policy=offenlegung.policy if offenlegung else None,
+                fields_sent=tuple(offenlegung.fields) if offenlegung else (),
+                chars_sent=offenlegung.total_chars if offenlegung else 0,
+                payload_sha256=offenlegung.digest if offenlegung else None,
+                model=vorgang["model"],
+                provider_calls=vorgang["provider_calls"],
+                input_tokens=vorgang["input_tokens"],
+                output_tokens=vorgang["output_tokens"],
+                tokens_estimated=vorgang["tokens_estimated"],
+                estimated_cost_usd=vorgang["estimated_cost_usd"],
+                cost_ceiling_usd=vorgang["cost_ceiling_usd"],
+                refusal=vorgang["refusal"],
+            ))
+        return {"message_id": message_id, "result": result, **extra}
+
     if not message_id or not sender_id:
-        return {"message_id": message_id, "result": "SKIPPED_INCOMPLETE"}
+        return abschluss("SKIPPED_INCOMPLETE")
 
     # Budget is checked before anything is spent or written. An exhausted
     # budget must leave the message untouched so a later run still sees it.
@@ -177,7 +226,8 @@ def handle_message(
         claim = state.claim(message_id)
         if claim is None:
             log("already_handled", message_id=message_id)
-            return {"message_id": message_id, "result": "ALREADY_HANDLED"}
+            vorgang["duplicate_decision"] = efficiency_report.DUPLICATE_SUPPRESSED
+            return abschluss("ALREADY_HANDLED")
         log("claimed", message_id=message_id, state=claim.state, attempts=claim.attempts)
 
     sent: dict[str, Any] | None = None
@@ -189,11 +239,14 @@ def handle_message(
     if claim is not None and claim.state == "REPLIED":
         log("resuming_at_acknowledgement", message_id=message_id,
             reply_message_id=claim.reply_message_id)
+        vorgang["duplicate_decision"] = efficiency_report.RESUMED_AFTER_CRASH
         sent = {"message_id": claim.reply_message_id}
     elif claim is not None and claim.state == "EXHAUSTED":
         # Too many failed attempts. Say so once and stop retrying, rather than
         # leaving the message to circle forever.
         log("attempts_exhausted", message_id=message_id, attempts=claim.attempts)
+        vorgang["duplicate_decision"] = efficiency_report.ATTEMPTS_EXHAUSTED
+        vorgang["refusal"] = "AGENT_ATTEMPTS_EXHAUSTED"
         body = _with_marker(
             "Diese Anfrage konnte nach mehreren Versuchen nicht bearbeitet "
             "werden und wird nicht weiter versucht. Bitte manuell pruefen."
@@ -202,8 +255,7 @@ def handle_message(
             sent = _send_reply(client, message, sender_id, message_id, body)
         except bus_client.BusError as error:
             log("reply_failed", message_id=message_id, detail=error.detail)
-            return {"message_id": message_id, "result": "REPLY_FAILED",
-                    "detail": error.detail}
+            return abschluss("REPLY_FAILED", detail=error.detail)
         # Record it, exactly like the normal path. Without this a failed
         # acknowledgement below leaves the message DELIVERED in the bus and
         # EXHAUSTED locally - and claim() returns None for EXHAUSTED, so no
@@ -217,6 +269,7 @@ def handle_message(
             outbound = data_boundary.prepare_outbound(message, policy=policy)
         except data_boundary.DataBoundaryError as error:
             log("data_boundary_refused", message_id=message_id, detail=str(error))
+            vorgang["refusal"] = str(error)
             reply_text = (
                 "Diese Anfrage konnte nicht bearbeitet werden, weil sie die "
                 f"geltende Datengrenze verletzt ({error}). Bitte fachlich pruefen."
@@ -224,6 +277,7 @@ def handle_message(
             refused = True
         else:
             log("outbound_prepared", **outbound.disclosure.as_log_record())
+            vorgang["disclosure"] = outbound.disclosure
             prompt = data_boundary.render_for_prompt(outbound)
             # 2. Which model may be asked, and with how much (Phase 5,
             #    CEO-Punkt 5). The allowlist already refused an unknown name
@@ -237,6 +291,7 @@ def handle_message(
                 model_allowlist.assert_within_data_ceiling(erlaubt, len(prompt))
             except model_allowlist.ModelNotAllowed as denial:
                 log("model_refused", message_id=message_id, detail=str(denial))
+                vorgang["refusal"] = str(denial)
                 reply_text = (
                     "Diese Anfrage wurde keinem Modell vorgelegt, weil die "
                     f"Modell-Allowlist sie ablehnt ({denial}). Bitte die "
@@ -256,6 +311,10 @@ def handle_message(
                             limit=stop.limit_name, ceiling=stop.ceiling)
                         raise
                     budget.reserve_provider_call()
+                # Der Versuch zaehlt, bevor er gemacht wird - genauso wie im
+                # Budget, und aus demselben Grund (G-004).
+                vorgang["provider_calls"] += 1
+                vorgang["model"] = erlaubt.name
                 try:
                     reply = provider.complete(
                         system=SYSTEM_PROMPT, content=prompt
@@ -269,6 +328,7 @@ def handle_message(
                     # out. The claim is released only if the reply itself fails,
                     # below, where there is genuinely nothing durable to protect.
                     provider_error = str(error)
+                    vorgang["refusal"] = str(error)
                     reply_text = (
                         "Diese Anfrage konnte technisch nicht bearbeitet werden "
                         f"({error}). Sie bleibt offen und braucht eine manuelle Pruefung."
@@ -276,6 +336,18 @@ def handle_message(
                     refused = True
                 else:
                     log("provider_replied", message_id=message_id, **reply.as_log_record())
+                    # Tokens, oder eine Schaetzung, die sich als solche zu
+                    # erkennen gibt. Eine Schaetzung, die wie eine Messung
+                    # aussieht, ist schlechter als keine.
+                    if reply.input_tokens is None or reply.output_tokens is None:
+                        vorgang["tokens_estimated"] = True
+                        vorgang["input_tokens"] = efficiency_report.estimate_tokens(len(prompt))
+                        vorgang["output_tokens"] = efficiency_report.estimate_tokens(len(reply.text))
+                    else:
+                        vorgang["input_tokens"] = reply.input_tokens
+                        vorgang["output_tokens"] = reply.output_tokens
+                    vorgang["estimated_cost_usd"] = erlaubt.estimated_cost(
+                        vorgang["input_tokens"], vorgang["output_tokens"])
                     # Der Verbrauch wird gebucht, bevor ueber die Antwort
                     # entschieden wird: Der Aufruf hat stattgefunden und
                     # gekostet, auch wenn das Ergebnis gleich verworfen wird.
@@ -322,8 +394,7 @@ def handle_message(
                 state.record_failure(
                     message_id, provider_error or error.detail
                 )
-            return {"message_id": message_id, "result": "REPLY_FAILED",
-                    "detail": error.detail}
+            return abschluss("REPLY_FAILED", detail=error.detail)
 
         if state is not None:
             state.record_reply(message_id, str(sent.get("message_id", "")))
@@ -341,8 +412,7 @@ def handle_message(
     except bus_client.BusError as error:
         if error.detail != "BUS_ACK_ALREADY_FINAL":
             log("acknowledge_failed", message_id=message_id, detail=error.detail)
-            return {"message_id": message_id, "result": "ACK_FAILED",
-                    "detail": error.detail}
+            return abschluss("ACK_FAILED", detail=error.detail)
 
     if state is not None:
         state.record_done(message_id)
@@ -354,11 +424,10 @@ def handle_message(
         recipient_id=sender_id,
         refused=refused,
     )
-    return {
-        "message_id": message_id,
-        "result": "REFUSED" if refused else "ANSWERED",
-        "reply_message_id": sent.get("message_id"),
-    }
+    return abschluss(
+        "REFUSED" if refused else "ANSWERED",
+        reply_message_id=sent.get("message_id"),
+    )
 
 
 def poll_once(
@@ -368,6 +437,7 @@ def poll_once(
     policy: data_boundary.Policy | None = None,
     budget: budget_module.Budget | None = None,
     state: state_store.AgentStateStore | None = None,
+    report: efficiency_report.Report | None = None,
     limit: int = 25,
 ) -> list[dict[str, Any]]:
     """One pass over the inbox. Returns a result per message handled.
@@ -389,7 +459,7 @@ def poll_once(
         try:
             results.append(
                 handle_message(client, provider, item, policy=policy,
-                               budget=budget, state=state)
+                               budget=budget, state=state, report=report)
             )
         except budget_module.BudgetExhausted:
             log("poll_stopped_on_budget", handled=len(results),
@@ -407,6 +477,7 @@ def run(
     policy: data_boundary.Policy | None = None,
     budget: budget_module.Budget | None = None,
     state: state_store.AgentStateStore | None = None,
+    report: efficiency_report.Report | None = None,
     sleep=time.sleep,
 ) -> int:
     cycles = 0
@@ -415,7 +486,7 @@ def run(
     while max_cycles is None or cycles < max_cycles:
         try:
             results = poll_once(client, provider, policy=policy, budget=budget,
-                                state=state)
+                                state=state, report=report)
             handled += len(results)
             consecutive_failures = 0
         except bus_client.BusError as error:
@@ -448,6 +519,33 @@ def run(
     return handled
 
 
+def write_report(report: efficiency_report.Report, path: str) -> None:
+    """The run's closing artefact: machine-readable file, human summary in the log.
+
+    The summary always goes to the log, because a report nobody can see
+    without knowing a path is not much of a report. The JSON is written only
+    where a path was configured - in a container that is a mounted volume, and
+    without one the run must not start writing into its own read-only
+    filesystem.
+
+    Neither half carries payloads or secrets; efficiency_report holds field
+    names, counts and digests by construction.
+    """
+    for line in report.as_summary().split("\n"):
+        log("efficiency", summary=line)
+    if not path:
+        return
+    try:
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(report.as_json())
+    except OSError as error:
+        # A run is not a failure because its report could not be filed.
+        log("efficiency_report_unwritten", path=path, detail=str(error))
+    else:
+        log("efficiency_report_written", path=path,
+            operations=len(report.operations))
+
+
 def main() -> int:
     enabled = os.environ.get("AGENT_ENABLED", "false").strip().lower() == "true"
     kill_switch = os.environ.get("AGENT_KILL_SWITCH", "true").strip().lower() == "true"
@@ -471,7 +569,15 @@ def main() -> int:
     raw_cycles = os.environ.get("AGENT_MAX_CYCLES", "").strip()
     max_cycles = int(raw_cycles) if raw_cycles else None
 
-    log("starting", provider=provider.name, data_policy=policy,
+    # Der Lauf bekommt einen Namen, weil ein Bericht ohne einen nicht
+    # zuzuordnen ist. AGENT_RUN_ID kommt aus dem Fenster; ohne sie eine
+    # Ableitung aus der Uhrzeit, damit zwei Berichte sich nie ueberschreiben.
+    run_id = (os.environ.get("AGENT_RUN_ID", "").strip()
+              or time.strftime("RUN-%Y%m%d-%H%M%S", time.gmtime()))
+    report = efficiency_report.Report(run_id=run_id)
+
+    log("starting", provider=provider.name, model=provider.model,
+        data_policy=policy, run_id=run_id,
         poll_seconds=poll_seconds, max_cycles=max_cycles, **budget.as_log_record())
 
     client = bus_client.BusClient(base_url=base_url, token=token)
@@ -483,9 +589,13 @@ def main() -> int:
     try:
         handled = run(client, provider, poll_seconds=poll_seconds,
                       max_cycles=max_cycles, policy=policy, budget=budget,
-                      state=store)
+                      state=store, report=report)
     finally:
         store.close()
+        # The report is written even when the run ends badly - a run that
+        # stopped on its budget or on a dead bus is exactly the one whose
+        # numbers somebody wants to see.
+        write_report(report, os.environ.get("AGENT_REPORT_PATH", "").strip())
     log("stopped", handled=handled, **budget.as_log_record())
     return 0
 
