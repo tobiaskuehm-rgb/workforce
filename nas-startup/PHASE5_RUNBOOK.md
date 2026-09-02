@@ -57,13 +57,28 @@ cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && sh verify_produc
 
 ## 3. Frische Sicherung
 
-Ein Befehl, und zwar der, der ohnehin jede Nacht läuft: Er schreibt in den
+**Der Auftrag wird in DSM gestartet, nicht über SSH** (`G-072`). Die
+passwortlose sudo-Regel dieser NAS lautet auf `/usr/local/bin/docker` und auf
+sonst nichts; `sudo sh …` fragt nach dem Passwort und stirbt in einer
+nicht-interaktiven SSH-Sitzung. Ein Fenster, das mit einer Sicherung beginnt,
+die es nie gab, ist schlimmer als eines ohne — deshalb steht der Weg hier, den
+es wirklich gibt: DSM → Aufgabenplaner → die nächtliche Sicherungsaufgabe →
+**Ausführen**. Sie ruft `backup_task.sh` als Root auf, schreibt in den
 gehärteten Backup-Ordner, prüft die Abschlusszeile des Dumps, setzt die Rechte
 und räumt erst danach Altes weg.
 
+Danach wird das Ergebnis **gemessen**, nicht geglaubt:
+
 ```bash
-ssh synology "sudo sh /volume1/docker/Startup/backup_task.sh"
+ssh synology "cd /volume1/docker/Startup && BACKUP_MAX_AGE_HOURS=0 sh check_backup_integrity.sh"
 ```
+
+`BACKUP_MAX_AGE_HOURS=0` ist die eigentliche Frischeprüfung. Das Skript rechnet
+in ganzen Stunden, `0` verlangt also einen Dump, der jünger als eine Stunde
+ist; der Vorgabewert `26` ließe die Sicherung der vergangenen Nacht durchgehen
+— und genau die ist hier nicht gemeint. Geprüft werden außerdem Abschlusszeile,
+`restrict`/`unrestrict`-Paarigkeit, Größe gegen die vorige Sicherung und das
+Konfigurationsarchiv. Das Skript liest nur und braucht kein Root.
 
 Abbruch, wenn nicht `RESULT: PASS`.
 
@@ -176,7 +191,7 @@ Core **vor** jedem Ketten-Prepare zurückgebaut und nachgemessen (`G-062`).
 
 ```bash
 ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core-cleanup.yaml run --rm --no-deps -T -e CORE_RUN_SUFFIX=20260902-PHASE5 core-cleanup"
-ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo rm -f secrets/core_token_karl secrets/core_token_gerd secrets/core_token_anastasia && test ! -e secrets/core_token_karl && test ! -e secrets/core_token_gerd && test ! -e secrets/core_token_anastasia"
+ssh synology "sudo /usr/local/bin/docker run --rm -v /volume1/docker/Startup/workforce-agent/secrets:/secrets postgres:17-alpine sh -c 'rm -f /secrets/core_token_karl /secrets/core_token_gerd /secrets/core_token_anastasia && test ! -e /secrets/core_token_karl && test ! -e /secrets/core_token_gerd && test ! -e /secrets/core_token_anastasia'"
 ssh synology "cd /volume1/docker/Startup && sh nas_status.sh"
 ```
 
@@ -187,6 +202,15 @@ Abbruch, wenn nicht Kanal `DISABLED`, 0 aktive Credentials, fünf Gates
 `karl`, `gerd`, `anastasia` (`G-068`). Ein `rm -f` auf einen Namen, den es nie
 gab, meldet Erfolg und lässt die echte Datei liegen; deshalb steht hinter
 jedem Löschen ein `test ! -e`, genau wie im Kettenrückbau in Abschnitt 8.
+
+**Gelöscht wird durch einen Wegwerf-Container, nicht durch `sudo rm`** (`G-072`).
+Die Tokendateien legt der Prepare-Container an; über SSH gehören sie einem
+fremden Benutzer, und `sudo rm` ist von der passwortlosen Regel nicht gedeckt.
+Ein gescheiterter Rückbau ist hier der teuerste Ausgang überhaupt: Die
+Credentials sind widerrufen, aber die Tokendateien lägen weiter auf der NAS.
+Gemountet wird genau der Secretordner dieses Pakets — kein breiteres Ziel —,
+und `postgres:17-alpine` ist das Image, das der Schritt eine Zeile darüber
+ohnehin gerade benutzt hat, also kein Pull und kein neues Image.
 
 ### 6.5 Die zwei liegengebliebenen Nachrichten
 
@@ -278,8 +302,13 @@ In dieser Reihenfolge, und jeder Schritt wird **nachgemessen**:
 
 ```bash
 ssh synology "cd /volume1/docker/Startup/chain-test && sudo /usr/local/bin/docker compose --env-file chain-run.env -f compose.chain-cleanup.yaml run --rm --no-deps -T chain-cleanup"
-ssh synology "cd /volume1/docker/Startup/chain-test && sudo rm -f secrets/chain_token_connector secrets/chain_token_agent secrets/telegram_bot_token && test ! -e secrets/chain_token_connector && test ! -e secrets/chain_token_agent && test ! -e secrets/telegram_bot_token"
+ssh synology "sudo /usr/local/bin/docker run --rm -v /volume1/docker/Startup/chain-test/secrets:/secrets postgres:17-alpine sh -c 'rm -f /secrets/chain_token_connector /secrets/chain_token_agent /secrets/telegram_bot_token && test ! -e /secrets/chain_token_connector && test ! -e /secrets/chain_token_agent && test ! -e /secrets/telegram_bot_token'"
 ```
+
+Auch hier löscht ein Wegwerf-Container und nicht `sudo rm` (`G-072`),
+gemountet auf genau den Secretordner dieses Pakets. `telegram_bot_token` legt
+kein Skript an — es kommt von Hand dorthin —, muss aber genauso weg: Es ist das
+einzige Geheimnis dieses Fensters, das nach draußen reicht.
 
 Danach:
 

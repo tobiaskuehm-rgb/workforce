@@ -405,7 +405,12 @@ def token_cleanup_offenders(text: str) -> list[str]:
     offenders: list[str] = []
     geloescht: set[str] = set()
     for command in commands(text):
-        if " rm -f " not in command:
+        # `rm` steht seit G-072 hinter einem Anfuehrungszeichen, weil geloescht
+        # wird, was ein Wegwerf-Container loeschen darf: `sh -c 'rm -f ...'`.
+        # Die vorige Fassung suchte " rm -f " mit fuehrendem Leerzeichen und
+        # ueberging diese Form vollstaendig - sie meldete nichts, weil sie
+        # nichts ansah, und das liest sich wie ein bestandener Test.
+        if not re.search(r"""(?:^|[\s'"])rm\s+-f\b""", command):
             continue
         for name in re.findall(r"secrets/([a-z_]+)", command):
             if "_token" not in name:
@@ -413,7 +418,9 @@ def token_cleanup_offenders(text: str) -> list[str]:
             geloescht.add(name)
             if name not in bekannt:
                 offenders.append(f"{name}: kein Paket legt diese Datei an")
-            elif f"test ! -e secrets/{name}" not in command:
+            # Der Abwesenheitsnachweis darf denselben Pfad tragen wie das
+            # Loeschen - im Container `/secrets/...`, ueber SSH `secrets/...`.
+            elif not re.search(rf"test ! -e \S*secrets/{name}(?![a-z_])", command):
                 offenders.append(f"{name}: kein Abwesenheitsnachweis")
 
     # Vollstaendigkeit je Praefix - nur fuer Praefixe, die das Runbook anfasst.
@@ -423,6 +430,45 @@ def token_cleanup_offenders(text: str) -> list[str]:
         if fehlend:
             offenders.append(f"{praefix}: nicht geloescht: {', '.join(fehlend)}")
     return sorted(set(offenders))
+
+
+# Der einzige Befehl, den diese NAS passwortlos unter sudo zulaesst. Die Regel
+# steht in /etc/sudoers.d/tobkum-docker und lautet auf genau diesen Pfad -
+# nicht auf `docker`, das in einer nicht-interaktiven SSH-Sitzung ohnehin
+# nicht im PATH liegt.
+SUDO_ERLAUBT = "/usr/local/bin/docker"
+
+
+def privileged_command_offenders(text: str) -> list[str]:
+    """Jedes `sudo` im Runbook muss eines sein, das die NAS auch ausfuehrt.
+
+    Review finding G-072. Das Runbook verlangte
+    `sudo sh /volume1/docker/Startup/backup_task.sh` und zweimal `sudo rm -f`
+    fuer die Tokendateien. Beides ist von der passwortlosen Regel nicht
+    gedeckt: `sudo` fragt dann nach dem Passwort und scheitert in einer
+    nicht-interaktiven Sitzung. Beim Backup heisst das, das Fenster beginnt
+    ohne Sicherung; beim Rueckbau heisst es, gueltige Bus-Tokens bleiben auf
+    der NAS liegen - derselbe Ausgang wie `G-068`, nur ueber den Fehlerpfad.
+
+    `HANDOVER.md` haelt das seit dem Phase-4-Fenster ausdruecklich fest
+    ("`sudo sh ...` geht gar nicht"). Die bisherigen Waechter prueften
+    Bezeichner und Abwesenheitsnachweise - ob der privilegierte Befehl auf
+    dieser Maschine ueberhaupt erlaubt ist, prueft keiner. Das ist dieselbe
+    Klasse wie `G-043`: nicht ein erfundener Name, sondern erfundenes
+    Verhalten.
+
+    Gelesen wird ueber `all_commands()`, nicht ueber `commands()`. Der Filter
+    dort laesst nur durch, was "docker" oder "workforce." enthaelt - dass die
+    Backup-Zeile geprueft worden waere, haette allein am `docker` im Pfad
+    gelegen.
+    """
+    offenders: set[str] = set()
+    for command in all_commands(text):
+        for treffer in re.finditer(r"""(?:^|[\s;&|("'])sudo\s+(\S+)""", command):
+            aufruf = treffer.group(1)
+            if aufruf != SUDO_ERLAUBT:
+                offenders.add(f"sudo {aufruf}")
+    return sorted(offenders)
 
 
 def deployed_paths() -> str:
@@ -675,6 +721,9 @@ class RunbookTargetsTest(unittest.TestCase):
     def test_every_created_role_is_dropped_again(self) -> None:
         self.check_each(lambda t: self.assertEqual([], role_cleanup_offenders(t)))
 
+    def test_every_privileged_command_is_one_the_nas_allows(self) -> None:
+        self.check_each(lambda t: self.assertEqual([], privileged_command_offenders(t)))
+
     def test_every_executed_helper_script_is_in_the_target_manifest(self) -> None:
         self.check_each(lambda t: self.assertEqual([], helper_script_offenders(t)))
 
@@ -860,6 +909,58 @@ class WeakenedControlIsDetectedTest(unittest.TestCase):
         erfunden = "```bash\nssh synology \"cd /volume1/docker/Startup && sh gibt_es_nicht.sh\"\n```\n"
         self.assertNotIn("gibt_es_nicht.sh", deployed_paths())
         self.assertEqual(["gibt_es_nicht.sh"], helper_script_offenders(erfunden))
+
+    def test_an_unauthorised_sudo_would_be_caught(self) -> None:
+        """Genau die drei Formen aus `G-072`, jede fuer sich.
+
+        Die Gegenprobe darunter ist die wichtigere Haelfte: Der erlaubte
+        Aufruf muss durchgehen, sonst waere der Waechter nur eine Sperre
+        gegen `sudo` und keine gegen das falsche `sudo`.
+        """
+        for zeile, erwartet in (
+                ('ssh synology "sudo sh /volume1/docker/Startup/backup_task.sh"', "sudo sh"),
+                ('ssh synology "cd /volume1/docker/Startup && sudo rm -f secrets/x"', "sudo rm"),
+                ('ssh synology "sudo docker ps"', "sudo docker"),
+        ):
+            with self.subTest(zeile=zeile):
+                self.assertEqual([erwartet],
+                                 privileged_command_offenders(f"```bash\n{zeile}\n```\n"))
+        erlaubt = 'ssh synology "sudo /usr/local/bin/docker compose ps"'
+        self.assertEqual([], privileged_command_offenders(f"```bash\n{erlaubt}\n```\n"))
+
+    def test_the_sudo_guard_does_not_depend_on_the_docker_filter(self) -> None:
+        """Ohne `all_commands()` waere der Waechter zufaellig wirksam.
+
+        `commands()` laesst nur durch, was "docker" oder "workforce." enthaelt.
+        Ein `sudo sh` in einem Befehl ohne beides - und den gibt es, sobald
+        jemand ein Skript ausserhalb von /volume1/docker aufruft - waere sonst
+        unsichtbar.
+        """
+        ohne = 'ssh synology "sudo sh /volume1/tmp/etwas.sh"'
+        block = f"```bash\n{ohne}\n```\n"
+        self.assertEqual([], commands(block))
+        self.assertEqual(["sudo sh"], privileged_command_offenders(block))
+
+    def test_a_containerised_deletion_is_still_checked(self) -> None:
+        """Der Tokenwaechter darf an der neuen Loeschform nicht vorbeisehen.
+
+        Seit `G-072` steht das `rm` hinter einem Anfuehrungszeichen. Die
+        vorige Fassung suchte " rm -f " mit fuehrendem Leerzeichen, uebersprang
+        die Form vollstaendig und meldete nichts - ein Waechter, der nicht
+        hinsieht, meldet PASS (`G-058`).
+        """
+        loeschen = ("sudo /usr/local/bin/docker run --rm "
+                    "-v /volume1/docker/Startup/workforce-agent/secrets:/secrets "
+                    "postgres:17-alpine sh -c 'rm -f /secrets/core_token_karl "
+                    "/secrets/core_token_gerd /secrets/core_token_anastasia%s'")
+        vorlage = "```bash\nssh synology \"" + loeschen + "\"\n```\n"
+        nachweis = (" && test ! -e /secrets/core_token_karl"
+                    " && test ! -e /secrets/core_token_gerd"
+                    " && test ! -e /secrets/core_token_anastasia")
+        self.assertEqual([], token_cleanup_offenders(vorlage % nachweis))
+        ohne = nachweis.replace(" && test ! -e /secrets/core_token_gerd", "")
+        self.assertEqual(["core_token_gerd: kein Abwesenheitsnachweis"],
+                         token_cleanup_offenders(vorlage % ohne))
 
     def test_a_substring_of_a_deployed_name_is_not_coverage(self) -> None:
         """Genau der Fall aus `G-073`.
