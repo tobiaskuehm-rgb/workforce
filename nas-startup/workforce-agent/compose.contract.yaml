@@ -29,7 +29,7 @@ services:
       context: .
       dockerfile: Dockerfile.contract
     environment:
-      CORE_BUS_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      CORE_BUS_BASE_URL: https://192-168-68-81.k30068872219.direct.quickconnect.to:8443
       KARL_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_karl
       GERD_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_gerd
       ANASTASIA_BUS_TOKEN_FILE: /run/startup-core-secrets/core_token_anastasia

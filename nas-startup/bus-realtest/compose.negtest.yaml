@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: Dockerfile.negtest
     environment:
-      BUS_NEGTEST_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      BUS_NEGTEST_BASE_URL: https://192-168-68-81.k30068872219.direct.quickconnect.to:8443
       KARL_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_karl
       THORSTEN_BUS_TOKEN_FILE: /run/startup-bus-secrets/bus_token_thorsten
       # Every case derives its request ids and idempotency keys from this value.

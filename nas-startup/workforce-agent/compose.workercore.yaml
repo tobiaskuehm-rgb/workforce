@@ -68,7 +68,7 @@ services:
       prepare:
         condition: service_completed_successfully
     environment:
-      CORE_BUS_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      CORE_BUS_BASE_URL: https://192-168-68-81.k30068872219.direct.quickconnect.to:8443
       AGENT_BUS_TOKEN_FILE: /run/startup-workercore-secrets/wc_token_agent
       KARL_BUS_TOKEN_FILE: /run/startup-workercore-secrets/wc_token_karl
       AGENT_IDENTITY: AGENT-ENG-001
@@ -103,7 +103,7 @@ services:
       phase1:
         condition: service_completed_successfully
     environment:
-      CORE_BUS_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      CORE_BUS_BASE_URL: https://192-168-68-81.k30068872219.direct.quickconnect.to:8443
       AGENT_BUS_TOKEN_FILE: /run/startup-workercore-secrets/wc_token_agent
       KARL_BUS_TOKEN_FILE: /run/startup-workercore-secrets/wc_token_karl
       AGENT_IDENTITY: AGENT-ENG-001

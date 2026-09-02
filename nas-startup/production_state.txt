@@ -22,9 +22,17 @@
 # Ein Versionswechsel je Kommentar waere Inflation; ein unbenannter laufender
 # Stand waere schlimmer.
 
+# 2026-09-02, G-051: BUS_BASE_URL kommt dazu. Die Adresse stand bis dahin in
+# 17 Dateien und nirgends als Tatsache - und sie ist ein *abgeleiteter* Name,
+# genau wie ein Containername (G-042): Synology bildet ihn aus der LAN-Adresse,
+# also aendert er sich, sobald DHCP die Adresse aendert. Genau das ist am
+# 2026-09-02 passiert. Wer die Adresse aendert, aendert sie hier; ein Test haelt
+# alle uebrigen Vorkommen dagegen.
+
 PRODUCTION_COMMIT=672e0a7
 VERIFIED_AT=2026-09-01
 API_IMAGE=startup-workforce-api:v9
+BUS_BASE_URL=https://192-168-68-81.k30068872219.direct.quickconnect.to:8443
 APPLIED_MIGRATIONS=001_employee_registry,002_workforce_bus,003_workforce_bus_trigger_fix,005_bus_denial_audit,006_legacy_registry_tables,007_least_privilege_roles
 
 FILE=compose.yaml

@@ -1633,3 +1633,85 @@ und die API-Version ist **nicht** darunter. Leitplanke 7: ein Kommentar, der
 eine Absicherung behauptet, muss sie belegen können. Korrigiert.
 
 **Regel 25** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
+
+
+---
+
+## `G-051` — eigener Prüfdurchgang: die Bus-Adresse zeigte auf nichts
+
+**Bestätigt, selbst gefunden, behoben.** Gefunden beim Vorbereiten des
+Phase-5-Fensters — ich habe `compose.contract.yaml` gelesen, um das Runbook zu
+schreiben, und bin über die Adresse gestolpert.
+
+### Der Befund
+
+Jedes Laufzeitpaket — Contract-Test, Kettenlauf, Worker-Core, Telegram-Connector,
+Agent — trug bis zum 2026-09-02 dieselbe Adresse fest eingetragen:
+
+```
+https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+```
+
+Die NAS lag da schon auf `192.168.68.81`. Nachgemessen statt vermutet:
+`Connection refused, errno=61`. **Jedes verbleibende Fenster wäre an der ersten
+Verbindung gestorben** — und zwar nach dem Öffnen des Kanals, nach dem Ausgeben
+echter Zugangsdaten, nach der Firewall-Regel.
+
+Der Grund ist die Bauart des Namens: Synology bildet ihn aus der LAN-Adresse.
+Er *enthält* sie. Ändert DHCP die Adresse, ist der Name tot — und das ist
+dieselbe Klasse wie `G-042`, wo ein Containername aus Projektordner, Dienst
+und Index für einen Bezeichner gehalten wurde.
+
+### Warum kein Wächter das sehen konnte
+
+Drei Prüfungen laufen über diesen Bestand, und keine konnte diese Frage stellen:
+
+- die lokalen Suiten laufen **absichtlich ohne Netz** — das ist richtig so und
+  genau deshalb blind für Erreichbarkeit
+- das Deploy-Manifest vergleicht Prüfsummen, keine Adressen
+- `nas_status.sh` fragt die API über `localhost` im Container, nie über die
+  Adresse, die die Testpakete benutzen
+
+Ein Detail, das ich für das Bedrohungsmodell nachgemessen habe: Das
+NAS-Zertifikat trägt `*.k30068872219.direct.quickconnect.to`. TLS verifiziert
+also **jede** Adressvariante des Musters gegen den Hostnamen. Bequem — und es
+heißt, dass eine falsche Adresse nie am Zertifikat auffällt.
+
+Was **nicht** passiert wäre: ein Token an ein fremdes Gerät. `bus_client.py`
+benutzt `ssl.create_default_context()`, also Hostnamenprüfung und
+Zertifikatspflicht; der Handschlag scheitert vor dem ersten HTTP-Kopf. Und auf
+`.78` hörte ohnehin niemand auf 8443. Das gehört dazu, damit der Befund nicht
+größer klingt, als er ist: **kaputtes Fenster, kein Datenabfluss.**
+
+### Die Korrektur
+
+Nicht „überall `.78` durch `.81` ersetzen" — das hätte bis zum nächsten
+Neustart gehalten. Die Adresse steht jetzt als `BUS_BASE_URL` in
+`production_state.txt` und sonst nirgends als Tatsache, und sie wird von zwei
+Seiten geprüft, weil eine Seite die Frage nicht beantworten kann:
+
+| | prüft | wo |
+|---|---|---|
+| `test_bus_address.py` | alle Vorkommen stimmen mit der einen Quelle überein | offline, überall lauffähig |
+| `check_bus_address.sh` | die Adresse im Namen gehört **dieser** Maschine | auf der NAS, fünftes Gate in `nas_status.sh` |
+
+Beide mit Gegenprobe: Der NAS-Test, mit der alten Adresse gefüttert, meldet
+`FAIL … gehoert dieser NAS nicht` und Exit 1; der Offline-Test schlägt an,
+sobald **eine einzige** Datei abweicht, und nennt sie beim Namen.
+
+Der alte Realtest-Runbook-Eintrag, der die Adresse als „am 2026-08-31
+bestätigt" führte, hat einen datierten Nachtrag bekommen statt einer stillen
+Korrektur.
+
+Nachweis: `evidence/2026-09-02_g051_bus_adresse.md` — Namensauflösung,
+Erreichbarkeit, Zertifikat, beide Gegenproben.
+
+### Was offen bleibt
+
+Die Adresse ist eine Momentaufnahme. Der CEO hat sie im Router reserviert;
+zieht die NAS wie geplant an den 5G-Router auf dem Dachboden, ändert sie sich
+wieder. Der Unterschied ist, dass es dann **auffällt**. Und belegt ist bisher
+nur, dass Auflösung, TLS und Proxy stimmen — dass ein Testpaket durchläuft,
+kann erst das Fenster zeigen.
+
+**Regel 26** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.

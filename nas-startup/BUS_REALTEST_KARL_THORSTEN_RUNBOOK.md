@@ -28,7 +28,8 @@ Wenn einer dieser Punkte nicht stimmt: nicht starten, mir stattdessen Bescheid g
 
 1. Den kompletten Ordner `bus-realtest/` nach `/docker/Startup/bus-realtest` kopieren.
 2. Darin existiert bereits ein leerer Unterordner `secrets/` — lokal auf der NAS lassen, nicht mit Inhalt aus diesem Repository befüllen.
-3. Adresse und Referenz sind bereits fest in `compose.prepare.yaml` und `compose.run.yaml` eingetragen (`https://192-168-68-78.k30068872219.direct.quickconnect.to:8443` bzw. `DEC-027/ENG-003`, beides am 2026-08-31 bestätigt). Es muss nichts mehr von Hand ausgefüllt werden; `bus-realtest.env` dient nur noch als Notiz.
+3. Adresse und Referenz sind bereits fest in `compose.prepare.yaml` und `compose.run.yaml` eingetragen (`https://192-168-68-81.k30068872219.direct.quickconnect.to:8443` bzw. `DEC-027/ENG-003`). Es muss nichts mehr von Hand ausgefüllt werden; `bus-realtest.env` dient nur noch als Notiz.
+   **Am 2026-09-02 geändert (`G-051`):** Die Adresse hieß bis dahin `…192-168-68-78…` und war seit dem Neustart vom selben Tag tot — `Connection refused`. Der Name bildet die LAN-Adresse ab, also ändert er sich mit ihr. Maßgeblich ist jetzt `BUS_BASE_URL` in `production_state.txt`; `check_bus_address.sh` hält beides gegeneinander.
 
 ## 3. Testzugänge vorbereiten (`TESTING` + 2 Credentials)
 

@@ -7,7 +7,7 @@ services:
       context: .
     entrypoint: ["python", "/app/network_probe.py"]
     environment:
-      WORKFORCE_API_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      WORKFORCE_API_BASE_URL: https://192-168-68-81.k30068872219.direct.quickconnect.to:8443
       WORKFORCE_EXPECTED_CHANNEL_STATUS: DISABLED
     networks:
       outbound:

@@ -90,6 +90,11 @@ run_gate "Backup-Rechte" check_backup_permissions.sh
 # (G-047). Ein abgeschnittener Dump mit tadellosen Rechten besteht die erste
 # und ist trotzdem wertlos.
 run_gate "Backup-Inhalt" check_backup_integrity.sh
+# Die Bus-Adresse ist ein abgeleiteter Name: Synology bildet ihn aus der
+# LAN-Adresse, also faellt er mit dem naechsten DHCP-Wechsel um (G-051).
+# Am 2026-09-02 zeigte er einen Tag lang auf ein fremdes Geraet, ohne dass
+# irgendetwas es gemerkt haette - die lokalen Suiten laufen ohne Netz.
+run_gate "Bus-Adresse" check_bus_address.sh
 
 echo
 echo "--- Rueckfallpunkte ---"

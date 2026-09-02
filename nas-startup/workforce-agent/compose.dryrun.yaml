@@ -22,7 +22,7 @@ services:
       # kept restrictive so a copy of this file cannot widen the boundary by
       # accident.
       AGENT_DATA_POLICY: "METADATA_ONLY"
-      AGENT_BUS_BASE_URL: https://192-168-68-78.k30068872219.direct.quickconnect.to:8443
+      AGENT_BUS_BASE_URL: https://192-168-68-81.k30068872219.direct.quickconnect.to:8443
       AGENT_BUS_TOKEN_FILE: /run/secrets/agent_bus_token
       AGENT_POLL_SECONDS: "5"
       # Exactly one pass over the inbox, then the container exits by itself.
