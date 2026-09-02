@@ -58,10 +58,11 @@ MIGRATIONS = NAS / "postgres-init"
 
 PROJECT_DIR = "/volume1/docker/Startup"
 
-# The window opens 005, 006 and 007 only. An object from 004 or 008 would
+# The window opens 005, 006 and 007 only. An object from 004, 008 or 009 would
 # exist in the source tree and still be missing on the running database, which
-# is the exact mistake the gates are there to prevent.
-CLOSED_GATES = ("004", "008")
+# is the exact mistake the gates are there to prevent. 009 sits here since
+# G-071: es hat sein eigenes Gate in compose.yaml und ist nicht angewendet.
+CLOSED_GATES = ("004", "008", "009")
 
 # Subcommands that address a container. `save`, `load`, `build` and `pull`
 # address images and are none of this scan's business.
