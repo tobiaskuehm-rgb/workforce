@@ -39,9 +39,19 @@ Damit ist eine erfolgreiche Prompt-Injection ein **Qualitätsproblem der Antwort
 
 | Policy | Was übertragen wird |
 |---|---|
-| `METADATA_ONLY` | Betreff, Aktionsklasse, IDs — **nie** der Nachrichtentext. Voreinstellung. |
-| `BODY` | zusätzlich der Nachrichtentext. Nötig, damit ein Modell fachlich arbeiten kann. |
+| `METADATA_ONLY` | Nachrichten-ID, Absender-ID, Aktionsklasse. **Weder Text noch Betreff.** Voreinstellung. |
+| `BODY` | zusätzlich Betreff und Nachrichtentext. Nötig, damit ein Modell fachlich arbeiten kann. |
 | `FULL` | zusätzlich Task- und Handoff-Referenzen. |
+
+Die Prosa oben ist Prosa. Maßgeblich ist diese Liste, und sie wird gegen `data_boundary.py` geprüft — eine Tabelle, die etwas anderes behauptet als der Code, hat dieses Projekt schon zweimal Zeit gekostet:
+
+```text
+METADATA_ONLY  message_id, sender_id, action_class
+BODY           message_id, sender_id, subject, action_class, body
+FULL           message_id, sender_id, subject, action_class, body, task_ref, handoff_ref
+```
+
+**Der Betreff zählt als Inhalt, nicht als Metadatum** (`G-029`). Menschen schreiben die eigentliche Anfrage hinein — „Kündigung Müller prüfen" sagt mehr als die meisten Rümpfe. Er reiste früher unter `METADATA_ONLY` mit und machte damit ausgerechnet die engste Policy zu einem Leck.
 
 Eine Feld-Allowlist begrenzt das zusätzlich: Felder, die dort nicht stehen, können nicht hinausgehen, selbst wenn eine künftige Bus-Version sie dem Datensatz hinzufügt. Ein zweites, lokales Größenlimit (8000 Zeichen) gilt unabhängig vom Kanallimit.
 
@@ -52,7 +62,7 @@ Jeder Aufruf erzeugt eine `Disclosure`: Feldnamen, Zeichenzahl und ein SHA-256-F
 | Name | Beschreibung |
 |---|---|
 | `echo` | Deterministisch, kein Netzwerk, kein Schlüssel, keine Kosten. Für Tests und den ersten Trockenlauf. |
-| `claude` | Anthropic-API über das offizielle SDK, Modell `claude-opus-5`. |
+| `claude` | Anthropic-API über das offizielle SDK. Welches Modell, entscheidet `AGENT_MODEL` — und es muss in `model_allowlist.py` stehen. |
 | ~~`subscription`~~ | **Zurückgezogen** (Befund `G-016`). |
 
 Ein weiterer Provider braucht nur `complete()` und einen Eintrag in `build_provider()`. Sonst ändert sich nichts.
@@ -61,7 +71,21 @@ Ein weiterer Provider braucht nur `complete()` und einen Eintrag in `build_provi
 
 Ein Kommentar, der eine Absicherung behauptet, die es nicht gibt, ist schlimmer als eine fehlende Absicherung: Er hält den nächsten Leser vom Nachprüfen ab. `build_provider()` weist `AGENT_PROVIDER=subscription` deshalb ab. Die Klasse bleibt als Spezifikation stehen — was für eine Reaktivierung existieren muss, steht in ihrem Docstring.
 
-Der Claude-Provider behandelt eine Modell-Ablehnung (`stop_reason: refusal`) als regulären Fall und schreibt eine erklärende Antwort in den Bus, statt abzustürzen. Server-seitige Fallbacks sind aktiviert, damit ein Grenzfall nicht stumm im Bus liegen bleibt.
+Der Claude-Provider behandelt eine Modell-Ablehnung (`stop_reason: refusal`) als regulären Fall und schreibt eine erklärende Antwort in den Bus, statt abzustürzen.
+
+**Server-seitige Fallbacks sind aus** (`G-036`), und SDK-Retries stehen auf `0` (`G-034`). Beides ist dieselbe Frage in zwei Schichten: Der Worker reserviert genau **einen** Provideraufruf gegen das Budget, und ein zweiter Modelllauf innerhalb desselben Aufrufs ist weder reservierbar noch blockierbar. Eine Ablehnung ist dann die ehrliche Antwort und kostet einen Aufruf. Ein Wiedereinschalten braucht eine Kostenentscheidung und eine nachgewiesene harte externe Decke, kein Beta-Flag.
+
+## Modell-Allowlist
+
+`model_allowlist.py` ist die einzige Stelle, an der ein Modell erreichbar wird. Jeder Eintrag trägt Tarif, Datenobergrenze, Kostendeckel je Aufruf und die Aufgabenklassen, die er bedienen darf; `budget.py` liest den Tarif von dort, damit Preis und Eintrag nicht auseinanderlaufen.
+
+Ein unbekannter Name wird abgewiesen, bevor etwas gebaut wird — vorher ging er ungeprüft ans SDK und wurde aus einem Ersatztarif bepreist. Und was antwortet, muss sein, was konfiguriert war: Meldet der Anbieter ein anderes Modell, wird die **Antwort verworfen**, nicht bloß vermerkt. Preis und Datenobergrenze waren für das andere Modell gewählt.
+
+## Effizienzbericht
+
+`efficiency_report.py` schreibt je Vorgang auf, was er gekostet hat: Datenmenge, Felder, Provideraufrufe, Tokens beziehungsweise eine als solche gekennzeichnete Schätzung, Kostenobergrenze, Route und Dublettenentscheidung. Maschinenlesbar als JSON unter `AGENT_REPORT_PATH`, dazu eine kurze Zusammenfassung im Protokoll.
+
+**Bauartbedingt ohne Nutzlast und ohne Geheimnis** — Feldnamen, Zahlen und der Digest, den die Datengrenze ohnehin bildet. Ein Bericht, der Nutzlasten zitiert, wäre eine zweite Kopie genau der Daten, deren Menge er messen soll.
 
 ## Verhalten bei Fehlern
 

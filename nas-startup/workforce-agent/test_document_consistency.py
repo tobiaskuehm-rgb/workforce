@@ -720,5 +720,117 @@ class StatusSectionsNameNoVersionTest(unittest.TestCase):
         self.assertLess(len(body), len((ROOT / "HANDOVER.md").read_text(encoding="utf-8")) / 2)
 
 
+class TheAgentReadmeMatchesTheCodeTest(unittest.TestCase):
+    """G-054: zwei sicherheitsrelevante Aussagen im Agenten-README waren falsch.
+
+    Die Policy-Tabelle nannte den Betreff unter `METADATA_ONLY` - den Code hat
+    `G-029` genau davon befreit, weil Menschen die eigentliche Anfrage in den
+    Betreff schreiben. Und "Server-seitige Fallbacks sind aktiviert" stand da
+    noch, obwohl `G-036` sie abgeschaltet hat.
+
+    Beide Aussagen beschreiben Verhalten, das jemand beim Lesen fuer wahr
+    haelt. Die erste haette einen Leser, der Code und Dokument angleicht, in
+    die falsche Richtung geschickt: zurueck zu `G-029`.
+
+    Die Abhilfe trennt Prosa von Zusicherung. Das README darf beschreiben, wie
+    es will; die **maschinenlesbare Liste** darin ist die Aussage, und die
+    wird hier gegen `data_boundary.py` gehalten. Ein Sprachvergleich waere
+    hier untauglich - der korrigierte Satz lautet "Weder Text noch Betreff",
+    nennt das Wort also und meint das Gegenteil.
+    """
+
+    README = NAS / "workforce-agent" / "README.md"
+
+    def allowlist_from_code(self) -> dict[str, tuple[str, ...]]:
+        quelle = (NAS / "workforce-agent" / "data_boundary.py").read_text(encoding="utf-8")
+        block = quelle[quelle.index("_ALLOWED_FIELDS"):quelle.index("class DataBoundaryError")]
+        out = {}
+        for policy in ("METADATA_ONLY", "BODY", "FULL"):
+            muster = re.compile(rf'"{policy}":\s*\(([^)]*)\)', re.S)
+            treffer = muster.search(block)
+            self.assertIsNotNone(treffer, f"{policy} nicht in data_boundary.py gefunden")
+            felder = re.findall(r'"([a-z_]+)"', treffer.group(1))
+            out[policy] = tuple(felder)
+        return out
+
+    def allowlist_from_readme(self) -> dict[str, tuple[str, ...]]:
+        text = self.README.read_text(encoding="utf-8")
+        out = {}
+        for zeile in text.splitlines():
+            teile = zeile.split(None, 1)
+            if len(teile) == 2 and teile[0] in ("METADATA_ONLY", "BODY", "FULL"):
+                out[teile[0]] = tuple(f.strip() for f in teile[1].split(","))
+        return out
+
+    def test_the_readme_names_all_three_policies(self) -> None:
+        # Ohne das waere der Vergleich unten gruen ueber einer leeren Liste.
+        self.assertEqual({"METADATA_ONLY", "BODY", "FULL"},
+                         set(self.allowlist_from_readme()))
+
+    def test_the_readme_list_matches_the_code(self) -> None:
+        self.assertEqual(self.allowlist_from_code(), self.allowlist_from_readme())
+
+    def test_the_subject_is_not_metadata(self) -> None:
+        # Die Aussage, um die es bei G-029 ging, als eigener Test - damit sie
+        # nicht in einem Gesamtvergleich untergeht.
+        self.assertNotIn("subject", self.allowlist_from_code()["METADATA_ONLY"])
+
+    def test_a_readme_that_drifted_would_be_caught(self) -> None:
+        falsch = dict(self.allowlist_from_code())
+        falsch["METADATA_ONLY"] = falsch["METADATA_ONLY"] + ("subject",)
+        self.assertNotEqual(falsch, self.allowlist_from_readme())
+
+
+class NoDocumentClaimsAWithdrawnFeatureTest(unittest.TestCase):
+    """G-036 schaltete serverseitige Fallbacks ab; ein README sagte weiter ja."""
+
+    def test_the_code_really_has_them_off(self) -> None:
+        quelle = (NAS / "workforce-agent" / "providers.py").read_text(encoding="utf-8")
+        self.assertIn("No server-side fallback", quelle)
+        self.assertIn("max_retries: int = 0", quelle)
+
+    BEHAUPTUNG = re.compile(
+        r"Fallbacks?\s+(?:sind|ist)\s+aktivier|"
+        r"aktivierte[rn]?\s+(?:server[- ]?seitige[rn]?\s+)?Fallback",
+        re.IGNORECASE)
+
+    # Ein Dokument, das den Befund beschreibt, muss den falschen Satz zitieren
+    # duerfen - sonst ist die Regel, die daraus wurde, nicht aufschreibbar.
+    # Zugelassen ist er nur mit Befundnummer oder Datum in unmittelbarer
+    # Naehe, dasselbe Mass wie bei den Dateizahlen und bei der Bus-Adresse.
+    ANKER = re.compile(r"`?G-0\d\d`?|\b20\d\d-\d\d-\d\d\b")
+    REICHWEITE = 160
+
+    def unverankert(self, text: str) -> bool:
+        for treffer in self.BEHAUPTUNG.finditer(text):
+            umfeld = text[max(0, treffer.start() - self.REICHWEITE):
+                          treffer.end() + self.REICHWEITE]
+            if not self.ANKER.search(umfeld):
+                return True
+        return False
+
+    def test_no_document_says_they_are_on(self) -> None:
+        offenders = [path.name for path, text in documents() if self.unverankert(text)]
+        self.assertEqual([], offenders,
+                         "G-036 hat serverseitige Fallbacks abgeschaltet")
+
+    def test_a_bare_claim_is_still_caught(self) -> None:
+        # Die Ausnahme darf nicht alles freikaufen.
+        self.assertTrue(self.unverankert(
+            "Server-seitige Fallbacks sind aktiviert, damit nichts liegen bleibt."))
+        self.assertFalse(self.unverankert(
+            "Frueher hiess es „Fallbacks sind aktiviert\u201c; `G-036` hat sie abgeschaltet."))
+
+    def test_that_check_would_have_caught_the_real_sentence(self) -> None:
+        # Der Satz, der bis zum 2026-09-02 im Agenten-README stand.
+        echt = ("Server-seitige Fallbacks sind aktiviert, damit ein Grenzfall "
+                "nicht stumm im Bus liegen bleibt.")
+        behauptungen = re.compile(
+            r"Fallbacks?\s+(?:sind|ist)\s+aktivier", re.IGNORECASE)
+        self.assertTrue(behauptungen.search(echt))
+        # Und die Verneinung darf durchkommen, sonst ist die Korrektur unschreibbar.
+        self.assertIsNone(behauptungen.search("Server-seitige Fallbacks sind aus."))
+
+
 if __name__ == "__main__":
     unittest.main()

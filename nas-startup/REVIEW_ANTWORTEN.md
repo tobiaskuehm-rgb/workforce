@@ -1876,3 +1876,63 @@ der Connector-Identität. Deren Zugang ist widerrufen, der Kanal ist
 `DISABLED`; das gehört in dasselbe Fenster wie der nächste Kettenlauf.
 
 **Regel 27** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
+
+
+---
+
+## `G-054` — eigener Prüfdurchgang: zwei falsche Zusicherungen im Agenten-README
+
+**Bestätigt, selbst gefunden, behoben.** Aufgefallen beim Nachlesen der
+Datengrenze für den Effizienzbericht.
+
+### Zwei Aussagen, beide im Präsens, beide falsch
+
+**Erstens die Policy-Tabelle.** Sie führte unter `METADATA_ONLY`: „Betreff,
+Aktionsklasse, IDs — **nie** der Nachrichtentext." Der Code sagt seit `G-029`
+etwas anderes:
+
+```python
+"METADATA_ONLY": ("message_id", "sender_id", "action_class"),
+```
+
+Kein Betreff. Der Kommentar daneben nennt auch den Grund: „People put the
+actual request in it — *Kuendigung Mueller pruefen* says more than most
+bodies. It used to travel under METADATA_ONLY, which made the narrowest policy
+quietly leak the thing it was meant to hold back."
+
+Das ist die gefährlichere der beiden. Nicht weil zu viel hinausginge — es geht
+**weniger** hinaus, als die Tabelle behauptet —, sondern wegen der Richtung,
+in die sie einen Leser schickt: Wer Code und Dokument angleicht, baut `G-029`
+wieder ein.
+
+**Zweitens der Provider-Abschnitt:** „Server-seitige Fallbacks sind aktiviert,
+damit ein Grenzfall nicht stumm im Bus liegen bleibt." `G-036` hat sie
+abgeschaltet, und der Kommentar in `providers.py` begründet es genau so, wie
+deine CEO-Ergänzung zu Phase 5 es fordert: Der Worker reserviert **einen**
+Provideraufruf gegen das Budget, ein zweiter Modelllauf innerhalb desselben
+Aufrufs ist weder reservierbar noch blockierbar.
+
+### Warum ein Sprachvergleich hier nicht taugt
+
+Mein erster Ansatz war, im README nach dem Wort „Betreff" zu suchen und es
+gegen die Feldliste zu halten. Das scheitert an der Korrektur selbst: Der neue
+Satz lautet „Weder Text noch Betreff" — er **nennt** das Wort und meint das
+Gegenteil. Ein Wächter, der so etwas nicht unterscheiden kann, wird beim
+ersten Fehlalarm entschärft.
+
+Deshalb steht die Feldliste jetzt als maschinenlesbarer Block im README und
+wird gegen `data_boundary.py` geprüft. Die Prosa darum herum darf formulieren,
+wie sie will. Es ist dieselbe Trennung wie bei `bus_rules.py`, das die
+SQL-Regeln abschreibt und per Digest gegen die Migration hält.
+
+Für die Fallback-Aussage genügt ein Muster, weil es dort keine sinnvolle
+Verneinung mit demselben Wortlaut gibt — mit Gegenprobe in beide Richtungen:
+Der echte alte Satz wird erkannt, „Server-seitige Fallbacks sind aus" kommt
+durch. Sonst wäre die Korrektur unschreibbar gewesen.
+
+### Nebenbei ergänzt
+
+Das README beschreibt jetzt auch die Modell-Allowlist und den
+Effizienzbericht. Beides ist neu und stand nirgends, wo es jemand findet.
+
+**Regel 28** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
