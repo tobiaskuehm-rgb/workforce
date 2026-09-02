@@ -184,6 +184,28 @@ weltlesbare Dateien im Backup-Ordner — ein Datenbank-Dump und ein Archiv mit
 **Noch offen, unverändert:** `G-030` Laufzeitkette — kein Telegram, kein
 Modellaufruf, kein Agentenlauf hat je stattgefunden.
 
+**Randbedingung für den Entwurf von `G-030`, vom CEO am 2026-09-02 erklärt:**
+Die NAS läuft **nicht durch**. Zwei DSM-Aufgaben fahren sie um 02:00 hoch und
+um 02:20 wieder herunter; tagsüber ist sie an, wenn der CEO sie einschaltet.
+Der Grund ist Lautstärke — sie steht am Kinderzimmer — und die nächtliche
+Synology-Drive-Synchronisation. Geplant ist ein Umzug auf den Dachboden an
+einen 5G-Router, danach wäre Dauerbetrieb möglich; entschieden ist das nicht,
+und der CEO hat die Frage ausdrücklich zurückgestellt, bis das System läuft.
+
+Für den Entwurf ist das **keine Einschränkung**, und der Grund ist messbar:
+Der Connector holt Nachrichten mit `getUpdates` ab, nicht über einen Webhook
+(`telegram_connector.py:292`). Er baut die Verbindung also selbst auf — hinter
+CGNAT und ohne Portfreigabe — und merkt sich einen `offset`, holt beim nächsten
+Start also dort weiter, wo er aufgehört hat. Ein Zeitfenster statt Dauerbetrieb
+ist damit tragfähig: Wer nachts schreibt, bekommt morgens Antwort.
+
+**Vor dem ersten echten Lauf nachzumessen:** wie lange Telegram unabgeholte
+Updates aufbewahrt. Nach deren Dokumentation etwa 24 Stunden, aber das ist
+**nicht** nachgeschlagen — und ein Satz wie „geht nicht verloren" wäre sonst
+genau die Sorte Zusicherung, die dieses Projekt seit `G-046` einsammelt.
+Wake-on-LAN hilft hier übrigens nicht: Ein Magic Packet ist ein Broadcast im
+lokalen Netz, eine Telegram-Nachricht aus dem Internet kann es nicht auslösen.
+
 **Der Rückfallpfad ist inzwischen geübt**, aber nur in einem Wegwerf-Container:
 Phase A der `G-045`-Probe hat die Sicherung `preflight-2026-09-01_22-18-42`
 zurückgespielt, erst Rollen-Dump, dann Datenbank-Dump — 3 Migrationszeilen
