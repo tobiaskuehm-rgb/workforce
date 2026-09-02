@@ -210,6 +210,15 @@ weder Kanal noch Zugangsdaten noch ein Modell, deshalb konnten sie ohne
 Freigabe entstehen. **Alles davon ist gegen Attrappen belegt, nichts am
 laufenden System.** Einzelheiten in `REVIEW_ANTWORTEN.md`.
 
+**Das nächste Fenster ist abarbeitbar: `PHASE5_RUNBOOK.md`.** Contract-Test,
+Core-Roundtrip, beide Auditrekonstruktionen, Rückbau — von oben nach unten,
+jeder Schritt mit Abbruchkriterium. Es öffnet **kein** Gate und tauscht **kein**
+Image; es öffnet einen Kanal, gibt drei kurzlebige Zugänge aus, fährt Nachweise
+und räumt auf. Blocker ist eine CEO-Freigabe, nicht ein offener Befund — dein
+technischer Zielcheck galt dem Phase-4-Fenster. Wenn du eine Sache mit dem
+Rotstift lesen willst, dann diese: Meine letzten drei Runbook-Runden haben
+`G-042`, `G-043` und `G-044` produziert.
+
 **Wenn du nur eines liest, dann `G-051`.** Jedes Laufzeitpaket zeigte auf
 `…192-168-68-78…`, die NAS liegt seit einem Neustart am 2026-09-02 auf `.81`,
 und dort antwortete `Connection refused`. Jedes verbleibende Fenster wäre an
