@@ -1203,3 +1203,61 @@ Zwei Kleinigkeiten aus dem Bau des Wächters, weil sie dieselbe Klasse betreffen
 Nachweis: `evidence/2026-09-02_g048_naechtliche_sicherung_weltlesbar.md`.
 
 **Lokal:** 349 + 15 + 35 + 9 Tests PASS.
+
+### Nachtrag zu `G-047`: die Abnahmetests für `006` und `007` gibt es jetzt
+
+Vorhin hatte ich sie bewusst nicht geschrieben, weil die NAS neu gestartet und
+nicht erreichbar war und ungeprüfte SQL als Abnahmetest genau die Fehlerklasse
+gewesen wäre, die ich hier einsammle. Die Datenbank ist wieder da, also
+nachgeholt — geschrieben **und** gelaufen.
+
+**`006_legacy_registry_tables_acceptance.sql`** prüft nicht „sieben Tabellen
+existieren", sondern die drei Eigenschaften, auf die es ankommt: dass sie in
+`public` liegen, wo die API sie sucht; dass es **keinen zweiten Satz** in
+`workforce` gibt, den eine `search_path`-Änderung untergeschieben könnte; und
+dass jede einen Primärschlüssel hat. Dazu genau eine Markerzeile — zwei hießen,
+dass die Zählprüfung des Gate-Runners nichts mehr bedeutet.
+
+**`007_least_privilege_roles_acceptance.sql`** prüft den Kern von `G-035`: dass
+**PUBLIC auf keine einzige Funktion** im Schema `workforce` `EXECUTE` hat. Dazu
+die andere Hälfte, die man leicht vergisst — dass `workforce_api` seine
+Funktionen weiterhin aufrufen **darf**; ein Entzug, der auch die API aussperrt,
+wäre „sicher" und kaputt. Und das Write-only-Audit, die beiden Statustabellen,
+kein direkter Zugriff auf die Bus-Tabellen, sowie die Backup-Rolle: liest alles,
+schreibt nichts.
+
+Beide gegen die **Produktion** gelaufen, Katalog lesen, `ROLLBACK`:
+
+```
+BEGIN / DO / DO / ROLLBACK
+NOTICE:  Legacy registry tables acceptance: PASS (7 Tabellen in public)
+NOTICE:  Legacy registry tables self-check: PASS
+
+BEGIN / DO / DO / ROLLBACK
+NOTICE:  Least-privilege roles acceptance: PASS
+NOTICE:  Least-privilege roles self-check: PASS
+```
+
+**Grün allein sagt nichts**, deshalb je eine umgedrehte Erwartung:
+
+```
+006, erfundene Tabelle in der Erwartung
+  ERROR:  ACCEPTANCE_006_TABLE_MISSING: gibt_es_nicht
+
+007, Erwartung umgedreht (API dürfte Denials lesen)
+  ERROR:  ACCEPTANCE_007_API_MAY_READ_DENIALS
+```
+
+Beide Dateien tragen zusätzlich einen **Selbstcheck**. Bei `007` ist der nicht
+kosmetisch: Fast jede Zusicherung dort hat die Form „dieses Recht fehlt". Würde
+`has_function_privilege` versehentlich so aufgerufen, dass es immer `false`
+liefert, bestünde die ganze Datei und prüfte nichts. Der Selbstcheck verlangt
+deshalb, dass der **Eigentümer** kann, was den anderen fehlt.
+
+Damit sind zwei der vier Lücken aus `G-047` zu. Offen bleiben `003` (Wirkung
+wird von `002` mitgeprüft) und `008` (gegatet, nicht angewendet — der Test
+gehört in dasselbe Fenster wie die Anwendung). `004` bleibt als Sonderfall
+gelistet: Sein Test existiert, heißt aber `003_knowledge_capability_acceptance.sql`.
+
+`test_migration_acceptance.py` hat das Austragen erzwungen — er schlägt an,
+wenn eine Lücke stillschweigend verschwindet, nicht nur wenn eine dazukommt.

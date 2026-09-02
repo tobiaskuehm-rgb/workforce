@@ -32,11 +32,9 @@ KNOWN_GAPS = {
     "003_workforce_bus_trigger_fix":
         "Korrektur an 002; die Wirkung wird von 002_workforce_bus_acceptance mitgeprueft, "
         "ein eigener Test fehlt trotzdem",
-    "006_legacy_registry_tables":
-        "seit 2026-09-01 produktiv angewendet, ohne eigenen Abnahmetest",
-    "007_least_privilege_roles":
-        "seit 2026-09-01 produktiv angewendet; geprueft wurde im Fenster ueber die "
-        "Runbook-Nachweise, nicht ueber postgres-tests/",
+    # 006 und 007 sind am 2026-09-02 geschlossen worden: beide Tests laufen
+    # gegen die Produktion (Katalog lesen, ROLLBACK) und wurden mit je einer
+    # umgedrehten Erwartung geprueft, die auch anschlug.
     "008_knowledge_api_grants":
         "gegatet und nicht angewendet - der Abnahmetest gehoert in dasselbe Fenster "
         "wie die Anwendung",
