@@ -312,7 +312,10 @@ def helper_script_offenders(text: str,
     """
     executed: set[str] = set()
     for command in commands(text):
-        executed.update(re.findall(r"(?:^|\s)sh\s+([A-Za-z0-9_-]+\.sh)", command))
+        # Auch pfadqualifiziert: `sudo sh /volume1/docker/Startup/backup_task.sh`
+        # ist derselbe Aufruf und braucht dieselbe Abdeckung. Ohne den
+        # Pfadteil fiel genau diese Form still aus der Pruefung.
+        executed.update(re.findall(r"(?:^|\s)sh\s+(?:\S*/)?([A-Za-z0-9_-]+\.sh)", command))
     liste = deploy_paths_file if deploy_paths_file is not None else deployed_paths()
     return sorted(name for name in executed if name not in liste)
 
@@ -557,6 +560,14 @@ class WeakenedControlIsDetectedTest(unittest.TestCase):
                       helper_script_offenders(self.text, deploy_paths_file=ohne))
         self.assertEqual([], helper_script_offenders(self.text,
                                                      deploy_paths_file=vollstaendig))
+
+    def test_a_path_qualified_script_is_checked_too(self) -> None:
+        pfad = ('```bash\nssh synology "sudo sh '
+                '/volume1/docker/Startup/gibt_es_nicht.sh"\n```\n')
+        self.assertEqual(["gibt_es_nicht.sh"], helper_script_offenders(pfad))
+        echt = ('```bash\nssh synology "sudo sh '
+                '/volume1/docker/Startup/backup_task.sh"\n```\n')
+        self.assertEqual([], helper_script_offenders(echt))
 
     def test_a_script_nobody_deploys_would_be_caught(self) -> None:
         erfunden = "```bash\nssh synology \"cd /volume1/docker/Startup && sh gibt_es_nicht.sh\"\n```\n"
