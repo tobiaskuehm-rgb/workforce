@@ -14,25 +14,84 @@ BEGIN
         RAISE EXCEPTION 'Migration 002_workforce_bus is missing.';
     END IF;
 
+    -- Bis 2026-09-02 stand hier `<> 5` (review finding G-049). Aktiv sind
+    -- inzwischen sechs, weil AGENT-ENG-001 fuer die Agentenlaufzeit
+    -- dazukam; drei Telegram-Identitaeten sind angelegt und widerrufen
+    -- worden. Eine Bestandszahl ist keine Eigenschaft des Busses.
     SELECT count(*) INTO v_count
     FROM workforce.bus_member_capabilities
     WHERE project_id = 'START-UP'
-      AND capability_status = 'ACTIVE';
+      AND capability_status = 'ACTIVE'
+      AND employee_id IN ('SAO-001', 'AI-ENG-001', 'PEO-001', 'RAS-001', 'EAC-001');
     IF v_count <> 5 THEN
-        RAISE EXCEPTION 'Expected 5 active bus capabilities, found %.', v_count;
+        RAISE EXCEPTION 'Bootstrap capabilities not active: found % of 5', v_count;
+    END IF;
+
+    -- Und die Regel, die fuer jeden Widerruf in diesem Projekt gilt: ohne
+    -- Zeitpunkt und Begruendung gibt es keinen. Das ist eine Eigenschaft,
+    -- die mit jeder neuen widerrufenen Capability mitwaechst, statt von ihr
+    -- gebrochen zu werden.
+    SELECT count(*) INTO v_count
+    FROM workforce.bus_member_capabilities
+    WHERE capability_status = 'REVOKED'
+      AND (revoked_at IS NULL
+           OR nullif(btrim(coalesce(revocation_reason, '')), '') IS NULL);
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'Revoked capabilities without metadata: %', v_count;
+    END IF;
+
+    -- Bis 2026-09-02 `<> 60`, inzwischen sind es 68 (G-049). Die Zahl waechst
+    -- mit jeder Identitaet, die Routen bekommt; sie ist keine Eigenschaft der
+    -- Allowlist. Geprueft wird stattdessen ihre Unversehrtheit: keine Route
+    -- zeigt auf jemanden, den es nicht als aktives Mitglied gibt, und keine
+    -- zeigt auf sich selbst. Beides bricht, wenn jemand die Tabelle von Hand
+    -- fuellt - und beides bleibt richtig, wenn sie legitim waechst.
+    SELECT count(*) INTO v_count
+    FROM workforce.bus_route_allowlist r
+    WHERE r.project_id = 'START-UP'
+      AND r.route_status = 'ACTIVE'
+      AND (NOT EXISTS (
+              SELECT 1 FROM workforce.active_project_members m
+              WHERE m.project_id = r.project_id AND m.employee_id = r.sender_id)
+           OR NOT EXISTS (
+              SELECT 1 FROM workforce.active_project_members m
+              WHERE m.project_id = r.project_id AND m.employee_id = r.recipient_id));
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'Active routes pointing at non-members: %', v_count;
     END IF;
 
     SELECT count(*) INTO v_count
     FROM workforce.bus_route_allowlist
     WHERE project_id = 'START-UP'
-      AND route_status = 'ACTIVE';
-    IF v_count <> 60 THEN
-        RAISE EXCEPTION 'Expected 60 active directed route grants, found %.', v_count;
+      AND route_status = 'ACTIVE'
+      AND sender_id = recipient_id;
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'Active self-routes: %', v_count;
     END IF;
 
-    SELECT count(*) INTO v_count FROM workforce.bus_credentials;
+    -- Die Absicht war richtig, das Mass nicht (G-049): `count(*) <> 0` ueber
+    -- die ganze Tabelle war wahr, solange nie ein Zugang ausgegeben worden
+    -- war. Inzwischen liegen dort 21, alle REVOKED, aus dokumentierten
+    -- Entscheidungen und Testlaeufen. Gemeint ist: die Migration selbst darf
+    -- keinen Zugang anlegen, denn das hiesse, ein Passwort in eine
+    -- versionierte Datei zu schreiben. Genau das wird jetzt geprueft.
+    SELECT count(*) INTO v_count
+    FROM workforce.bus_credentials
+    WHERE source_ref LIKE '%002_workforce_bus%'
+       OR source_ref LIKE 'MIG-002%';
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'Migration must not seed credentials; found %.', v_count;
+        RAISE EXCEPTION 'Migration seeded credentials; found %.', v_count;
+    END IF;
+
+    -- Und die Widerrufsregel, die im ganzen Projekt gilt: kein Widerruf ohne
+    -- Zeitpunkt und Begruendung. Waechst mit, statt zu brechen.
+    SELECT count(*) INTO v_count
+    FROM workforce.bus_credentials
+    WHERE credential_status = 'REVOKED'
+      AND (revoked_at IS NULL
+           OR nullif(btrim(coalesce(revocation_reason, '')), '') IS NULL);
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'Revoked credentials without metadata: %', v_count;
     END IF;
 
     IF NOT EXISTS (

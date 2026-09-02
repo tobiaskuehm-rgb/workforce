@@ -6,16 +6,41 @@ DO $$
 DECLARE
     v_count integer;
 BEGIN
-    SELECT count(*) INTO v_count FROM workforce.employees;
+    -- Was hier bis 2026-09-02 stand, war `count(*) <> 5` (review finding
+    -- G-049). Das war eine Aussage ueber die Belegschaft vom August, keine
+    -- ueber das System: inzwischen gibt es neun Eintraege, weil
+    -- AGENT-ENG-001 fuer die Agentenlaufzeit dazukam und drei
+    -- Telegram-Identitaeten angelegt und wieder widerrufen wurden. Ein
+    -- Abnahmetest, der eine Bestandsgroesse festschreibt, laesst sich genau
+    -- einmal gegen die Produktion fahren - und der Kopf dieser Datei sagt,
+    -- dass er jederzeit laufen darf.
+    --
+    -- Geprueft wird deshalb, was dauerhaft gilt: die fuenf Bootstrap-
+    -- Identitaeten sind da, und keine Identitaet existiert ohne Herkunft.
+    SELECT count(*) INTO v_count
+    FROM workforce.employees
+    WHERE employee_id IN ('SAO-001', 'AI-ENG-001', 'PEO-001', 'RAS-001', 'EAC-001');
     IF v_count <> 5 THEN
-        RAISE EXCEPTION 'Expected 5 employees, found %', v_count;
+        RAISE EXCEPTION 'Bootstrap identities incomplete: found % of 5', v_count;
     END IF;
 
     SELECT count(*) INTO v_count
+    FROM workforce.employees
+    WHERE nullif(btrim(coalesce(source_ref, '')), '') IS NULL;
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'Employees without a source reference: %', v_count;
+    END IF;
+
+    -- Auch hier eine Bestandszahl statt einer Eigenschaft (G-049): aktiv
+    -- sind inzwischen sechs, weil AGENT-ENG-001 dazukam. Geprueft wird, dass
+    -- die fuenf Bootstrap-Identitaeten Mitglied sind - das aendert sich nicht,
+    -- wenn jemand hinzukommt.
+    SELECT count(*) INTO v_count
     FROM workforce.active_project_members
-    WHERE project_id = 'START-UP';
+    WHERE project_id = 'START-UP'
+      AND employee_id IN ('SAO-001', 'AI-ENG-001', 'PEO-001', 'RAS-001', 'EAC-001');
     IF v_count <> 5 THEN
-        RAISE EXCEPTION 'Expected 5 active START-UP members, found %', v_count;
+        RAISE EXCEPTION 'Bootstrap members not active: found % of 5', v_count;
     END IF;
 
     SELECT count(*) INTO v_count

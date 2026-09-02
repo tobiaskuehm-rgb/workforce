@@ -1459,3 +1459,88 @@ Wegwerf-Helfer — er gehört aufs Volume, nicht nach `/tmp`.
 
 **Ausgetauscht ist nichts.** Die DSM-Aufgabe ist unverändert; sie zu ändern ist
 Sache des CEO. Das Skript liegt bereit und ist geprüft. Als Leitplanke 23.
+
+---
+
+## `G-049` — die beiden großen Abnahmetests konnten nur einmal laufen
+
+Phase 5 der Roadmap beginnt mit „PostgreSQL-Acceptance … gegen den echten Bus".
+Beim ersten Versuch kamen beide großen Tests nicht weit:
+
+```
+001: ERROR:  Expected 5 employees, found 9
+002: ERROR:  Expected 5 active bus capabilities, found 6.
+```
+
+Kein Defekt in der Datenbank. Die Registry ist **legitim gewachsen** —
+`AGENT-ENG-001` kam für die Agentenlaufzeit dazu, drei Telegram-Identitäten
+wurden angelegt und wieder widerrufen. Die Tests behaupteten eine Belegschaft
+vom August.
+
+Insgesamt vier solche Stellen, jede eine Bestandszahl:
+
+| Datei | Behauptung | tatsächlich |
+|---|---|---|
+| `001` | genau 5 Mitarbeiter | 9 |
+| `001` | genau 5 aktive Projektmitglieder | 6 |
+| `002` | genau 5 aktive Capabilities | 6 |
+| `002` | genau 60 aktive Routen | 68 |
+| `002` | gar keine Credentials | 21, alle `REVOKED` |
+
+**Damit ließen sich beide genau einmal gegen die Produktion fahren** — während
+ihr eigener Kopf sagt, sie liefen in einer Transaktion und dürften deshalb
+jederzeit gegen sie laufen. Die Zusicherung stand da, seit die Zahlen falsch
+wurden, ohne dass jemand sie einlöste.
+
+**Die Grenze verläuft nicht bei „Zahl oder nicht".** Zwei Zählungen in
+denselben Dateien sind völlig in Ordnung und bleiben unangetastet:
+
+```sql
+WHERE actor_id = 'SYSTEM-BOOTSTRAP' AND request_id = 'MIG-001-EMPLOYEE-REGISTRY'  -- 11
+WHERE request_id LIKE 'REQ-E2E-%'                                                 -- 11
+```
+
+Die eine zählt, was die Migration selbst geschrieben hat, die andere, was der
+Test gerade erzeugt hat. Beides wächst nicht mit dem Betrieb. Der Unterschied
+ist der Umfang, nicht das Mittel.
+
+Ersetzt habe ich die vier durch Aussagen, die mitwachsen statt zu brechen — und
+die teils **mehr** prüfen als vorher:
+
+- die fünf Bootstrap-Identitäten sind da und sind aktive Mitglieder
+- keine Identität ohne Herkunftsangabe
+- keine aktive Route zeigt auf ein Nichtmitglied, keine auf sich selbst
+- die Migration hat keinen Zugang gesät (auf ihren eigenen `source_ref` eingegrenzt)
+- kein Widerruf ohne Zeitpunkt und Begründung — bei Capabilities **und** Credentials
+
+Die letzte ist die, die mir am besten gefällt: Sie prüft die Widerrufsregel
+dieses Projekts gegen 21 echte Datensätze, und sie wird mit jedem weiteren
+strenger statt hinfälliger.
+
+### Ergebnis
+
+**Alle sechs angewendeten Migrationen haben jetzt einen Abnahmetest, der gegen
+die laufende Produktion durchläuft** — `001`, `002`, `003`, `005`, `006`, `007`,
+je mit `ROLLBACK`, Exit 0. `002` meldet dabei ausdrücklich:
+
+```
+PASS: Workforce Bus identity, project scope, inbox/outbox, tasks, handoffs,
+acknowledgement, immutable payloads, redacted audit, idempotency, loop
+protection, revocation and fail-closed controls
+```
+
+Das ist der Kern des Busses, zum ersten Mal am **laufenden System** belegt und
+nicht gegen Attrappen. `004` bleibt ungelaufen, solange die Migration gegatet
+ist — das ist die Lage, kein Mangel.
+
+Negativproben, beide schlagen an:
+
+```
+001: ERROR:  Bootstrap identities incomplete: found 4 of 5
+002: ERROR:  Active self-routes: 68
+```
+
+Damit ist der erste von vier Punkten der Phase 5 erledigt. Offen bleiben
+Contract-Test und Auditrekonstruktion **auf dem neuen Stand** — die vorhandenen
+`PASS` dafür stammen vom 2026-08-31 und damit von `v6`/`v7` mit nur `001`–`003`.
+Beide brauchen echte Zugangsdaten und den Kanal auf `TESTING`.
