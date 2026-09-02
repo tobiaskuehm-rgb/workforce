@@ -1844,4 +1844,35 @@ Die Attrappe des Kettentests konnte das übrigens schon: `chain_world` modellier
 `acknowledge` samt `BUS_ACK_ALREADY_FINAL`. Sie war aus der Quelle gebaut, nicht
 aus meiner Erinnerung — und hat deshalb länger gestimmt als der Code.
 
+### An der Produktion nachgemessen
+
+Der `CHAIN PASS`-Lauf vom 2026-09-01 liegt noch vollständig in
+`workforce.bus_events`. `chain_audit.sql` gegen ihn gefahren, lesend:
+
+```
+positiv_audit | belegt | gefordert |             fehlend
+--------------+--------+-----------+----------------------------------
+ FAIL         |      4 |         5 | connector_acknowledges_the_reply
+
+nichts_offen | offene_nachrichten
+-------------+--------------------
+ FAIL        |                  2
+```
+
+**Vier von fünf Etappen belegt, Reihenfolge korrekt, genau die letzte fehlt** —
+und die beiden Antworten des Agenten stehen seit dem 2026-09-01 auf
+`DELIVERED` im Posteingang der Connector-Identität.
+
+Damit ist der Befund kein Gedankenspiel. Und der `CHAIN PASS` ist trotzdem
+nicht falsch: Die Benachrichtigungen sind bei Telegram angekommen, das steht im
+lokalen Audit des Connectors. Nicht rekonstruierbar war es — aus der Datenbank,
+so wie Phase 5 es verlangt.
+
+Nachweis: `evidence/2026-09-02_g053_kettenaudit.md`.
+
+**Zwei Nachrichten bleiben offen.** Sie gehören über die Regeln des Busses
+geschlossen, nicht per `UPDATE` (Leitplanke 3) — also über einen `ack` unter
+der Connector-Identität. Deren Zugang ist widerrufen, der Kanal ist
+`DISABLED`; das gehört in dasselbe Fenster wie der nächste Kettenlauf.
+
 **Regel 27** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
