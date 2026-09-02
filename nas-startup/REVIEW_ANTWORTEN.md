@@ -2067,3 +2067,63 @@ Drei neue Tests, zwei Gegenproben — Nachholen entfernt und Zustand zurück in
 den Fingerabdruck, jede macht die Suite rot.
 
 **Regel 30** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.
+
+
+---
+
+## `G-057` — eigener Prüfdurchgang: zwei Felder der Allowlist wirkten nicht
+
+**Bestätigt, selbst gefunden, behoben.** Wieder beim Nachlesen des eigenen
+Codes vom selben Tag.
+
+### Der Befund
+
+`model_allowlist.py` erklärt je Modell vier Grenzen. Zwei davon las niemand:
+
+| | Zustand vorher |
+|---|---|
+| `max_input_chars` | geprüft im Worker ✓ |
+| Tarif | gelesen von `budget.py` ✓ |
+| `max_output_tokens` | **deklariert, nie gelesen** — `ClaudeProvider` gab `MAX_REPLY_TOKENS` an die API |
+| `max_cost_usd_per_call` | **deklariert, nie gelesen** |
+
+Das ist Leitplanke 7 in ihrer unauffälligsten Form. Nicht ein Kommentar
+behauptet eine Absicherung, sondern ein **Konfigurationsfeld** — und das wirkt
+noch verbindlicher, weil es aussieht, als würde es etwas steuern. Wer die
+Datei liest, um zu entscheiden, ob ein teureres Modell aufgenommen werden
+kann, hätte sich auf beide Zahlen verlassen.
+
+### Die Korrektur
+
+**Die Ausgabedecke** ist jetzt die des Modells. `ClaudeProvider` löst sie beim
+Bauen aus der Allowlist auf — streng, ohne Rückfall: `build_provider()` hat
+den Namen bereits geprüft, ein nicht gelistetes Modell hieße also, dass jemand
+die Klasse direkt mit etwas gebaut hat, das die Konfiguration nicht erlaubt.
+
+**Der Kostendeckel je Aufruf** wird **vor** dem Aufruf geprüft. Das geht nur,
+weil die Ausgabe durch dieselbe Decke begrenzt ist, die der Provider der API
+mitgibt: geschätzte Eingabe mal Tarif plus maximale Ausgabe mal Tarif ist eine
+echte Obergrenze, keine Schätzung. Die laufweite Kostendecke kann das nicht
+leisten — Kosten sind erst hinterher bekannt, und genau deshalb steht in
+deiner Ergänzung „vor jedem Provideraufruf … geprüft und reserviert".
+
+Belegt: Mit der Kontrolle wird eine zu teure Anfrage abgelehnt und der
+Provider **gar nicht gefragt** (`Provider gefragt: 0`); ohne sie läuft
+derselbe Fall durch.
+
+### Damit die Decke keine Abschaltung ist
+
+Gemessen, mit voller Datenmenge:
+
+| Modell | höchstens | Decke |
+|---|---|---|
+| `claude-haiku-4-5` | `$0.0215` | `$0.05` |
+| `claude-sonnet-5` | `$0.0450` | `$0.10` |
+| `claude-opus-5` | `$0.1124` | `$0.25` |
+
+Ein Test hält fest, dass jedes gelistete Modell bei voller Datenmenge unter
+seiner eigenen Decke bleibt. Eine Decke, die schon der Normalfall reißt, wäre
+keine Kontrolle, sondern eine Abschaltung — und würde beim ersten Fehlalarm
+hochgesetzt.
+
+**Regel 31** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.

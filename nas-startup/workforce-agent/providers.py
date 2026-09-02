@@ -25,9 +25,15 @@ from typing import Any, Protocol
 
 import model_allowlist
 
-# A bus body is capped at max_body_chars (8000 today) and the reply has to fit,
-# so a deliberately small output ceiling is correct here rather than a lowball.
-# Roughly 4 chars per token leaves comfortable headroom over 8000 chars.
+# The default output ceiling, used when a model does not state its own. A bus
+# body is capped at max_body_chars (8000 today) and the reply has to fit, so a
+# deliberately small ceiling is correct here rather than a lowball; roughly
+# 4 chars per token leaves comfortable headroom over 8000 chars.
+#
+# Every entry in the allowlist states `max_output_tokens`, and that is the one
+# that applies (G-057). It used to be declared and never read - a field that
+# claims a limit nobody applies is worse than no field, because it stops the
+# next reader from checking.
 MAX_REPLY_TOKENS = 4096
 
 DEFAULT_CLAUDE_MODEL = "claude-opus-5"
@@ -131,6 +137,12 @@ class ClaudeProvider:
 
         self._anthropic = anthropic
         self.model = model
+        # The model's own output ceiling, from the allowlist. Strict on
+        # purpose: build_provider() has already resolved the name, so a model
+        # that is not listed here means somebody built this class directly
+        # with something the configuration does not permit.
+        self._max_output_tokens = model_allowlist.for_task(
+            model, task_class="BUS_REPLY").max_output_tokens
         # A zero-arg client resolves ANTHROPIC_API_KEY or an `ant auth login`
         # profile on its own; only pass a key when one was handed to us.
         self._client = (
@@ -144,7 +156,7 @@ class ClaudeProvider:
         try:
             response = self._client.beta.messages.create(
                 model=self.model,
-                max_tokens=MAX_REPLY_TOKENS,
+                max_tokens=self._max_output_tokens,
                 system=system,
                 messages=[{"role": "user", "content": content}],
                 thinking={"type": "adaptive"},

@@ -289,6 +289,10 @@ def handle_message(
                     getattr(provider, "model", ""), task_class=TASK_CLASS
                 )
                 model_allowlist.assert_within_data_ceiling(erlaubt, len(prompt))
+                # Und was dieser eine Aufruf hoechstens kosten kann - vor dem
+                # Aufruf, nicht nach der Rechnung. Die laufweite Kostendecke
+                # kann das nicht: Kosten sind erst hinterher bekannt.
+                model_allowlist.assert_within_call_cost(erlaubt, len(prompt))
             except model_allowlist.ModelNotAllowed as denial:
                 log("model_refused", message_id=message_id, detail=str(denial))
                 vorgang["refusal"] = str(denial)

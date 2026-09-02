@@ -203,3 +203,37 @@ def assert_within_data_ceiling(model: Model, chars: int) -> None:
     if chars > model.max_input_chars:
         raise ModelNotAllowed(
             f"AGENT_MODEL_INPUT_TOO_LARGE:{model.name}:{chars}>{model.max_input_chars}")
+
+
+# Characters per token for the pre-call estimate. Deliberately the same figure
+# efficiency_report uses; a second, different one would make two numbers in the
+# same run mean different things.
+CHARS_PER_TOKEN = 4
+
+
+def worst_case_cost(model: Model, prompt_chars: int) -> float:
+    """What this call can cost at most, before it is made.
+
+    Input is estimated from the prompt; output is bounded by the model's own
+    ceiling, which the provider passes to the API. So the product is a real
+    upper bound rather than a guess, and that is what makes a *pre*-call check
+    possible at all - the run-wide cost ceiling can only ever act afterwards.
+    """
+    return model.estimated_cost(max(0, prompt_chars) // CHARS_PER_TOKEN,
+                                model.max_output_tokens)
+
+
+def assert_within_call_cost(model: Model, prompt_chars: int) -> None:
+    """Kostenbudget je Aufruf, geprueft **vor** dem Aufruf.
+
+    "Vor jedem Provideraufruf werden Modell, Aufruf-, Token- und Kostenbudget
+    geprueft und reserviert" (CEO-Ergaenzung zu Phase 5, Punkt 1). Ohne diese
+    Funktion war `max_cost_usd_per_call` eine Angabe, die niemand las - und
+    eine Zusicherung, die sich nicht pruefen laesst, haelt den naechsten Leser
+    vom Nachsehen ab (Leitplanke 7).
+    """
+    schlimmstenfalls = worst_case_cost(model, prompt_chars)
+    if schlimmstenfalls > model.max_cost_usd_per_call:
+        raise ModelNotAllowed(
+            f"AGENT_MODEL_CALL_TOO_EXPENSIVE:{model.name}:"
+            f"{schlimmstenfalls:.4f}>{model.max_cost_usd_per_call:.4f}")

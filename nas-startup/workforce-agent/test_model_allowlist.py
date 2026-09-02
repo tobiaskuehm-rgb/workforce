@@ -22,7 +22,10 @@ while another saw the payload.
 
 from __future__ import annotations
 
+import dataclasses
+import pathlib
 import unittest
+import unittest.mock
 
 import agent_worker
 import budget as budget_module
@@ -76,6 +79,44 @@ class TheListIsClosedTest(unittest.TestCase):
                 with self.assertRaises(model_allowlist.ModelNotAllowed) as caught:
                     model_allowlist.assert_no_switch(modell, anders)
                 self.assertIn("AGENT_MODEL_SWITCHED", str(caught.exception))
+
+    def test_the_output_ceiling_is_the_models_own(self) -> None:
+        """G-057: das Feld war deklariert und wurde nie gelesen.
+
+        `ClaudeProvider` gab `MAX_REPLY_TOKENS` an die API weiter, ein Modul-
+        konstante. Die Angabe im Eintrag behauptete damit eine Grenze, die
+        niemand anwandte - und eine Zusicherung, die sich nicht pruefen laesst,
+        haelt den naechsten Leser vom Nachsehen ab (Leitplanke 7).
+        """
+        quelle = pathlib.Path(providers.__file__).read_text(encoding="utf-8")
+        self.assertIn("max_tokens=self._max_output_tokens", quelle)
+        self.assertNotIn("max_tokens=MAX_REPLY_TOKENS", quelle)
+
+    def test_the_call_cost_ceiling_is_checked_before_the_call(self) -> None:
+        klein = model_allowlist.ALLOWLIST["claude-haiku-4-5"]
+        model_allowlist.assert_within_call_cost(klein, klein.max_input_chars)
+        teuer = dataclasses.replace(klein, max_cost_usd_per_call=0.001)
+        with self.assertRaises(model_allowlist.ModelNotAllowed) as caught:
+            model_allowlist.assert_within_call_cost(teuer, 100)
+        self.assertIn("AGENT_MODEL_CALL_TOO_EXPENSIVE", str(caught.exception))
+
+    def test_the_worst_case_is_an_upper_bound_and_not_a_guess(self) -> None:
+        # Eingabe geschaetzt, Ausgabe durch die Decke begrenzt, die der
+        # Provider der API mitgibt - deshalb ist das Produkt eine echte
+        # Obergrenze und ein Vorabtest ueberhaupt moeglich.
+        m = model_allowlist.ALLOWLIST["claude-opus-5"]
+        wenig = model_allowlist.worst_case_cost(m, 100)
+        viel = model_allowlist.worst_case_cost(m, m.max_input_chars)
+        self.assertLess(wenig, viel)
+        self.assertGreater(wenig, m.estimated_cost(25, 0),
+                           "die Ausgabe muss mitgerechnet sein")
+
+    def test_every_listed_model_stays_under_its_own_call_ceiling(self) -> None:
+        # Eine Decke, die schon der Normalfall reisst, waere keine Kontrolle,
+        # sondern eine Abschaltung.
+        for name, m in model_allowlist.ALLOWLIST.items():
+            with self.subTest(modell=name):
+                model_allowlist.assert_within_call_cost(m, m.max_input_chars)
 
     def test_every_entry_is_complete(self) -> None:
         # A ceiling of zero would read as "unlimited" to a careless caller.
@@ -194,6 +235,23 @@ class TheWorkerRefusesTest(unittest.TestCase):
             with self.subTest(modell=name):
                 self.assertLessEqual(m.max_input_chars,
                                      data_boundary.MAX_OUTBOUND_CHARS)
+
+    def test_an_over_budget_call_is_refused_before_the_provider_is_asked(self) -> None:
+        # Der Punkt der Vorabpruefung: Die laufweite Kostendecke koennte hier
+        # nichts ausrichten, weil Kosten erst nach dem Aufruf bekannt sind.
+        teuer = dataclasses.replace(model_allowlist.ALLOWLIST["echo-v1"],
+                                    price_output_per_million=1000.0,
+                                    max_cost_usd_per_call=0.0)
+        provider = ScriptedProvider()
+        bus = FakeBus()
+        with unittest.mock.patch.dict(model_allowlist.ALLOWLIST,
+                                      {"echo-v1": teuer}):
+            result = agent_worker.handle_message(bus, provider, message(),
+                                                 policy="BODY")
+        self.assertEqual("REFUSED", result["result"])
+        self.assertEqual([], provider.seen, "das Modell darf gar nicht gefragt werden")
+        self.assertIn("AGENT_MODEL_CALL_TOO_EXPENSIVE",
+                      " ".join(str(eintrag) for eintrag in bus.sent))
 
     def test_a_normal_message_still_gets_through(self) -> None:
         # Ohne diesen Fall waere jede Verschaerfung oben "erfolgreich".
