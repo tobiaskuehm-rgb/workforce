@@ -1,6 +1,16 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-02 — von Claude Code. **Gerd ist am Zug.**
+**Zuletzt aktualisiert:** 2026-09-02 — von Gerd.
+
+**Aktive Arbeit:** Auf direkte Bitte des Nutzers hat Gerd während Claudes
+Nutzungslimit die lokalen Korrekturen zu `G-061` bis `G-067` übernommen. Code,
+Tests, Runbook und Statusdokumente sind geändert; **580 lokale Tests sind
+PASS**. Die API-Suite wurde mangels lokalem `pytest` nicht erneut ausgeführt;
+API-Code wurde in diesem Paket nicht geändert. Der echte Build beider
+Agent-Images und jeder NAS-Lauf bleiben Bestandteil des gesondert
+freizugebenden Phase-5-Fensters. Auf der NAS wurde dadurch weder Code deployt
+noch ein Kanal, Credential, Gate oder Modell aktiviert. Einzelheiten und die
+Korrektur von Gerds eigener Sonnet-Preisannahme stehen in `REVIEW_GERD.md`.
 
 ## Wie die Zusammenarbeit läuft
 
@@ -26,7 +36,10 @@ Ein Befund wird nie gelöscht, sondern beantwortet. Auch „stimmt nicht, weil �
     START_UP_Codex_Projektquellen_2026-08-13/
 ```
 
-Entscheidungen bis `DEC-027`, `ENG-008` vorhanden, Projektanweisung v1.2. **Das ist der gültige Stand.**
+Entscheidungen bis `DEC-029`, `ENG-008` vorhanden, Projektanweisung v1.2.
+`DEC-028`/`DEC-029` betreffen Thorstens lokalen Opportunity-Filter und geben
+keine Workforce-, NAS- oder Modellaktivierung frei. **Das ist der gültige
+Stand.**
 
 Nicht verwenden: `~/.codex/.chatgpt-projects/…/sources/` bzw. `/mnt/data/…` — Stand 10.08., nur bis `DEC-009`, `ENG-008` fehlt dort ganz.
 
@@ -45,17 +58,18 @@ NAS       /volume1/docker/git/workforce.git                           ← Git-Re
 
 **Neu seit 2026-09-01: Das Repo hat ein Remote.** `git push` nach jedem Arbeitsabschnitt; auf einem anderen Rechner `git clone synology:/volume1/docker/git/workforce.git`. Vorher lag die gesamte Historie auf genau einem Mac — das war das größere Risiko als jeder Befund im Reviewlog, und es ist die Ursache hinter `G-021`.
 
-Am Deploy ändert das nichts: Am Code wird im Repo gearbeitet, auf `/volume1/docker/Startup/` wird deployt. Am Code wird im Repo gearbeitet, auf die NAS wird deployt. Ausnahme sind die beiden Review-Dateien: Die leben auf der NAS, weil Gerd nur dort hinkommt.
+Am Deploy ändert das nichts: Am Code wird im Repo gearbeitet, auf
+`/volume1/docker/Startup/` wird deployt. Ausnahme sind die beiden
+Review-Dateien: Sie werden zusätzlich auf der NAS gespiegelt.
 
 Deploy (`rsync` und `scp` funktionieren auf dieser DSM nicht). **Versionierte Dateien, nie ganze Verzeichnisse** — ein verzeichnisweites Archiv nimmt Secrets und Laufzeitdateien mit (Befund `G-020`). Die Dateiliste geht über `-T` in `tar`, nicht über `$(…)`: **zsh zerlegt eine unquotierte Variable nicht in Wörter**, und die Pfade kämen als ein einziges Argument an.
 
 ```bash
 cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup"
-sh deploy_manifest.sh <pfade>
-git ls-files -- <pfade> > /tmp/liste.txt && echo DEPLOY_MANIFEST.txt >> /tmp/liste.txt
-tar czf - -T /tmp/liste.txt \
+REQUIRE_CLEAN=1 DEPLOY_FILE_LIST_OUT=/tmp/liste.txt sh deploy_manifest.sh <pfade>
+COPYFILE_DISABLE=1 tar czf - -T /tmp/liste.txt \
   | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
-ssh synology "cd /volume1/docker/Startup && sh verify_manifest.sh"
+ssh synology "cd /volume1/docker/Startup && grep -qx 'dirty=no' DEPLOY_MANIFEST.txt && sh verify_manifest.sh && sh check_unmanaged.sh"
 ```
 
 ---
@@ -115,11 +129,11 @@ Warum hier eine Uhrzeit steht statt einer Zusicherung: Einmal stimmte eine dokum
 
 | Punkt | Stand |
 |---|---|
-| **A1 — Agent handelt unter Menschen-Identität** | **blockiert den Modellbetrieb.** `agent_identity_create.sql` liegt bereit. Ob `AGENT-ENG-001` auf der NAS existiert, ist **nicht belegt** — der Trockenlauf lief unter `AI-ENG-001`, `agent_prepare.sql` setzt die neue Identität inzwischen voraus. Vor dem nächsten Lauf in der Registry nachsehen |
+| A1 — getrennte Agenten-Identität | `AGENT-ENG-001` wurde beim echten Kettenlauf als aktives Projektmitglied belegt; vor jedem neuen Fenster erneut per Preflight messen |
 | A2 Herkunftsvermerk | behoben |
 | A3 Laufzeitgrenze | behoben |
 | A5 Rückzug bei Busausfall | behoben |
-| F8 Ratenbegrenzung / Kostenlimit | behoben, fünf Decken in `budget.py` |
+| F8 Ratenbegrenzung / Kostenlimit | lokal behoben: Aufruf, konservative Ein-/Ausgabetoken und Kosten werden vor dem Provider atomar reserviert; fehlende Usage behält die Reserve |
 | Rückrichtung Bus → Telegram | konfigurierbar, Voreinstellung unverändert `METADATA_ONLY` |
 | Freigabeentscheidung (`DEC-`Nummer) für Modellbetrieb | fehlt |
 
@@ -261,8 +275,11 @@ rekonstruierbar war es, und genau das verlangt Phase 5, Punkt 4. Die beiden
 liegengebliebenen Nachrichten gehören über die Regeln des Busses geschlossen
 (Leitplanke 3) und damit in dasselbe Fenster wie der nächste Kettenlauf.
 
-**Noch offen, unverändert:** `G-030` Laufzeitkette — kein Telegram, kein
-Modellaufruf, kein Agentenlauf hat je stattgefunden.
+**`G-030` ist präzisiert:** Eine Telegram→Bus→Agent→Bus→Telegram-Kette mit
+Echo lief am 2026-09-01 real. Nach dem daraus entstandenen `G-053`-Fix ist die
+vollständige Kette noch nicht wiederholt; der integrierte Worker-Core ist auf
+der NAS ebenfalls noch nicht gelaufen. Ein echter Modellaufruf fand nie statt
+und bleibt separat gesperrt.
 
 **Randbedingung für den Entwurf von `G-030`, vom CEO am 2026-09-02 erklärt:**
 Die NAS läuft **nicht durch**. Zwei DSM-Aufgaben fahren sie um 02:00 hoch und
@@ -494,17 +511,35 @@ Beide Richtungen zu: Das Manifest kommt jetzt aus `git ls-files` statt aus `find
 3. Entscheidung, welche Gates geöffnet werden. Gerds Empfehlung: `005`, `006`, `007` — **ohne** Knowledge `004`
 4. Passwort für `workforce_api` in `secrets/workforce_api_db_password` und der API-Schlüssel in `secrets/workforce_api_key` — **nicht** in `startup.env`. Die Datei erreicht den API-Container nicht mehr, sie trägt das Eigentümer-Passwort (`G-035`)
 
-### Noch offen für `CORE PASS`
+### Verbindliche Phasenabgrenzung ab jetzt
 
-Gerds Roadmap, Phasen 3 bis 8 — **jede braucht eine CEO-Freigabe, die nicht vorliegt**:
+Die frühere Roadmapdarstellung ist historisch: Phase 3 (NAS-Preflight) und
+Phase 4 (Foundation-Update auf API v9, Migrationen `005`–`007`) sind
+ausgeführt. Der nächste Ablauf ist:
 
-1. **Phase 3 NAS-Preflight:** Iststand nachmessen, frisches Backup, Rückfallimage, Manifest der Produktivpfade
-2. **Phase 4 Foundation-Update:** API `v8` und Migrationen `005`–`007` — **ohne** Knowledge `004`, das hat ein eigenes Gate
-3. **Phase 5 Contract und Audit:** Contract-Test, Secret-Isolation, automatische Auditrekonstruktion
-4. **Phase 6 Core-Abnahme:** Roundtrip wiederholen, dann der **integrierte** Worker-Core (`G-030`)
-5. **Phase 7 Rückbau, Phase 8 formeller Status**
+1. **Phase 5 – lokale Korrekturen und isolierte NAS-Abnahme:** sauberer und
+   reproduzierbarer Deploy, Contract-Test, Core-Roundtrip, getrenntes
+   Telegram-Kettenfenster mit Echo, beide
+   Auditrekonstruktionen und vollständiger Rückbau. Ausführbarer Ablauf:
+   `PHASE5_RUNBOOK.md`. Das Schließen von `G-061`–`G-067` ist lokal; der
+   NAS-Lauf bleibt bis zu einer gesonderten CEO-Freigabe ausstehend.
+2. **Phase 6 – integrierter Worker-Core mit Echo:** echte Runtime,
+   Wiederaufsetzen, verlorener lokaler Zustand, Bus-Idempotenz und Audit gegen
+   die NAS belegen, weiterhin ohne Modellkosten.
+3. **Phase 7 – kontrollierter Modellpilot:** genau ein Modell, eine
+   Aufgabenklasse, kleine Daten- und Kostengrenze. Erst nach eigener
+   CEO-Entscheidung zu Provider/Kosten, `AGENT_DATA_POLICY`, Dateninhalt und
+   genauem Testfenster. Kein stiller Übergang aus Phase 5.
+   Danach Kommunikationswege, Datenkopien, Aufbewahrung, Berichte,
+   Modellzuordnung und Kosten anhand der gemessenen Daten verschlanken; keine
+   neue Plattform vor diesem Nachweis.
+4. **Phase 8 – formeller Status und Betriebsempfehlung:** Evidenz,
+   Restbefunde, Rechte, Kosten und Rückfall gemeinsam bewerten; erst dann ein
+   Dauerbetriebs-Gate formulieren.
 
-Ein echter Modellmitarbeiter kommt danach und braucht eine eigene Entscheidung.
+Jede NAS-Ausführung, externe Modellnutzung, Kosten- oder Rechteänderung braucht
+ihre konkrete Freigabe. Lokale Dokumentations- und Testkorrekturen erteilen
+keine solche Freigabe.
 
 ### Was beim Nutzer liegt
 
@@ -537,7 +572,8 @@ Danach: den begonnenen `chain-test/` fertigbauen.
 
 ### Beim CEO
 
-- `DEC-028` und `DEC-029` aus `DEC_ENTWUERFE_2026-08-31.md` prüfen und ins Log übernehmen — bis dahin bleibt das Gate formal offen
+- Für Phase 5 das konkrete isolierte NAS-Fenster erst nach sauberem Commit und technischem Zielnachcheck freigeben oder zurückstellen
+- Für Phase 6 separat Provider, maximales Budget, Datengrenze und Testinhalt entscheiden; bis dahin kein echter Modellaufruf
 - sudo-Regel `/etc/sudoers.d/tobkum-docker` entfernen, wenn nicht gebraucht (faktisch Root)
 - Firewall- und Containerzustand nach erneuter DSM-Anmeldung nachprüfen (`G-019`)
 
