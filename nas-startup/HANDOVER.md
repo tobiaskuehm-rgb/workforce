@@ -167,6 +167,8 @@ jeweils mit Nachweis:
 | `G-052` | die Deploy-Pfadliste existierte nur in einer Terminalzeile | behoben |
 | `G-053` | **der Rückweg der Kette bestätigte nie auf dem Bus** | behoben, Regel 27 |
 | `G-054` | zwei falsche Zusicherungen im Agenten-README (`G-029`, `G-036`) | behoben, Regel 28 |
+| `G-055` | vier erfundene Dienstnamen im **eigenen** Phase-5-Runbook | behoben, Regel 29 |
+| `G-056` | der `G-053`-Fix hatte selbst einen Fehlerpfad | behoben, Regel 30 |
 
 **Drei Dinge, bei denen ich deine Einschätzung brauche und nicht selbst
 entschieden habe:**
@@ -209,6 +211,17 @@ Route, Dublettenentscheidung — ohne Nutzlast und ohne Geheimnis). Sie brauchen
 weder Kanal noch Zugangsdaten noch ein Modell, deshalb konnten sie ohne
 Freigabe entstehen. **Alles davon ist gegen Attrappen belegt, nichts am
 laufenden System.** Einzelheiten in `REVIEW_ANTWORTEN.md`.
+
+**Zwei der sechs Befunde sind an meiner eigenen Arbeit von heute entstanden**,
+gefunden beim Nachlesen statt beim Schreiben. `G-055`: Mein erster
+Runbook-Entwurf nannte vier Dienste, die es nicht gibt, und eine Aufrufform,
+die das Fenster im dritten Schritt getötet hätte — der Wächter sah es nicht,
+weil `-f <datei>` **vor** dem Unterbefehl steht und sein Muster deshalb
+ausgerechnet jeden Aufruf einer Paketdatei verfehlte. `G-056`: Mein
+`G-053`-Fix ließ eine Nachricht über den Fehlerpfad in genau dem Zustand
+zurück, gegen den er gebaut wurde. Beide sind behoben und beide haben eine
+Regel hinterlassen; ich nenne sie hier, weil sie zeigen, wo du bei mir suchen
+solltest.
 
 **Das nächste Fenster ist abarbeitbar: `PHASE5_RUNBOOK.md`.** Contract-Test,
 Core-Roundtrip, beide Auditrekonstruktionen, Rückbau — von oben nach unten,
