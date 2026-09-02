@@ -984,3 +984,174 @@ das Zielmanifest mit `dirty=no` übertragen und der echte Build beider
 Agent-Images erfolgreich nachgewiesen ist. Erst danach kann eine gesonderte
 CEO-Freigabe das im Runbook beschriebene Berechtigungsfenster öffnen. Ein
 bezahlter Modelllauf bleibt vollständig außerhalb dieses Fensters.
+
+---
+
+# Vierzehnter Zielnachcheck – Claudes `G-068`, `G-069` und Migration 009
+
+## Geprüfter Stand und Betriebsgrenze
+
+Geprüft wurde am 2026-09-02 der Quellstand bis Commit `2629907` auf Basis des
+vorherigen Korrekturcommits `0b13300`. Die NAS trug bei der Kontrolle ein
+sauberes Manifest für `2629907` mit `dirty=no`: **226 Dateien, 0 fehlend,
+0 abweichend, 0 unerwartet**; Unmanaged-Scan und `nas_status.sh` waren `PASS`.
+Der laufende Stand blieb dabei unverändert: API und Datenbank gesund, Kanal
+`DISABLED`, 0 aktive Credentials, Knowledge-Migration 004 und Migration 009
+nicht angewendet. Das ist ein sauberer **Quell-Deploy**, kein Beleg für den
+Phase-5-Lauf oder die neue Migration.
+
+Claudes Korrektur zu `G-068` verwendet nun die drei tatsächlich erzeugten
+Core-Tokendateien `karl`, `gerd` und `anastasia` und prüft ihre Abwesenheit.
+Das ist richtig. Auch die Kernkorrektur zu `G-069` ist richtig: Der zusätzliche
+Einzelpfad eines bereits durch `chain-test/` abgedeckten Helpers musste aus
+`deploy_paths.txt` entfernt werden, weil er denselben Zielpfad zweimal in das
+Manifest brachte. Bei der Kontrolle der neuen Migration und ihrer Wächter
+bleiben jedoch die folgenden vier Befunde offen.
+
+## `G-070` – Der Owner-Probe kann trotz ausgebliebenem Audit-Trigger `PASS` melden
+
+**Schwere:** hoch – der zentrale Sicherheitsnachweis kann falschgrün werden
+**Datei:** `g045_owner_probe.py`
+
+Der Probe berechnet in `gefeuert`, ob sich die Anzahl der `bus_events` durch
+den Schreibversuch als `workforce_owner` tatsächlich erhöht hat. In die finale
+Variable `gut` gehen aber nur „kein SECURITY DEFINER beim Superuser“,
+„Trigger nicht abschaltbar“ und der SQL-Abnahmetest ein. `gefeuert` und ein
+erfolgreicher Schreibversuch fehlen. Ein nicht ausgelöster Audit-Trigger wird
+damit sichtbar als `NEIN` ausgegeben, kann am Ende aber trotzdem
+`RESULT: PASS` erzeugen.
+
+### Verbindliche Korrektur vor einem Probe-Lauf
+
+- Der finale Erfolg muss einen erfolgreichen Schreibversuch **und**
+  `gefeuert is True` verlangen.
+- Vorher-/Nachherwerte müssen eindeutig numerisch und der Zuwachs fachlich
+  passend sein; ein bloß beliebiger vorhandener Eventzuwachs darf den Test
+  nicht grün machen. Den erzeugten Event deshalb an Request-ID, Akteur,
+  Tabelle und Operation binden.
+- Eine Negativprobe muss einen unveränderten beziehungsweise fremd erhöhten
+  Eventzähler erzwingen und Exitcode 1 sowie `RESULT: FAIL` verlangen.
+
+## `G-071` – Migration 009 überschreitet ihre Bus-Grenze und ist
+reihenfolgeabhängig zu Knowledge
+
+**Schwere:** hoch – Rechte- und Eigentumsänderung kann unbemerkt Knowledge
+erfassen oder später wieder unvollständig werden
+**Dateien:** `postgres-init/009_bus_function_owner.sql`,
+`postgres-tests/009_bus_function_owner_acceptance.sql`, `compose.yaml`
+
+Die Migration spricht von den zwölf Busfunktionen, wählt tatsächlich aber
+dynamisch **jede** `SECURITY DEFINER`-Funktion im Schema `workforce` aus und
+erteilt `workforce_owner` zusätzlich `SELECT, INSERT, UPDATE ON ALL TABLES`
+sowie Sequenzrechte in `workforce` und `public`.
+
+Das kollidiert mit der ausdrücklich getrennten Knowledge-Grenze:
+
+- `004_knowledge_capability.sql` enthält eigene SECURITY-DEFINER-Funktionen.
+  Weil Compose 004 und 008 vor 009 ausführt, würde ein später gemeinsam
+  geöffnetes Fenster auch diese Knowledge-Funktionen und -Tabellen in den
+  Bus-Eigentümerkontext ziehen.
+- Wird 009 dagegen heute vor der weiterhin geschlossenen 004 angewendet,
+  entstehen die Knowledge-Funktionen bei einer späteren 004 wieder unter dem
+  Bootstrap-Superuser. Die allgemeine Zusicherung „keine SECURITY DEFINER beim
+  Superuser“ wäre anschließend erneut falsch.
+- Der Abnahmetest prüft nur „0 beim Superuser“ und „mehr als 0 vorhanden“,
+  nicht die exakte Menge und Eigentümerschaft der zwölf erwarteten
+  Busfunktionen. Eine zu breite Verschiebung besteht den Test.
+- Bei einer schon vorhandenen Rolle werden zwar einige Attribute
+  zurückgesetzt, der Acceptance-Test prüft aber weder `NOINHERIT` noch
+  `NOREPLICATION` vollständig. Auch Tabellen-/Sequenzrechte werden nicht auf
+  eine fachlich notwendige Allowlist begrenzt.
+
+### Verbindliche Korrektur vor Migration oder Probe
+
+- Die zwölf Busfunktionen mit ihren Identitätssignaturen explizit pinnen;
+  keine dynamische Auswahl aller SECURITY-DEFINER-Funktionen.
+- Nur die nachweislich erforderlichen Bus-/Registry-Tabellen und Sequenzen
+  erlauben; kein `ALL TABLES` und keine pauschale `public`-Freigabe.
+- Im Acceptance-Test exakte Anzahl, Signatur und Owner aller erwarteten
+  Funktionen prüfen und jede unerwartete Eigentumsverschiebung ablehnen.
+- Alle sicherheitsrelevanten Rollenattribute einschließlich `rolinherit` und
+  `rolreplication` prüfen.
+- Knowledge bekommt, falls später freigegeben und benötigt, eine eigene
+  explizite Eigentümerentscheidung und Migration. 009 darf diese Entscheidung
+  nicht vorwegnehmen.
+
+## `G-072` – Phase-5-Runbook benutzt nicht freigegebene sudo-Befehle
+
+**Schwere:** hoch – Backup und Geheimnisrückbau können im nicht-interaktiven
+Fenster scheitern
+**Datei:** `PHASE5_RUNBOOK.md`
+
+Für den NAS-Nutzer ist nachgewiesen nur
+`sudo /usr/local/bin/docker ...` passwortlos erlaubt; `HANDOVER.md` hält
+ausdrücklich fest, dass `sudo sh ...` nicht funktioniert. Das Runbook verlangt
+aber weiterhin:
+
+- `sudo sh /volume1/docker/Startup/backup_task.sh`,
+- `sudo rm -f` für die Core-Tokens,
+- `sudo rm -f` für die Chain-/Telegram-Tokens.
+
+Damit kann bereits die frische Sicherung scheitern; noch kritischer ist ein
+gescheiterter Rückbau, weil Token-Dateien zurückbleiben können. Die bisherigen
+Runbook-Wächter prüfen Dateinamen und Abwesenheitsnachweise, nicht ob der
+privilegierte Befehl auf der NAS überhaupt erlaubt ist.
+
+### Verbindliche Korrektur vor Phase 5
+
+- Backup über einen nachgewiesen ausführbaren, eng begrenzten Weg starten:
+  entweder die bestehende DSM-Aufgabe manuell ausführen und ihr neues Artefakt
+  prüfen oder einen gesondert genehmigten minimalen privilegierten Einstieg
+  schaffen. `sudo sh` nicht als funktionierend dokumentieren.
+- Token über den bereits erlaubten absoluten Docker-Befehl in einem exakt
+  gemounteten Secretordner löschen und unmittelbar ihre Abwesenheit
+  nachweisen. Keine Wildcards, kein breites Mountziel.
+- Einen statischen Wächter mit Gegenprobe ergänzen, der in ausführbaren
+  Runbook-Blöcken jedes `sudo` außer dem exakten
+  `/usr/local/bin/docker`-Präfix ablehnt.
+
+## `G-073` – Der neue Helper-Wächter vergleicht Teilstrings statt Dateinamen
+
+**Schwere:** mittel – eine fehlende Runbook-Abhängigkeit kann den Wächter
+umgehen
+**Dateien:** `workforce-agent/test_runbook_targets.py`, `deploy_paths.txt`
+
+`helper_script_offenders()` baut aus der Pfadliste und den aufgelösten
+Dateinamen einen Textblock und prüft dann `name not in abgedeckt`. Das ist eine
+Teilstringprüfung. Beispielsweise gilt ein fehlendes `status.sh` fälschlich als
+abgedeckt, sobald `nas_status.sh` vorkommt. Bei gleichen Basenames in
+verschiedenen Verzeichnissen fehlt außerdem die Pfadbindung. Der Fix für den
+konkreten Doppelpfad aus `G-069` bleibt richtig; nur sein neuer Wächter ist
+noch nicht belastbar. Die verwaiste Kommentarzeile in `deploy_paths.txt`, die
+weiterhin einen ausdrücklich eingetragenen Helper behauptet, sollte dabei
+entfernt werden.
+
+### Kleinste sichere Korrektur
+
+- Gegen eine Menge exakt aufgelöster Zielpfade beziehungsweise mindestens
+  exakter Dateinamen vergleichen, nie gegen einen zusammengesetzten String.
+- Eine Negativprobe `status.sh` bei ausschließlich vorhandenem
+  `nas_status.sh` muss genau einen Verstoß liefern.
+- Wo derselbe Dateiname in mehreren Paketen möglich ist, den im Runbook
+  ausgeführten Pfad gegen den aufgelösten Deploypfad prüfen.
+
+## Nachweis und Gate
+
+Nach Claudes Ergänzungen bestehen lokal:
+
+- `workforce-agent`: **501 Tests PASS**
+- `bus-realtest`: **15 Tests PASS**
+- `telegram-connector`: **44 Tests PASS**
+- `chain-test`: **27 Tests PASS**
+- Gesamt: **587 Tests PASS**
+
+Die Zahl ist echt, schließt die vier semantischen Lücken aber gerade nicht;
+deshalb ersetzt sie den Review nicht. Die API-Suite wurde mangels lokalem
+`pytest` nicht erneut ausgeführt und wird hier nicht als bestanden behauptet.
+
+**Freigabe an Claude:** **WEITERMACHEN ausschließlich mit der lokalen
+Korrektur von `G-070` bis `G-073`.** Noch **kein OK** für
+`g045_owner_probe.py`, Migration 009, Phase-5-Berechtigungsfenster,
+Kanal-/Credential-Aktivierung oder einen Modellaufruf. Nach den vier
+Korrekturen genügt ein kurzer Zielnachcheck; `G-061` braucht anschließend
+weiterhin den echten Build beider Images vor jedem Berechtigungsfenster.
