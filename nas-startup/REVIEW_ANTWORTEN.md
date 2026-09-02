@@ -2560,3 +2560,166 @@ Belegt ist bisher: Die SQL beider Dateien parst gegen den echten Katalog, jeder
 Block läuft, und der Abnahmetest meldet ohne die Migration korrekt
 `ACCEPTANCE_009_MIGRATION_MISSING`. **Das ist Syntax und Katalogbezug, nicht
 Wirkung.** Der Unterschied gehört hierher.
+
+---
+
+# Vierzehnter Zielnachcheck: `G-070` bis `G-073`
+
+Alle vier geprüft, alle vier **bestätigt**. Bei dreien habe ich beim Beheben
+noch etwas gefunden, das im Befund nicht steht; das steht jeweils dabei.
+
+## `G-070` — die Owner-Probe konnte trotz stillem Audit-Trigger `PASS` melden
+
+**Bestätigt.** `gefeuert` wurde berechnet, gedruckt und dann nicht verwendet:
+In `gut` standen nur „kein SECURITY DEFINER beim Superuser", „Trigger nicht
+abschaltbar" und der Abnahmetest. Die Frage, wegen der es diese Datei gibt,
+konnte sichtbar mit `NEIN` beantwortet werden, und die letzte Zeile lautete
+`RESULT: PASS`.
+
+Beim Beheben kamen **zwei weitere Fehler** heraus, die einander verdeckt haben
+— dieselbe Konstellation wie `G-059`:
+
+- Der Zählbefehl begann mit `RESET ROLE`. Dessen Statuszeile landet im selben
+  Ausgabestrom, `str.isdigit()` scheitert daran, und `gefeuert` wäre **auch bei
+  einem einwandfrei feuernden Trigger** `False` geworden. Das alte Urteil hätte
+  das verschluckt. Überflüssig war das `RESET` ohnehin: Jede `psql`-Sitzung ist
+  eine eigene Verbindung, das `SET ROLE` ist danach weg.
+- Der Schreibversuch galt als „ok", sobald kein `ERROR` in der Ausgabe stand.
+  Ein `UPDATE`, das null Zeilen trifft, hätte das bestanden.
+
+Behoben ist alles drei über eine reine Funktion `bewertung()` mit der Tabelle
+`ERWARTET`: acht Zusicherungen, jede namentlich, mit ihrem genauen Sollwert.
+**Ein fehlender Schlüssel ist ein Fehlschlag**, kein übergangener Punkt — genau
+daran ist die erste Fassung gescheitert. Der Schreibvorgang wird jetzt aus den
+Daten belegt (abschließender `SELECT` auf die geschriebene Marke), und der
+Nachweis bindet an Request-Id, Akteur, Datensatztyp und Operation statt an
+einen Zählerstand.
+
+`test_owner_probe_verdict.py` fährt die Bewertung lokal gegen ihre
+Negativfälle: nicht gefeuert, Schreibversuch gescheitert, fremdes Ereignis bei
+stimmendem Zuwachs, jeder einzelne fehlende Schlüssel, abgebrochener Lauf,
+leeres Ergebnis. Verlangt wird jeweils `False` und die benannte Beanstandung.
+
+**Ein Detail daran ist selbst ein `G-054`:** Meine erste Fassung des
+`RESET-ROLE`-Wächters suchte den Text in der Datei — und wurde über meiner
+eigenen Erklärung rot, die das Wort nennt und das Gegenteil meint. Geprüft
+werden jetzt die Zeichenketten, die in einen Aufruf gehen, mit Gegenprobe auf
+das `SET ROLE`, das dort stehen muss.
+
+## `G-071` — Migration 009 überschritt ihre Bus-Grenze
+
+**Bestätigt, in jedem der vier Punkte.** Nachgemessen: `004` bringt sieben
+eigene `SECURITY DEFINER`-Funktionen mit (`knowledge_authenticate`,
+`knowledge_create_candidate`, `knowledge_submit_review`, `knowledge_approve`,
+`knowledge_revoke`, `knowledge_retrieve`, `knowledge_record_assessment`). Die
+dynamische Auswahl `WHERE nspname = 'workforce' AND prosecdef` hätte sie nach
+einer Anwendung von `004` mitgenommen — während der Kommentar zwei Zeilen
+darüber von „den zwölf Busfunktionen" sprach. Leitplanke 7 in ihrer teuersten
+Form.
+
+Korrigiert:
+
+- **Gepinnt über Name und Stelligkeit**, nicht über Typnamen: Der Katalog
+  schreibt `timestamptz` als `timestamp with time zone`, eine abgeschriebene
+  Typliste wäre die Gedächtnisleistung, die `G-044` verboten hat. Die Signatur
+  für das `ALTER` kommt aus `regprocedure`. Steht etwas anderes im Katalog als
+  die zwölf, bricht die Migration mit `MIGRATION_009_UNEXPECTED_SECURITY_DEFINER`
+  ab und nennt die Fremden.
+- **Allowlist statt `ALL TABLES`**, abgeleitet aus den Funktionsrümpfen —
+  dreizehn Relationen, `SELECT` für acht, `SELECT/INSERT/UPDATE` für die drei
+  Bus-Datensatztypen, `INSERT` für die beiden Auditpfade, nirgends `DELETE`.
+  Kein `public`: Alle Tabellen liegen in `workforce`, und alle zwölf pinnen
+  ihren `search_path` auf `pg_catalog, workforce`.
+- **`NOREPLICATION`** ergänzt, und der Abnahmetest prüft jetzt alle sieben
+  Rollenattribute einschließlich `rolinherit` und `rolreplication`.
+- **Der Abnahmetest vergleicht Mengen statt Vorhandensein**: exakte Menge der
+  Funktionen mit Stelligkeit *und* Eigentümer, exakte Tabellenrechte,
+  Gegenrichtung auf „zu viel" bei beidem.
+
+**Ein Punkt, den ich beim Beheben ergänzt habe und der im Befund nicht steht:**
+Die Allowlist wäre zu eng geworden, wenn ich sie nur aus den zwölf Rümpfen
+abgeleitet hätte. `bus_events` steht in keinem davon — der `INSERT` kommt aus
+dem Trigger `bus_record_change`, der **nicht** `SECURITY DEFINER` ist und im
+Aufruf als `workforce_owner` läuft. Ohne dieses Recht stünde die Auditspur
+still. `test_bus_function_owner.py` leitet deshalb beide Ebenen ab: die
+Rümpfe der zwölf und die Trigger auf den Tabellen, in die sie schreiben.
+
+**Und einer, den ich ausdrücklich offen lasse:** Sequenzrechte. Ob eine
+`GENERATED ALWAYS AS IDENTITY`-Spalte beim `INSERT` `USAGE` auf ihrer Sequenz
+verlangt, sagt die PostgreSQL-17-Dokumentation zu `CREATE TABLE` nicht — am
+2026-09-02 nachgeschlagen. Ein Recht auf Verdacht wäre derselbe Fehlgriff wie
+das `EXECUTE`, das aus derselben Datei schon einmal wieder herausgeflogen ist.
+Die Migration erteilt deshalb keins, und die Probe misst es: Sie schreibt über
+`bus_events`, dessen Schlüssel genau so eine Spalte ist. Geht es durch, braucht
+es nichts; scheitert es, nennt der Fehler die Sequenz.
+
+Zur Reihenfolge: Der Abnahmetest wird **rot**, sobald eine fremde
+`SECURITY DEFINER`-Funktion als Superuser läuft — also nach einer Anwendung von
+`004`. Das ist Absicht und kein Versehen. Ein `NOTICE` hieße, dass sieben
+Funktionen wieder als Bootstrap-Superuser laufen und es niemandem auffällt; der
+Ausweg ist eine eigene Migration für Knowledge, nicht ein weicherer Test. `009`
+steht außerdem jetzt in `CLOSED_GATES`.
+
+## `G-072` — nicht freigegebene sudo-Befehle im Runbook
+
+**Bestätigt.** `HANDOVER.md` hält seit dem Phase-4-Fenster ausdrücklich fest,
+dass `sudo sh …` gar nicht geht; die passwortlose Regel lautet auf
+`/usr/local/bin/docker`. Das Runbook verlangte trotzdem
+`sudo sh backup_task.sh` und zweimal `sudo rm -f`.
+
+- **Abschnitt 3** nennt jetzt den Weg, den es wirklich gibt: die DSM-Aufgabe von
+  Hand starten, danach messen mit
+  `BACKUP_MAX_AGE_HOURS=0 sh check_backup_integrity.sh`. Das Skript rechnet in
+  ganzen Stunden, `0` verlangt also einen Dump jünger als eine Stunde; der
+  Vorgabewert `26` hätte die Sicherung der vergangenen Nacht durchgehen lassen.
+  Es liest nur und braucht kein Root.
+- **6.4 und 8** löschen über einen Wegwerf-Container, gemountet auf genau den
+  Secretordner des Pakets, mit demselben `postgres:17-alpine`, das der Schritt
+  davor ohnehin benutzt — kein Pull, kein breiteres Ziel, keine Wildcard.
+- **`privileged_command_offenders()`** lehnt in ausführbaren Blöcken jedes
+  `sudo` außer dem exakten Docker-Pfad ab. Gegenproben: die drei Formen aus dem
+  Befund liefern je genau einen Verstoß, der erlaubte Aufruf keinen.
+
+**Was im Befund nicht steht und beim Beheben herauskam:** Der Wächter musste
+`all_commands()` lesen, nicht `commands()`. Der alte Filter lässt nur durch,
+was `docker` oder `workforce.` enthält — dass ausgerechnet die Backup-Zeile
+geprüft worden wäre, hätte allein am `docker` in ihrem Pfad gelegen. Ein
+eigener Test hält das fest.
+
+**Und ein zweiter Fund derselben Art:** Nach der Umstellung meldete
+`token_cleanup_offenders()` sauber `[]` — weil es die neue Form gar nicht
+ansieht. Es suchte `" rm -f "` mit führendem Leerzeichen, und im Container
+steht davor ein Anführungszeichen. Ein Wächter, der nichts findet und nichts
+meldet, liest sich wie ein bestandener Test (`G-058`). Er erkennt die Form
+jetzt und akzeptiert den Abwesenheitsnachweis unter demselben Pfad, unter dem
+gelöscht wird.
+
+## `G-073` — der Helper-Wächter verglich Teilstrings
+
+**Bestätigt.** `abgedeckt` war ein zusammengesetzter Textblock und die Prüfung
+`name not in abgedeckt` damit eine Teilstringprüfung: `status.sh` galt als
+abgedeckt, sobald `nas_status.sh` irgendwo darin vorkam. Verglichen wird jetzt
+gegen eine **Menge exakter, NAS-relativer Pfade**.
+
+Die Pfadbindung ist dazugekommen: Wo der Befehl einen Pfad hergibt — absolut
+oder über ein vorangehendes `cd` in den Projektbaum — wird der ganze Pfad
+verglichen, denn derselbe Basename in einem anderen Paket ist ein anderes
+Skript. Nur wo der Befehl keinen hergibt (die lokal auf dem Mac ausgeführten
+Zeilen), bleibt der Basenamevergleich, jetzt gegen eine Menge.
+
+Zwei Gegenproben, beide mit genau einem erwarteten Verstoß: `status.sh` gegen
+eine Liste, die nur `nas_status.sh` kennt, und `validate_chain_run_config.sh`
+unter `telegram-connector/` gegen eine Liste, die nur `chain-test` abdeckt.
+
+Die verwaiste Kommentarzeile in `deploy_paths.txt` ist entfernt. Sie versprach
+einen ausdrücklich eingetragenen Helper, den `G-069` gelöscht hat, und stand
+seither über `telegram-connector`, als meinte sie den.
+
+## Nachweis
+
+Vier lokale Suiten `PASS`. Testzahlen stehen bewusst nicht hier — sie waren in
+diesem Projekt schon zweimal veraltet, bevor jemand sie gelesen hat.
+
+**Nicht gelaufen und nicht behauptet:** die API-Suite (kein lokales `pytest`),
+`g045_owner_probe.py`, Migration `009`. Der Probe-Lauf ist eine Ausführung auf
+der NAS und braucht die Freigabe des CEO.
