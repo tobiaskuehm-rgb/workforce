@@ -75,38 +75,32 @@ GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO workforce_owner;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA workforce TO workforce_owner;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO workforce_owner;
 
--- 2b. EXECUTE auf die Triggerfunktionen - und der Grund, warum das hier steht,
---     ist eine **nicht belegte** Annahme.
+-- 2b. **Kein** EXECUTE auf die Triggerfunktionen - und das ist eine
+--     nachgeschlagene Entscheidung, keine Annahme.
 --
 --     Die neun Guard- und Auditfunktionen (`bus_record_change`,
 --     `bus_guard_*`, `bus_touch_versioned_row`) sind nicht SECURITY DEFINER
---     und bleiben deshalb bei `workforce_app`. Nach dem Eigentumswechsel
---     feuern sie in einem Kontext, in dem `workforce_owner` der ausfuehrende
---     Nutzer ist. Nach meinem Verstaendnis prueft PostgreSQL EXECUTE auf eine
---     Triggerfunktion beim `CREATE TRIGGER`, nicht beim Ausloesen - dann waere
---     dieser GRANT ueberfluessig.
+--     und bleiben bei `workforce_app`. Nach dem Eigentumswechsel feuern sie in
+--     einem Kontext, in dem `workforce_owner` der ausfuehrende Nutzer ist -
+--     der hat auf sie kein EXECUTE, weil `007` es von PUBLIC entzogen hat.
 --
---     **Geprueft habe ich das nicht.** `007` hat EXECUTE von PUBLIC entzogen;
---     traefe meine Annahme nicht zu, stuende der Bus nach dieser Migration
---     still. Der GRANT kostet nichts und nimmt die Frage aus dem Fenster
---     heraus. Wer sie beantworten will, misst es in einem Wegwerf-Container
---     nach und kann diesen Block dann mit Begruendung entfernen.
-DO $$
-DECLARE
-    v_signature text;
-BEGIN
-    FOR v_signature IN
-        SELECT format('workforce.%I(%s)', p.proname,
-                      pg_get_function_identity_arguments(p.oid))
-        FROM pg_proc p
-        JOIN pg_namespace n ON n.oid = p.pronamespace
-        WHERE n.nspname = 'workforce'
-          AND NOT p.prosecdef
-    LOOP
-        EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO workforce_owner', v_signature);
-    END LOOP;
-END;
-$$;
+--     Die Frage war, ob das die Trigger stillegt. Antwort aus der
+--     PostgreSQL-17-Dokumentation zu CREATE TRIGGER:
+--
+--       "To create or replace a trigger on a table, the user must have the
+--        TRIGGER privilege on the table. The user must also have EXECUTE
+--        privilege on the trigger function."
+--
+--     Das ist die Anforderung beim **Anlegen** des Triggers, nicht beim
+--     Ausloesen; beim Feuern wird nicht erneut geprueft. Die Trigger dieser
+--     Datenbank sind in `002` von `workforce_app` angelegt worden, also lange
+--     vor dem REVOKE - sie feuern weiter.
+--
+--     Ein erster Entwurf dieser Migration erteilte das EXECUTE vorsichtshalber.
+--     Ein Recht, das niemand braucht, ist aber kein Sicherheitsnetz, sondern
+--     eine Rechteerweiterung ohne Begruendung. `g045_owner_probe.py` misst es
+--     vor dem Fenster empirisch nach; bis dahin traegt die Dokumentation die
+--     Aussage, und dass sie sie traegt, steht hier.
 
 -- 3. Eigentumsuebergang, ausschliesslich fuer SECURITY DEFINER.
 DO $$

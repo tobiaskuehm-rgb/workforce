@@ -2515,27 +2515,46 @@ Datenbank weiter geöffnet worden. Der Test prüft jetzt beide Richtungen: die
 zehn aufrufbaren Funktionen bleiben aufrufbar, die zwei internen bleiben
 unerreichbar.
 
-**Eine Annahme steht offen und ist als solche markiert.** Die neun
-Trigger- und Guardfunktionen sind nicht SECURITY DEFINER und bleiben bei
-`workforce_app`. Nach dem Wechsel feuern sie in einem Kontext, in dem
-`workforce_owner` der ausführende Nutzer ist. Nach meinem Verständnis prüft
-PostgreSQL `EXECUTE` auf eine Triggerfunktion beim `CREATE TRIGGER` und nicht
-beim Auslösen — **geprüft habe ich das nicht.** `007` hat EXECUTE von `PUBLIC`
-entzogen; träfe die Annahme nicht zu, stünde der Bus nach dieser Migration
-still.
+**Eine offene Annahme — inzwischen nachgeschlagen.** Die neun Trigger- und
+Guardfunktionen sind nicht SECURITY DEFINER und bleiben bei `workforce_app`.
+Nach dem Wechsel feuern sie in einem Kontext, in dem `workforce_owner` der
+ausführende Nutzer ist, und der hat auf sie kein `EXECUTE` — `007` hat es von
+`PUBLIC` entzogen. Stünde der Bus danach still, wäre das Fenster verloren.
 
-Deshalb erteilt die Migration `workforce_owner` ausdrücklich `EXECUTE` auf diese
-neun. Der Block steht mit genau dieser Begründung im Code: Er kostet nichts und
-nimmt die Frage aus dem Fenster heraus. Wer sie beantwortet, misst es in einem
-Wegwerf-Container nach und kann den Block dann mit Begründung entfernen.
+Mein erster Entwurf erteilte das Recht deshalb vorsichtshalber und schrieb
+dazu, dass die Annahme ungeprüft sei. Das war der falsche Weg herum. Die
+PostgreSQL-17-Dokumentation zu `CREATE TRIGGER` beantwortet die Frage:
+
+> „To create or replace a trigger on a table, the user must have the `TRIGGER`
+> privilege on the table. The user must also have `EXECUTE` privilege on the
+> trigger function."
+
+Das ist die Anforderung beim **Anlegen**, nicht beim Auslösen; beim Feuern wird
+nicht erneut geprüft. Die Trigger dieser Datenbank hat `002` unter
+`workforce_app` angelegt, lange vor dem `REVOKE` — sie feuern weiter.
+
+Der `GRANT` ist deshalb **raus**. Ein Recht, das niemand braucht, ist kein
+Sicherheitsnetz, sondern eine Rechteerweiterung ohne Begründung — genau die
+Klasse, die `G-057` in der Modell-Allowlist getroffen hat. Die Quelle steht
+jetzt im Migrationskommentar.
 
 ### Was noch fehlt
 
-**Eine Probe, die die Rollenlage der Produktion nachbaut** (Regel 15) — also ein
-Wegwerf-Container mit `POSTGRES_USER=workforce_app`, in dem die Migration
-wirklich läuft und danach ein Busaufruf gemacht wird. Das ist eine Ausführung
-auf der NAS und braucht die Freigabe des CEO; ich habe sie deshalb nicht
-gefahren.
+**Der Lauf der Probe.** `g045_owner_probe.py` liegt jetzt daneben und baut die
+Rollenlage der Produktion nach (Regel 15): Wegwerf-Container mit
+`POSTGRES_USER=workforce_app`, dieselben sechs Migrationen wie produktiv,
+danach `009`. Sie beantwortet drei Fragen, und die mittlere ist die, wegen der
+es sie gibt:
+
+1. bleibt keine `SECURITY DEFINER`-Funktion beim Superuser, und besitzt der
+   neue Eigentümer keine Tabelle
+2. **feuert der Audit-Trigger, wenn `workforce_owner` schreibt** — die
+   empirische Gegenprobe zur Dokumentation oben
+3. kann `workforce_owner` einen Trigger abschalten (er darf nicht)
+
+**Sie ist nie gelaufen.** Ein Lauf ist eine Ausführung auf der NAS und braucht
+die Freigabe des CEO. Das Skript räumt seinen Container gezielt mit
+`docker rm -f` ab — kein `prune`, der wirkt NAS-weit (`G-038`).
 
 Belegt ist bisher: Die SQL beider Dateien parst gegen den echten Katalog, jeder
 Block läuft, und der Abnahmetest meldet ohne die Migration korrekt

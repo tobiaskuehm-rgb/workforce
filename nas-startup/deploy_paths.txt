@@ -41,6 +41,7 @@ backup_task.sh
 backup_bundle.sh
 g041_empty_volume_test.py
 g025_nosuperuser_test.py
+g045_owner_probe.py
 
 # --- Was den Zustand benennt ---
 production_state.txt
