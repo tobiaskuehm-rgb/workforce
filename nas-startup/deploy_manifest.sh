@@ -38,9 +38,20 @@ set -eu
 #     is not split into words, so every path arrives as one argument and git
 #     finds nothing (G-033: this header still showed the broken form).
 
+# Ohne Argumente gilt die versionierte Liste. Sie stand vorher nur in einer
+# Terminalzeile und im Kopf des erzeugten Manifests, und das ist gitignoriert -
+# ein frischer Klon wusste also nicht, was deployt wird (G-052).
+PATHS_FILE="${DEPLOY_PATHS:-deploy_paths.txt}"
 if [ "$#" -eq 0 ]; then
-    echo "usage: sh deploy_manifest.sh <path> [<path> ...]" >&2
-    exit 2
+    if [ ! -f "$PATHS_FILE" ]; then
+        echo "usage: sh deploy_manifest.sh <path> [<path> ...]" >&2
+        echo "       ohne Argumente wird $PATHS_FILE gelesen - die fehlt" >&2
+        exit 2
+    fi
+    # sh ohne Arrays: die Liste geht ueber die Argumente rein, damit alles
+    # danach unveraendert mit "$@" weiterarbeitet.
+    set -- $(sed -e 's/#.*//' -e '/^[[:space:]]*$/d' "$PATHS_FILE")
+    [ "$#" -gt 0 ] || { echo "BLOCKED: $PATHS_FILE nennt keine Pfade" >&2; exit 2; }
 fi
 
 if command -v sha256sum >/dev/null 2>&1; then
