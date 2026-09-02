@@ -901,3 +901,86 @@ Auch `worst_case_cost` ist derzeit keine belastbare Obergrenze: `prompt_chars //
 5. Erst auf einem sauberen, manifestierten Commit einen kurzen Zielnachcheck anfordern.
 
 **Aktueller Abnahmezustand:** Phase 4 bleibt bestanden; **Phase 5 ROT / NO-GO**. Es gab durch diesen Review keine Migration, keine Kanalaktivierung, keine Credential-Erweiterung, keinen Knowledge-Zugriff und keinen Modellaufruf.
+
+---
+
+# Dreizehnter Nachtrag – Gerd setzt `G-060` bis `G-067` um
+
+## Anlass und Grenze
+
+Der Nutzer hat Gerd am 2026-09-02 während Claudes Nutzungslimit ausdrücklich
+beauftragt, die eigenen Befunde selbst zu korrigieren und das Ergebnis hier zu
+dokumentieren. Der technische Änderungssatz ist als Commit `0b13300`
+festgeschrieben. Er ist eine lokale Quellkorrektur, kein NAS-Rollout: Es wurden
+keine Container ersetzt, keine Migration angewendet, kein Kanal oder Credential
+aktiviert, kein Knowledge-Zugang geschaffen und kein Modell aufgerufen.
+
+## Ergebnis je Befund
+
+- **`G-060` lokal geschlossen:** `check_unmanaged.sh` prüft die oberste Ebene
+  ohne Worttrennung bei Dateinamen und ist als fünftes Gate in
+  `nas_status.sh` sowie in der Deploy-Liste verankert. Eine Gegenprobe mit
+  einem unbekannten Ordnernamen samt Leerzeichen schlägt als genau ein Fund
+  fehl.
+- **`G-061` in Quelle und Ablauf geschlossen, realer NAS-Beleg noch offen:**
+  Beide Dockerfiles kopieren `model_allowlist.py` und `efficiency_report.py`.
+  Ein Test importiert die echten Einstiegsmodule aus exakt dem rekonstruierten
+  `COPY`-Satz. Der Phase-5-Ablauf baut und importiert zusätzlich beide echten
+  Images vor jedem Berechtigungsfenster und entfernt die Prüftags danach.
+  Dieser echte Docker-Build wurde hier mangels Docker/Podman nicht ausgeführt
+  und bleibt ein Abbruchkriterium des NAS-Fensters.
+- **`G-062` geschlossen:** Core und Telegram-Kette sind zwei getrennte
+  Berechtigungsfenster. Core-Cleanup, exakte Tokenlöschung und der Nachweis
+  `DISABLED`/0 aktive Credentials liegen jetzt zwingend vor dem Chain-Prepare.
+- **`G-063` geschlossen:** Eine validierte `chain-run.env` liefert genau einen
+  frischen Suffix und die daraus abgeleitete Task-ID an Prepare, Runtime, Audit
+  und Cleanup. Der Audit leitet die fremd vergebene Telegram-Update-ID aus dem
+  eindeutig gebundenen Task-Ereignis ab. Alle drei Secretpfade werden exakt
+  gelöscht und auf Abwesenheit geprüft.
+- **`G-064` geschlossen:** `deploy_manifest.sh` verweigert mit
+  `REQUIRE_CLEAN=1` einen schmutzigen Baum und erzeugt Manifest und exakte
+  Transferliste aus derselben Git-Dateimenge. Das Runbook überträgt genau diese
+  Liste und akzeptiert auf dem Ziel nur `dirty=no`, erfolgreiches Manifest und
+  den Unmanaged-Scan. Der Rollout selbst bleibt ungefahren.
+- **`G-065` geschlossen:** Vor externer Arbeit werden Call-Slot,
+  konservative Eingabe, maximale Ausgabe und Kosten atomar reserviert. Echte
+  Usage rechnet die Reserve ab; fehlende Usage und Providerfehler behalten die
+  konservative Belastung. Restbudget-, Fehlusage- und Race-Gegenproben sind
+  vorhanden.
+- **`G-066` technisch geschlossen, Preis-Teilbefund ausdrücklich
+  korrigiert:** Request-Fähigkeiten liegen je Modell in der Allowlist. Haiku
+  4.5 erhält weder Adaptive Thinking noch `effort`; Sonnet 5 und Opus 5
+  erhalten die für sie unterstützte Kombination. **Meine Behauptung im
+  zwölften Review, Sonnet 5 müsse seit 01.09.2026 mit 3/15 USD bepreist werden,
+  war überholt.** Anthropic hat die angekündigte Erhöhung ausdrücklich
+  abgesagt; am Prüftag 02.09.2026 gelten weiterhin 2/10 USD pro Million
+  Input-/Output-Token. Der Code und der Vertragstest verwenden deshalb 2/10.
+  Quellen: `https://platform.claude.com/docs/en/about-claude/pricing` und
+  `https://platform.claude.com/docs/en/build-with-claude/extended-thinking`.
+- **`G-067` geschlossen:** Handover, Chain-README und Agent-README trennen
+  belegte Gegenwart, datierte Historie und geplante Phasen. Der Autoritätsstand
+  reicht bis `DEC-029`; `DEC-028`/`DEC-029` erweitern weder Workforce- noch
+  Modellrechte. Die Roadmap trennt Phase 5 (Echo-Nachweise), Phase 6
+  (Worker-Core), Phase 7 (gesondert freizugebender Modellpilot) und Phase 8
+  (Betriebsentscheidung).
+
+## Unabhängiger lokaler Nachweis
+
+- `workforce-agent`: **494 Tests PASS**
+- `bus-realtest`: **15 Tests PASS**
+- `telegram-connector`: **44 Tests PASS**
+- `chain-test`: **27 Tests PASS**
+- Gesamt: **580 Tests PASS**
+- Python-/Shell-Wächter, Spiegeldateien und `git diff --check`: **PASS**
+- Die API-Suite wurde in dieser Arbeitsumgebung nicht erneut ausgeführt, weil
+  `pytest` fehlt. Es wurden keine Pakete installiert; API-Code wurde in diesem
+  Änderungssatz nicht verändert. Daraus wird kein API-PASS abgeleitet.
+
+## Gate nach der Umsetzung
+
+Der lokale Quellstand ist bereit für einen kurzen Zielnachcheck. **Phase 5
+bleibt für eine NAS-Ausführung NO-GO**, bis der festgeschriebene Stand gepusht,
+das Zielmanifest mit `dirty=no` übertragen und der echte Build beider
+Agent-Images erfolgreich nachgewiesen ist. Erst danach kann eine gesonderte
+CEO-Freigabe das im Runbook beschriebene Berechtigungsfenster öffnen. Ein
+bezahlter Modelllauf bleibt vollständig außerhalb dieses Fensters.
