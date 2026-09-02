@@ -63,10 +63,38 @@ END AS bus_denials;
 \echo ''
 \echo '=== 1. Rekonstruierte Abfolge: erfolgreiche Vorgaenge ==='
 
--- Bound to the two identities of this run rather than to one request-id
--- family, because the legs name themselves differently. Identifiers only -
--- bus_events carries subject and body for MESSAGE rows, and an audit printout
--- has no business reproducing them.
+-- Auf **diesen** Lauf eingegrenzt, nicht auf die beiden Identitaeten. Die
+-- Request-Ids des Agenten sind aus der Nachrichten-Id abgeleitet und tragen
+-- keine Laufkennung; ein LIKE 'AGENT-REPLY-%' waere also die Liste aller
+-- Antworten, die der Agent je geschrieben hat. Beim ersten Lauf gegen die
+-- Produktion kamen so vier Zeilen aus zwei verschiedenen Kettenlaeufen -
+-- richtig aussehend und falsch.
+--
+-- Die Klammer ist stattdessen der Datensatz: Task und Anfrage kommen aus dem
+-- TG-Praefix, die Antwort haengt am parent_message_id der Anfrage, und die
+-- Bestaetigungen tragen den jeweiligen Datensatz als record_key.
+--
+-- Nur Bezeichner - bus_events fuehrt fuer MESSAGE-Zeilen Betreff und Rumpf
+-- mit, und eine Auditausgabe hat dort nichts zu reproduzieren.
+WITH lauf AS (
+    SELECT record_key AS anfrage_id
+    FROM workforce.bus_events
+    WHERE project_id = current_setting('chain.project_id')
+      AND request_id = current_setting('chain.tg_prefix') || 'MESSAGE'
+      AND record_type = 'MESSAGE'
+    ORDER BY event_id
+    LIMIT 1
+),
+antwort AS (
+    SELECT ev.record_key AS antwort_id
+    FROM workforce.bus_events AS ev, lauf
+    WHERE ev.project_id = current_setting('chain.project_id')
+      AND ev.request_id LIKE 'AGENT-REPLY-%'
+      AND ev.record_type = 'MESSAGE'
+      AND ev.new_record ->> 'parent_message_id' = lauf.anfrage_id
+    ORDER BY ev.event_id
+    LIMIT 1
+)
 SELECT
     row_number() OVER (ORDER BY ev.event_id) AS schritt,
     ev.actor_id,
@@ -82,12 +110,9 @@ SELECT
     ev.occurred_at
 FROM workforce.bus_events AS ev
 WHERE ev.project_id = current_setting('chain.project_id')
-  AND ev.actor_id IN (current_setting('chain.connector'),
-                      current_setting('chain.agent'))
   AND (ev.request_id LIKE current_setting('chain.tg_prefix') || '%'
-       OR ev.request_id LIKE 'TG-ACK-%'
-       OR ev.request_id LIKE 'AGENT-REPLY-%'
-       OR ev.request_id LIKE 'AGENT-ACK-%')
+       OR ev.record_key IN (SELECT anfrage_id FROM lauf)
+       OR ev.record_key IN (SELECT antwort_id FROM antwort))
 ORDER BY ev.event_id;
 
 \echo ''
@@ -106,6 +131,20 @@ anfrage AS (
     FROM trail
     WHERE request_id = current_setting('chain.tg_prefix') || 'MESSAGE'
       AND record_type = 'MESSAGE'
+    ORDER BY event_id
+    LIMIT 1
+),
+-- Und die Antwort **auf diese** Anfrage. Schritt 5 hing zuerst an
+-- min(record_key) ueber alle Antworten des Agenten - bei mehreren
+-- Kettenlaeufen ein beliebiger fremder Datensatz. Aufgefallen ist es nur
+-- nicht, weil vor G-053 ueberhaupt nie bestaetigt wurde und Schritt 5 so oder
+-- so fehlte.
+antwort AS (
+    SELECT record_key AS message_id
+    FROM trail
+    WHERE request_id LIKE 'AGENT-REPLY-%'
+      AND record_type = 'MESSAGE'
+      AND new_record ->> 'parent_message_id' = (SELECT message_id FROM anfrage)
     ORDER BY event_id
     LIMIT 1
 ),
@@ -152,9 +191,7 @@ SELECT 5, 'connector_acknowledges_the_reply', (
     WHERE request_id LIKE 'TG-ACK-%'
       AND record_type = 'MESSAGE'
       AND actor_id = current_setting('chain.connector')
-      AND record_key = (SELECT min(record_key) FROM trail
-                        WHERE request_id LIKE 'AGENT-REPLY-%'
-                          AND actor_id = current_setting('chain.agent')))
+      AND record_key = (SELECT message_id FROM antwort))
 ),
 -- Every adjacent pair, not two spot checks: step n must precede step n+1 for
 -- all n. A partially reordered run passed the earlier form of this in

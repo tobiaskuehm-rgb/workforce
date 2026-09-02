@@ -243,6 +243,8 @@ Jeder Bus-Aufruf in der API trägt seinen `BusAudit`-Kontext; ein AST-Test fäll
 
 Nachweisbarkeit heißt: Der Lauf muss sich **allein aus der Datenbank** rekonstruieren lassen, nachdem die Container weg sind. Deshalb trägt jeder Schreibvorgang eine Request-Id der Form `<PRÄFIX>-<lauf>-<phase>`. Audit-Abfragen binden an **exakte** Ids, Akteure, Sender/Empfänger und die vollständige Reihenfolge — nicht an „irgendein Datensatz dieses Typs".
 
+**Das gilt auch dort, wo die Request-Id keine Laufkennung trägt** (`G-059`). Der Agent leitet `AGENT-REPLY-…` und `AGENT-ACK-…` deterministisch aus der eingehenden Nachrichten-Id ab; ein `LIKE 'AGENT-REPLY-%'` ist damit die Liste **aller** Antworten, die er je geschrieben hat. Die Klammer ist dann nicht das Präfix, sondern der Datensatz: Die Antwort hängt am `parent_message_id` der Anfrage, und die Anfrage kommt aus der Request-Id, die eine Laufkennung hat. Mein erster `chain_audit.sql` band den letzten Schritt an `min(record_key)` über alle Antworten des Agenten — bei zwei Kettenläufen ein fremder Datensatz. Aufgefallen ist es nur deshalb nicht, weil vor `G-053` nie bestätigt wurde und der Schritt so oder so fehlte: **ein Fehler, den ein zweiter Fehler verdeckt hat.**
+
 ## Idempotenz
 
 **Die Nachrichten-Id ist eine Ableitung, keine Sequenz:** `MSG- + sha256(token_hash:project_id:idempotency_key)`. Derselbe Absender mit demselben Schlüssel bekommt dieselbe Nachricht zurück statt einer zweiten.

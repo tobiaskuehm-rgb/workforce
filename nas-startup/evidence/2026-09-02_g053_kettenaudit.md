@@ -85,3 +85,42 @@ die Regeln des Busses geschlossen, nicht per `UPDATE` (Leitplanke 3) — also
 über einen `ack`-Aufruf unter der Connector-Identität. Deren Zugang ist
 widerrufen und der Kanal ist `DISABLED`; das gehört damit in dasselbe Fenster
 wie der nächste Kettenlauf und braucht eine Freigabe.
+
+
+---
+
+## Nachtrag 2026-09-02, `G-059`
+
+Das Skript hatte selbst zwei Bindungsfehler, gefunden beim erneuten Lesen.
+
+**Abschnitt 1 zeigte vier Zeilen aus zwei verschiedenen Kettenläufen.** Er
+klammerte auf die beiden Identitäten und ein `LIKE 'AGENT-REPLY-%'` — und die
+Request-Ids des Agenten sind aus der Nachrichten-Id abgeleitet, tragen also
+keine Laufkennung. Die Liste sah nach einer Abfolge aus und war eine Mischung.
+
+**Schritt 5 hing an `min(record_key)` über alle Antworten des Agenten**, also
+bei mehreren Läufen an einem fremden Datensatz. Aufgefallen ist das nur
+deshalb nicht, weil vor der Korrektur nie bestätigt wurde und der Schritt so
+oder so fehlte — ein Fehler, den ein zweiter Fehler verdeckt hat.
+
+Beides klammert jetzt am Datensatz statt am Präfix: Die Anfrage kommt aus der
+Request-Id mit Laufkennung, die Antwort hängt an ihrem `parent_message_id`.
+
+Erneut gegen denselben Lauf gefahren, mit demselben Urteil und jetzt aus dem
+richtigen Grund:
+
+```
+ schritt |       actor_id       | record_type | request_id
+---------+----------------------+-------------+--------------------------------------
+       1 | CEO-TG-CHAIN20260901 | TASK        | TG-686780859-TASK
+       2 | CEO-TG-CHAIN20260901 | MESSAGE     | TG-686780859-MESSAGE
+       3 | AGENT-ENG-001        | MESSAGE     | AGENT-REPLY-70159149F25AF239B3059AD4
+       4 | AGENT-ENG-001        | MESSAGE     | AGENT-ACK-CCEA59043E3126352E5AF734
+
+ positiv_audit | belegt | gefordert |             fehlend
+---------------+--------+-----------+----------------------------------
+ FAIL          |      4 |         5 | connector_acknowledges_the_reply
+```
+
+Vier Zeilen, aber diesmal die vier Etappen **eines** Laufs in ihrer
+Reihenfolge.

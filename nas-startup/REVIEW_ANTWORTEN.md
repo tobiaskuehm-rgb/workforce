@@ -2183,3 +2183,52 @@ Alle drei sind derselbe Griff: Ich habe die *Absicht* aufgeschrieben und
 darunter etwas gesetzt, das ihr ähnlich sieht. Bei `G-055` war es ein
 erfundener Ablauf, hier eine nicht eingelöste Zusage — und beim ersten Lesen
 klingt beides richtig, weil der Satz stimmt. Nur der Befehl nicht.
+
+
+---
+
+## `G-059` — eigener Prüfdurchgang: zwei Bindungsfehler im eigenen Auditskript
+
+**Bestätigt, selbst gefunden, behoben.** Beim erneuten Lesen von
+`chain_audit.sql`, einen Tag nachdem ich es an der Produktion validiert hatte
+und für richtig hielt.
+
+### Der Befund
+
+**Abschnitt 1 mischte zwei Läufe.** Er klammerte auf die beiden Identitäten
+und `LIKE 'AGENT-REPLY-%'`. Die Request-Ids des Agenten sind aber
+deterministisch aus der Nachrichten-Id abgeleitet und tragen **keine**
+Laufkennung — das Muster trifft also jede Antwort, die der Agent je
+geschrieben hat. Der Produktionslauf lieferte vier Zeilen, und zwei davon
+gehörten zu einem anderen Kettenlauf. Es sah aus wie eine Abfolge.
+
+**Schritt 5 hing an `min(record_key)`** über alle Antworten des Agenten, also
+bei mehreren Läufen an einem beliebigen fremden Datensatz.
+
+Aufgefallen ist der zweite nur deshalb nicht, weil vor `G-053` nie bestätigt
+wurde und der Schritt so oder so als fehlend gemeldet wurde. **Ein Fehler, den
+ein zweiter Fehler verdeckt hat** — und mein „an der Produktion validiert" war
+damit schwächer, als ich es aufgeschrieben hatte.
+
+### Die Korrektur
+
+Die Klammer ist jetzt der Datensatz, nicht das Präfix: Die Anfrage kommt aus
+der Request-Id, die eine Laufkennung trägt, und die Antwort hängt an ihrem
+`parent_message_id`. Erneut gegen denselben Lauf gefahren, gleiches Urteil,
+jetzt aus dem richtigen Grund — vier Zeilen, aber die vier Etappen **eines**
+Laufs in ihrer Reihenfolge.
+
+### Keine neue Regel, eine geschärfte
+
+`CLAUDE.md` sagt unter *Audit* längst: „Audit-Abfragen binden an **exakte**
+Ids, Akteure, Sender/Empfänger und die vollständige Reihenfolge — nicht an
+‚irgendein Datensatz dieses Typs'." Genau dagegen habe ich verstoßen.
+
+Ergänzt ist der Fall, den der Satz nicht abdeckte: Was tun, wenn die
+Request-Id **keine** Laufkennung trägt? Dann ist das Präfix keine Klammer, und
+die Bindung muss über den Datensatz laufen. Das steht jetzt dort, samt der
+Beobachtung, dass ein zweiter Fehler den ersten verdecken kann.
+
+Der Nachweis `evidence/2026-09-02_g053_kettenaudit.md` ist **nicht**
+umgeschrieben, sondern hat einen datierten Nachtrag bekommen — die alte
+Ausgabe bleibt lesbar.
