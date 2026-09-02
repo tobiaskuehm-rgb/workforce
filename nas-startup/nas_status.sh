@@ -85,6 +85,11 @@ run_gate() {
 
 run_gate "Manifest" verify_manifest.sh
 run_gate "Backup-Rechte" check_backup_permissions.sh
+# Rechte und Inhalt sind zwei Fragen. Die erste sagt, wer die Sicherung lesen
+# darf; die zweite, ob sie etwas enthaelt, aus dem man wiederherstellen kann
+# (G-047). Ein abgeschnittener Dump mit tadellosen Rechten besteht die erste
+# und ist trotzdem wertlos.
+run_gate "Backup-Inhalt" check_backup_integrity.sh
 
 echo
 echo "--- Rueckfallpunkte ---"

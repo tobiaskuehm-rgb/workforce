@@ -1333,3 +1333,65 @@ Meldeart, die `G-020` eingeführt hat. Aufgeräumt habe ich **nicht durch
 Löschen**: Beide liegen jetzt in `Versionen/` mit datiertem Namenszusatz, wie es
 das Projekt schon für `compose.yaml` und die alten Pakete hält. Danach wieder
 `0 Abweichungen`. Als Leitplanke 22.
+
+---
+
+## `check_backup_integrity.sh` — die Sicherung wurde auf Rechte geprüft, nie auf Inhalt
+
+Aus dem Blick in die DSM-Aufgabe von heute. Sie schreibt:
+
+```
+docker exec startup-db-1 pg_dump -U workforce_app -d workforce > "$BACKUP_DIR/workforce-$STAMP.sql"
+```
+
+**Die Umleitung gehört der Shell der Aufgabe, nicht Docker.** Scheitert
+`docker exec` — falscher Containername, Container noch nicht gesund, Datenbank
+nicht oben —, entsteht die Datei trotzdem, leer oder abgeschnitten, und die
+Aufgabe schreibt danach in Ruhe das Konfigurationsarchiv. Nichts sagt etwas.
+
+Die Lücke ist hier nicht theoretisch: **Die NAS fährt um 02:00 hoch und die
+Sicherung läuft um 02:05.** Die Datenbank hat fünf Minuten, gesund zu werden.
+Ein langsamer Start erzeugt genau diese Datei.
+
+`check_backup_permissions.sh` beantwortet „wer darf sie lesen". Niemand
+beantwortete „ist etwas drin, aus dem man wiederherstellen kann". Das tut jetzt
+`check_backup_integrity.sh`, als eigenes Gate in `nas_status.sh`.
+
+**Es prüft nicht die Größe.** Größe ist ein schwaches Signal — ein zur Hälfte
+geschriebener Dump ist groß. Geprüft wird die Abschlusszeile, die `pg_dump`
+zuletzt schreibt, und seit 17.x zusätzlich, dass jedes `\restrict` sein
+`\unrestrict` hat. Beides **am echten Dump dieser NAS nachgesehen**, nicht aus
+dem Gedächtnis: `pg_dump 17.10` klammert die Ausgabe, und die Datei endet
+deshalb *nicht* mit der Abschlusszeile, sondern mit `\unrestrict`. Wer das
+annimmt statt nachzusehen, baut eine Prüfung, die nie anschlägt.
+
+Dazu Alter (Vorgabe 26 Stunden), ein Schrumpfwächter gegen den Vorgänger, und
+für das Archiv ein `tar -tzf` — **auflisten, nicht auspacken**; darin liegt
+`startup.env`.
+
+Fünf Negativproben auf der NAS, gegen Kopien in einem Wegwerf-Ordner:
+
+| Fall | Ergebnis |
+|---|---|
+| abgeschnittener Dump | 3 Befunde: Abschlusszeile, `restrict`-Paarung, Schrumpfung |
+| leerer Dump | 2 Befunde |
+| vollständig, aber 776 h alt | Alter `FAIL`, Vollständigkeit weiter `PASS` |
+| beschädigtes Archiv | „nicht lesbar" |
+| leerer Ordner | beide fehlen |
+
+Der dritte Fall ist der aussagekräftigste: Die Prüfungen sind **unabhängig**,
+kein einzelnes Ja/Nein. Eine alte, aber intakte Sicherung wird anders gemeldet
+als eine frische, kaputte.
+
+**Ein Fehler dabei ging auf mein Konto und nicht auf den des Skripts:** Meine
+erste Altersprobe schlug nicht an, weil ich nur *eine* von zwei Dateien alt
+gemacht hatte — die andere war damit die neueste, und das Skript sah korrekt
+auf sie. Die Probe war falsch, nicht die Prüfung. Wiederholt mit beiden alt:
+`Dump ist 776h alt`.
+
+**Und noch einmal Leitplanke 22 in eigener Sache:** Ich hatte die beiden neuen
+Dateien direkt übertragen, ohne das Manifest neu zu erzeugen. `nas_status.sh`
+meldete prompt `ABWEICHUNG nas_status.sh` — und `check_backup_integrity.sh`
+tauchte gar nicht auf, weil eine Datei außerhalb der Pfadliste nicht geprüft
+wird. Beides ist mit diesem Commit in Ordnung; die Datei steht jetzt in der
+Liste.
