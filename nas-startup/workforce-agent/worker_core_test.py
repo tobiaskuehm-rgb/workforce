@@ -134,6 +134,7 @@ class ForbiddenProvider:
 
     name = "forbidden"
     is_paid = False
+    model = "echo-v1"
 
     def __init__(self) -> None:
         self.calls = 0
@@ -151,6 +152,7 @@ class _CountingProvider:
         self.calls = 0
         self.name = getattr(inner, "name", "counting")
         self.is_paid = getattr(inner, "is_paid", True)
+        self.model = getattr(inner, "model", "echo-v1")
 
     def complete(self, *, system: str, content: str) -> providers.Reply:
         self.calls += 1

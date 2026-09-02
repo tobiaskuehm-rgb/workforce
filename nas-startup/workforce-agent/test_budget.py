@@ -293,6 +293,8 @@ class PaidProviderGateTest(unittest.TestCase):
     class PaidProvider(ScriptedProvider):
         name = "paid"
         is_paid = True
+        # Kohaerent: ein bezahlter Anbieter meldet ein bezahltes Modell.
+        model = "claude-opus-5"
 
     class FreeProvider(ScriptedProvider):
         name = "free"

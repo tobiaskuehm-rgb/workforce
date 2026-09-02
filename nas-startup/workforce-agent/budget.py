@@ -36,13 +36,23 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-# USD per 1M tokens. Only used for the estimated-cost ceiling.
-DEFAULT_PRICES: dict[str, tuple[float, float]] = {
-    "claude-opus-5": (5.00, 25.00),
-    "claude-sonnet-5": (2.00, 10.00),
-    "claude-haiku-4-5": (1.00, 5.00),
-}
-FALLBACK_PRICE = (5.00, 25.00)
+import model_allowlist
+
+# USD per 1M tokens, for the estimated-cost ceiling. The table comes from the
+# model allowlist and is not repeated here: a price and an allowlist entry that
+# drift apart would give a defensible-looking estimate for the wrong model.
+DEFAULT_PRICES: dict[str, tuple[float, float]] = model_allowlist.prices()
+
+# What an unlisted model is charged at. The allowlist blocks unknown models
+# before a call is made, so this should be unreachable - it is the second line,
+# and second lines are only worth having if they are not weaker than the first.
+# Derived as the **most expensive** entry in the allowlist rather than written
+# down, so a new, dearer model raises the fallback by itself instead of
+# quietly making the ceiling harder to reach.
+FALLBACK_PRICE = (
+    max((p[0] for p in DEFAULT_PRICES.values()), default=0.0),
+    max((p[1] for p in DEFAULT_PRICES.values()), default=0.0),
+)
 
 DEFAULTS = {
     "messages": 25,

@@ -38,6 +38,7 @@ from typing import Any
 import budget as budget_module
 import bus_client
 import data_boundary
+import model_allowlist
 import providers
 import state_store
 
@@ -77,6 +78,13 @@ Wenn dir Angaben fehlen, sage konkret welche, statt zu raten. Wenn die Anfrage
 ausserhalb deiner Zustaendigkeit liegt, sage das in einem Satz.
 
 Halte dich unter 3000 Zeichen."""
+
+
+# Diese Laufzeit macht genau eine Sorte Arbeit: eine Bus-Nachricht
+# beantworten. Die Allowlist ordnet Modelle Aufgabenklassen zu, also braucht
+# der Aufruf einen Namen - und der steht hier einmal, statt an der Aufrufstelle
+# als Zeichenkette zu entstehen.
+TASK_CLASS = "BUS_REPLY"
 
 
 def log(event: str, **fields: Any) -> None:
@@ -216,48 +224,89 @@ def handle_message(
             refused = True
         else:
             log("outbound_prepared", **outbound.disclosure.as_log_record())
-            # 2. Ask the model. The attempt is counted before it is made, so a
-            #    failure or an SDK-internal retry cannot slip past the ceiling.
-            if budget is not None:
-                try:
-                    # Refuse a paid provider under a zero ceiling *before* the
-                    # call, not after the bill arrives.
-                    budget.check_provider(is_paid=getattr(provider, "is_paid", True))
-                except budget_module.BudgetExhausted as stop:
-                    log("provider_blocked_by_budget", message_id=message_id,
-                        limit=stop.limit_name, ceiling=stop.ceiling)
-                    raise
-                budget.reserve_provider_call()
+            prompt = data_boundary.render_for_prompt(outbound)
+            # 2. Which model may be asked, and with how much (Phase 5,
+            #    CEO-Punkt 5). The allowlist already refused an unknown name
+            #    at startup; what is left here is per message: a payload over
+            #    the data ceiling, and a provider that answers as something
+            #    other than what it was configured as.
             try:
-                reply = provider.complete(
-                    system=SYSTEM_PROMPT,
-                    content=data_boundary.render_for_prompt(outbound),
+                erlaubt = model_allowlist.for_task(
+                    getattr(provider, "model", ""), task_class=TASK_CLASS
                 )
-            except providers.ProviderError as error:
-                log("provider_failed", message_id=message_id, detail=str(error))
-                # Deliberately *not* releasing the claim here (review finding
-                # G-013). record_failure() sets claimed_at = 0 and makes the
-                # message claimable at once - a second worker could take it and
-                # call the provider again before this failure reply is even
-                # out. The claim is released only if the reply itself fails,
-                # below, where there is genuinely nothing durable to protect.
-                provider_error = str(error)
+                model_allowlist.assert_within_data_ceiling(erlaubt, len(prompt))
+            except model_allowlist.ModelNotAllowed as denial:
+                log("model_refused", message_id=message_id, detail=str(denial))
                 reply_text = (
-                    "Diese Anfrage konnte technisch nicht bearbeitet werden "
-                    f"({error}). Sie bleibt offen und braucht eine manuelle Pruefung."
+                    "Diese Anfrage wurde keinem Modell vorgelegt, weil die "
+                    f"Modell-Allowlist sie ablehnt ({denial}). Bitte die "
+                    "Konfiguration pruefen."
                 )
                 refused = True
             else:
-                log("provider_replied", message_id=message_id, **reply.as_log_record())
+                # 2. Ask the model. The attempt is counted before it is made, so a
+                #    failure or an SDK-internal retry cannot slip past the ceiling.
                 if budget is not None:
-                    budget.record_provider_usage(
-                        model=reply.model,
-                        input_tokens=reply.input_tokens,
-                        output_tokens=reply.output_tokens,
+                    try:
+                        # Refuse a paid provider under a zero ceiling *before* the
+                        # call, not after the bill arrives.
+                        budget.check_provider(is_paid=getattr(provider, "is_paid", True))
+                    except budget_module.BudgetExhausted as stop:
+                        log("provider_blocked_by_budget", message_id=message_id,
+                            limit=stop.limit_name, ceiling=stop.ceiling)
+                        raise
+                    budget.reserve_provider_call()
+                try:
+                    reply = provider.complete(
+                        system=SYSTEM_PROMPT, content=prompt
                     )
-                    log("budget", **budget.as_log_record())
-                reply_text = reply.text
-                refused = reply.refused
+                except providers.ProviderError as error:
+                    log("provider_failed", message_id=message_id, detail=str(error))
+                    # Deliberately *not* releasing the claim here (review finding
+                    # G-013). record_failure() sets claimed_at = 0 and makes the
+                    # message claimable at once - a second worker could take it and
+                    # call the provider again before this failure reply is even
+                    # out. The claim is released only if the reply itself fails,
+                    # below, where there is genuinely nothing durable to protect.
+                    provider_error = str(error)
+                    reply_text = (
+                        "Diese Anfrage konnte technisch nicht bearbeitet werden "
+                        f"({error}). Sie bleibt offen und braucht eine manuelle Pruefung."
+                    )
+                    refused = True
+                else:
+                    log("provider_replied", message_id=message_id, **reply.as_log_record())
+                    # Der Verbrauch wird gebucht, bevor ueber die Antwort
+                    # entschieden wird: Der Aufruf hat stattgefunden und
+                    # gekostet, auch wenn das Ergebnis gleich verworfen wird.
+                    if budget is not None:
+                        budget.record_provider_usage(
+                            model=reply.model,
+                            input_tokens=reply.input_tokens,
+                            output_tokens=reply.output_tokens,
+                        )
+                        log("budget", **budget.as_log_record())
+                    # Was geantwortet hat, muss sein, was konfiguriert war.
+                    # Ein SDK-Alias, der still auf ein groesseres Modell
+                    # aufloest, kommt genau hier an - und Preis wie
+                    # Datenobergrenze waren fuer das andere Modell gewaehlt.
+                    # Die Antwort wird deshalb **verworfen**, nicht nur
+                    # vermerkt: sie stammt aus einem Modell, das fuer diese
+                    # Daten nicht freigegeben war.
+                    try:
+                        model_allowlist.assert_no_switch(erlaubt, reply.model)
+                    except model_allowlist.ModelNotAllowed as switched:
+                        log("model_switched", message_id=message_id,
+                            detail=str(switched))
+                        reply_text = (
+                            "Diese Anfrage wurde beantwortet, aber die Antwort "
+                            f"wird nicht verwendet ({switched}). Bitte die "
+                            "Modellkonfiguration pruefen."
+                        )
+                        refused = True
+                    else:
+                        reply_text = reply.text
+                        refused = reply.refused
 
         # 3. Write the answer back to the original sender. The recipient comes
         #    from the bus record, never from model output.

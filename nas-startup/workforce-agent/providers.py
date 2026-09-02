@@ -23,6 +23,8 @@ import os
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+import model_allowlist
+
 # A bus body is capped at max_body_chars (8000 today) and the reply has to fit,
 # so a deliberately small output ceiling is correct here rather than a lowball.
 # Roughly 4 chars per token leaves comfortable headroom over 8000 chars.
@@ -60,6 +62,11 @@ class Reply:
 
 class Provider(Protocol):
     name: str
+    # The model this provider was configured with. Declared on the protocol
+    # because the worker has to be able to resolve it against the allowlist
+    # and compare it with what actually answered - "no autonomous switching"
+    # is not checkable if the configured name is not readable.
+    model: str
     # Whether asking this provider costs money. Declared rather than inferred,
     # so a cost ceiling can be enforced *before* the first call instead of
     # after it (review finding G-004). Cost is only known once a call returns,
@@ -343,8 +350,22 @@ def build_provider(environment: dict[str, str] | None = None) -> Provider:
     if not name:
         raise ProviderError("AGENT_PROVIDER_NOT_CONFIGURED")
 
+    # The model goes through the allowlist before anything is built. An
+    # unknown name used to reach the SDK unchecked and be priced from a
+    # fallback tariff, so a typo produced a real call at a guessed price and a
+    # new, dearer model needed no decision at all (Phase 5, CEO-Punkt 5).
+    def erlaubtes_modell(vorgabe: str) -> model_allowlist.Model:
+        gewuenscht = env.get("AGENT_MODEL", "").strip() or vorgabe
+        try:
+            return model_allowlist.resolve(
+                gewuenscht, provider=name, task_class="BUS_REPLY")
+        except model_allowlist.ModelNotAllowed as denial:
+            # The identifier is the stable part and travels; the class does
+            # not, because callers of this module handle ProviderError.
+            raise ProviderError(str(denial)) from denial
+
     if name == "echo":
-        return EchoProvider()
+        return EchoProvider(model=erlaubtes_modell("echo-v1").name)
     if name == "subscription":
         # Fail closed and say why. Selecting it used to start a tool-capable
         # CLI inside the worker container - see SubscriptionProvider for what
@@ -356,8 +377,7 @@ def build_provider(environment: dict[str, str] | None = None) -> Provider:
         except OSError as exc:
             raise ProviderError("AGENT_PROVIDER_KEY_FILE_UNREADABLE") from exc
         return ClaudeProvider(
-            model=env.get("AGENT_MODEL", DEFAULT_CLAUDE_MODEL).strip()
-            or DEFAULT_CLAUDE_MODEL,
+            model=erlaubtes_modell(DEFAULT_CLAUDE_MODEL).name,
             api_key=api_key,
         )
     raise ProviderError(f"AGENT_PROVIDER_UNKNOWN:{name}")

@@ -41,6 +41,11 @@ class FakeBus:
 
 class ScriptedProvider:
     name = "scripted"
+    # Ein Modell aus der Allowlist, weil der Worker seit Phase 5 keines
+    # ausserhalb akzeptiert. Eine Attrappe, die ein erfundenes Modell meldet,
+    # wuerde jetzt in jedem Test abgewiesen - und das waere richtig, aber es
+    # macht sie zur Attrappe eines Systems, das es nicht gibt.
+    model = "echo-v1"
 
     def __init__(self, text="Fachliche Antwort.", error=None, refused=False):
         self.text = text
@@ -53,7 +58,7 @@ class ScriptedProvider:
         if self.error:
             raise providers.ProviderError(self.error)
         return providers.Reply(
-            text=self.text, provider=self.name, model="scripted-v1", refused=self.refused
+            text=self.text, provider=self.name, model=self.model, refused=self.refused
         )
 
 
