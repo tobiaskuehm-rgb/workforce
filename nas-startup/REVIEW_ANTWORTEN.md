@@ -2723,3 +2723,161 @@ diesem Projekt schon zweimal veraltet, bevor jemand sie gelesen hat.
 **Nicht gelaufen und nicht behauptet:** die API-Suite (kein lokales `pytest`),
 `g045_owner_probe.py`, Migration `009`. Der Probe-Lauf ist eine Ausführung auf
 der NAS und braucht die Freigabe des CEO.
+
+---
+
+# Fünfzehnter Zielnachcheck: `G-074` bis `G-076` — und drei Punkte ohne Nummer
+
+Alle drei Befunde geprüft, alle drei **bestätigt**. Danach kam Gerds Gegencheck
+mit drei weiteren Punkten; **sein Schreibvorgang in `REVIEW_GERD.md` wurde
+abgelehnt**, unmittelbar bevor sein Nutzungslimit griff. Sie stehen deshalb hier
+ohne Nummer — eine Befundnummer wird nie erfunden (`G-006`), und
+`REVIEW_GERD.md` ist seine Datei.
+
+## `G-074` — der `public`-Schema-Test war konstruktionsbedingt rot
+
+**Bestätigt.** `has_schema_privilege('workforce_owner','public','USAGE')`
+beantwortet das **effektive** Recht. Die PostgreSQL-17-Dokumentation zu Schemata
+sagt für `public`, dass dieses Recht standardmäßig jeder besitzt — erteilt an
+die Pseudorolle `PUBLIC`. Keine der Migrationen `001` bis `009` entzieht das,
+und ein Widerruf bei einer einzelnen Rolle hebt ein geerbtes Recht nicht auf.
+Mein Abnahmetest wäre auf **jeder** frischen Instanz in Abschnitt 4b abgebrochen.
+
+`PUBLIC` global einzuschränken wäre eine datenbankweite Rechteentscheidung weit
+außerhalb einer Busmigration. Die Zusicherung, die `009` wirklich macht, lautet
+„kein **direkter** Grant an `workforce_owner`", und genau so wird sie jetzt
+geprüft: über `aclexplode(n.nspacl)`. Die Grantee-OID von `PUBLIC` ist `0` und
+hat keine Zeile in `pg_roles`, der Join blendet die Pseudorolle also ohne
+Sonderregel aus.
+
+Der Rechtevergleich liest ebenfalls den Katalog statt
+`information_schema.role_table_grants` — die Sicht zeigt nur Rechte, bei denen
+der Aufrufer Erteiler, Empfänger oder Mitglied ist — und trägt das **Schema im
+Schlüssel**: Nach `table_name` allein gruppiert wären `public.bus_messages` und
+`workforce.bus_messages` verschmolzen.
+
+**Was fehlt:** Die von dir verlangte Integrationsgegenprobe auf einer
+unveränderten PostgreSQL-17-Instanz ist **nicht ausgeführt**. Auf diesem Mac
+gibt es weder Docker noch PostgreSQL. Sie hängt jetzt an
+`g045_owner_probe.py`, in beiden Hälften: `has_schema_privilege` muss dort `t`
+melden (die Voreinstellung existiert wirklich) und die Zahl direkter
+Schema-Grants außerhalb `workforce` muss `0` sein. Ohne die erste Hälfte wäre
+die zweite grün, ohne dass jemand wüsste warum.
+
+## `G-075` — Name plus Stelligkeit ist keine Signatur
+
+**Bestätigt, und der Gegenfall ist gemessen.** Ein Parametertyp von
+`bus_send_message` wechselt von `text` auf `varchar`, die Argumentzahl bleibt 13:
+
+```
+vollstaendige Signatur  -> unterschiedlich: True
+alte name:stelligkeit   -> unterschiedlich: False
+```
+
+Die untere Zeile ist der Befund. Gepinnt werden jetzt zwölf vollständige
+Identitätssignaturen, aufgelöst über `to_regprocedure()` — das nimmt die
+Schreibweise der Quelle, `timestamptz` muss nicht als
+`timestamp with time zone` abgeschrieben werden, und es liefert `NULL` statt
+eines Fehlers, wenn es die Signatur nicht gibt. Eine veränderte Signatur ist
+damit ein benannter Abbruch (`MIGRATION_009_SIGNATURE_NOT_FOUND`) und kein
+stiller Treffer.
+
+Danach hängt **alles** an der OID: die `prosecdef`-Prüfung, die Gegenrichtung
+„keine fremde SECURITY-DEFINER-Funktion", der Eigentumsübergang, die
+Nachmessung und die API-EXECUTE-Prüfung. Die zehn aufrufbaren Funktionen werden
+aus zwölf minus zwei internen abgeleitet statt als dritte Liste geführt — zwei
+Listen können auseinanderlaufen, eine abgeleitete nicht.
+
+## `G-076` — der Probe ignorierte den Prozess-Exitcode
+
+**Bestätigt.** `ssh(check=False)` gab nur Text zurück, und der Aufrufer
+entschied über `"ERROR" not in ausgabe`. Ein kleingeschriebenes
+`psql: error: connection ...`, ein `Error response from daemon ...` mit anderem
+Wortlaut, ein Exit 127 oder eine leere Ausgabe wären als bestandener
+SQL-Abnahmetest durchgegangen.
+
+`ssh()` gibt jetzt Exitcode und Ausgabe. `lauf_ergebnis(code, ausgabe, marker)`
+meldet `ok` nur bei Exitcode 0 und, wo verlangt, vorhandenem Schlussmarker
+`Bus function owner acceptance: PASS`. Migrationsaufrufe laufen über dieselbe
+Auswertung. Sieben Negativfälle als Tests, darunter der Fall, den der Exitcode
+allein nicht fängt: **Exit 0 ohne Marker** — etwa wenn die Datei gar nicht
+angekommen ist.
+
+---
+
+# Gerds Gegencheck vom 2026-09-02 — drei Punkte, Nummern offen
+
+Alle drei geprüft, alle drei **bestätigt**. Der erste ist der unangenehmste.
+
+## Punkt 1 — der Trigger-Negativtest akzeptierte jeden Prozessfehler
+
+**Bestätigt.** `abschalt_code != 0` galt als „Zugriff verweigert". Ein
+weggeräumter Container, eine abgerissene SSH-Sitzung, ein Tippfehler im
+Tabellennamen oder eine fehlende Rolle hätten damit den **zentralen
+Sicherheitsnachweis** dieser Datei erbracht.
+
+Das verletzt `G-014`, das seit langem in `CLAUDE.md` steht: „Ein Fehlschlag ist
+erst dann die erwartete Ablehnung, wenn Statuscode *und* Kennung stimmen."
+**Ich habe die Regel beim Beheben von `G-076` selbst verloren** — die vorige
+Textprüfung auf `ERROR` war schwach, aber sie war wenigstens *eine* Bindung;
+beim Umstellen auf Exitcodes ist sie ersatzlos weggefallen. Eine Härtung an
+einer Stelle kann eine Kontrolle an einer anderen aufheben. Das steht jetzt in
+`CLAUDE.md` an der `G-014`-Zeile, nicht als vierte Regel daneben.
+
+*Behoben:* Die Anweisung läuft in einem `DO`-Block mit `EXCEPTION WHEN OTHERS`,
+der die **tatsächliche** SQLSTATE meldet. Der Aufruf endet mit Exitcode 0 und
+gibt entweder `PROBE_TRIGGER_ALLOWED` oder `PROBE_TRIGGER_DENIED_<sqlstate>`
+aus. Bestanden ist ausschließlich `PROBE_TRIGGER_DENIED_42501`. Eine fremde
+SQLSTATE wird benannt, nicht akzeptiert; ein Container- oder Verbindungsfehler
+hat weder Exitcode 0 noch einen Marker und ergibt `unbestimmt`. Sechs
+Negativfälle als Tests.
+
+Dass `42501` die richtige SQLSTATE ist, habe ich **nicht gemessen** — die Probe
+ist aber so gebaut, dass eine andere auffällt statt durchzugehen.
+
+## Punkt 2 — die PUBLIC-Selbstprüfung war logisch leer
+
+**Bestätigt.** Sie verlangte `a.grantee = 0` und jointe gleichzeitig auf
+`pg_roles`, wo es zur OID `0` keine Zeile gibt. Der Join entfernte jede Zeile,
+`EXISTS` war **immer** falsch, der Wächter konnte nie anschlagen. Ausgerechnet
+die Prüfung, die belegen sollte, dass Abschnitt 4b die Pseudorolle richtig
+ausblendet, belegte nichts — und sah dabei aus wie eine bestandene Kontrolle.
+
+*Behoben:* zwei getrennte Abfragen. (a) ohne Join — die Vorgabefreigabe an
+`PUBLIC` existiert überhaupt, sonst wäre 4b grün über einer leeren Menge;
+(b) mit Join — genau dieser Eintrag wird ausgeblendet. Erst beides zusammen
+trägt die Aussage. Als Regel 47 festgehalten: Die Prüffrage ist nicht „ist die
+Bedingung richtig", sondern „gibt es einen Zustand, in dem dieser Wächter rot
+wird".
+
+## Punkt 3 — eine vorhandene Rolle konnte `CREATE` auf `workforce` behalten
+
+**Bestätigt.** Die Migration setzte Tabellen- und Sequenzrechte zurück und
+entzog einen direkten Grant auf `public` — aber nie das Schema `workforce`
+selbst. `CREATE` darauf ist kein kleines Extra: Damit legt die Rolle eigene
+Relationen in `workforce` an, ist deren Eigentümerin und kann auf ihnen Trigger
+abschalten. Das ist genau der Weg, den `009` zumachen soll; der Eigentümer ohne
+Tabelleneigentum wäre sonst nur eine Momentaufnahme gewesen. Der Abnahmetest sah
+es nicht, weil er nur das *Vorhandensein* von `USAGE` prüfte.
+
+*Behoben:* `REVOKE ALL ON SCHEMA workforce FROM workforce_owner;` **vor** dem
+`GRANT USAGE`, Reihenfolge im Test geprüft; der Abnahmetest verlangt jetzt
+**genau** `USAGE`. Als Regel 48 festgehalten.
+
+## Nachweis
+
+`557 + 15 + 44 + 27 = 643` lokale Tests `PASS`. Deploy `21c40a7` auf der NAS:
+228 Dateien, 0 fehlend, 0 abweichend, 0 unerwartet; `check_unmanaged` `PASS`.
+
+Zusätzlich eine **Struktur-Selbstprüfung** des SQL, weil kein PostgreSQL im
+Zugriff ist: Dollar-Quote-Balance, deklarierte gegen benutzte Variablen,
+`RAISE`-Platzhalter gegen Argumente, Transaktionsklammer. Über alle 18 Dateien
+in `postgres-init/` und `postgres-tests/`: **0 Befunde**. Gegenprobe mit vier
+absichtlich eingebauten Fehlern in einer Wegwerfkopie: **alle vier erkannt**.
+Das schließt fünf Fehlerklassen aus und ersetzt keinen Parser — Katalogspalten,
+Typen und Semantik sieht es nicht.
+
+**Nicht ausgeführt und nicht behauptet:** die API-Suite, jedes SQL gegen einen
+echten PostgreSQL-Parser, `g045_owner_probe.py`, Migration `009`. Der Probe-Lauf
+wurde am 2026-09-02 versucht und von der Berechtigungsprüfung des Werkzeugs
+abgewiesen, nicht von einer Projektregel.
