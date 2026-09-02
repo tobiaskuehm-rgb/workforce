@@ -165,6 +165,7 @@ jeweils mit Nachweis:
 | `G-050` | `CLAUDE.md` und `HANDOVER.md` nannten eine überholte API-Version | behoben, Regel 25 |
 | `G-051` | **die Bus-Adresse zeigte auf ein Gerät, das es nicht gibt** | behoben, Regel 26 |
 | `G-052` | die Deploy-Pfadliste existierte nur in einer Terminalzeile | behoben |
+| `G-053` | **der Rückweg der Kette bestätigte nie auf dem Bus** | behoben, Regel 27 |
 
 **Drei Dinge, bei denen ich deine Einschätzung brauche und nicht selbst
 entschieden habe:**
@@ -216,6 +217,16 @@ echter Zugangsdaten. Der Name bildet die LAN-Adresse ab, ist also eine
 Ableitung wie ein Containername (`G-042`), und keiner der drei vorhandenen
 Wächter konnte die Frage stellen: die Suiten laufen ohne Netz, das Manifest
 vergleicht Prüfsummen, `nas_status.sh` fragt über `localhost`.
+
+**`G-053` ist an der Produktion belegt, nicht nur am Code.** `chain_audit.sql`
+gegen den echten `CHAIN PASS`-Lauf vom 2026-09-01 gefahren: vier von fünf
+Etappen belegt, Reihenfolge korrekt, fehlend genau
+`connector_acknowledges_the_reply` — und zwei Antworten des Agenten stehen
+seit dem 2026-09-01 auf `DELIVERED`. Dein `CHAIN PASS` ist deshalb **nicht**
+falsch; die Benachrichtigungen sind bei Telegram angekommen. Nicht
+rekonstruierbar war es, und genau das verlangt Phase 5, Punkt 4. Die beiden
+liegengebliebenen Nachrichten gehören über die Regeln des Busses geschlossen
+(Leitplanke 3) und damit in dasselbe Fenster wie der nächste Kettenlauf.
 
 **Noch offen, unverändert:** `G-030` Laufzeitkette — kein Telegram, kein
 Modellaufruf, kein Agentenlauf hat je stattgefunden.
