@@ -2232,3 +2232,178 @@ Beobachtung, dass ein zweiter Fehler den ersten verdecken kann.
 Der Nachweis `evidence/2026-09-02_g053_kettenaudit.md` ist **nicht**
 umgeschrieben, sondern hat einen datierten Nachtrag bekommen — die alte
 Ausgabe bleibt lesbar.
+
+
+---
+
+# Zwölfter Gesamtcheck: `G-061` bis `G-067`
+
+**Vorbemerkung zur Lage.** Diese sieben Befunde hat Gerd geschrieben, während
+ich am Nutzungslimit war, und auf Bitte des Nutzers hat er die Korrekturen
+gleich mitgemacht. Ich habe seine Arbeit **nicht** übernommen, sondern geprüft
+— dieselbe Regel wie umgekehrt. Ergebnis: sechs Befunde bestätigt und korrekt
+behoben, einer teilweise (`G-066`), und in der Korrektur zu `G-063` steckte ein
+neuer Fehler, der jetzt als `G-068` geführt wird.
+
+Seine Dateien lagen uncommitted im Arbeitsbaum. Sie sind zuerst gesichert
+worden, in eigenen Commits und unverändert — am 2026-09-01 ist auf genau diesem
+Weg beinahe eine ganze Prüfrunde verlorengegangen.
+
+## `G-061` — Agent-Images ohne zwei Laufzeitmodule
+
+**Bestätigt, kritisch, behoben — und es war mein Fehler.** Ich habe
+`model_allowlist.py` und `efficiency_report.py` geschrieben und in keines der
+beiden Dockerfiles aufgenommen.
+
+Unabhängig nachgemessen, nicht nachgelesen: Ich habe die `COPY`-Menge beider
+Dockerfiles in ein leeres Verzeichnis nachgebaut und den jeweiligen
+Einstiegspunkt importiert.
+
+```
+Dockerfile                8 Dateien -> import agent_worker:     OK
+Dockerfile.workercore     9 Dateien -> import worker_core_test:  OK
+```
+
+Und die Gegenprobe mit dem alten Dateisatz:
+
+```
+ohne model_allowlist/efficiency_report: ModuleNotFoundError: No module named 'model_allowlist'
+```
+
+Der Befund ist damit real und die Korrektur wirksam. Gerds Zusatzforderung ist
+der eigentliche Punkt: **Host-Unit-Tests konnten das nicht sehen**, weil sie
+aus dem Quellbaum importieren, während Docker eine ausdrückliche Teilmenge
+kopiert. `test_docker_runtime_files.py` schließt genau diese Lücke und braucht
+weder Docker noch Netz.
+
+## `G-062` — Core- und Kettenfenster widersprachen sich
+
+**Bestätigt und behoben.** Mein Runbook öffnete den Kanal für den Core und
+startete danach `chain_prepare.sql`, das `DISABLED` und null aktive Credentials
+verlangt. Die dokumentierte Reihenfolge hätte abbrechen müssen.
+
+Das Runbook hat jetzt einen eigenen Abschnitt 6.4, der das Kernfenster
+vollständig schließt und **nachmisst**, bevor ein Ketten-Prepare überhaupt
+beginnen darf. Zwei Berechtigungsfenster, nicht eines mit zwei Teilen.
+
+## `G-063` — Laufkonfiguration nicht durchgängig
+
+**Bestätigt und behoben**, mit einer Einschränkung, die unten als `G-068`
+steht. Suffix, Task-Id und Update-Id kommen jetzt aus einer einzigen
+validierten Laufkonfiguration statt aus vier Hardcodes, und der Auditaufruf
+nimmt die echte Telegram-Update-Id statt `0`.
+
+## `G-064` — Der „Deploy"-Schritt übertrug nichts
+
+**Bestätigt und behoben, und dieser Befund trifft mich am unangenehmsten.**
+Mein Abschnitt hieß „Zielmanifest und Deploy" und erzeugte lokal ein Manifest,
+das anschließend ein möglicherweise altes NAS-Verzeichnis prüfte. Ein Manifest
+ist kein Deploy.
+
+`deploy_manifest.sh` kennt jetzt `REQUIRE_CLEAN` und `DEPLOY_FILE_LIST_OUT`;
+die Transferliste entsteht aus derselben Git-Dateimenge, deren Hashes im
+Manifest stehen, der zweite Befehl überträgt sie wirklich, und der dritte
+verlangt auf der NAS `dirty=no`.
+
+Der Zusatz stimmt ebenfalls: Der damals auf der NAS liegende Manifeststand war
+`dirty=yes`. Das war mein Deploy im unfertigen `G-060`-Baum. Ein manifestierter
+Dirty-Stand ist Diagnose, keine Freigabe — richtig.
+
+## `G-065` — Budgetreservierung nicht atomar
+
+**Bestätigt und behoben.** Nachgelesen in `budget.py`: Aufrufslot, konservative
+Eingabe, maximale Ausgabe und Kosten werden unter einem `threading.Lock`
+gemeinsam reserviert, gegen `verbraucht + reserviert` geprüft und nach dem
+Aufruf mit den echten Werten abgerechnet. Fehlende Usage fällt auf die
+**reservierten** Werte zurück, nicht auf null, und eine fehlerhafte
+Usage-Meldung wird geprüft, *bevor* die Reservierung aufgelöst wird — sonst
+verschwände die schwebende Belastung.
+
+Meine ursprüngliche Fassung prüfte nacheinander und rundete die
+Eingabeschätzung ab. Beides war zu schwach.
+
+## `G-066` — Modellfähigkeiten und Sonnet-Preis
+
+**Zur Hälfte bestätigt, zur Hälfte anders.**
+
+**Die Fähigkeiten: Gerd hat recht.** Nachgeschlagen in der Modellreferenz —
+Haiku 4.5 nimmt weder adaptives Denken noch `output_config.effort`; für dieses
+Modell gilt noch die alte `budget_tokens`-Form, und `effort` läuft dort in
+einen Fehler. Mein gemeinsamer Request hätte den freigegebenen günstigen Pfad
+zuverlässig auf HTTP 400 laufen lassen. Der Request wird jetzt modellabhängig
+gebaut; Haiku steht mit `thinking_mode=None, effort=None` in der Allowlist.
+
+**Der Preis: die Zahl stimmt, die Begründung nicht.** Gerd meldete zuerst eine
+Erhöhung auf 3/15 zum 2026-09-01 und nahm das dann selbst zurück auf 2/10 —
+mit dem Kommentar, Anthropic habe den Einführungstarif dauerhaft gemacht und
+die angekündigte Erhöhung ausdrücklich gestrichen.
+
+Ich habe es nachgeschlagen, weil Regel 38 genau das verlangt: am Stichtag gegen
+die offizielle Quelle prüfen, und heute ist der Stichtag. **Sonnet 5 steht mit
+2/10 USD je Million Token in der Referenz.** Die Zahl im Code ist also richtig.
+
+Die *Geschichte* dahinter konnte ich nicht belegen — von einer angekündigten
+und zurückgenommenen Erhöhung steht dort nichts. Sie ist deshalb aus dem
+Kommentar entfernt (Leitplanke 7: was eine Absicherung behauptet, muss sie
+belegen können).
+
+**Wo die 3/15 vermutlich herkommen:** Das ist der Tarif von **Sonnet 4.6**,
+einem anderen Modell derselben Familie. Der Kommentar sagt das jetzt, damit die
+Zahl nicht beim nächsten Prüfen wieder hin- und hergeschoben wird.
+
+## `G-067` — Überholte Gegenwartsaussagen
+
+**Bestätigt und behoben.** Entscheidungsstand von `DEC-027` auf `DEC-029`
+korrigiert, mit dem Zusatz, dass beide Thorstens lokalen Opportunity-Filter
+betreffen und **keine** Workforce-, NAS- oder Modellaktivierung freigeben. Die
+überholten Nicht-Ausführungsstände in den beiden READMEs sind als Historie
+gekennzeichnet.
+
+Das ist dieselbe Klasse wie `G-046`, `G-050` und `G-054`. Sie kommt in diesem
+Projekt häufiger vor als jede andere.
+
+---
+
+## `G-068` — eigener Prüfdurchgang: der Rückbau löschte die falschen Tokens
+
+**Bestätigt, selbst gefunden, behoben.** Gefunden beim Prüfen von Gerds
+`G-063`-Korrektur — also in der Korrektur eines Befundes, der genau davon
+handelt, dass Secretdateien vollständig und nachweisbar verschwinden müssen.
+
+### Der Befund
+
+Abschnitt 6.4 löschte:
+
+```
+secrets/core_token_connector  secrets/core_token_karl  secrets/core_token_thorsten
+```
+
+`prepare_core_once.sh` legt an: **`karl`, `gerd`, `anastasia`.**
+
+Also: zwei Namen, die nie existierten, und zwei gültige Bus-Tokens, die liegen
+bleiben. **`rm -f` auf einen Namen, den es nie gab, meldet Erfolg** — der
+Schritt las sich wie ein sauberer Abschluss. Ein Abwesenheitsnachweis fehlte
+ebenfalls.
+
+Der richtige Umgang stand im selben Dokument: Der Kettenrückbau in Abschnitt 8
+nennt drei exakte Pfade und hängt an jedes Löschen ein `test ! -e`. Diese Form
+gilt jetzt auch für den Core.
+
+### Der Wächter
+
+`test_runbook_targets.py` stellt drei Fragen, und alle drei sind nötig:
+
+- ist der gelöschte Name überhaupt ein Tokendateiname des Projekts
+- wird zu jedem Präfix die **vollständige** Menge gelöscht
+- steht hinter jedem Löschen ein Abwesenheitsnachweis
+
+Gegen die alte Fassung gefahren meldet er genau vier Punkte:
+
+```
+core_token: nicht geloescht: core_token_anastasia, core_token_gerd
+core_token_connector: kein Paket legt diese Datei an
+core_token_karl: kein Abwesenheitsnachweis
+core_token_thorsten: kein Paket legt diese Datei an
+```
+
+**Regel 40** in `CLAUDE.md`, `AGENTS.md` und `nas-startup/AGENTS.md`.

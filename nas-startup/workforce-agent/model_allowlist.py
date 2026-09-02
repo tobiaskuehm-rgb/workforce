@@ -130,9 +130,15 @@ ALLOWLIST: dict[str, Model] = {
         name="claude-sonnet-5",
         provider="claude",
         is_paid=True,
-        # Verified 2026-09-02. Anthropic made the launch tariff permanent and
-        # explicitly cancelled the announced 2026-09-01 increase to 3/15:
-        # https://platform.claude.com/docs/en/about-claude/pricing
+        # Nachgeschlagen am 2026-09-02 in der Modell-/Preisreferenz: Sonnet 5
+        # steht dort mit 2/10 USD je Million Token. Das ist der Preis, mehr
+        # nicht - die Begruendung "eine angekuendigte Erhoehung auf 3/15 wurde
+        # zurueckgenommen" liess sich **nicht** belegen und steht deshalb nicht
+        # mehr hier (Leitplanke 7).
+        #
+        # Woher die 3/15 vermutlich kamen: Das ist der Tarif von **Sonnet 4.6**,
+        # einem anderen Modell in derselben Familie. Wer den Preis das naechste
+        # Mal prueft, prueft zuerst, welche Zeile er vor sich hat.
         price_input_per_million=2.00,
         price_output_per_million=10.00,
         max_output_tokens=4096,

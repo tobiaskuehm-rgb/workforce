@@ -176,12 +176,17 @@ Core **vor** jedem Ketten-Prepare zurückgebaut und nachgemessen (`G-062`).
 
 ```bash
 ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo /usr/local/bin/docker compose -f compose.core-cleanup.yaml run --rm --no-deps -T -e CORE_RUN_SUFFIX=20260902-PHASE5 core-cleanup"
-ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo rm -f secrets/core_token_connector secrets/core_token_karl secrets/core_token_thorsten"
+ssh synology "cd /volume1/docker/Startup/workforce-agent && sudo rm -f secrets/core_token_karl secrets/core_token_gerd secrets/core_token_anastasia && test ! -e secrets/core_token_karl && test ! -e secrets/core_token_gerd && test ! -e secrets/core_token_anastasia"
 ssh synology "cd /volume1/docker/Startup && sh nas_status.sh"
 ```
 
 Abbruch, wenn nicht Kanal `DISABLED`, 0 aktive Credentials, fünf Gates
 `PASS` und Exit 0. Erst danach darf ein separates Kettenfenster beginnen.
+
+**Die drei Namen sind die, die `prepare_core_once.sh` wirklich anlegt** —
+`karl`, `gerd`, `anastasia` (`G-068`). Ein `rm -f` auf einen Namen, den es nie
+gab, meldet Erfolg und lässt die echte Datei liegen; deshalb steht hinter
+jedem Löschen ein `test ! -e`, genau wie im Kettenrückbau in Abschnitt 8.
 
 ### 6.5 Die zwei liegengebliebenen Nachrichten
 

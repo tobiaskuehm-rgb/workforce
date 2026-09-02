@@ -365,6 +365,8 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 39. **Aktive Betriebsdokumentation trennt belegte Gegenwart, datierte Historie und geplante Phase** (`G-067`): Entscheidungskopf und Roadmap nennen den aktuellen Autoritätsstand, während alte Versionen oder „noch nie gelaufen" nur in eindeutig historischem Kontext stehen dürfen.
 
+40. **Ein Rückbau löscht die Dateien, die der Prepare wirklich anlegt — mit Namen und mit Nachweis** (`G-068`). Der Kernfenster-Rückbau in `PHASE5_RUNBOOK.md` löschte `core_token_connector` und `core_token_thorsten`; beide legt kein Skript je an. `prepare_core_once.sh` erzeugt `karl`, `gerd`, `anastasia` — zwei davon blieben liegen. **`rm -f` auf einen Namen, den es nie gab, meldet Erfolg**, also las sich der Schritt wie ein sauberer Abschluss, während zwei gültige Bus-Tokens auf der NAS lagen. Der richtige Umgang stand im selben Dokument: Der Kettenrückbau nennt drei exakte Pfade und hängt an jedes Löschen ein `test ! -e`. `test_runbook_targets.py` prüft jetzt alle drei Fragen — ist der Name überhaupt ein Tokendateiname des Projekts, wird die **vollständige** Menge je Präfix gelöscht, und steht hinter jedem Löschen ein Abwesenheitsnachweis. Dieselbe Klasse wie `G-058`: ein Aufräumschritt, der etwas anderes tut, als sein Satz verspricht, und dabei nichts beweist.
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.

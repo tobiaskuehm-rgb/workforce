@@ -348,6 +348,71 @@ def cross_reference_offenders(text: str) -> list[str]:
     return sorted({n for n in genannt if n not in ueberschriften}, key=int)
 
 
+# Wo die Pakete ihre Tokendateien wirklich benennen. Bewusst ohne .md: Ein
+# Runbook darf hier nicht seine eigene Quelle sein.
+TOKEN_QUELLEN = ("workforce-agent", "chain-test", "bus-realtest", "telegram-connector")
+# Bewusst grosszuegig: Es faengt auch Shell- und SQL-Variablen wie
+# `karl_token_hash` mit ein. Das schadet nicht - die Vollstaendigkeits-
+# pruefung laeuft nur ueber Praefixe, die ein Runbook wirklich loescht,
+# und dort stehen ausschliesslich echte Dateinamen. Das Signal ist der
+# umgekehrte Fall: ein Name, den **keine** Quelle kennt.
+TOKEN_MUSTER = re.compile(r"\b([a-z][a-z_]*_token(?:_[a-z]+)?)\b")
+
+
+def known_tokens() -> set[str]:
+    """Jeder Tokendateiname, den irgendein Paketskript oder Compose anlegt."""
+    gefunden: set[str] = set()
+    for paket in TOKEN_QUELLEN:
+        ordner = NAS / paket
+        if not ordner.is_dir():
+            continue
+        for datei in sorted(ordner.iterdir()):
+            if datei.suffix not in (".sh", ".yaml", ".yml", ".sql", ".example"):
+                continue
+            gefunden.update(TOKEN_MUSTER.findall(datei.read_text(encoding="utf-8")))
+    # `core_token_` ohne Namen ist der Praefix aus einer Schleife, keine Datei.
+    return {n for n in gefunden if not n.endswith("_token_")}
+
+
+def token_cleanup_offenders(text: str) -> list[str]:
+    """Loescht das Runbook genau die Tokendateien, die es auch geben kann?
+
+    Review finding G-068. Der Kernfenster-Rueckbau loeschte
+    `core_token_connector` und `core_token_thorsten` - beide legt kein Skript
+    je an - und liess `core_token_gerd` und `core_token_anastasia` liegen, die
+    `prepare_core_once.sh` wirklich erzeugt. `rm -f` auf einen Namen, den es
+    nie gab, meldet Erfolg; zwei gueltige Bus-Tokens blieben unbemerkt auf der
+    NAS, und der Schritt las sich wie ein sauberer Abschluss.
+
+    Drei Fragen, alle drei noetig:
+      * ist jeder geloeschte Name ueberhaupt ein Tokendateiname des Projekts
+      * wird zu jedem Praefix die **vollstaendige** Menge geloescht
+      * steht hinter jedem Loeschen ein Abwesenheitsnachweis
+    """
+    bekannt = known_tokens()
+    offenders: list[str] = []
+    geloescht: set[str] = set()
+    for command in commands(text):
+        if " rm -f " not in command:
+            continue
+        for name in re.findall(r"secrets/([a-z_]+)", command):
+            if "_token" not in name:
+                continue
+            geloescht.add(name)
+            if name not in bekannt:
+                offenders.append(f"{name}: kein Paket legt diese Datei an")
+            elif f"test ! -e secrets/{name}" not in command:
+                offenders.append(f"{name}: kein Abwesenheitsnachweis")
+
+    # Vollstaendigkeit je Praefix - nur fuer Praefixe, die das Runbook anfasst.
+    for praefix in {n.rsplit("_", 1)[0] for n in geloescht if n.count("_") >= 2}:
+        erwartet = {n for n in bekannt if n.startswith(praefix + "_")}
+        fehlend = sorted(erwartet - geloescht)
+        if fehlend:
+            offenders.append(f"{praefix}: nicht geloescht: {', '.join(fehlend)}")
+    return sorted(set(offenders))
+
+
 def deployed_paths() -> str:
     """The versioned deploy list, as one blob to search.
 
@@ -536,6 +601,38 @@ class RunbookTargetsTest(unittest.TestCase):
 
     def test_every_executed_helper_script_is_in_the_target_manifest(self) -> None:
         self.check_each(lambda t: self.assertEqual([], helper_script_offenders(t)))
+
+    def test_every_deleted_token_exists_and_is_proven_gone(self) -> None:
+        self.check_each(lambda t: self.assertEqual([], token_cleanup_offenders(t)))
+
+    def test_the_token_sources_are_actually_found(self) -> None:
+        # Ohne das waere die Pruefung oben gruen ueber einer leeren Menge.
+        bekannt = known_tokens()
+        for name in ("core_token_karl", "core_token_gerd", "core_token_anastasia",
+                     "chain_token_agent", "chain_token_connector"):
+            with self.subTest(token=name):
+                self.assertIn(name, bekannt)
+
+    def test_an_invented_token_name_would_be_caught(self) -> None:
+        erfunden = ('```bash\nssh synology "cd /volume1/docker/Startup/workforce-agent '
+                    '&& sudo rm -f secrets/core_token_thorsten"\n```\n')
+        self.assertIn("core_token_thorsten: kein Paket legt diese Datei an",
+                      token_cleanup_offenders(erfunden))
+
+    def test_an_incomplete_cleanup_would_be_caught(self) -> None:
+        # Genau der Fall aus G-068: karl geloescht, gerd und anastasia nicht.
+        halb = ('```bash\nssh synology "cd /volume1/docker/Startup/workforce-agent '
+                '&& sudo rm -f secrets/core_token_karl '
+                '&& test ! -e secrets/core_token_karl"\n```\n')
+        befunde = token_cleanup_offenders(halb)
+        self.assertTrue(any("nicht geloescht" in b for b in befunde), befunde)
+
+    def test_a_deletion_without_proof_would_be_caught(self) -> None:
+        ohne = ('```bash\nssh synology "cd /volume1/docker/Startup/workforce-agent '
+                '&& sudo rm -f secrets/core_token_karl secrets/core_token_gerd '
+                'secrets/core_token_anastasia"\n```\n')
+        self.assertIn("core_token_karl: kein Abwesenheitsnachweis",
+                      token_cleanup_offenders(ohne))
 
     def test_every_section_reference_points_somewhere(self) -> None:
         self.check_each(lambda t: self.assertEqual([], cross_reference_offenders(t)))
