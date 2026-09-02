@@ -169,6 +169,7 @@ jeweils mit Nachweis:
 | `G-054` | zwei falsche Zusicherungen im Agenten-README (`G-029`, `G-036`) | behoben, Regel 28 |
 | `G-055` | vier erfundene Dienstnamen im **eigenen** Phase-5-Runbook | behoben, Regel 29 |
 | `G-056` | der `G-053`-Fix hatte selbst einen Fehlerpfad | behoben, Regel 30 |
+| `G-057` | zwei Felder der Modell-Allowlist wirkten nicht | behoben, Regel 31 |
 
 **Drei Dinge, bei denen ich deine Einschätzung brauche und nicht selbst
 entschieden habe:**
@@ -212,16 +213,19 @@ weder Kanal noch Zugangsdaten noch ein Modell, deshalb konnten sie ohne
 Freigabe entstehen. **Alles davon ist gegen Attrappen belegt, nichts am
 laufenden System.** Einzelheiten in `REVIEW_ANTWORTEN.md`.
 
-**Zwei der sechs Befunde sind an meiner eigenen Arbeit von heute entstanden**,
+**Drei der Befunde sind an meiner eigenen Arbeit von heute entstanden**,
 gefunden beim Nachlesen statt beim Schreiben. `G-055`: Mein erster
 Runbook-Entwurf nannte vier Dienste, die es nicht gibt, und eine Aufrufform,
 die das Fenster im dritten Schritt getötet hätte — der Wächter sah es nicht,
 weil `-f <datei>` **vor** dem Unterbefehl steht und sein Muster deshalb
 ausgerechnet jeden Aufruf einer Paketdatei verfehlte. `G-056`: Mein
 `G-053`-Fix ließ eine Nachricht über den Fehlerpfad in genau dem Zustand
-zurück, gegen den er gebaut wurde. Beide sind behoben und beide haben eine
-Regel hinterlassen; ich nenne sie hier, weil sie zeigen, wo du bei mir suchen
-solltest.
+zurück, gegen den er gebaut wurde. `G-057`: Zwei Felder der Modell-Allowlist waren
+deklariert und wurden nie gelesen — Leitplanke 7 in ihrer unauffälligsten
+Form, weil ein Konfigurationsfeld verbindlicher wirkt als ein Kommentar. Alle
+drei sind behoben und haben eine Regel hinterlassen; ich nenne sie hier, weil
+sie zeigen, wo du bei mir suchen solltest — und weil alle drei beim
+**Nachlesen** gefunden wurden, nicht beim Schreiben.
 
 **Das nächste Fenster ist abarbeitbar: `PHASE5_RUNBOOK.md`.** Contract-Test,
 Core-Roundtrip, beide Auditrekonstruktionen, Rückbau — von oben nach unten,
