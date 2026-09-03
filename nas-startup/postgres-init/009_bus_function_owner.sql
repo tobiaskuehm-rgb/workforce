@@ -78,6 +78,15 @@
 -- Projekts und kein Schaden: Eine angewendete Migration wird nie wieder
 -- bearbeitet.
 --
+-- **Drei Vorbedingungen aus Gerds siebzehntem Zielnachcheck (2026-09-03),**
+-- alle fail-closed und alle **vor** der ersten Aenderung: Die Gates von 009
+-- und 010 schliessen einander im selben Aufruf aus (`G-077`, in
+-- `compose.yaml`); die zwoelf Funktionen gehoeren vor dem Wechsel demselben
+-- Eigentuemer wie Schema und Tabellenanker, sonst waere 010 keine
+-- Wiederherstellung (`G-078`, Abschnitt 4d); und eine vorgefundene Rolle
+-- `workforce_owner` hat keine Mitglieder und ist nirgends Mitglied, weil
+-- `NOLOGIN` einen `SET ROLE` nicht verhindert (`G-079`, Abschnitt 1b).
+--
 -- **Freigabereif ist 009 damit noch nicht.** Was fehlte, war der Rueckbau; was
 -- weiter fehlt, ist ein Review - `010` ist bis heute (2026-09-03) auf keiner
 -- Instanz gelaufen, und die Korrekturen an beiden Dateien hat ausser der
@@ -111,6 +120,50 @@ $$;
 ALTER ROLE workforce_owner
     NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
     NOINHERIT NOBYPASSRLS NOREPLICATION;
+
+-- 1b. Keine Mitgliedschaft, in keiner Richtung (Review finding G-079).
+--
+--     `NOLOGIN` verhindert keinen Zugriff ueber `SET ROLE`: Wer Mitglied von
+--     `workforce_owner` ist, kann zu ihr wechseln und danach die direkten
+--     Tabellenrechte des technischen Eigentuemers ausueben - ausserhalb der
+--     zwoelf gepruften Funktionen. Eine Rolle, die diese Migration bereits
+--     vorfindet, bringt ihre Mitglieder mit, und `ALTER ROLE` normalisiert
+--     Attribute, nicht Mitgliedschaften. Deshalb: pruefen und abbrechen.
+--     **Nicht** stillschweigend entziehen - eine Mitgliedschaft, die jemand
+--     angelegt hat, ist eine Entscheidung, die hier nicht ueberschrieben
+--     wird.
+--
+--     Die Gegenrichtung gehoert dazu: Waere `workforce_owner` selbst Mitglied
+--     einer anderen Rolle, koennte Code, der als sie laeuft, per `SET ROLE`
+--     deren Rechte annehmen. `NOINHERIT` schliesst das nicht aus.
+DO $$
+DECLARE
+    v_mitglieder text[];
+    v_mitglied_in text[];
+BEGIN
+    SELECT coalesce(array_agg(m.rolname ORDER BY m.rolname), '{}')
+      INTO v_mitglieder
+    FROM pg_auth_members am
+    JOIN pg_roles r ON r.oid = am.roleid
+    JOIN pg_roles m ON m.oid = am.member
+    WHERE r.rolname = 'workforce_owner';
+    IF array_length(v_mitglieder, 1) IS NOT NULL THEN
+        RAISE EXCEPTION 'MIGRATION_009_OWNER_ROLE_HAS_MEMBERS: %',
+            array_to_string(v_mitglieder, ', ');
+    END IF;
+
+    SELECT coalesce(array_agg(g.rolname ORDER BY g.rolname), '{}')
+      INTO v_mitglied_in
+    FROM pg_auth_members am
+    JOIN pg_roles r ON r.oid = am.member
+    JOIN pg_roles g ON g.oid = am.roleid
+    WHERE r.rolname = 'workforce_owner';
+    IF array_length(v_mitglied_in, 1) IS NOT NULL THEN
+        RAISE EXCEPTION 'MIGRATION_009_OWNER_ROLE_IS_MEMBER: %',
+            array_to_string(v_mitglied_in, ', ');
+    END IF;
+END;
+$$;
 
 -- 2. Die zwoelf, mit ihrer vollstaendigen Identitaetssignatur.
 --
@@ -272,6 +325,9 @@ DECLARE
     v_oids oid[] := '{}';
     v_fremd text[];
     v_ohne_secdef text[];
+    v_vorher name;
+    v_anker name;
+    v_fremd_eigner text[];
     v_count integer := 0;
 BEGIN
     -- 4a. Jede gepinnte Signatur muss es geben. `to_regprocedure` liefert
@@ -315,7 +371,48 @@ BEGIN
             'mit eigener Migration (G-071).', array_to_string(v_fremd, ', ');
     END IF;
 
-    -- 4d. Uebertragen, adressiert ueber die OID. `regprocedure` rendert die
+    -- 4d. Vorbedingung vor dem Wechsel (Review finding G-078): Die zwoelf
+    --     gehoeren derselben Rolle, die auch das Schema `workforce` und die
+    --     Tabelle `bus_messages` besitzt. Diese Migration speichert den
+    --     vorherigen Eigentuemer nicht; der Rueckbau `010` gibt das Eigentum
+    --     an den **gelesenen** Schemaeigentuemer zurueck. Das ist nur dann eine
+    --     Wiederherstellung, wenn die Funktionen vorher genau ihm gehoert
+    --     haben. Bei Drift - eine Funktion gehoert jemand anderem - wuerde 009
+    --     sie trotzdem uebernehmen und 010 sie gesammelt an den
+    --     Schemaeigentuemer geben, nicht an ihren frueheren Eigentuemer.
+    --     Also: bei Abweichung abbrechen, bevor irgendetwas geaendert wird.
+    --     Dieselben zwei Anker wie in `010`; ein Test haelt sie gegeneinander.
+    SELECT r.rolname INTO v_vorher
+    FROM pg_namespace n
+    JOIN pg_roles r ON r.oid = n.nspowner
+    WHERE n.nspname = 'workforce';
+    SELECT r.rolname INTO v_anker
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN pg_roles r ON r.oid = c.relowner
+    WHERE n.nspname = 'workforce' AND c.relname = 'bus_messages';
+    IF v_vorher IS NULL OR v_anker IS DISTINCT FROM v_vorher THEN
+        RAISE EXCEPTION 'MIGRATION_009_OWNER_ANCHORS_DISAGREE: Schema %, bus_messages %',
+            coalesce(v_vorher, '(unbekannt)'), coalesce(v_anker, '(unbekannt)');
+    END IF;
+    IF v_vorher = 'workforce_owner' THEN
+        RAISE EXCEPTION 'MIGRATION_009_ANCHOR_IS_THE_TARGET_ROLE: %', v_vorher;
+    END IF;
+
+    SELECT coalesce(array_agg(p.oid::regprocedure::text || ' gehoert ' || r.rolname
+                              ORDER BY p.oid::regprocedure::text), '{}')
+      INTO v_fremd_eigner
+    FROM pg_proc p
+    JOIN pg_roles r ON r.oid = p.proowner
+    WHERE p.oid = ANY (v_oids) AND r.rolname <> v_vorher;
+    IF array_length(v_fremd_eigner, 1) IS NOT NULL THEN
+        RAISE EXCEPTION
+            'MIGRATION_009_PINNED_FUNCTION_FOREIGN_OWNER: % - erwartet wurde %, '
+            'der Eigentuemer von Schema und Tabellenanker (G-078)',
+            array_to_string(v_fremd_eigner, ', '), v_vorher;
+    END IF;
+
+    -- 4e. Uebertragen, adressiert ueber die OID. `regprocedure` rendert die
     --     kanonische, korrekt gequotete Signatur; sie kommt damit aus dem
     --     Katalog und nie aus dem Gedaechtnis (`G-044`).
     FOREACH v_proc IN ARRAY v_oids::regprocedure[] LOOP
@@ -333,7 +430,7 @@ BEGIN
             v_count, (SELECT count(DISTINCT x) FROM unnest(v_oids) AS x);
     END IF;
 
-    -- 4e. Nachgemessen, in derselben Transaktion und an denselben OIDs. Die
+    -- 4f. Nachgemessen, in derselben Transaktion und an denselben OIDs. Die
     --     Aussage reicht genau so weit wie der Zugriff: Was nach einer
     --     spaeteren `004` mit den Knowledge-Funktionen ist, verspricht diese
     --     Migration nicht (`G-071`).

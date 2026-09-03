@@ -575,6 +575,105 @@ class ProbeWritesWithinTheAllowlistTest(unittest.TestCase):
         self.assertNotIn("SET ROLE workforce_owner", prepare)
 
 
+class PreconditionsBeforeAnyChangeTest(unittest.TestCase):
+    """`G-078` und `G-079`: 009 prueft die vorgefundene Lage, bevor es etwas aendert.
+
+    Beide Befunde haben dieselbe Form. 009 ist darauf gebaut, eine vorhandene
+    Rolle vorzufinden - `CREATE ROLE ... IF NOT EXISTS`, dann `ALTER ROLE` auf
+    alle Attribute, `REVOKE ALL` vor jedem `GRANT`. Normalisiert wurden damit
+    Attribute und Objektrechte, nicht aber zwei Dinge, die eine vorgefundene
+    Lage ebenfalls mitbringt: **Mitgliedschaften** (`NOLOGIN` verhindert keinen
+    `SET ROLE`) und den **bisherigen Eigentuemer** der zwoelf Funktionen (010
+    gibt an den gelesenen Schemaeigentuemer zurueck - eine Wiederherstellung
+    nur, wenn die Funktionen vorher ihm gehoerten). Beides wird jetzt geprueft
+    und fuehrt zum Abbruch, bevor die erste Aenderung geschrieben ist.
+    """
+
+    ROLLBACK = MIGRATIONS / "010_bus_function_owner_rollback.sql"
+
+    @staticmethod
+    def aktiv(pfad: pathlib.Path) -> str:
+        return "\n".join(z for z in pfad.read_text(encoding="utf-8").splitlines()
+                         if not z.lstrip().startswith("--"))
+
+    # --- G-079: Mitgliedschaften ---------------------------------------------
+
+    def test_memberships_are_checked_in_both_directions_before_the_first_grant(self) -> None:
+        aktiv = self.aktiv(MIGRATION)
+        erster_grant = aktiv.index("GRANT ")
+        for marker in ("MIGRATION_009_OWNER_ROLE_HAS_MEMBERS",
+                       "MIGRATION_009_OWNER_ROLE_IS_MEMBER"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, aktiv)
+                self.assertLess(aktiv.index(marker), erster_grant,
+                                "die Pruefung muss vor dem ersten Recht stehen")
+        # Beide Richtungen von pg_auth_members: wer Mitglied der Rolle ist,
+        # und wessen Mitglied die Rolle ist.
+        self.assertIn("r.oid = am.roleid", aktiv)
+        self.assertIn("r.oid = am.member", aktiv)
+
+    def test_memberships_are_checked_not_changed(self) -> None:
+        # Gerds Korrektur verlangt: nicht stillschweigend veraendern. Ein
+        # REVOKE oder GRANT der Rolle selbst waere genau das.
+        aktiv = self.aktiv(MIGRATION)
+        self.assertNotRegex(aktiv, r"REVOKE\s+workforce_owner\s+FROM")
+        self.assertNotRegex(aktiv, r"GRANT\s+workforce_owner\s+TO")
+
+    def test_the_acceptance_test_checks_memberships_too(self) -> None:
+        aktiv = self.aktiv(ACCEPTANCE)
+        self.assertIn("ACCEPTANCE_009_OWNER_ROLE_HAS_MEMBERS", aktiv)
+        self.assertIn("ACCEPTANCE_009_OWNER_ROLE_IS_MEMBER", aktiv)
+        self.assertIn("r.oid = am.roleid", aktiv)
+        self.assertIn("r.oid = am.member", aktiv)
+
+    # --- G-078: Eigentuemer vor dem Wechsel -----------------------------------
+
+    def test_owners_are_checked_before_the_transfer(self) -> None:
+        aktiv = self.aktiv(MIGRATION)
+        transfer = aktiv.index("OWNER TO workforce_owner")
+        for marker in ("MIGRATION_009_OWNER_ANCHORS_DISAGREE",
+                       "MIGRATION_009_ANCHOR_IS_THE_TARGET_ROLE",
+                       "MIGRATION_009_PINNED_FUNCTION_FOREIGN_OWNER"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, aktiv)
+                self.assertLess(aktiv.index(marker), transfer,
+                                "die Pruefung muss vor dem Eigentumswechsel stehen")
+
+    @staticmethod
+    def anker(text: str) -> set[str]:
+        """Welche der zwei Eigentuemer-Anker eine SQL-Datei liest."""
+        gefunden = set()
+        if re.search(r"r\.oid = n\.nspowner[\s\S]{0,120}?nspname = 'workforce'", text):
+            gefunden.add("schema:workforce")
+        if re.search(r"r\.oid = c\.relowner[\s\S]{0,200}?relname = 'bus_messages'", text):
+            gefunden.add("relation:bus_messages")
+        return gefunden
+
+    def test_009_and_010_read_the_same_two_anchors(self) -> None:
+        """Sonst haette der Rueckbau ein anderes Ziel als die Vorbedingung."""
+        erwartet = {"schema:workforce", "relation:bus_messages"}
+        self.assertEqual(erwartet, self.anker(self.aktiv(MIGRATION)))
+        self.assertEqual(erwartet, self.anker(self.aktiv(self.ROLLBACK)))
+
+    def test_the_anchor_scan_would_notice_a_swapped_anchor(self) -> None:
+        # Gegenprobe: derselbe Text mit einem anderen Tabellenanker verliert
+        # den Treffer - der Vergleich oben ist also kein Vergleich leerer
+        # Mengen.
+        vertauscht = self.aktiv(MIGRATION).replace("c.relname = 'bus_messages'",
+                                                   "c.relname = 'bus_tasks'")
+        self.assertNotEqual(self.aktiv(MIGRATION), vertauscht)
+        self.assertEqual({"schema:workforce"}, self.anker(vertauscht))
+
+    def test_a_removed_precondition_would_be_caught(self) -> None:
+        # Gegenprobe fuer beide Befunde: Ohne den Marker findet die Pruefung
+        # oben nichts mehr zum Ordnen - und assertIn faellt.
+        for marker in ("MIGRATION_009_OWNER_ROLE_HAS_MEMBERS",
+                       "MIGRATION_009_PINNED_FUNCTION_FOREIGN_OWNER"):
+            with self.subTest(marker=marker):
+                ohne = self.aktiv(MIGRATION).replace(marker, "MIGRATION_009_ENTFERNT", 1)
+                self.assertNotIn(marker, ohne)
+
+
 class DerivationIsNotEmptyTest(unittest.TestCase):
     """Jede Aussage oben vergleicht zwei abgeleitete Mengen.
 

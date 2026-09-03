@@ -28,6 +28,8 @@ DO $$
 DECLARE
     v_count integer;
     v_attribute record;
+    v_mitglieder text[];
+    v_mitglied_in text[];
 BEGIN
     SELECT count(*) INTO v_count
     FROM workforce.schema_migrations
@@ -53,6 +55,34 @@ BEGIN
        OR v_attribute.rolbypassrls OR v_attribute.rolinherit
        OR v_attribute.rolreplication THEN
         RAISE EXCEPTION 'ACCEPTANCE_009_OWNER_ROLE_TOO_POWERFUL';
+    END IF;
+
+    -- Und keine Mitgliedschaft, in keiner Richtung (`G-079`). `NOLOGIN`
+    -- verhindert keinen `SET ROLE`: Ein Mitglied von `workforce_owner`
+    -- koennte die direkten Tabellenrechte des technischen Eigentuemers
+    -- ausserhalb der zwoelf Funktionen ausueben. Die Migration bricht ab,
+    -- wenn sie eine Mitgliedschaft vorfindet; dieser Test haelt fest, dass
+    -- danach auch keine hinzugekommen ist.
+    SELECT coalesce(array_agg(m.rolname ORDER BY m.rolname), '{}')
+      INTO v_mitglieder
+    FROM pg_auth_members am
+    JOIN pg_roles r ON r.oid = am.roleid
+    JOIN pg_roles m ON m.oid = am.member
+    WHERE r.rolname = 'workforce_owner';
+    IF array_length(v_mitglieder, 1) IS NOT NULL THEN
+        RAISE EXCEPTION 'ACCEPTANCE_009_OWNER_ROLE_HAS_MEMBERS: %',
+            array_to_string(v_mitglieder, ', ');
+    END IF;
+
+    SELECT coalesce(array_agg(g.rolname ORDER BY g.rolname), '{}')
+      INTO v_mitglied_in
+    FROM pg_auth_members am
+    JOIN pg_roles r ON r.oid = am.member
+    JOIN pg_roles g ON g.oid = am.roleid
+    WHERE r.rolname = 'workforce_owner';
+    IF array_length(v_mitglied_in, 1) IS NOT NULL THEN
+        RAISE EXCEPTION 'ACCEPTANCE_009_OWNER_ROLE_IS_MEMBER: %',
+            array_to_string(v_mitglied_in, ', ');
     END IF;
 END;
 $$;
