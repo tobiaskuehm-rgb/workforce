@@ -2963,6 +2963,39 @@ niemand prüft, wäre der schlechtere Tausch. Im Kopf steht jetzt, dass es keine
 gibt, wie einer aussehen müsste — additiv, mit `DROP OWNED BY` — und **dass
 `009` ohne ihn nicht freigabereif ist**.
 
+### Nachtrag 2026-09-03: der Rückbau ist geschrieben
+
+`postgres-init/010_bus_function_owner_rollback.sql`, gegatet über
+`APPLY_MIGRATION_010_FUNCTION_OWNER_ROLLBACK`, mit Abnahmetest daneben und
+eigenem Wächter in `test_bus_function_owner_rollback.py`.
+
+**In einem Punkt bin ich von meiner eigenen Antwort oben abgewichen: kein
+`DROP OWNED BY`.** Der Befehl löscht *Objekte*, nicht nur Rechte, und sein
+Umfang hängt davon ab, was der Rolle in dem Moment gehört, in dem er läuft. Ein
+löschendes Verb, dessen Wirkung aus dem Laufzeitzustand kommt, gehört nicht in
+eine Migration dieses Projekts (Leitplanken 1 und 2). Die Rolle bleibt deshalb
+stehen — `NOLOGIN`, ohne ein einziges Recht, ohne ein einziges Objekt — und
+`009` ist ausdrücklich darauf gebaut, eine vorhandene Rolle vorzufinden.
+
+**Ob `DROP ROLE` danach durchginge, steht bewusst nicht da.** `pg_shdepend` ist
+clusterweit, die Migration sieht nur ihre eigene Datenbank; ein Recht in einer
+anderen Datenbank desselben Clusters blockierte den `DROP` weiter, ohne dass
+irgendeine Prüfung hier davon wüsste. Das ist genau die Fehlerklasse aus
+`G-043`, und eine unbelegte Verhaltensaussage im Kopf einer Migration wäre der
+Fehler gewesen, gegen den dieser Befund gerichtet war.
+
+**Der Verweis ist maschinenlesbar, nicht Prosa** (Regel 50). `009` trägt
+`-- RUECKBAU: 010_bus_function_owner_rollback.sql`, `010` trägt
+`-- ROLLBACK-FUER: 009_bus_function_owner.sql`, und der Test löst beide auf. Ein
+Sprachvergleich hätte hier nichts genützt: Der alte Absatz sagte „Rückbau …
+gibt es nicht", der neue sagt „Rückbau ist eine Datei" — dasselbe Wort,
+das Gegenteil gemeint (`G-054`).
+
+**Was das offenlässt:** `010` ist auf keiner Instanz gelaufen, auch nicht im
+Wegwerf-Container. Geprüft ist die Struktur und die Übereinstimmung mit `009`.
+`009` bleibt damit nicht freigabereif — der Grund heißt jetzt „kein Review"
+statt „kein Rückbau".
+
 ## `SV-...-05` — `production_state.txt` pinnte einen überholten Commit
 
 **Bestätigt, und auf der NAS nachgemessen:** `RESULT: FAIL` gegen `672e0a7`,

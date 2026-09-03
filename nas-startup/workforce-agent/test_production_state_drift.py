@@ -39,7 +39,14 @@ STATE = NAS / "production_state.txt"
 # Datei -> Begruendung. Leer heisst: der Quellstand im Repo ist genau der, den
 # `PRODUCTION_COMMIT` nennt. Ein Eintrag gehoert hierher, sobald eine
 # Produktionsdatei im Repo geaendert, aber noch nicht deployt ist.
-ABWEICHUNGEN: dict[str, str] = {}
+ABWEICHUNGEN: dict[str, str] = {
+    "compose.yaml":
+        "2026-09-03: traegt den gegateten Block "
+        "APPLY_MIGRATION_010_FUNCTION_OWNER_ROLLBACK (SV-2026-09-03-04). Der Wert "
+        "ist \"false\", die Datei ist auf der NAS noch die alte - ein Deploy "
+        "braucht die Freigabe des Nutzers im Chat. Nach dem Deploy: "
+        "PRODUCTION_COMMIT ziehen und diesen Eintrag entfernen.",
+}
 
 
 def produktionsstand() -> tuple[str, list[str]]:
@@ -51,14 +58,23 @@ def produktionsstand() -> tuple[str, list[str]]:
 
 
 def abweichende_dateien(commit: str, dateien: list[str]) -> list[str]:
-    """Welche der genannten Dateien unterscheiden sich zwischen commit und HEAD?
+    """Welche der genannten Dateien unterscheiden sich vom benannten Commit?
 
     Ueber `git diff --name-only`, damit der Vergleich byteweise ist und nicht
     an einer Heuristik haengt.
+
+    **Verglichen wird gegen den Arbeitsbaum, nicht gegen `HEAD`.** Die erste
+    Fassung schrieb `{commit}..HEAD` und sah eine Aenderung erst, nachdem sie
+    committet war - der Wecker klingelte also fruehestens einen Commit zu
+    spaet. Aufgefallen ist das beim Eintragen der naechsten echten Abweichung:
+    Die Begruendung stand in der Liste, `git` sah nichts, und der Test wurde
+    ausgerechnet dafuer rot, dass jemand ehrlich war. Ohne das `..HEAD` nimmt
+    `git diff` den Arbeitsbaum mit, also auch das, was gerade geschrieben und
+    noch nicht committet wurde.
     """
     pfade = [f"nas-startup/{datei}" for datei in dateien]
     ergebnis = subprocess.run(
-        ["git", "diff", "--name-only", f"{commit}..HEAD", "--", *pfade],
+        ["git", "diff", "--name-only", commit, "--", *pfade],
         cwd=ROOT, capture_output=True, text=True, check=True)
     praefix = "nas-startup/"
     return sorted(zeile[len(praefix):] if zeile.startswith(praefix) else zeile
@@ -121,6 +137,35 @@ class DriftIsActuallyDetectedTest(unittest.TestCase):
         self.assertEqual([], abweichende_dateien("672e0a7", ["workforce-api/app.py"]))
         self.assertEqual(["compose.yaml"],
                          abweichende_dateien("672e0a7", ["compose.yaml"]))
+
+    def test_an_uncommitted_change_is_seen(self) -> None:
+        """Die Eigenschaft, die das `..HEAD` gekostet hat - gemessen, nicht behauptet.
+
+        Geprueft wird an dieser Testdatei selbst: verfolgt, harmlos und im
+        `finally` byteweise wiederhergestellt. Ein Vergleich gegen `HEAD`
+        wuerde hier leer bleiben, ein Vergleich gegen den Arbeitsbaum nicht.
+        """
+        eigene = pathlib.Path(__file__).resolve()
+        relativ = eigene.relative_to(ROOT).as_posix()
+        vorher = eigene.read_bytes()
+        try:
+            eigene.write_bytes(vorher + b"\n# temporaer, siehe test_an_uncommitted_change_is_seen\n")
+            # Die Bereichsform sieht den Arbeitsbaum nicht - sie vergleicht
+            # zwei Commits. Genau das war die alte Fassung.
+            self.assertEqual([], self._git_diff("HEAD..HEAD", relativ))
+            # Die verwendete Form sieht ihn.
+            self.assertEqual([relativ], self._git_diff("HEAD", relativ))
+        finally:
+            eigene.write_bytes(vorher)
+        self.assertEqual(vorher, eigene.read_bytes(),
+                         "die Datei wurde nicht byteweise zurueckgeschrieben")
+
+    @staticmethod
+    def _git_diff(commit: str, pfad: str) -> list[str]:
+        ergebnis = subprocess.run(
+            ["git", "diff", "--name-only", commit, "--", pfad],
+            cwd=ROOT, capture_output=True, text=True, check=True)
+        return [z for z in ergebnis.stdout.split("\n") if z.strip()]
 
 
 if __name__ == "__main__":

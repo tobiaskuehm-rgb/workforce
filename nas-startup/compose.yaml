@@ -59,6 +59,11 @@ services:
       # Fenster, eigene Freigabe - ein Fehlgriff bei den Rechten legt den Bus
       # still. Bleibt zu, bis diese Entscheidung getroffen ist.
       APPLY_MIGRATION_009_FUNCTION_OWNER: "false"
+      # SV-2026-09-03-04: der benannte Rueckbau zu 009. Gehoert in dasselbe
+      # Fenster wie 009 - aber als eigener Aufruf, damit ein Rueckbau eine
+      # Entscheidung bleibt und keine Nebenwirkung. Ohne angewendetes 009
+      # bricht die Migration von selbst ab.
+      APPLY_MIGRATION_010_FUNCTION_OWNER_ROLLBACK: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -179,6 +184,18 @@ services:
           echo "Bus function owner already applied."
         else
           echo "Unexpected bus function owner marker count; refusing to continue."
+          exit 1
+        fi
+        function_owner_rollback_count="$$(psql -tAc "SELECT count(*) FROM workforce.schema_migrations WHERE migration_id = '010_bus_function_owner_rollback'")"
+        if [ "$$function_owner_rollback_count" = "0" ] && [ "$${APPLY_MIGRATION_010_FUNCTION_OWNER_ROLLBACK:-false}" != "true" ]; then
+          echo "Bus function owner rollback NOT applied: gate closed (APPLY_MIGRATION_010_FUNCTION_OWNER_ROLLBACK is not true)."
+        elif [ "$$function_owner_rollback_count" = "0" ]; then
+          psql -v ON_ERROR_STOP=1 -f /opt/startup/migrations/010_bus_function_owner_rollback.sql
+          echo "Bus function owner rollback applied."
+        elif [ "$$function_owner_rollback_count" = "1" ]; then
+          echo "Bus function owner rollback already applied."
+        else
+          echo "Unexpected bus function owner rollback marker count; refusing to continue."
           exit 1
         fi
     volumes:

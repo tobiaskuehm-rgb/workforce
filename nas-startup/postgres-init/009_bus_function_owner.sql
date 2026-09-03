@@ -50,23 +50,38 @@
 -- und braucht ein eigenes Fenster mit eigener Freigabe. Ein Fehlgriff bei den
 -- Rechten legt den Bus still - deshalb der Abnahmetest daneben.
 --
--- **Einen vorbereiteten Rueckbau gibt es nicht, und das steht hier, statt
--- behauptet zu werden.** Eine fruehere Fassung dieses Absatzes nannte den
--- "Rueckbau als Teil derselben Entscheidung"; im Repo existiert keiner - keine
--- Migration `010`, kein Runbook-Abschnitt, kein Nachweis (Vertretungsreview,
--- `SV-2026-09-03-04`). Das ist Leitplanke 7 an der Stelle, an der sie operativ
--- wird: Der Satz stand in dem Absatz, den man liest, waehrend man ueber die
--- Freigabe entscheidet.
+-- **Der Rueckbau ist eine Datei mit Namen, und ihr Name steht maschinenlesbar
+-- hier:**
 --
--- Trivial waere der Rueckbau auch nicht: Eigentumswechsel fuer zwoelf
--- Funktionen, danach die Frage, was mit Rolle und Rechten geschieht - und
--- `DROP ROLE` scheitert an jeder erteilten Berechtigung, was dieses Projekt in
--- `G-043` schon einmal bezahlt hat. Er gehoert als **additive** Migration
--- `010` geschrieben, mit `DROP OWNED BY` vor jedem Versuch, die Rolle zu
--- entfernen, oder mit der bewussten Entscheidung, sie stehen zu lassen.
+-- RUECKBAU: 010_bus_function_owner_rollback.sql
 --
--- **Solange das fehlt, ist 009 nicht freigabereif** - unabhaengig davon, wie
--- gut ihr SQL inzwischen ist.
+-- Eine fruehere Fassung dieses Absatzes nannte den "Rueckbau als Teil
+-- derselben Entscheidung", ohne dass es ihn gab - keine Migration `010`, kein
+-- Runbook-Abschnitt, kein Nachweis (Vertretungsreview, `SV-2026-09-03-04`).
+-- Das war Leitplanke 7 an ihrer operativen Stelle: Der Satz stand in dem
+-- Absatz, den man liest, waehrend man ueber die Freigabe entscheidet. Die
+-- Zeile oben ist deshalb kein Prosaverweis: `test_bus_function_owner_rollback`
+-- liest sie und faellt durch, wenn die genannte Datei fehlt. Prosa darf
+-- formulieren, die Zusicherung steht daneben (`G-054`).
+--
+-- `010` gibt das Eigentum an den **gelesenen** Eigentuemer des Schemas zurueck
+-- und nimmt `workforce_owner` jedes Recht. Die Rolle selbst bleibt bewusst
+-- stehen: `DROP OWNED BY` loescht Objekte und nicht nur Rechte, und
+-- `DROP ROLE` scheitert an jeder erteilten Berechtigung - was dieses Projekt in
+-- `G-043` schon einmal bezahlt hat. Eine `NOLOGIN`-Rolle ohne ein einziges
+-- Recht und ohne ein einziges Objekt ist wirkungslos; der sicherheitsrelevante
+-- Teil ist der Eigentumswechsel.
+--
+-- **Ein zweiter Anlauf waere `011`, kein erneutes `009`.** Der Marker bleibt
+-- nach dem Rueckbau stehen - geloescht wird in dieser Datenbank nichts -, also
+-- meldet das Gate danach dauerhaft "already applied". Das ist die Regel dieses
+-- Projekts und kein Schaden: Eine angewendete Migration wird nie wieder
+-- bearbeitet.
+--
+-- **Freigabereif ist 009 damit noch nicht.** Was fehlte, war der Rueckbau; was
+-- weiter fehlt, ist ein Review - `010` ist bis heute (2026-09-03) auf keiner
+-- Instanz gelaufen, und die Korrekturen an beiden Dateien hat ausser der
+-- Vertretung niemand gelesen.
 
 BEGIN;
 

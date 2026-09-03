@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-03, 08:10 — von Claude Code.
+**Zuletzt aktualisiert:** 2026-09-03, 10:40 — von Claude Code.
 **Übergabe an:** die **Vertretung**. Gerd ist bis zum 2026-09-07 nicht
 verfügbar; danach ist ein großes Review geplant.
 
@@ -66,11 +66,19 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
 
 ## Was offen ist
 
-- **`SV-2026-09-03-04` bleibt offen und hält `009` zu.** Der Migrationskopf
-  verspricht einen Rückbau, den es nicht gibt: Es existiert keine Migration
-  `010`, und `DROP ROLE` scheitert an jeder erteilten Berechtigung (`G-043`).
-  **Eine Migration, die den Bus stilllegen kann, wird nicht ohne benannten
-  Rückbau angewendet.** Der `PASS` der Probe ändert daran nichts.
+- **`SV-2026-09-03-04` ist geschlossen: der Rückbau existiert.**
+  `postgres-init/010_bus_function_owner_rollback.sql`, gegatet über
+  `APPLY_MIGRATION_010_FUNCTION_OWNER_ROLLBACK`, mit Abnahmetest daneben.
+  Er gibt das Eigentum an den **gelesenen** Schemaeigentümer zurück, nimmt
+  `workforce_owner` jedes Recht und **löscht nichts** — kein `DROP OWNED BY`,
+  kein `DROP ROLE`. Die Begründung steht in `REVIEW_ANTWORTEN.md` und als
+  Regel 50; sie weicht von meiner eigenen ersten Antwort ab.
+- **Freigabereif ist `009` trotzdem nicht — der Grund heißt jetzt anders.**
+  Vorher fehlte der Rückbau, jetzt fehlt das Review: `010` ist auf **keiner**
+  Instanz gelaufen, auch nicht im Wegwerf-Container, und beide Dateien hat
+  außer der Vertretung niemand gelesen. Geprüft ist die Struktur
+  (`test_sql_structure.py`) und die Übereinstimmung mit `009`
+  (`test_bus_function_owner_rollback.py`).
 - **Migration `009` ist gegatet und nicht angewendet.** Produktion: Migrationen
   `001`–`003` und `005`–`007`, Kanal `DISABLED`, 0 aktive Credentials,
   `workforce_owner` existiert nicht.
@@ -84,9 +92,13 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
 
 ## Stand
 
-- Commit `86491b0`, gepusht und deployt — auf `86491b0` 232 Dateien, davon 0 fehlend, 0 abweichend, 0 unerwartet.
+- Zuletzt gepusht und deployt ist `e38b3d7` — auf `e38b3d7` 232 Dateien, davon 0 fehlend, 0 abweichend, 0 unerwartet.
   `check_unmanaged` `PASS`.
-- **669 lokale Tests `PASS`** (583 / 15 / 44 / 27), auf `python3` 3.9.6 des
+- **Danach nur lokal:** `bf63b7d`, `d7ff322` und die Arbeit an `010`. Push und
+  Deploy brauchen die Freigabe des Nutzers im Chat; `compose.yaml` weicht
+  deshalb vom benannten Produktionsstand ab und steht mit Begründung in der
+  Ausnahmeliste von `test_production_state_drift.py`.
+- **700 lokale Tests `PASS`** (614 / 15 / 44 / 27), auf `python3` 3.9.6 des
   Projektrechners.
 - **Nicht gelaufen und nicht behauptet:** die API-Suite (braucht den Container),
   jedes SQL gegen einen echten PostgreSQL-Parser außerhalb des Probe-Containers.
@@ -99,11 +111,15 @@ gehören dazu.
 
 ## Vorschlag für den nächsten Schritt
 
-Migration `010` als benannter Rückbau zu `009`, gegatet wie `009` selbst und
-additiv: `REVOKE` der Allowlist, Eigentumsrückgabe der zwölf Funktionen an
-`workforce_app`, `DROP OWNED BY` vor `DROP ROLE`. Damit fiele `SV-...-04`, und
-`009` wäre erstmals entscheidungsreif. Ich habe sie bewusst **nicht**
-geschrieben, solange niemand prüft — das wäre nur mehr ungeprüfte SQL.
+Ein Lauf von `009` **und** `010` hintereinander im Wegwerf-Container, als
+Erweiterung von `g045_owner_probe.py`: erst der Eigentumswechsel, dann ein
+`bus_send_message` als `workforce_api`, dann der Rückbau, dann derselbe Aufruf
+noch einmal. Das ist die Aussage, auf die es im Fenster ankommt — **der Bus
+läuft vor und nach dem Rückbau** —, und sie ist heute nirgends gemessen. Der
+Lauf berührt die Produktion nicht.
+
+Ich habe ihn **nicht** gemacht: Ein Probelauf braucht eine Freigabe im Chat,
+und die vom 2026-09-02/03 galt der Probe in ihrer damaligen Form.
 
 ## Wie die Zusammenarbeit läuft
 
