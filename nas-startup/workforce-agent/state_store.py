@@ -184,6 +184,28 @@ class AgentStateStore:
             (now, message_id),
         )
 
+    def release_untouched(self, message_id: str) -> bool:
+        """Give a claim back without charging an attempt (review finding G-082).
+
+        For the one case in which a run stops *after* claiming and *before*
+        anything durable happened: the provider budget could not be reserved.
+        No model was asked, no reply exists, so there is nothing to protect
+        and nothing the message did wrong - holding the claim would make the
+        next run report it as a duplicate for the length of the lease, and
+        every expired lease would cost it an attempt it never used.
+
+        One statement, hence atomic; guarded on the state so it can never
+        touch a REPLIED or DONE row. Returns whether a row was released.
+        """
+        now = self.clock()
+        cursor = self._connection.execute(
+            "UPDATE message_state SET claimed_at = 0, attempts = attempts - 1, "
+            "updated_at = ? WHERE message_id = ? AND state = 'IN_PROGRESS' "
+            "AND reply_message_id IS NULL AND attempts > 0",
+            (now, message_id),
+        )
+        return cursor.rowcount == 1
+
     def record_failure(self, message_id: str, detail: str) -> None:
         """Leave the message claimable again, with the reason recorded."""
         now = self.clock()

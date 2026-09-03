@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pathlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -77,6 +78,61 @@ class StoreTest(unittest.TestCase):
         claim = self.store.claim("MSG-1")
         self.assertIsNotNone(claim, "a failed attempt must not block the retry")
         self.assertEqual(2, claim.attempts)
+
+
+class ReleaseUntouchedTest(unittest.TestCase):
+    """`G-082`: ein Claim ohne dauerhafte Wirkung geht zurueck, ohne Versuch."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        # Eine echte Epoche: `claimed_at = 0` heisst "abgelaufen", und das gilt
+        # nur, wenn die Uhr weiter als eine Lease vom Nullpunkt entfernt ist -
+        # wie time.time() es immer ist.
+        self.now = 1_700_000_000.0
+        self.store = state_store.AgentStateStore(
+            pathlib.Path(self.tmp.name) / "s.sqlite3", clock=lambda: self.now)
+
+    def test_a_released_claim_is_taken_again_at_once_without_an_attempt(self):
+        erster = self.store.claim("MSG-1")
+        self.assertEqual(1, erster.attempts)
+        self.assertTrue(self.store.release_untouched("MSG-1"))
+        self.now += 5   # weit innerhalb der Lease - und trotzdem frei
+        zweiter = self.store.claim("MSG-1")
+        self.assertIsNotNone(zweiter, "innerhalb der Lease waere er sonst gesperrt")
+        self.assertEqual("IN_PROGRESS", zweiter.state)
+        self.assertEqual(1, zweiter.attempts, "die Freigabe hat keinen Versuch gekostet")
+
+    def test_a_replied_message_is_never_released(self):
+        # Die Garantie aus G-001/G-013 bleibt: Wo eine Antwort auf dem Bus ist,
+        # wird nichts zurueckgegeben.
+        self.store.claim("MSG-2")
+        self.store.record_reply("MSG-2", "MSG-REPLY")
+        self.assertFalse(self.store.release_untouched("MSG-2"))
+        self.assertEqual("REPLIED", self.store.claim("MSG-2").state)
+
+    def test_a_finished_message_is_never_released(self):
+        self.store.claim("MSG-3")
+        self.store.record_reply("MSG-3", "MSG-REPLY")
+        self.store.record_done("MSG-3")
+        self.assertFalse(self.store.release_untouched("MSG-3"))
+        self.assertIsNone(self.store.claim("MSG-3"))
+
+    def test_a_second_release_does_nothing(self):
+        # attempts > 0 ist der Waechter: zweimal freigeben zaehlt nicht negativ.
+        self.store.claim("MSG-4")
+        self.assertTrue(self.store.release_untouched("MSG-4"))
+        self.assertFalse(self.store.release_untouched("MSG-4"))
+        self.assertEqual(1, self.store.claim("MSG-4").attempts)
+
+    def test_the_old_behaviour_would_have_cost_an_attempt(self):
+        # Die Gegenprobe zum Befund: ohne Freigabe ist die Nachricht innerhalb
+        # der Lease gesperrt und danach einen Versuch aermer.
+        self.store.claim("MSG-5")
+        self.now += 5
+        self.assertIsNone(self.store.claim("MSG-5"), "gesperrt - so war es vorher")
+        self.now += state_store.DEFAULT_LEASE_SECONDS
+        self.assertEqual(2, self.store.claim("MSG-5").attempts)
 
 
 class CrashRecoveryTest(unittest.TestCase):

@@ -321,6 +321,18 @@ def handle_message(
                     except budget_module.BudgetExhausted as stop:
                         log("provider_blocked_by_budget", message_id=message_id,
                             limit=stop.limit_name, ceiling=stop.ceiling)
+                        # Nothing durable happened: no model was asked, no
+                        # reply exists. Holding the claim here made the next
+                        # run report the message as a duplicate for the length
+                        # of the lease, and every expired lease cost it an
+                        # attempt it never used (review finding G-082). This
+                        # is the opposite of G-013, where the claim is kept
+                        # *because* something durable exists. Given back
+                        # atomically and without charging an attempt; the
+                        # message stays DELIVERED on the bus either way.
+                        if state is not None:
+                            log("claim_released_untouched", message_id=message_id,
+                                released=state.release_untouched(message_id))
                         raise
                 # Der Versuch zaehlt, bevor er gemacht wird - genauso wie im
                 # Budget, und aus demselben Grund (G-004).

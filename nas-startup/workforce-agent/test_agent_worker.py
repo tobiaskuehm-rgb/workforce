@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import pathlib
 import unittest
 
 import agent_worker
+import budget
 import bus_client
 import data_boundary
 import providers
+import state_store
 
 
 class FakeBus:
@@ -521,3 +524,56 @@ class TaskReferenceOnReplyTest(unittest.TestCase):
             message(task_ref="ENG-CHAIN-002"), policy="BODY",
         )
         self.assertEqual("ENG-CHAIN-002", bus.sent[0]["task_ref"])
+
+
+class BudgetStopBeforeTheProviderTest(unittest.TestCase):
+    """`G-082`: Ein Budgetstopp nach dem Claim und vor dem Aufruf gibt den Claim zurueck.
+
+    Gemessen in der Gesamtpruefung vom 2026-09-03: `check_message()` liess die
+    Nachricht durch, `reserve_provider_call()` scheiterte an der Tokendecke,
+    und der Claim blieb stehen - der naechste Lauf meldete ALREADY_HANDLED,
+    der uebernaechste zaehlte einen Versuch. Nichts davon hatte die Nachricht
+    verdient: kein Aufruf, keine Antwort.
+    """
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.pfad = pathlib.Path(self.tmp.name) / "s.sqlite3"
+
+    def _lauf(self, *, clock, max_tokens):
+        store = state_store.AgentStateStore(self.pfad, clock=clock)
+        bus, provider = FakeBus(), ScriptedProvider()
+        haushalt = budget.Budget(max_tokens=max_tokens)
+        return store, bus, provider, haushalt
+
+    def test_the_claim_is_given_back_and_no_attempt_is_charged(self):
+        store, bus, provider, haushalt = self._lauf(clock=lambda: 1_700_000_000.0, max_tokens=3000)
+        with self.assertRaises(budget.BudgetExhausted):
+            agent_worker.handle_message(bus, provider, message(), policy="BODY",
+                                        budget=haushalt, state=store)
+        self.assertEqual([], provider.seen, "kein Aufruf")
+        self.assertEqual([], bus.sent, "keine Antwort")
+        self.assertEqual([], bus.acks, "keine Bestaetigung - die Nachricht bleibt DELIVERED")
+
+        # Der naechste Lauf, fuenf Minuten spaeter, mit frischem Budget:
+        store2, bus2, provider2, frisch = self._lauf(clock=lambda: 1_700_000_300.0, max_tokens=200_000)
+        ergebnis = agent_worker.handle_message(bus2, provider2, message(), policy="BODY",
+                                               budget=frisch, state=store2)
+        self.assertEqual("ANSWERED", ergebnis["result"])
+        self.assertEqual(1, len(provider2.seen))
+        self.assertEqual([{"message_id": message()["message_id"], "state": "DONE",
+                           "attempts": 1, "reply_message_id": "MSG-REPLY-1",
+                           "last_detail": None}], store2.snapshot(),
+                         "genau ein Versuch - der Budgetstopp hat keinen gekostet")
+
+    def test_a_stop_in_the_pre_claim_check_touches_nothing(self):
+        # Die andere Stelle: check_message() vor dem Claim. Dort gibt es nichts
+        # zurueckzugeben, und es darf auch keine Zeile entstehen.
+        store, bus, provider, haushalt = self._lauf(clock=lambda: 1_700_000_000.0, max_tokens=200_000)
+        haushalt.messages_handled = haushalt.max_messages
+        with self.assertRaises(budget.BudgetExhausted):
+            agent_worker.handle_message(bus, provider, message(), policy="BODY",
+                                        budget=haushalt, state=store)
+        self.assertEqual([], store.snapshot())
