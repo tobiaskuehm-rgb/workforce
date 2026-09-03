@@ -10,7 +10,9 @@ unten unter „Leseweg für Gerd".
 **Aktive Arbeit (2026-09-03, nachmittags):** Claude Code (Fable 5.1) arbeitet
 Gerds verbindlichen nächsten Schritt aus `b7c593b` ab — zuerst `G-080`/`G-081`,
 dann die Gesamtprüfung des aktiven Release-Kandidaten in drei Pässen. **Kein
-Integrationslauf.**
+Integrationslauf.** `G-080`/`G-081` sind behoben; **Prüfstand ist `557df50`**
+— während der Gesamtprüfung werden keine Korrekturen und keine Funktionen
+eingemischt, nur das Ergebnis geschrieben.
 
 Davor: Gerds siebzehnter Zielnachcheck (`b3deb78`,
 `G-077` bis `G-079`) ist abgearbeitet — alle drei bestätigt und behoben,
@@ -156,7 +158,7 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
   Berechtigungsprüfung des Werkzeugs abgewiesen wurde. `compose.yaml` weicht bis dahin vom benannten
   Produktionsstand ab und steht mit Begründung in der Ausnahmeliste von
   `test_production_state_drift.py`.
-- **722 lokale Tests `PASS`** (636 / 15 / 44 / 27), auf `python3` 3.9.6 des
+- **731 lokale Tests `PASS`** (645 / 15 / 44 / 27), auf `python3` 3.9.6 des
   Projektrechners.
 - **Nicht gelaufen und nicht behauptet:** die API-Suite (braucht den Container),
   jedes SQL gegen einen echten PostgreSQL-Parser außerhalb des Probe-Containers.
