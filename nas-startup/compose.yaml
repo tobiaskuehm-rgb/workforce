@@ -73,6 +73,17 @@ services:
         : "$${POSTGRES_USER:?startup.env lacks POSTGRES_USER}"
         : "$${POSTGRES_DB:?startup.env lacks POSTGRES_DB}"
         : "$${POSTGRES_PASSWORD:?startup.env lacks POSTGRES_PASSWORD}"
+        # G-077: a migration and its rollback never run in the same call. The
+        # runner walks the gates in order, so with 009 and 010 both open it
+        # would apply 009 and undo it a few lines later - leaving both markers
+        # behind, and a later correct 009 skipped as "already applied" (a new
+        # number would be the only way out). Decided before any marker is
+        # read, fail closed.
+        if [ "$${APPLY_MIGRATION_009_FUNCTION_OWNER:-false}" = "true" ] \
+           && [ "$${APPLY_MIGRATION_010_FUNCTION_OWNER_ROLLBACK:-false}" = "true" ]; then
+          echo "Gates 009 and 010 are both open; a migration and its rollback never run in one call. Refusing to continue."
+          exit 1
+        fi
         export PGHOST="db"
         export PGUSER="$$POSTGRES_USER"
         export PGDATABASE="$$POSTGRES_DB"

@@ -302,6 +302,49 @@ class GateTest(unittest.TestCase):
         self.assertNotEqual(GATE, "APPLY_MIGRATION_009_FUNCTION_OWNER")
         self.assertIn('APPLY_MIGRATION_009_FUNCTION_OWNER: "false"', self.compose)
 
+    # --- G-077: beide Gates zugleich offen ------------------------------------
+    #
+    # Der Runner geht die Gates der Reihe nach durch. Stehen 009 und 010
+    # beide auf "true", wendet derselbe Aufruf 009 an und baut es ein paar
+    # Zeilen spaeter zurueck - beide Marker bleiben stehen, und ein spaeteres
+    # korrektes 009 wird als "already applied" uebersprungen. Das widerspricht
+    # dem Kommentar "als eigener Aufruf". Der Ausschluss steht deshalb vor dem
+    # ersten Datenbankzugriff und ist fail-closed.
+
+    AUSSCHLUSS = re.compile(
+        r'if \[ "\$\$\{APPLY_MIGRATION_009_FUNCTION_OWNER:-false\}" = "true" \]'
+        r'[\s\S]{0,120}?'
+        r'\[ "\$\$\{APPLY_MIGRATION_010_FUNCTION_OWNER_ROLLBACK:-false\}" = "true" \]'
+        r'[\s\S]{0,400}?exit 1')
+
+    @classmethod
+    def ausschluss_vor_dem_ersten_zugriff(cls, compose: str) -> bool:
+        """Wird 009+010 zugleich abgelehnt, bevor psql zum ersten Mal laeuft?"""
+        erster_zugriff = compose.find("psql ")
+        kopf = compose if erster_zugriff < 0 else compose[:erster_zugriff]
+        return cls.AUSSCHLUSS.search(kopf) is not None
+
+    def test_both_gates_open_at_once_is_refused_before_any_database_access(self) -> None:
+        self.assertTrue(self.ausschluss_vor_dem_ersten_zugriff(self.compose))
+
+    def test_a_runner_without_the_exclusion_would_be_caught(self) -> None:
+        ohne = re.sub(r"\n[ \t]*# G-077[\s\S]*?exit 1\n[ \t]*fi\n", "\n", self.compose, count=1)
+        self.assertNotEqual(self.compose, ohne, "der Block wurde nicht gefunden - Gegenprobe leer")
+        self.assertFalse(self.ausschluss_vor_dem_ersten_zugriff(ohne))
+
+    def test_an_exclusion_after_the_first_access_would_not_count(self) -> None:
+        # Ein Abbruch, der erst nach der Markerabfrage kommt, schuetzt den
+        # Marker nicht mehr. Der Scan sieht nur den Kopf vor dem ersten psql.
+        block = self.AUSSCHLUSS.search(self.compose).group(0)
+        verschoben = re.sub(r"\n[ \t]*# G-077[\s\S]*?exit 1\n[ \t]*fi\n", "\n", self.compose, count=1)
+        verschoben = verschoben.rstrip() + "\n        " + block + "\n"
+        self.assertFalse(self.ausschluss_vor_dem_ersten_zugriff(verschoben))
+
+    def test_the_single_gates_are_unchanged(self) -> None:
+        # Die Einzelgates bleiben, und sie bleiben zu (Gerds Korrektur).
+        self.assertIn('APPLY_MIGRATION_009_FUNCTION_OWNER: "false"', self.compose)
+        self.assertIn(f'{GATE}: "false"', self.compose)
+
 
 if __name__ == "__main__":
     unittest.main()
