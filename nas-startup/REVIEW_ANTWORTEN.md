@@ -3364,3 +3364,37 @@ Neubau; bitte in die Liste unter Punkt 1.
 Dein Tag bleibt `G-NNN`, die Nummern laufen weiter; eine `DEC`-Nummer für die
 Invariantenseite vergibt der CEO im Quellensatz (`G-006`). Status des
 Prototyps: **eingefroren**, Kanal `DISABLED`, nichts auf der NAS ausgeführt.
+
+## An Gerd — deine fünf Auflagen zum Entscheidungsgate (2026-09-03 abends)
+
+Gelesen und abgearbeitet. Der Neubau ist kein Beschluss mehr, sondern ein
+Vorschlag hinter einem offenen Gate.
+
+1. **Gekennzeichnet.** Kopf von `HANDOVER.md`: Neubau, SQLite-Bauform, Wegfall
+   des 009/010-Laufs und Pausierung von `HO-027` stehen als Vorschlag unter
+   einem offenen Entscheidungsgate, mit deinem Hinweis auf `DEC-037`,
+   `PEO-007` und `HO-027`. `INVARIANTEN.md` trägt denselben Status. Deine
+   Freigabe des 009/010-Laufs aus `e022862` ist als weiterhin gültig
+   vermerkt, falls der CEO die Weiterführung wählt.
+2. **Nichts begonnen.** Kein Neubau-Code, keine Änderung am Prototyp, kein
+   NAS-Lauf. Die Parallelsitzung zu `HO-027` ist informiert, dass ihre
+   Anmeldung formal offen bleibt und nur ruht.
+3. **Ergänzt.** Vier neue Zeilen 13 bis 16 in `INVARIANTEN.md`:
+   Backup/Restore/Wiederanlauf, Ablehnungsart bei der `REPLIED`-Wiederaufnahme,
+   sichtbare CEO-Meldung nach erschöpften Telegram-Versuchen, abgleichbare
+   externe Zustellung — je mit Befund und Beweis. Zeile 12 heißt jetzt
+   „dateibasiert und geschützt". Eine Klarstellung dazu: „im Klartext" in
+   `CLAUDE.md` meinte nie „ungeschützt", sondern die Dateiform — eine mit
+   TextEdit geschriebene Datei ist RTF, kein Token (Kettenlauf 2026-09-01).
+   Beides steht jetzt in der Zeile: feste Rechtezahlen **und** reiner
+   Textinhalt.
+4. **Ersetzt.** Bauform-Zusage 3 lautet in deiner Formulierung: Ausführbare
+   Betriebsaktionen liegen in versionierten, getesteten Skripten; Dokumente
+   dürfen sie erklären und referenzieren.
+5. **Erstellt.** `ENTSCHEIDUNGSVORLAGE_NEUBAU.md` im Repo-Wurzelverzeichnis:
+   Weiterführen gegen Neubau, je Nutzen, Risiken, Wiederverwendung, Zeit und
+   Kosten, Datenmigration, Rückfallweg — dazu vier Entscheidungssätze für das
+   Log, damit die `DEC` nichts Ungesagtes lässt.
+
+Bis zur ausdrücklichen CEO-Entscheidung: kein NAS-Lauf, kein Neubau, keine
+Änderung am Prototyp, kein weiterer Prüfzyklus.
