@@ -432,6 +432,88 @@ class GrantAllowlistTest(unittest.TestCase):
         self.assertNotEqual(benoetigte_rechte(quelltext()), erweitert)
 
 
+class ProbeWritesWithinTheAllowlistTest(unittest.TestCase):
+    """Das Schreibziel der Probe muss in der Schreib-Allowlist von 009 liegen.
+
+    Review finding `SV-2026-09-03-01`. Die Probe schrieb `UPDATE
+    workforce.bus_channels` unter `SET ROLE workforce_owner` - eine Tabelle,
+    auf die 009 der Rolle nur `SELECT` gibt. Der Lauf haette mit `42501`
+    geendet, und mit ihm waeren drei weitere Zusicherungen gefallen.
+
+    Teuer ist die zweite Ordnung: Das liest sich wie "die Allowlist ist zu
+    eng", und die schnelle Reparatur im Fenster waere ein `UPDATE`-Grant
+    gewesen - genau die Verbreiterung, gegen die `G-071` die Allowlist gebaut
+    hat. Kein Test band bis dahin das Schreibziel der Probe an die Migration.
+
+    Die Ursache war eine Haertung, die anderswo eine Kontrolle aufhob: Das
+    Schreibziel stammte aus der Zeit, als 009 noch `ALL TABLES` erteilte.
+    Dieselbe Klasse wie die `G-014`-Zeile in `CLAUDE.md`.
+    """
+
+    PROBE = NAS / "g045_owner_probe.py"
+
+    @staticmethod
+    def schreibziele(abschnitt: str) -> set[str]:
+        """Tabellen, auf die ein Abschnitt schreibend zugreift."""
+        return set(re.findall(r"UPDATE workforce\.(\w+)", abschnitt)) | \
+               set(re.findall(r"INSERT INTO workforce\.(\w+)", abschnitt))
+
+    @classmethod
+    def als_owner(cls, quelle: str) -> set[str]:
+        """Schreibziele **unter `SET ROLE workforce_owner`**.
+
+        Nur diese laufen mit den Rechten, die 009 der Rolle gibt. Der Prepare
+        der Probe schreibt Kanal und Credential als `workforce_app` - das ist
+        Voraussetzung, nicht Messung, und faellt hier zu Recht nicht an.
+        """
+        ziele: set[str] = set()
+        for treffer in re.finditer(r"SET ROLE workforce_owner", quelle):
+            ziele |= cls.schreibziele(quelle[treffer.start():treffer.start() + 800])
+        return ziele
+
+    def schreibrechte(self) -> set[str]:
+        return {tabelle for tabelle, rechte in benoetigte_rechte(quelltext()).items()
+                if rechte & {"INSERT", "UPDATE"}}
+
+    def test_no_direct_write_under_the_owner_role_leaves_the_allowlist(self) -> None:
+        quelle = self.PROBE.read_text(encoding="utf-8")
+        ausserhalb = self.als_owner(quelle) - self.schreibrechte()
+        self.assertEqual(set(), ausserhalb,
+                         f"die Probe schreibt als workforce_owner auf "
+                         f"{sorted(ausserhalb)}, 009 erlaubt das dort nicht")
+
+    def test_the_historical_case_would_be_caught(self) -> None:
+        """Die Gegenprobe ist der Befund selbst.
+
+        Genau diese Zeile stand bis zum 2026-09-03 in der Probe, und
+        `bus_channels` hat in 009 nur `SELECT`.
+        """
+        frueher = ("SET ROLE workforce_owner; "
+                   "UPDATE workforce.bus_channels SET source_ref = 'PROBE-G045' "
+                   "WHERE project_id = 'START-UP'")
+        self.assertNotIn("bus_channels", self.schreibrechte())
+        self.assertEqual({"bus_channels"}, self.als_owner(frueher) - self.schreibrechte())
+
+    def test_a_permitted_write_under_the_owner_role_passes(self) -> None:
+        # Die Gegenrichtung: Der Waechter ist keine Sperre gegen jedes
+        # `SET ROLE workforce_owner`, sondern gegen das falsche Ziel.
+        erlaubt = "SET ROLE workforce_owner; INSERT INTO workforce.bus_messages (x) VALUES (1)"
+        self.assertEqual(set(), self.als_owner(erlaubt) - self.schreibrechte())
+
+    def test_the_preparation_runs_as_the_superuser_not_as_the_owner(self) -> None:
+        """Kanal und Credential sind Voraussetzung, nicht Messung.
+
+        Sie werden als `workforce_app` gesetzt. Liefe der Prepare unter
+        `SET ROLE workforce_owner`, waere er selbst wieder ein Schreibversuch
+        auf `bus_channels` und `bus_credentials` - beide nur lesbar - und der
+        Befund waere an derselben Stelle zurueck.
+        """
+        quelle = self.PROBE.read_text(encoding="utf-8")
+        prepare = quelle[quelle.index("PROBE-G045-PREPARE"):]
+        prepare = prepare[:prepare.index("SET ROLE workforce_api")]
+        self.assertNotIn("SET ROLE workforce_owner", prepare)
+
+
 class DerivationIsNotEmptyTest(unittest.TestCase):
     """Jede Aussage oben vergleicht zwei abgeleitete Mengen.
 

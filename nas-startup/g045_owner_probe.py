@@ -104,6 +104,16 @@ TRIGGER_ERWARTETE_SQLSTATE = "42501"
 TRIGGER_ABGELEHNT = "PROBE_TRIGGER_DENIED_" + TRIGGER_ERWARTETE_SQLSTATE
 TRIGGER_ERLAUBT = "PROBE_TRIGGER_ALLOWED"
 
+# Der echte Durchlauf. Kein Geheimnis: `bus_authenticate` vergleicht den
+# uebergebenen Wert mit dem gespeicherten, es ist ein Nachschlagewert in einem
+# Wegwerf-Container und nirgendwo sonst gueltig.
+PROBE_HASH = "a" * 64
+PROBE_MSG_ID = "MSG-PROBE-G045-ROUNDTRIP"
+PROBE_IDEM = "IDEM-PROBE-G045-ROUNDTRIP"
+PROBE_SENDER = "SAO-001"
+PROBE_RECIPIENT = "AI-ENG-001"
+REQUEST_ID_SEND = "PROBE-G045-SEND"
+
 # Jede Zusicherung, die diese Probe belegen soll, mit ihrem genauen Sollwert.
 # Ein Schluessel, der im Ergebnis fehlt, ist ein Fehlschlag - nicht ein
 # uebergangener Punkt. Genau daran ist die erste Fassung gescheitert.
@@ -111,7 +121,23 @@ ERWARTET = {
     "009 angewendet": "ja",
     "SECURITY DEFINER beim Superuser, nachher": "0",
     "Relationen im Besitz von workforce_owner": "0",
-    "Schreibversuch als workforce_owner": "ok",
+    # Der Kern, und er hat sich am 2026-09-03 geaendert. Vorher stand hier ein
+    # roher `UPDATE workforce.bus_channels` unter `SET ROLE workforce_owner` -
+    # eine Tabelle, auf die 009 der Rolle nur `SELECT` gibt. Der Lauf haette
+    # mit `42501` geendet und sich gelesen wie "die Allowlist ist zu eng"; die
+    # schnelle Reparatur im Fenster waere ein `UPDATE`-Grant gewesen, also
+    # genau die Verbreiterung, gegen die `G-071` gebaut wurde
+    # (Vertretungsreview, `SV-2026-09-03-01`).
+    #
+    # Und die Kopfzeile dieser Datei fragt "laufen die Funktionen danach ohne
+    # Superuser weiter?" - gemessen wurde bis dahin keine einzige von ihnen
+    # (`SV-2026-09-03-02`). Jetzt laeuft ein echter `bus_send_message` als
+    # `workforce_api`. Das prueft in einem Zug: die Allowlist auf dem Weg, den
+    # die Funktion wirklich nimmt, den Audit-Trigger unter dem neuen
+    # Eigentuemer, und die offene Sequenzfrage aus `009` Abschnitt 3c - denn
+    # `bus_events` traegt einen Identity-Schluessel.
+    "Kanal und Credential vorbereitet": "ok",
+    "bus_send_message als workforce_api": "ok",
     "Eventzuwachs": "1",
     "Audit-Event mit Request-Id, Akteur, Typ und Operation": "1",
     "Trigger abschaltbar": "NEIN - abgewiesen mit SQLSTATE 42501",
@@ -311,21 +337,51 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
     # EXECUTE; laut Dokumentation wird das beim Ausloesen nicht geprueft.
     vor_events = skalar("SELECT count(*) FROM workforce.bus_events")
 
-    # Der abschliessende SELECT belegt den Schreibvorgang aus den Daten heraus,
-    # statt sich auf psqls Statuszeile zu verlassen. Er laeuft noch als
-    # workforce_owner und braucht damit auch dessen SELECT-Recht.
-    schreib_code, schreiben = psql(
-        f"SET ROLE workforce_owner; "
+    # Kanal und Credential, damit `bus_authenticate` ueberhaupt aufloest. Beides
+    # als `workforce_app`, also nicht Teil der Messung - nur ihre Voraussetzung.
+    # `002` seedet die Routenmatrix bereits, `SAO-001 -> AI-ENG-001` existiert.
+    vorbereiten_code, vorbereiten = psql(
         f"SELECT set_config('app.actor_id', '{AKTEUR}', true); "
-        f"SELECT set_config('app.request_id', '{REQUEST_ID}', true); "
-        f"UPDATE workforce.bus_channels SET source_ref = '{MARKE}' "
-        f"WHERE project_id = 'START-UP'; "
-        f"SELECT source_ref FROM workforce.bus_channels WHERE project_id = 'START-UP'")
-    geschrieben = schreiben.splitlines()[-1].strip() if schreiben.strip() else ""
+        f"SELECT set_config('app.request_id', 'PROBE-G045-PREPARE', true); "
+        f"UPDATE workforce.bus_channels SET channel_status = 'TESTING', "
+        f"source_ref = '{MARKE}' WHERE project_id = 'START-UP'; "
+        f"INSERT INTO workforce.bus_credentials (credential_id, project_id, "
+        f"employee_id, token_hash, credential_scope, credential_status, "
+        f"source_ref, expires_at) VALUES ('CRED-PROBE-G045', 'START-UP', "
+        f"'{PROBE_SENDER}', '{PROBE_HASH}', 'ACCEPTANCE', 'ACTIVE', '{MARKE}', "
+        f"clock_timestamp() + interval '1 hour'); "
+        f"SELECT channel_status FROM workforce.bus_channels "
+        f"WHERE project_id = 'START-UP'")
+    bereit = vorbereiten.splitlines()[-1].strip() if vorbereiten.strip() else ""
+    ergebnisse.append(("Kanal und Credential vorbereitet",
+                       "ok" if vorbereiten_code == 0 and bereit == "TESTING"
+                       else lauf_ergebnis(vorbereiten_code, vorbereiten, "TESTING")))
+    if vorbereiten_code != 0 or bereit != "TESTING":
+        return
+
+    # **Der eigentliche Nachweis.** Ein echter Aufruf einer der zwoelf
+    # Funktionen, als `workforce_api` - also auf dem Weg, den die API im
+    # Betrieb nimmt. Die Funktion ist SECURITY DEFINER und laeuft nach 009 als
+    # `workforce_owner`; sie schreibt in `bus_messages` und loest dabei
+    # `bus_record_change` aus, das als Aufrufer laeuft. Geht das durch, ist
+    # belegt: die Allowlist reicht, der Audit-Trigger feuert, und der
+    # Identity-Schluessel von `bus_events` braucht kein Sequenzrecht.
+    #
+    # Der Rueckgabewert wird gelesen, nicht die Statuszeile: Die Funktion gibt
+    # die Nachrichtenzeile zurueck, also muss die Nachrichten-Id herauskommen.
+    aufruf_code, aufruf = psql(
+        f"SET ROLE workforce_api; "
+        f"SELECT set_config('app.actor_id', '{PROBE_SENDER}', true); "
+        f"SELECT set_config('app.request_id', '{REQUEST_ID_SEND}', true); "
+        f"SELECT (workforce.bus_send_message('{PROBE_HASH}', '{REQUEST_ID_SEND}', "
+        f"'{PROBE_MSG_ID}', 'START-UP', '{PROBE_RECIPIENT}', '{PROBE_IDEM}', "
+        f"'Probe G045', 'Ein Aufruf, kein roher Schreibvorgang.', "
+        f"'INTERNAL_COMMUNICATION', 'NEED_TO_KNOW', NULL, NULL, NULL)).message_id")
+    gesendet = aufruf.splitlines()[-1].strip() if aufruf.strip() else ""
     ergebnisse.append((
-        "Schreibversuch als workforce_owner",
-        "ok" if schreib_code == 0 and geschrieben == MARKE
-        else lauf_ergebnis(schreib_code, schreiben, MARKE)))
+        "bus_send_message als workforce_api",
+        "ok" if aufruf_code == 0 and gesendet == PROBE_MSG_ID
+        else lauf_ergebnis(aufruf_code, aufruf, PROBE_MSG_ID)))
 
     # Jede psql-Sitzung ist eine eigene Verbindung; das SET ROLE oben ist hier
     # schon wieder weg. Ein `RESET ROLE` haette nur eine Statuszeile in den
@@ -339,12 +395,14 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
 
     # Und der Zuwachs ist **dieses** Ereignis. Ein blosser Zaehlerstand waere
     # "irgendein Datensatz dieses Typs" - was die Auditregeln dieses Projekts
-    # ausdruecklich nicht als Nachweis gelten lassen.
+    # ausdruecklich nicht als Nachweis gelten lassen. Gebunden wird an
+    # Request-Id, Akteur, Datensatztyp und Operation der **Nachricht**.
     ergebnisse.append((
         "Audit-Event mit Request-Id, Akteur, Typ und Operation",
         skalar("SELECT count(*) FROM workforce.bus_events "
-               f"WHERE request_id = '{REQUEST_ID}' AND actor_id = '{AKTEUR}' "
-               "AND record_type = 'CHANNEL' AND event_type = 'UPDATE'")))
+               f"WHERE request_id = '{REQUEST_ID_SEND}' AND actor_id = '{PROBE_SENDER}' "
+               f"AND record_type = 'MESSAGE' AND event_type = 'INSERT' "
+               f"AND record_key = '{PROBE_MSG_ID}'")))
 
     # --- G-074: die Gegenprobe zur Schemafreigabe ---------------------------
     ergebnisse.append(("public-USAGE ueber PUBLIC (Voreinstellung)", skalar(

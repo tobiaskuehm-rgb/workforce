@@ -57,9 +57,15 @@ class VerdictTest(unittest.TestCase):
         self.assertIn("Audit-Event mit Request-Id, Akteur, Typ und Operation: '0' statt '1'",
                       beanstandungen)
 
-    def test_a_failed_write_fails(self) -> None:
+    def test_a_failed_call_fails(self) -> None:
+        """Genau der Ausgang, den `SV-2026-09-03-01` vorhergesagt hat.
+
+        Die Zeichenkette stand vorher als *hypothetischer* Negativfall hier -
+        und war in Wahrheit der sichere Ausgang jedes Laufs, weil die Probe auf
+        eine Tabelle schrieb, auf die 009 ihr nur `SELECT` gibt.
+        """
         lauf = [(k, "ERROR: permission denied for table bus_channels"
-                 if k == "Schreibversuch als workforce_owner" else v)
+                 if k == "bus_send_message als workforce_api" else v)
                 for k, v in guter_lauf()]
         self.assertFalse(probe.bewertung(lauf)[0])
 
@@ -250,7 +256,8 @@ class VerdictCoversEveryAssuranceTest(unittest.TestCase):
         for schluessel in ("009 angewendet",
                            "SECURITY DEFINER beim Superuser, nachher",
                            "Relationen im Besitz von workforce_owner",
-                           "Schreibversuch als workforce_owner",
+                           "Kanal und Credential vorbereitet",
+                           "bus_send_message als workforce_api",
                            "Eventzuwachs",
                            "Audit-Event mit Request-Id, Akteur, Typ und Operation",
                            "Trigger abschaltbar",
@@ -259,14 +266,29 @@ class VerdictCoversEveryAssuranceTest(unittest.TestCase):
                            "Abnahmetest 009"):
             with self.subTest(schluessel=schluessel):
                 self.assertIn(schluessel, probe.ERWARTET)
-        self.assertEqual(10, len(probe.ERWARTET))
+        self.assertEqual(11, len(probe.ERWARTET))
 
     def test_the_probe_binds_the_audit_event_to_the_run(self) -> None:
         quelle = PROBE.read_text(encoding="utf-8")
-        for teil in ("request_id = '{REQUEST_ID}'", "actor_id = '{AKTEUR}'",
-                     "record_type = 'CHANNEL'", "event_type = 'UPDATE'"):
+        for teil in ("request_id = '{REQUEST_ID_SEND}'", "actor_id = '{PROBE_SENDER}'",
+                     "record_type = 'MESSAGE'", "event_type = 'INSERT'",
+                     "record_key = '{PROBE_MSG_ID}'"):
             with self.subTest(teil=teil):
                 self.assertIn(teil, quelle)
+
+    def test_the_probe_calls_one_of_the_twelve_functions(self) -> None:
+        """`SV-2026-09-03-02`: Die Kopfzeile fragt nach den Funktionen.
+
+        Bis zum 2026-09-03 mass die Probe keine einzige von ihnen - sie schrieb
+        roh auf eine Tabelle. Der teuerste Ausgang von 009 ist eine zu **enge**
+        Allowlist, und der zeigt sich erst auf dem Weg, den die Funktion
+        wirklich nimmt.
+        """
+        quelle = PROBE.read_text(encoding="utf-8")
+        self.assertIn("workforce.bus_send_message(", quelle)
+        self.assertIn("SET ROLE workforce_api", quelle)
+        # Und der Rueckgabewert wird gelesen, nicht die Statuszeile.
+        self.assertIn(").message_id", quelle)
 
     def test_the_probe_no_longer_resets_the_role_in_a_scalar_query(self) -> None:
         """Die Statuszeile eines `RESET ROLE` macht den Zaehlwert unbrauchbar.
