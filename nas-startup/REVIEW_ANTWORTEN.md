@@ -3086,3 +3086,78 @@ verpasst hätte, und der Test hält fest, dass das alte Fenster ihn verpasst
 hätte; und ein Schreibvorgang ohne `SET ROLE workforce_owner` im selben Aufruf
 zählt nicht — das ist der Prepare als `workforce_app`, und er soll nicht
 zählen.
+
+---
+
+# Siebzehnter Zielnachcheck: `G-077` bis `G-079`
+
+Willkommen zurück. Alle drei geprüft, alle drei **bestätigt** — und alle drei
+haben dieselbe Form: `009` war auf eine vorgefundene Lage gebaut und prüfte
+davon nur den Teil, den es selbst setzt.
+
+## `G-077` — beide Gates zugleich offen
+
+**Bestätigt.** Der Runner geht die Gates der Reihe nach durch; mit `009` und
+`010` beide auf `true` hätte derselbe Aufruf den Eigentumswechsel angewendet
+und ein paar Zeilen später zurückgebaut, beide Marker stehen lassen, und ein
+späteres korrektes `009` wäre als „already applied" übersprungen worden. Der
+Kommentar am Gate sagte „als eigener Aufruf" — ein Kommentar erzwingt nichts.
+
+*Behoben:* Der Ausschluss steht in `compose.yaml` **vor dem ersten `psql`**,
+also bevor irgendein Marker gelesen wird, und endet mit `exit 1`. Die
+Einzelgates bleiben unverändert und zu. `test_bus_function_owner_rollback.py`
+prüft ihn mit drei Gegenproben: ohne den Block rot, mit dem Block hinter der
+ersten Markerabfrage rot, Einzelgates weiterhin `"false"`. Regel 51.
+
+## `G-078` — der Rückbau kannte den früheren Eigentümer nicht
+
+**Bestätigt.** `010` gibt an den *gelesenen* Schemaeigentümer zurück; `009`
+verlangte vor dem Wechsel nicht, dass die zwölf ihm gehören. Bei Drift hätte
+`009` sie trotzdem übernommen und `010` sie an die falsche Rolle gegeben —
+„Rollback" ohne Wiederherstellung.
+
+*Behoben* auf dem von dir genannten Weg, dem Ein-Eigentümer-Vertrag: Abschnitt
+4d in `009` liest dieselben zwei Anker wie `010` — Eigentümer von Schema
+`workforce` und von `bus_messages` —, verlangt, dass sie übereinstimmen, nicht
+`workforce_owner` sind, und dass **jede** der zwölf Funktionen genau diesem
+Eigentümer gehört. Sonst `MIGRATION_009_PINNED_FUNCTION_FOREIGN_OWNER`, vor
+der ersten Änderung. Ein lokaler Test hält die Anker von `009` und `010`
+gegeneinander, mit Gegenprobe (vertauschter Anker wird bemerkt).
+
+Die von dir verlangte **Negativprobe** — genau eine Funktion einem anderen
+Eigentümer geben, `009` muss rot werden — steht jetzt in `g045_owner_probe.py`
+als erster Schritt auf der frischen Datenbank, gebunden an den benannten
+Abbruch (`abbruch_urteil()`, `G-014`), und der frühere Eigentümer wird
+vorher gelesen und danach nachgemessen, nicht benannt (`G-042`).
+**Nicht gelaufen**, siehe unten.
+
+## `G-079` — eine vorgefundene Rolle kann Mitglieder haben
+
+**Bestätigt.** `NOLOGIN` verhindert keinen `SET ROLE`. Ein Mitglied von
+`workforce_owner` hätte dessen direkte Tabellenrechte außerhalb der zwölf
+Funktionen ausüben können; `ALTER ROLE` normalisiert Attribute, nicht
+Mitgliedschaften.
+
+*Behoben:* Abschnitt 1b in `009` prüft `pg_auth_members` in **beiden**
+Richtungen — wer Mitglied der Rolle ist, und wessen Mitglied die Rolle ist
+(die Gegenrichtung hast du nicht verlangt; sie ist derselbe Weg mit
+umgekehrtem Vorzeichen, `NOINHERIT` schließt ihn nicht aus) — und bricht ab,
+bevor das erste Recht erteilt wird. Verändert wird nichts: Eine Mitgliedschaft,
+die jemand angelegt hat, ist eine Entscheidung. Der Abnahmetest prüft dasselbe
+nach dem Lauf. Der Negativfall in der Probe legt die Rolle vorher an und gibt
+sie `workforce_api`; `009` muss mit `MIGRATION_009_OWNER_ROLE_HAS_MEMBERS`
+verweigern. Danach bleibt die Rolle stehen, damit das echte `009` den Zweig
+„Rolle existiert" wirklich läuft. Regel 52 für beide Befunde.
+
+## Der Integrationslauf, den du verlangt hast
+
+`g045_owner_probe.py` führt jetzt `009 → Abnahme 009 → 010 → Abnahme 010 →
+bus_send_message` und davor die zwei Negativfälle. Neun Zusicherungen sind neu
+(zwanzig insgesamt), jede namentlich in `ERWARTET`, jede mit lokal geprüftem
+Urteil. Die Aussage, auf die es ankommt, steht als eigener Schlüssel:
+**`bus_send_message nach Rueckbau`**, mit gebundenem Auditereignis.
+
+**Nicht gelaufen und nicht behauptet.** Keiner der neun neuen Punkte ist
+gemessen; `010` ist weiterhin auf keiner Instanz gelaufen. Der Lauf braucht
+die gesonderte CEO-Freigabe, die du genannt hast. Ebenfalls nicht behauptet:
+die API-Suite, jedes SQL gegen einen echten Parser außerhalb des Containers.

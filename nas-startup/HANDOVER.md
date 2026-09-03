@@ -7,10 +7,11 @@ die Vertretung ist damit beendet. Ihre acht Befunde stehen unter dem Tag
 ohne `G-`Nummer, die vergibt er (`G-006`). Was er zuerst lesen sollte, steht
 unten unter „Leseweg für Gerd".
 
-**Aktive Arbeit (2026-09-03, Mittag):** Claude Code (Fable 5.1) liest Gerds
-neuen Zielnachcheck (`b3deb78`, „Rückbau und Owner-Gates nachschärfen") und
-arbeitet ihn ab. `SV-2026-09-03-07` und `-08` sind geschlossen (`c9b1623`,
-`0f94660`).
+**Aktive Arbeit:** keine. Gerds siebzehnter Zielnachcheck (`b3deb78`,
+`G-077` bis `G-079`) ist abgearbeitet — alle drei bestätigt und behoben,
+Antworten in `REVIEW_ANTWORTEN.md`, Regeln 51 und 52. Dazu die von ihm
+verlangte Erweiterung des Probelaufs. **Sein Gate gilt weiter:** `009`/`010`
+und das Phase-5-Fenster bleiben ROT bis zu seinem Nachcheck.
 
 ## Leseweg für Gerd
 
@@ -108,6 +109,19 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
   `workforce_owner` jedes Recht und **löscht nichts** — kein `DROP OWNED BY`,
   kein `DROP ROLE`. Die Begründung steht in `REVIEW_ANTWORTEN.md` und als
   Regel 50; sie weicht von meiner eigenen ersten Antwort ab.
+- **`G-077` bis `G-079` sind behoben, aber von Gerd nicht nachgeprüft.**
+  Der Ausschluss beider Gates steht vor dem ersten `psql` in `compose.yaml`;
+  `009` prüft vor der ersten Änderung Mitgliedschaften in beide Richtungen
+  (`1b`) und den bisherigen Eigentümer der zwölf gegen dieselben zwei Anker,
+  die `010` liest (`4d`). Jede Vorbedingung hat einen lokalen Wächter mit
+  Gegenprobe.
+- **`g045_owner_probe.py` ist umgebaut und in dieser Form nicht gelaufen.**
+  Sie führt jetzt `009 → Abnahme 009 → 010 → Abnahme 010 → bus_send_message`
+  und davor die zwei Negativfälle zu `G-078`/`G-079`, an den benannten
+  Abbruch gebunden (`abbruch_urteil()`, `G-014`). 21 Zusicherungen, davon
+  zehn neu und **ungemessen**. Der Lauf braucht die gesonderte CEO-Freigabe,
+  die Gerd genannt hat — und die Berechtigungsprüfung des Werkzeugs, die den
+  ersten Probe-Versuch abwies, könnte ihn erneut abweisen.
 - **Freigabereif ist `009` trotzdem nicht — der Grund heißt jetzt anders.**
   Vorher fehlte der Rückbau, jetzt fehlt das Review: `010` ist auf **keiner**
   Instanz gelaufen, auch nicht im Wegwerf-Container, und beide Dateien hat
@@ -127,18 +141,17 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
 
 ## Stand
 
-- **Gepusht** ist alles bis `0f94660` (Freigabe des Nutzers im Chat am
-  2026-09-03, „dann los"). **Deployt ist `b3deb78`** — vom Nutzer selbst
-  ausgeführt, weil der Transfer per `tar | ssh` für Claude von der
-  Berechtigungsprüfung des Werkzeugs abgewiesen wurde (dieselbe Sperre wie
-  beim ersten Probe-Versuch am 2026-09-02, keine Projektregel). Auf der NAS
-  gemessen für `b3deb78` — `dirty=no`, 236 Dateien, 0 fehlend, 0 abweichend,
-  0 unerwartet, `RESULT: PASS`; `check_unmanaged` 62 Einträge, `PASS`.
-  `b3deb78` ist Gerds eigener Commit mit seinem neuen Zielnachcheck in
-  `REVIEW_GERD.md`. `compose.yaml` weicht bis dahin vom benannten
+- **Deployt ist `0296b1f`** — erstmals über `deploy_to_nas.sh` und die enge
+  Berechtigungsregel dafür (`.claude/settings.local.json`, nur dieser eine
+  Befehlsweg). Auf der NAS gemessen für `0296b1f` — `dirty=no`, 237 Dateien,
+  0 fehlend, 0 abweichend, 0 unerwartet, `RESULT: PASS`; `check_unmanaged`
+  63 Einträge, `PASS`. Davor `b3deb78` vom Nutzer von Hand, weil ein
+  `tar | ssh`-Einzeiler von der Berechtigungsprüfung des Werkzeugs abgewiesen
+  wurde. Die Commits zu `G-077` bis `G-079` liegen danach; ihr Deploy wird
+  hier nachgetragen, sobald er gemessen ist. `compose.yaml` weicht bis dahin vom benannten
   Produktionsstand ab und steht mit Begründung in der Ausnahmeliste von
   `test_production_state_drift.py`.
-- **703 lokale Tests `PASS`** (617 / 15 / 44 / 27), auf `python3` 3.9.6 des
+- **722 lokale Tests `PASS`** (636 / 15 / 44 / 27), auf `python3` 3.9.6 des
   Projektrechners.
 - **Nicht gelaufen und nicht behauptet:** die API-Suite (braucht den Container),
   jedes SQL gegen einen echten PostgreSQL-Parser außerhalb des Probe-Containers.
