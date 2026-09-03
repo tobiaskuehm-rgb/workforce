@@ -1660,3 +1660,61 @@ Erst wenn dieser Nachcheck keine neuen testkritischen Befunde ergibt, kann der
 CEO gesondert den **isolierten 009/010-Wegwerfprobe-Lauf** freigeben. Diese
 spätere Freigabe umfasst weder Phase 5 insgesamt noch produktive Migrationen,
 Kanal/Credentials oder externe Modelle. Status bleibt **ROT**.
+
+---
+
+# Zwanzigster und abschließender Zielnachcheck auf `e47b632`
+
+## Ergebnis
+
+Der diff-basierte Nachcheck der Korrekturen `G-082` bis `G-091` ist
+abgeschlossen. Die zehn Befunde sind für den freizugebenden Testpfad
+ausreichend geschlossen. Es wurde kein neuer Sicherheitsfehler und keine
+False-Green-Stelle gefunden, die den **isolierten 009/010-Wegwerfprobe-Lauf**
+blockiert.
+
+Damit ist das technische Vorgate beendet. Der CEO kann diesen einen Lauf nun
+gesondert freigeben. Bis zu dieser ausdrücklichen Freigabe bleibt der
+operative Status **ROT** und es wird nichts auf der NAS ausgeführt.
+
+## Unabhängiger Nachweis
+
+- Lokal selbst ausgeführt: **795 Tests PASS** (`698 workforce-agent + 15
+  bus-realtest + 55 telegram-connector + 27 chain-test`). Der zunächst von der
+  Codex-Dateisystem-Sandbox verhinderte Selbständerungstest wurde mit der dafür
+  nötigen lokalen Schreibfreigabe vollständig und erfolgreich wiederholt.
+- `git diff --check`: PASS; Arbeitsbaum sauber; lokaler Stand und NAS-Git sind
+  `e47b632`.
+- NAS nur lesend geprüft: API v9 und PostgreSQL 17 gesund; Kanal `DISABLED`;
+  0 aktive Credentials; Migrationen unverändert nur 001, 002, 003, 005, 006
+  und 007; Knowledge 004 sowie 009/010 nicht angewendet.
+- Die korrigierten Sollwertprüfungen in `nas_status.sh` melden Migrationen,
+  Kanal und Credential-Zahl ausdrücklich PASS. Manifest, Backup-Rechte,
+  Backup-Inhalt, Busadresse, unverwaltete Pfade und Rückfallpunkte melden PASS.
+- NAS-Quelldeploy ist weiterhin `0dc2ad0`; die laufende Produktion wurde durch
+  diesen Nachcheck nicht verändert.
+- `g045_owner_probe.py`, die Migrationen 009/010 und deren Acceptance-SQL
+  wurden im geprüften Korrekturdiff nicht verändert.
+
+## Nicht blockierendes Backlog nach dem Lauf
+
+Diese Punkte eröffnen keine weitere Vorschleife und setzen das Testgate nicht
+zurück:
+
+1. Beim Wiederaufsetzen aus lokalem Zustand `REPLIED` wird die fachliche
+   Ablehnungsart noch nicht mitpersistiert; ein später nachgeholtes ACK kann
+   deshalb allgemein „beantwortet“ statt „abgelehnt“ protokollieren.
+2. Nach endgültiger Erschöpfung der Telegram-Update-Retries existiert ein
+   Audit-Ereignis, aber noch keine aktive Fehlermeldung an den CEO-Chat.
+
+Beide Punkte werden nach dem realen Lauf zusammen mit dessen Messdaten
+priorisiert. Weitere Gesamtprüfungen vor der Wegwerfprobe sind nicht
+erforderlich.
+
+## Exakter Freigabeumfang
+
+Ein mögliches CEO-`GO` gilt ausschließlich für den im Runbook beschriebenen,
+vollständig rückbaubaren 009/010-Lauf auf einer Wegwerf-Datenbank. Es erlaubt
+keine produktive Migration, kein Phase-5-Gesamtfenster, keine Aktivierung von
+Kanal oder Credentials, keinen externen Modellaufruf und keine Erweiterung
+von Rechten.
