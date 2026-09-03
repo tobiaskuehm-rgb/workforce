@@ -36,9 +36,15 @@ def main(argv=None) -> int:
         # Only the token is read; nothing is processed or answered. Prints chat ids, never text.
         from .config import read_secret
         from .telegram import TelegramClient
-        client = TelegramClient(read_secret(cfg.secrets_dir, "telegram_bot_token"), base_url=cfg.telegram_base_url)
+        from .telegram import TelegramError
+        try:
+            client = TelegramClient(read_secret(cfg.secrets_dir, "telegram_bot_token"), base_url=cfg.telegram_base_url)
+            updates = client.get_updates(0, 1)
+        except (config_module.ConfigError, TelegramError) as exc:
+            print(f"FAIL: {exc}", file=sys.stderr)
+            return 2
         seen = {}
-        for update in client.get_updates(0, 1):
+        for update in updates:
             chat = (update.get("message") or {}).get("chat") or {}
             if "id" in chat:
                 seen[int(chat["id"])] = str(chat.get("type", "?"))
