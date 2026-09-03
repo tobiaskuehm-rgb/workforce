@@ -34,17 +34,31 @@ SOURCE_REF_PATTERN = re.compile(r"^DEC-[0-9]{3}/ENG-[0-9]{3}$")
 
 # What may be forwarded from the bus into the Telegram chat.
 #
-#   METADATA_ONLY  ids, sender, task reference, delivery status, subject.
-#                  Never the message body. The long-standing default and the
-#                  only behaviour this connector had before 2026-08-31.
-#   BODY           adds a shortened message body, so an answer is actually
-#                  readable in Telegram instead of only announced.
+#   METADATA_ONLY  ids, sender, task reference, delivery status. Never the
+#                  body - and, since G-084, never the subject either: people
+#                  put the actual request into the subject line, so it is
+#                  content, exactly as G-029 settled for the model boundary.
+#                  Two boundaries of one project answer the same question the
+#                  same way. The default.
+#   BODY           adds the subject and a shortened message body, so an
+#                  answer is actually readable in Telegram instead of only
+#                  announced - both only for a task on the allowlist.
 #
 # Telegram bot chats are cloud chats, not end-to-end encrypted secret chats.
 # Moving to BODY means the content of internal work messages is stored on
 # Telegram's servers. That is a deliberate decision to be taken by the
 # operator, not a default - hence the switch rather than a rewrite.
 OUTBOUND_POLICIES = ("METADATA_ONLY", "BODY")
+
+# The same table, machine-readable: which fields of a bus message may reach
+# the chat under each policy. The renderer consults this and nothing else, and
+# a test holds it against the prose above (G-054) - a comment that listed
+# "subject" under METADATA_ONLY is how G-084 stayed unnoticed.
+OUTBOUND_FIELDS: dict[str, tuple[str, ...]] = {
+    "METADATA_ONLY": ("message_id", "sender_id", "task_ref", "delivery_status"),
+    "BODY": ("message_id", "sender_id", "task_ref", "delivery_status",
+             "subject", "body"),
+}
 
 # Hard ceiling regardless of configuration. Telegram itself accepts far more,
 # but a short summary is the point: the bus stays the system of record.
@@ -983,21 +997,26 @@ class TelegramConnector:
         self.publish_inbox_notifications()
         return handled
 
-    def _outbound_body(self, message: Mapping[str, Any]) -> str | None:
-        """The message body, if and only if the policy allows forwarding it.
+    def _outbound_content(
+        self, message: Mapping[str, Any]
+    ) -> tuple[str | None, str | None]:
+        """(subject, body excerpt) - each None unless the policy permits it.
 
-        Returns None under METADATA_ONLY - not an empty string - so callers can
-        tell "not permitted" apart from "permitted but empty". This is the only
-        place a bus body can reach Telegram.
+        None rather than an empty string, so callers can tell "not permitted"
+        apart from "permitted but empty". This is the only place content of a
+        bus message can reach Telegram; everything else the notification
+        carries is an identifier or a status.
 
-        The task allowlist applies here too (review finding G-003). Without it
+        Subject and body go together (review finding G-084): both are text a
+        person typed, both stay home under METADATA_ONLY, and both need the
+        task on the allowlist under BODY (review finding G-003 - without that
         the BODY policy would carry the content of *any* message reaching the
-        connector identity into the private chat, including work whose task was
-        never approved for this channel. The allowlist governed only inbound
-        commands before, which made the outbound boundary fail-open on scope.
+        connector identity into the private chat, including work whose task
+        was never approved for this channel).
         """
-        if self.settings.outbound_policy != "BODY":
-            return None
+        erlaubt = OUTBOUND_FIELDS[self.settings.outbound_policy]
+        if "subject" not in erlaubt and "body" not in erlaubt:
+            return None, None
 
         task_ref = message.get("task_ref")
         if not isinstance(task_ref, str) or task_ref not in self.settings.allowed_task_ids:
@@ -1010,18 +1029,24 @@ class TelegramConnector:
                     "reason": "TASK_NOT_ALLOWLISTED",
                 },
             )
-            return None
+            return None, None
 
-        raw = message.get("body")
-        if not isinstance(raw, str):
-            return None
-        collapsed = " ".join(raw.split())
-        if not collapsed:
-            return ""
-        limit = min(self.settings.outbound_body_chars, MAX_OUTBOUND_BODY_CHARS)
-        if len(collapsed) <= limit:
-            return collapsed
-        return collapsed[: limit - 1].rstrip() + "…"
+        subject = None
+        if "subject" in erlaubt:
+            subject = " ".join(str(message.get("subject") or "Ohne Betreff").split())[:120]
+
+        body = None
+        if "body" in erlaubt:
+            raw = message.get("body")
+            if isinstance(raw, str):
+                collapsed = " ".join(raw.split())
+                if not collapsed:
+                    body = ""
+                else:
+                    limit = min(self.settings.outbound_body_chars, MAX_OUTBOUND_BODY_CHARS)
+                    body = (collapsed if len(collapsed) <= limit
+                            else collapsed[: limit - 1].rstrip() + "…")
+        return subject, body
 
     def _acknowledge_on_bus(self, message_id: str) -> None:
         """Bestaetigen, und einen schon bestaetigten Datensatz als Erfolg lesen.
@@ -1086,7 +1111,7 @@ class TelegramConnector:
             # every already-announced message at once, which is a notification
             # storm, not a feature. A changed policy applies to what comes
             # after it.
-            body_excerpt = self._outbound_body(message)
+            subject_out, body_excerpt = self._outbound_content(message)
             payload_hash = hashlib.sha256(
                 json.dumps(safe_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
             ).hexdigest()
@@ -1108,11 +1133,15 @@ class TelegramConnector:
                 if claim == "DUPLICATE" and delivery_status == "DELIVERED":
                     self._acknowledge_on_bus(message_id)
                 continue
+            # Identifiers and a status. Anything a person typed - subject,
+            # body - comes only from _outbound_content(), under BODY and for an
+            # allowlisted task (G-084, G-003).
             notification = (
                 f"NACHRICHT {message_id} von {sender_id}\n"
-                f"Task={task_ref} · Status={delivery_status}\n"
-                f"Betreff: {subject}"
+                f"Task={task_ref} · Status={delivery_status}"
             )
+            if subject_out is not None:
+                notification += f"\nBetreff: {subject_out}"
             if body_excerpt:
                 notification += f"\n\n{body_excerpt}"
 

@@ -12,7 +12,7 @@ Der Connector ist ein schmaler Transportadapter zwischen genau einem privaten Te
 - Genau eine numerische Chat-ID plus eine numerische Benutzer-ID; Gruppen werden abgewiesen.
 - Nur die explizite Mitarbeiter-Allowlist ist adressierbar.
 - Neue Aufgaben werden immer als `PENDING` erzeugt.
-- Die Gegenrichtung liest nur die Inbox der später ausdrücklich genehmigten Connector-Identität und sendet eine kurze Metadaten-/Betreff-Zusammenfassung; der Nachrichtenbody bleibt auf der NAS.
+- Die Gegenrichtung liest nur die Inbox der später ausdrücklich genehmigten Connector-Identität und sendet eine kurze Metadaten-Zusammenfassung — Nachrichten-Id, Absender, Task-Referenz, Status; Betreff und Body bleiben unter `METADATA_ONLY` auf der NAS, weil der Betreff Inhalt ist (`G-084`).
 - Telegram-`update_id` und Workforce-`Idempotency-Key` verhindern Doppelverarbeitung.
 - SQLite speichert nur Zustell-/Verarbeitungsstatus und kurze Auditmetadaten, niemals Bot-/Bus-Token oder vollständige Auftragsinhalte.
 - Workforce-Aufrufe sind ausschließlich über HTTPS zulässig.

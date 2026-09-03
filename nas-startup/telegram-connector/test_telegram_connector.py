@@ -267,10 +267,12 @@ class TelegramConnectorTest(unittest.TestCase):
         self.assertEqual(1, len(self.telegram.sent))
         reply = self.telegram.sent[0][1]
         self.assertIn("MSG-ABCDEF123456", reply)
-        self.assertIn("Connector-Bericht", reply)
+        # Bis G-084 verlangte diese Zeile den Betreff im Chat. Er ist Inhalt.
+        self.assertNotIn("Connector-Bericht", reply)
         self.assertNotIn("Sehr sensibler Volltext", reply)
         serialized = json.dumps(self.store.list_audit())
         self.assertNotIn("Sehr sensibler Volltext", serialized)
+        self.assertNotIn("Connector-Bericht", serialized)
 
     def test_kill_switch_blocks_workforce_notifications(self):
         self.workforce.inbox = [
@@ -582,13 +584,46 @@ class OutboundDataBoundaryTest(unittest.TestCase):
         connector.workforce = workforce
         return connector, telegram
 
-    def test_default_policy_never_forwards_the_body(self):
+    def test_default_policy_forwards_neither_body_nor_subject(self):
+        # G-084: Der Betreff ist Inhalt (G-029). Bis zum 2026-09-03 pinnte
+        # dieser Test das Gegenteil - "Re: Bitte pruefen" musste im Chat stehen.
         connector, telegram = self._connector()
         connector.publish_inbox_notifications()
         sent = "\n".join(text for _, text in telegram.sent)
         self.assertIn("MSG-", sent)
-        self.assertIn("Re: Bitte pruefen", sent)
+        self.assertNotIn("Bitte pruefen", sent, "der Betreff ist Inhalt")
+        self.assertNotIn("Betreff:", sent)
         self.assertNotIn("Die fachliche Antwort", sent)
+
+    def test_the_field_table_is_the_authority(self):
+        # G-054: die Zusicherung steht maschinenlesbar, nicht in Prosa.
+        self.assertNotIn("subject", telegram_connector.OUTBOUND_FIELDS["METADATA_ONLY"])
+        self.assertNotIn("body", telegram_connector.OUTBOUND_FIELDS["METADATA_ONLY"])
+        self.assertIn("subject", telegram_connector.OUTBOUND_FIELDS["BODY"])
+        self.assertEqual(set(telegram_connector.OUTBOUND_POLICIES),
+                         set(telegram_connector.OUTBOUND_FIELDS))
+
+    def test_body_policy_forwards_the_subject_for_an_allowlisted_task(self):
+        connector, telegram = self._connector(outbound_policy="BODY")
+        connector.publish_inbox_notifications()
+        self.assertIn("Betreff: Re: Bitte pruefen", telegram.sent[0][1])
+
+    def test_subject_is_withheld_with_the_body_when_the_task_is_not_allowlisted(self):
+        connector, telegram = self._connector(outbound_policy="BODY")
+        connector.workforce.inbox[0]["task_ref"] = "FIN-GEHEIM-001"
+        connector.publish_inbox_notifications()
+        sent = telegram.sent[0][1]
+        self.assertIn("MSG-", sent)
+        self.assertNotIn("Bitte pruefen", sent)
+        self.assertNotIn("Betreff:", sent)
+
+    def test_the_prose_and_the_table_agree(self):
+        # Der Kommentar ueber OUTBOUND_POLICIES darf "subject" nur bei BODY
+        # nennen. Ein Sprachvergleich taugt als Waechter nicht (G-054), also
+        # wird hier nur der Satz gefunden, der die Zeile METADATA_ONLY erklaert.
+        quelle = pathlib.Path(telegram_connector.__file__).read_text(encoding="utf-8")
+        block = quelle.split("#   METADATA_ONLY", 1)[1].split("#   BODY", 1)[0]
+        self.assertIn("never the subject", block)
 
     def test_body_is_withheld_when_the_task_is_not_allowlisted(self):
         # Review finding G-003: without this, BODY would carry the content of
