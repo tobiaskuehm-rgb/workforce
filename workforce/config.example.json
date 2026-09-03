@@ -1,0 +1,21 @@
+{
+  "db_path": "/var/lib/workforce/workforce.db",
+  "secrets_dir": "/run/secrets",
+  "allowed_chat_id": 0,
+  "default_identity": "ASSISTENZ",
+  "identities": {
+    "ASSISTENZ": {
+      "provider": "echo",
+      "model": "echo-v1",
+      "policy": "BODY",
+      "system_prompt": "Du bist die Assistenz des CEO. Beantworte Fragen knapp, schlage bei Aufgaben den naechsten Schritt vor."
+    }
+  },
+  "routes": [["CEO", "ASSISTENZ"]],
+  "max_calls_per_day": 100,
+  "max_usd_per_day": 2.0,
+  "ollama_url": "http://host.docker.internal:11434",
+  "poll_timeout_seconds": 25,
+  "lease_seconds": 300,
+  "max_attempts": 3
+}

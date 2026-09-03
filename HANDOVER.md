@@ -45,7 +45,15 @@ abgearbeitet, Antwort in `REVIEW_ANTWORTEN.md`, letzter Abschnitt.
 **Bis zur ausdrücklichen CEO-Entscheidung gilt: kein NAS-Lauf, kein Neubau,
 keine Änderung am Prototyp, kein weiterer Prüfzyklus.**
 
-**Aktive Arbeit:** keine. `HO-027` (Anmeldung unten) ruht.
+**Nachtrag 2026-09-03, spät — CEO im Chat: „mach einfach, jede Zeile kostet".** Der CEO
+hat das Gate im Chat geschlossen: Neubau, jetzt, ohne weitere Vorlage. Das ist eine
+Chat-Freigabe (`CEO-CHAT-2026-09-03/PENDING-DEC`); der Eintrag im Decision Log bleibt
+seine Aufgabe. Der Neubau liegt in `workforce/` im Repo-Wurzelverzeichnis — ein Paket,
+Standardbibliothek, eigene Tests unter `workforce/tests/`, Anleitung in
+`workforce/README.md`. Nichts auf der NAS; der erste echte Lauf ist auf dem Mac mit
+Echo-Provider und dem Telegram-Bot geplant. Prototyp unter `nas-startup/` unverändert.
+
+**Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** `HO-027` (Anmeldung unten) ruht.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
