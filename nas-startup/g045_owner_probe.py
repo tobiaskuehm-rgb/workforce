@@ -16,8 +16,11 @@ Zusicherungen; Nachweis in `evidence/2026-09-03_g045_owner_probe_run.md`.
 **Seitdem umgebaut und in dieser Form nicht gelaufen** (Gerds siebzehnter
 Zielnachcheck, `G-077` bis `G-079`): Die Probe fuehrt jetzt den ganzen Weg
 `009 -> Abnahme 009 -> 010 -> Abnahme 010 -> Bus-Funktionsaufruf` und davor
-zwei Negativfaelle, in denen `009` verweigern muss. Neun Zusicherungen sind
-damit neu und **ungemessen**, bis der naechste freigegebene Lauf sie misst.
+zwei Negativfaelle, in denen `009` verweigern muss. Die dabei hinzugekommenen
+Zusicherungen sind **ungemessen**, bis der naechste freigegebene Lauf sie
+misst - wie viele es sind, sagt `ERWARTET` unten, nicht dieser Absatz: Die
+erste Fassung nannte hier "neun" bei zehn neuen und war damit die Kopie, die
+veraltet (`G-081`).
 Jeder Lauf ist eine Ausfuehrung auf der NAS und braucht die Freigabe des CEO.
 Die Produktion war und bleibt unberuehrt: `009` ist dort nicht angewendet.
 

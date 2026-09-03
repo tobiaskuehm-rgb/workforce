@@ -3154,10 +3154,55 @@ verweigern. Danach bleibt die Rolle stehen, damit das echte `009` den Zweig
 `g045_owner_probe.py` führt jetzt `009 → Abnahme 009 → 010 → Abnahme 010 →
 bus_send_message` und davor die zwei Negativfälle. Neun Zusicherungen sind neu
 (zwanzig insgesamt), jede namentlich in `ERWARTET`, jede mit lokal geprüftem
-Urteil. Die Aussage, auf die es ankommt, steht als eigener Schlüssel:
+Urteil. *(Nachtrag 2026-09-03, `G-081`: Es sind **zehn** neue und **21**
+insgesamt — `len(ERWARTET)` und `test_owner_probe_verdict.py` führten die
+richtige Zahl, dieser Satz nicht. Er bleibt stehen, berichtigt statt
+umgeschrieben.)* Die Aussage, auf die es ankommt, steht als eigener Schlüssel:
 **`bus_send_message nach Rueckbau`**, mit gebundenem Auditereignis.
 
 **Nicht gelaufen und nicht behauptet.** Keiner der neun neuen Punkte ist
 gemessen; `010` ist weiterhin auf keiner Instanz gelaufen. Der Lauf braucht
 die gesonderte CEO-Freigabe, die du genannt hast. Ebenfalls nicht behauptet:
 die API-Suite, jedes SQL gegen einen echten Parser außerhalb des Containers.
+
+
+---
+
+# Achtzehnter Zielnachcheck: `G-080` und `G-081`
+
+## `G-080` — der Deploy-Helfer löschte außerhalb seines Manifests
+
+**Bestätigt, beide Hälften.** `find . -name '._*' -delete` lief über den
+ganzen Zielordner; die Ziele kamen nicht aus der Deployliste, also hätte es
+Laufzeit- oder Secretpfade treffen können, die absichtlich nicht deployt
+werden — direkt unter einem Kopf, der „never deletes" versprach (Leitplanke 7).
+Und `tar | ssh` unter `set -eu` ohne `pipefail`: Der Status war der von `ssh`.
+„A failed transfer skips verification" war eine Behauptung, kein Verhalten.
+
+*Behoben* auf dem von dir genannten Weg: Das Löschen ist weg —
+`COPYFILE_DISABLE=1` verhindert die macOS-Dateien an der Quelle, dem einzigen
+Ort, an dem man sie verhindern kann; eine Bestandsbereinigung wäre ein
+eigener, sichtbarer Wartungsschritt. Das Archiv wird vollständig in eine
+lokale Tempdatei gebaut, `ssh` liest sie erst danach; jeder Schritt ist ein
+eigener Befehl mit eigenem Exitstatus, kein `pipefail` nötig.
+
+Der Test ist der, den du verlangt hast, und er misst Verhalten statt Text:
+`test_deploy_script.py` fährt das Skript gegen Stubs für `tar`, `ssh` und
+`deploy_manifest.sh`, die protokollieren, womit sie aufgerufen wurden — kein
+Remote-`delete`, Tar-Fehler verhindert jedes `ssh`, gescheiterter Transfer
+überspringt die Prüfung, Erfolg ruft beide NAS-Prüfungen auf, schmutziger Baum
+verhindert schon das Archiv. Gegenprobe: die alte Zeile in einer Kopie wird
+von derselben Attrappe bemerkt.
+
+Ob der bisherige Lauf etwas getroffen hat, ist nicht protokolliert und wird
+nicht behauptet; `check_unmanaged` meldete nach beiden Läufen `PASS`, was nur
+über die oberste Ebene etwas sagt.
+
+## `G-081` — die Probe zählte ihre Zusicherungen widersprüchlich
+
+**Bestätigt.** Zehn neu, 21 insgesamt; Kopf und Antwort sagten neun und
+zwanzig. Dein Vorschlag war der richtige: keine weitere Zahl, sondern eine
+weniger. Der Probe-Kopf nennt jetzt keine Anzahl mehr und verweist auf
+`ERWARTET`; die Antwort oben trägt einen datierten Nachtrag statt einer
+Umschreibung. Kein neuer Wächter — `test_owner_probe_verdict.py` führt die
+autoritative Zahl bereits.
