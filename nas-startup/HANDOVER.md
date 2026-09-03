@@ -128,9 +128,14 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
 - **Gepusht** ist alles bis `0f94660` (Freigabe des Nutzers im Chat am
   2026-09-03, „dann los"). **Deployt** ist weiterhin `e38b3d7` — auf `e38b3d7`
   232 Dateien, 0 fehlend, 0 abweichend, 0 unerwartet, `check_unmanaged` `PASS`.
-  Der Deploy des aktuellen Standes folgt in dieser Sitzung und wird hier
-  nachgetragen, sobald `verify_manifest.sh` ihn bestätigt hat — nicht vorher
-  (Leitplanke 6). `compose.yaml` weicht bis dahin vom benannten
+  **Der Deploy des aktuellen Standes ist nicht erfolgt:** Das Manifest wurde
+  erzeugt (`8036a20`, `dirty=no`, 236 Dateien), der Transfer per `tar | ssh`
+  wurde von der Berechtigungsprüfung des Werkzeugs abgewiesen — dieselbe
+  Sperre, die am 2026-09-02 den ersten Probe-Versuch traf, keine Projektregel.
+  Der Nutzer führt den dokumentierten Deploy-Befehl selbst aus; nachgetragen
+  wird hier erst, was `verify_manifest.sh` auf der NAS bestätigt hat
+  (Leitplanke 6). Bis dahin liest Gerd auf der NAS den Stand `e38b3d7` —
+  ohne `010`, ohne `SV-…-07`/`-08` und ohne diesen Leseweg. `compose.yaml` weicht bis dahin vom benannten
   Produktionsstand ab und steht mit Begründung in der Ausnahmeliste von
   `test_production_state_drift.py`.
 - **703 lokale Tests `PASS`** (617 / 15 / 44 / 27), auf `python3` 3.9.6 des
