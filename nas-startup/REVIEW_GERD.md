@@ -1292,3 +1292,126 @@ Fehlertext kann damit als bestandener SQL-Abnahmetest in die sonst vollständige
 **Freigabe an Claude:** lokal mit `G-074` bis `G-076` weitermachen. Noch kein
 OK für `g045_owner_probe.py`, Migration 009 oder das Phase-5-Fenster. Nach den
 drei eng begrenzten Korrekturen folgt ein weiterer kurzer Zielnachcheck.
+
+---
+
+# Siebzehnter Zielnachcheck – Gerds Übernahme des Stands `f9b4143`
+
+## Ergebnis
+
+Der vollständige Stand nach der Vertretungsrunde wurde unabhängig gegen Code,
+Tests, Nachweise und den unveränderten NAS-Betrieb geprüft.
+
+- **`G-074` bis `G-076` sind geschlossen.** ACLs werden direkt im Katalog
+  geprüft, die zwölf Funktionen sind über vollständige Signaturen und OIDs
+  gebunden, und der Owner-Probe wertet Exitcodes plus eindeutige Marker
+  fail-closed aus.
+- Die drei anschließend von Gerd benannten Restpunkte sind ebenfalls
+  geschlossen: Der Trigger-Negativtest akzeptiert ausschließlich den
+  erwarteten SQLSTATE `42501`, die `PUBLIC`-Gegenprobe ist ausführbar, und das
+  Schema `workforce` endet für `workforce_owner` exakt mit `USAGE`.
+- **`SV-2026-09-03-01` bis `-08` werden übernommen und als geschlossen
+  bestätigt.** Ihre IDs bleiben erhalten; eine zweite Nummerierung würde nur
+  dieselben Befunde duplizieren.
+- Der isolierte PostgreSQL-17-Probelauf zu 009 ist als echter Lauf
+  nachvollziehbar: elf Zusicherungen `PASS`, Aufruf von `bus_send_message` als
+  `workforce_api`, gebundener Auditzuwachs und verweigertes Trigger-Abschalten.
+  Er verändert die Produktion nicht.
+
+Der technische Kern von 009 ist damit abnahmefähig. Der neu hinzugekommene
+Rückbau 010 und seine Orchestrierung sind es noch nicht. Drei neue, kleine aber
+entscheidende Befunde halten das Berechtigungsfenster geschlossen.
+
+## `G-077` – 009 und 010 können im selben Aufruf gleichzeitig geöffnet werden
+
+**Schwere:** hoch – der gewünschte Eigentumswechsel wird sofort zurückgebaut,
+obwohl beide unveränderlichen Migrationsmarker geschrieben werden
+
+**Dateien:** `compose.yaml`,
+`workforce-agent/test_bus_function_owner_rollback.py`
+
+Der Runner prüft erst 009 und danach 010. Sind beide Umgebungsvariablen
+versehentlich `true`, wendet derselbe Container beide Migrationen nacheinander
+an. Am Ende gehören die Funktionen wieder dem alten Ziel, aber die Marker für
+009 **und** 010 existieren. Ein späterer korrekter Versuch von 009 wird deshalb
+als „already applied“ übersprungen; für denselben Zustand wäre bereits eine
+neue Migration 011 nötig. Das widerspricht dem Kommentar „als eigener Aufruf“.
+
+### Kleinste sichere Korrektur
+
+- Vor jeder Markerprüfung fail-closed abbrechen, wenn beide Gates zugleich
+  `true` sind.
+- Eine Negativprobe muss genau diese Kombination ablehnen; die Einzelgates
+  bleiben unverändert und standardmäßig geschlossen.
+
+## `G-078` – Rückbau 010 kennt den ursprünglichen Funktionseigentümer nicht
+
+**Schwere:** hoch – „Rollback“ kann einen neuen Eigentümer setzen, statt den
+vorherigen Zustand wiederherzustellen
+
+**Dateien:** `postgres-init/009_bus_function_owner.sql`,
+`postgres-init/010_bus_function_owner_rollback.sql`,
+`postgres-tests/010_bus_function_owner_rollback_acceptance.sql`
+
+010 leitet sein Ziel aus dem Eigentümer des Schemas `workforce` und der Tabelle
+`workforce.bus_messages` ab. 009 speichert den vorherigen Eigentümer der zwölf
+Funktionen nicht und verlangt vor der Übertragung auch nicht, dass dieser mit
+den beiden Ankern übereinstimmt. Bei Drift vor dem Fenster würde 009 die
+Funktionen trotzdem übernehmen; 010 würde sie anschließend gesammelt an den
+Schemaeigentümer geben – nicht zwingend an ihre tatsächlichen früheren
+Eigentümer.
+
+### Kleinste sichere Korrektur
+
+- Für den heutigen Ein-Eigentümer-Vertrag genügt eine harte Vorbedingung in
+  009: Jede gepinnte Funktion muss vor dem Wechsel demselben Eigentümer gehören
+  wie Schema und Tabellenanker. Andernfalls Abbruch vor jeder Änderung.
+- Eine Negativprobe setzt genau eine Funktion auf einen anderen Eigentümer und
+  muss 009 rot machen. Falls gemischte Eigentümer künftig gewollt sind, braucht
+  es stattdessen eine explizit gespeicherte Zuordnung pro OID.
+
+## `G-079` – Eine vorbestehende Owner-Rolle kann weiterhin Mitglieder haben
+
+**Schwere:** hoch – `NOLOGIN` verhindert keinen Zugriff über `SET ROLE`
+
+**Dateien:** `postgres-init/009_bus_function_owner.sql`,
+`postgres-tests/009_bus_function_owner_acceptance.sql`
+
+009 unterstützt ausdrücklich eine bereits vorhandene Rolle
+`workforce_owner` und normalisiert deren Attribute und direkte Objektgrants.
+Sie prüft aber keine eingehenden Rollenzugehörigkeiten in `pg_auth_members`.
+Ein bereits berechtigtes Mitglied kann daher weiterhin
+`SET ROLE workforce_owner` verwenden und die direkten Tabellenrechte des technischen
+Eigentümers außerhalb der geprüften Busfunktionen ausüben. `NOLOGIN` und
+`NOINHERIT` schließen diesen Weg nicht zuverlässig.
+
+### Kleinste sichere Korrektur
+
+- Vor der Rechtevergabe fail-closed verlangen, dass `workforce_owner` keine
+  Mitglieder hat; Mitgliedschaften nicht stillschweigend verändern.
+- Positiv- und Negativtest für eine saubere beziehungsweise bereits an eine
+  andere Rolle vergebene `workforce_owner`-Rolle ergänzen.
+
+## Verifizierter Stand und Gate
+
+- Lokale Regression auf `8036a20`: **703 Tests PASS**
+  (`617 + 15 + 44 + 27`). `f9b4143` ändert danach ausschließlich die beiden
+  Übergabedokumente; `git diff --check` ist **PASS**, Arbeitsbaum sauber.
+- API-Suite: lokal mangels installiertem `pytest` **nicht ausgeführt** und
+  ausdrücklich nicht als bestanden behauptet.
+- NAS-Status, nur lesend geprüft: Datenbank und API v9 gesund, Kanal
+  `DISABLED`, 0 aktive Credentials, Manifest/Backups/Adressen **PASS**;
+  angewendet sind nur 001, 002, 003, 005, 006 und 007. 004, 008, 009 und 010
+  bleiben unangewendet.
+- 009 wurde in einer wegwerfbaren PostgreSQL-17-Instanz erfolgreich geprüft.
+  **010 wurde noch in keiner Datenbank ausgeführt.**
+
+**Freigabe an Fable/Claude:** lokal ausschließlich `G-077` bis `G-079`
+korrigieren und danach einen wegwerfbaren Integrationslauf
+`009 -> Acceptance 009 -> 010 -> Acceptance 010 -> Bus-Funktionstest`
+ergänzen. Kein NAS-Lauf, keine Migration, kein Kanal/Credential, kein
+Modellaufruf und keine produktive Rechteänderung ohne gesonderte CEO-Freigabe.
+
+**Gate:** Migration 009/010 und das Phase-5-Berechtigungsfenster bleiben bis
+zum kurzen Gerd-Nachcheck der Korrekturen **ROT**. Der laufende NAS-Betrieb
+bleibt davon unberührt.
