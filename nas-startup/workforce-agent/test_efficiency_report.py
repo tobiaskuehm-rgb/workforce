@@ -289,11 +289,67 @@ class TheArtefactIsWritableTest(unittest.TestCase):
 
     def test_it_writes_valid_json(self) -> None:
         with tempfile.TemporaryDirectory() as ordner:
-            ziel = Path(ordner) / "efficiency.json"
-            agent_worker.write_report(self.report, str(ziel))
-            geladen = json.loads(ziel.read_text(encoding="utf-8"))
+            vorlage = Path(ordner) / "efficiency.json"
+            geschrieben = agent_worker.write_report(self.report, str(vorlage))
+            self.assertEqual(str(Path(ordner) / "efficiency-TEST-1.json"), geschrieben)
+            geladen = json.loads(Path(geschrieben).read_text(encoding="utf-8"))
         self.assertEqual("TEST-1", geladen["run_id"])
         self.assertEqual(1, geladen["totals"]["operations"])
+
+    # --- G-088: ein Artefakt je Lauf, kleine Aufbewahrungsregel -------------
+
+    def test_two_runs_leave_two_files(self) -> None:
+        # Vorher: derselbe Pfad fuer jeden Lauf, geoeffnet mit "w" - der zweite
+        # ersetzte den ersten, waehrend der Kommentar in main() das Gegenteil
+        # behauptete.
+        zweiter = efficiency_report.Report(run_id="TEST-2")
+        with tempfile.TemporaryDirectory() as ordner:
+            vorlage = str(Path(ordner) / "efficiency.json")
+            agent_worker.write_report(self.report, vorlage)
+            agent_worker.write_report(zweiter, vorlage)
+            dateien = sorted(p.name for p in Path(ordner).iterdir())
+        self.assertEqual(["efficiency-TEST-1.json", "efficiency-TEST-2.json"], dateien)
+
+    def test_an_existing_report_for_the_same_run_is_not_overwritten(self) -> None:
+        with tempfile.TemporaryDirectory() as ordner:
+            vorlage = str(Path(ordner) / "efficiency.json")
+            erster = agent_worker.write_report(self.report, vorlage)
+            inhalt = Path(erster).read_text(encoding="utf-8")
+            nochmal = efficiency_report.Report(run_id="TEST-1")   # anderer Inhalt
+            self.assertIsNone(agent_worker.write_report(nochmal, vorlage))
+            self.assertEqual(inhalt, Path(erster).read_text(encoding="utf-8"))
+
+    def test_retention_keeps_the_newest_and_leaves_foreign_files_alone(self) -> None:
+        import os, time
+        with tempfile.TemporaryDirectory() as ordner:
+            vorlage = str(Path(ordner) / "efficiency.json")
+            fremd = Path(ordner) / "efficiency-notes.txt"
+            fremd.write_text("nicht anfassen", encoding="utf-8")
+            basis = time.time() - 100
+            for i, run in enumerate(("A", "B", "C")):
+                pfad = agent_worker.write_report(efficiency_report.Report(run_id=run),
+                                                 vorlage, keep=2)
+                os.utime(pfad, (basis + i, basis + i))
+            # Der dritte Lauf hat die Regel ausgeloest: A ist weg, B und C da.
+            agent_worker.write_report(efficiency_report.Report(run_id="D"), vorlage, keep=2)
+            dateien = sorted(p.name for p in Path(ordner).iterdir())
+        self.assertNotIn("efficiency-A.json", dateien)
+        self.assertNotIn("efficiency-B.json", dateien)
+        self.assertEqual(["efficiency-C.json", "efficiency-D.json", "efficiency-notes.txt"], dateien)
+
+    def test_the_run_id_is_made_safe_for_a_file_name(self) -> None:
+        self.assertEqual("/v/efficiency-RUN_2026_x.json",
+                         agent_worker.report_path_for("/v/efficiency.json", "RUN/2026 x"))
+        self.assertEqual("/v/efficiency-RUN.json",
+                         agent_worker.report_path_for("/v/efficiency.json", ""))
+
+    def test_keep_never_drops_below_one(self) -> None:
+        # Eine Aufbewahrung von null hiesse: das eben geschriebene Artefakt
+        # sofort wieder loeschen.
+        with tempfile.TemporaryDirectory() as ordner:
+            vorlage = str(Path(ordner) / "efficiency.json")
+            agent_worker.write_report(self.report, vorlage, keep=0)
+            self.assertEqual(["efficiency-TEST-1.json"], [p.name for p in Path(ordner).iterdir()])
 
     def test_an_unwritable_path_does_not_end_the_run(self) -> None:
         # Ein Lauf ist nicht gescheitert, weil sein Bericht nicht abzulegen war.

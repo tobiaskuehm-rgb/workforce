@@ -595,7 +595,57 @@ def run(
     return handled
 
 
-def write_report(report: efficiency_report.Report, path: str) -> None:
+# How many reports the retention rule keeps per directory. Small and explicit
+# (review finding G-088): one artefact per run, never an unbounded collection,
+# and never a second durable copy of payloads - the report holds none.
+DEFAULT_REPORT_KEEP = 20
+
+
+def report_path_for(template: str, run_id: str) -> str:
+    """One file per run, derived from the configured path and the run id.
+
+    `AGENT_REPORT_PATH=/var/lib/startup-agent/efficiency.json` is a template:
+    the run `RUN-20260903-101500` writes `efficiency-RUN-20260903-101500.json`
+    next to it. Review finding G-088: the path used to be taken literally, so
+    every run overwrote the one before - while the comment in main() claimed
+    the run id kept two reports from overwriting each other. The id was only
+    ever inside the JSON.
+    """
+    ordner, name = os.path.split(template)
+    stamm, endung = os.path.splitext(name)
+    sicher = "".join(c if c.isalnum() or c in "._-" else "_" for c in run_id) or "RUN"
+    return os.path.join(ordner, f"{stamm}-{sicher}{endung}")
+
+
+def prune_reports(template: str, *, keep: int) -> list[str]:
+    """Keep the newest `keep` reports that match the template; remove the rest.
+
+    Only files of the shape `<stem>-*<suffix>` in that directory are
+    candidates - a foreign file next to them is never touched. Returns what
+    was removed, so the log can say so.
+    """
+    ordner, name = os.path.split(template)
+    stamm, endung = os.path.splitext(name)
+    try:
+        kandidaten = [
+            os.path.join(ordner, f) for f in os.listdir(ordner or ".")
+            if f.startswith(f"{stamm}-") and f.endswith(endung) and f != name
+        ]
+    except OSError:
+        return []
+    kandidaten.sort(key=lambda f: (os.path.getmtime(f), f))
+    entfernt = []
+    for alt in kandidaten[:-max(1, keep)] if len(kandidaten) > max(1, keep) else []:
+        try:
+            os.remove(alt)
+            entfernt.append(alt)
+        except OSError:
+            pass
+    return entfernt
+
+
+def write_report(report: efficiency_report.Report, path: str,
+                 *, keep: int = DEFAULT_REPORT_KEEP) -> str | None:
     """The run's closing artefact: machine-readable file, human summary in the log.
 
     The summary always goes to the log, because a report nobody can see
@@ -604,22 +654,35 @@ def write_report(report: efficiency_report.Report, path: str) -> None:
     without one the run must not start writing into its own read-only
     filesystem.
 
+    One file per run, named after the run (G-088), opened exclusively: a
+    report that already exists for this run id is left as it is and the fact
+    is logged - overwriting an artefact is exactly what this used to do. After
+    a successful write the retention rule removes the oldest reports beyond
+    `keep`. Returns the path written, or None.
+
     Neither half carries payloads or secrets; efficiency_report holds field
     names, counts and digests by construction.
     """
     for line in report.as_summary().split("\n"):
         log("efficiency", summary=line)
     if not path:
-        return
+        return None
+    ziel = report_path_for(path, report.run_id)
     try:
-        with open(path, "w", encoding="utf-8") as handle:
+        with open(ziel, "x", encoding="utf-8") as handle:
             handle.write(report.as_json())
+    except FileExistsError:
+        log("efficiency_report_exists", path=ziel, run_id=report.run_id)
+        return None
     except OSError as error:
         # A run is not a failure because its report could not be filed.
-        log("efficiency_report_unwritten", path=path, detail=str(error))
-    else:
-        log("efficiency_report_written", path=path,
-            operations=len(report.operations))
+        log("efficiency_report_unwritten", path=ziel, detail=str(error))
+        return None
+    log("efficiency_report_written", path=ziel,
+        operations=len(report.operations))
+    for alt in prune_reports(path, keep=keep):
+        log("efficiency_report_pruned", path=alt, keep=keep)
+    return ziel
 
 
 def main() -> int:
@@ -647,7 +710,8 @@ def main() -> int:
 
     # Der Lauf bekommt einen Namen, weil ein Bericht ohne einen nicht
     # zuzuordnen ist. AGENT_RUN_ID kommt aus dem Fenster; ohne sie eine
-    # Ableitung aus der Uhrzeit, damit zwei Berichte sich nie ueberschreiben.
+    # Ableitung aus der Uhrzeit. Der Name steht im Dateinamen des Berichts,
+    # nicht nur im JSON - erst das haelt zwei Laeufe auseinander (G-088).
     run_id = (os.environ.get("AGENT_RUN_ID", "").strip()
               or time.strftime("RUN-%Y%m%d-%H%M%S", time.gmtime()))
     report = efficiency_report.Report(run_id=run_id)
@@ -671,7 +735,8 @@ def main() -> int:
         # The report is written even when the run ends badly - a run that
         # stopped on its budget or on a dead bus is exactly the one whose
         # numbers somebody wants to see.
-        write_report(report, os.environ.get("AGENT_REPORT_PATH", "").strip())
+        write_report(report, os.environ.get("AGENT_REPORT_PATH", "").strip(),
+                     keep=int(os.environ.get("AGENT_REPORT_KEEP", DEFAULT_REPORT_KEEP)))
     log("stopped", handled=handled, **budget.as_log_record())
     return 0
 
