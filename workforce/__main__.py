@@ -6,6 +6,7 @@ status         channel, budget today, pending outbound, audit chain
 channel on|off the kill switch
 verify         audit chain and delivery reconciliation; exit 1 on any finding
 backup <path>  consistent copy of the state file, mode 600
+identify       list the chat ids that have written to the bot (bootstrap: find allowed_chat_id)
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from .store import Store
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="workforce")
-    parser.add_argument("command", choices=["run", "once", "status", "channel", "verify", "backup"])
+    parser.add_argument("command", choices=["run", "once", "status", "channel", "verify", "backup", "identify"])
     parser.add_argument("argument", nargs="?")
     parser.add_argument("--config", default="config.json")
     args = parser.parse_args(argv)
@@ -30,6 +31,21 @@ def main(argv=None) -> int:
     except config_module.ConfigError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 2
+
+    if args.command == "identify":
+        # Only the token is read; nothing is processed or answered. Prints chat ids, never text.
+        from .config import read_secret
+        from .telegram import TelegramClient
+        client = TelegramClient(read_secret(cfg.secrets_dir, "telegram_bot_token"), base_url=cfg.telegram_base_url)
+        seen = {}
+        for update in client.get_updates(0, 1):
+            chat = (update.get("message") or {}).get("chat") or {}
+            if "id" in chat:
+                seen[int(chat["id"])] = str(chat.get("type", "?"))
+        for chat_id, kind in seen.items():
+            print(f"chat_id={chat_id} typ={kind}")
+        print("keine Nachricht beim Bot - erst dem Bot schreiben" if not seen else f"{len(seen)} Chat(s)")
+        return 0
 
     if args.command in ("status", "channel", "verify", "backup"):
         store = Store(cfg.db_path)
