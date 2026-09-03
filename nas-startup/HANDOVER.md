@@ -1,13 +1,60 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-03, 10:40 — von Claude Code.
+**Zuletzt aktualisiert:** 2026-09-03, abends — von Claude Code.
+
+**CEO-Entscheidung im Chat, 2026-09-03 (`CEO-CHAT-2026-09-03/PENDING-DEC`,
+`G-006`): Der Prototyp wird eingefroren, das System wird neu gebaut.** Drei
+Freigaben, wörtlich „genauso machen wir das":
+
+1. **Der Prototyp ist ab sofort Orakel, nicht Baustelle.** Der Stand
+   `781cc84` bleibt, wie er ist: kein neues Feature, keine neue Migration,
+   keine neue Regel. Er liefert dem Neubau die Befundliste als
+   Spezifikation, die Produkttests als Vorlage und das Bedrohungsmodell.
+   Korrekturen am Prototyp nur noch, wenn der laufende Stand auf der NAS sie
+   braucht.
+2. **Eine Seite Invarianten wird die `DEC`.** Die zwölf belegten
+   Eigenschaften — fail-closed Kanal, Kill Switch, Routen-Allowlist,
+   Schleifenschutz, Idempotenz, rekonstruierbares Audit, Ablehnungs-Audit,
+   Datengrenze, Token- und Kostendeckel vor dem Aufruf, werkzeugloser Agent,
+   Herkunftsmarker, Secrets nur in Dateien — werden auf einer Seite
+   festgeschrieben; der CEO unterschreibt, die Nummer entsteht im
+   iCloud-Quellensatz, nicht hier. Entwurf: Claude Code und Gerd gemeinsam.
+3. **`HO-027` ist pausiert**, bis die Bauform des Neubaus entschieden und
+   die Invariantenseite unterschrieben ist. Marlene kommt in den Neubau,
+   nicht in den Prototyp.
+
+Daraus folgt: **Der isolierte 009/010-Wegwerflauf findet nicht statt.** Er
+sollte den Eigentümerwechsel für einen Prototyp beweisen, der keine weitere
+Produktivmigration mehr bekommt; die Eigenschaft dahinter — Eigentümerrolle
+statt Superuser vom ersten Tag — wird eine Invariante des Neubaus. Der Kanal
+bleibt `DISABLED`, nichts auf der NAS wird ausgeführt.
+
+Bauform: Variante „ein Prozess" — ein Python-Programm, eine SQLite-Datei, ein
+Container, hash-verkettetes Audit, Provider Anthropic und Ollama hinter
+derselben Text-rein-Text-raus-Schnittstelle, Telegram als dünner Adapter,
+Paperless-ngx nur fürs Private Office. Läuft auf dem Mac wie auf der NAS.
+Drei Meilensteine, jeder endet mit einem echten Lauf; Review nach dem Lauf
+gegen die Invariantenseite, nicht vor dem Lauf gegen alles.
+
+**Gerds Rolle im Neubau:** `REVIEW_ANTWORTEN.md`, letzter Abschnitt. Kurz: Er
+ist Mitautor der Invariantenseite — wer die Befunde gefunden hat, weiß am
+besten, welche davon Tests werden müssen —, prüft je Meilenstein nach dem Lauf
+gegen diese Seite, und prüft den Prototyp nicht weiter.
+
+**Aktive Arbeit:** keine am Prototyp. `HO-027` (Anmeldung unten) ist pausiert.
+
+**Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
+ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
+Edit war am inzwischen veränderten Kopf gescheitert, die Befehlskette lief
+trotzdem weiter. Die Entscheidung, die dort stehen sollte, ist durch den
+Block oben ersetzt und überholt.
 **Übergabe an:** **Gerd.** Er hat seit dem 2026-09-03 wieder Nutzungsguthaben;
 die Vertretung ist damit beendet. Ihre acht Befunde stehen unter dem Tag
 `SV-2026-09-03-NN` in `nas-startup/REVIEW_STELLVERTRETUNG_2026-09-03.md` —
 ohne `G-`Nummer, die vergibt er (`G-006`). Was er zuerst lesen sollte, steht
 unten unter „Leseweg für Gerd".
 
-**Aktive Arbeit:** **Claude Code, seit 2026-09-03 nachmittags: `HO-027`** — Marlene (`POA-001`) technisch integrieren. Betroffen: `postgres-init/011_*`, `postgres-tests/011_*`, `compose.yaml` (neues Gate), `private-office/`, `PRIVATE_OFFICE_RUNBOOK.md`, `deploy_paths.txt`, neue Wächter unter `workforce-agent/`, und das Skillpaket `marlene/skills/private-office-assistant/` im Repo-Wurzelverzeichnis. Nichts auf der NAS. Die vorige Zeile lautete „keine" und gilt für alles andere weiter. Gerds neunzehnter Zielnachcheck (`b4149de`) ist
+**Pausiert seit 2026-09-03 abends (CEO-Entscheidung oben) — davor aktive Arbeit:** **Claude Code, seit 2026-09-03 nachmittags: `HO-027`** — Marlene (`POA-001`) technisch integrieren. Betroffen: `postgres-init/011_*`, `postgres-tests/011_*`, `compose.yaml` (neues Gate), `private-office/`, `PRIVATE_OFFICE_RUNBOOK.md`, `deploy_paths.txt`, neue Wächter unter `workforce-agent/`, und das Skillpaket `marlene/skills/private-office-assistant/` im Repo-Wurzelverzeichnis. Nichts auf der NAS. Die vorige Zeile lautete „keine" und gilt für alles andere weiter. Gerds neunzehnter Zielnachcheck (`b4149de`) ist
 abgearbeitet: **`G-082` bis `G-091` bestätigt und behoben**, je Befund ein
 Commit, jede Gegenprobe der Gesamtprüfung als dauerhafter Test, Regeln 53–56.
 Antworten in `REVIEW_ANTWORTEN.md`. **Kein NAS-Lauf, kein Integrationslauf.**
@@ -35,7 +82,8 @@ und das Phase-5-Fenster bleiben ROT bis zu seinem Nachcheck.
 
 Damit dein Guthaben ins Prüfen geht und nicht ins Suchen — in dieser Reihenfolge:
 
-0. **`REVIEW_ANTWORTEN.md`, letzter Abschnitt** — deine zehn Befunde
+0. **`REVIEW_ANTWORTEN.md`, letzter Abschnitt** — die CEO-Entscheidung zum
+   Neubau und deine Rolle darin; im Abschnitt davor deine zehn Befunde
    `G-082` bis `G-091`, je einer bestätigt, behoben, mit Commit und Test;
    die Commits `3345fff..8484c4f` sind der Diff für deinen Nachcheck.
 0a. **`GESAMTPRUEFUNG_2026-09-03.md`** — deine Anweisung aus `b7c593b`,

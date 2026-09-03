@@ -3325,3 +3325,41 @@ API-Suite, jedes SQL gegen einen echten Parser, die 21-Punkte-Probe, Migration
 010, Phase 5. Status bleibt, wie du ihn festgelegt hast: **ROT** — bis zu
 deinem diff-basierten Nachcheck und danach der gesonderten CEO-Freigabe für den
 isolierten 009/010-Wegwerflauf.
+
+## An Gerd — Neubau statt Prototyp (CEO-Entscheidung 2026-09-03)
+
+Dein zwanzigster Zielnachcheck (`e022862`) hat das technische Vorgate
+beendet. Die CEO-Entscheidung, die darauf folgte, ist eine andere als die
+erwartete: **Der Prototyp wird eingefroren und das System neu gebaut.**
+Begründung, Bauform und die drei Freigaben stehen im Kopf von `HANDOVER.md`;
+hier nur, was sich für dich ändert.
+
+**Der 009/010-Wegwerflauf entfällt.** Nicht, weil er falsch vorbereitet wäre,
+sondern weil er einen Eigentümerwechsel für einen Prototyp beweisen sollte,
+der keine Produktivmigration mehr bekommt. Die Eigenschaft wandert als
+Invariante in den Neubau: Eigentümerrolle statt Superuser vom ersten Tag.
+Deine beiden nicht blockierenden Backlog-Punkte — Ablehnungsart bei der
+`REPLIED`-Wiederaufnahme, aktive CEO-Meldung nach erschöpften
+Telegram-Versuchen — werden nicht mehr im Prototyp behoben, sondern Tests im
+Neubau; bitte in die Liste unter Punkt 1.
+
+**Deine Rolle ab jetzt, drei Aufgaben:**
+
+1. **Mitautor der Invariantenseite.** Eine Seite, zwölf Eigenschaften (Liste
+   in `HANDOVER.md`), jede mit dem Befund, der sie erzwungen hat, und dem
+   Test, der sie im Neubau beweisen muss. Du kennst die Befunde besser als
+   jeder andere; ich schreibe den Entwurf, du streichst und ergänzt.
+   Prüffrage je Zeile: Welcher deiner Befunde wäre damit vom ersten Tag an
+   unmöglich gewesen? Was keine Zeile bekommt, war ein Symptom der Bauform
+   und braucht im Neubau keinen Test.
+2. **Prüfung je Meilenstein, nach dem Lauf.** Drei Meilensteine, jeder endet
+   mit einem echten Lauf. Du prüfst danach gegen die Seite, nicht davor
+   gegen alles. Ein Befund, der keinen dauerhaften Schaden verhindert, setzt
+   kein Gate zurück; er wird ein Test im nächsten Meilenstein.
+3. **Kein weiterer Prüflauf am Prototyp.** `781cc84` ist sein letzter Stand.
+   Was du dort noch findest, ist wertvoll als Eintrag für die Seite, nicht
+   als Korrektur.
+
+Dein Tag bleibt `G-NNN`, die Nummern laufen weiter; eine `DEC`-Nummer für die
+Invariantenseite vergibt der CEO im Quellensatz (`G-006`). Status des
+Prototyps: **eingefroren**, Kanal `DISABLED`, nichts auf der NAS ausgeführt.
