@@ -1415,3 +1415,93 @@ Modellaufruf und keine produktive Rechteänderung ohne gesonderte CEO-Freigabe.
 **Gate:** Migration 009/010 und das Phase-5-Berechtigungsfenster bleiben bis
 zum kurzen Gerd-Nachcheck der Korrekturen **ROT**. Der laufende NAS-Betrieb
 bleibt davon unberührt.
+
+---
+
+# Achtzehnter Zielnachcheck – Fables Korrektur von `G-077` bis `G-079`
+
+## Ergebnis
+
+Geprüft wurde `b3deb78..33fc68c`, einschließlich der tatsächlichen Diffs, der
+vier lokalen Testsuiten und des nur lesend nachgemessenen NAS-Zustands.
+
+- **`G-077` geschlossen:** 009 und 010 werden vor dem ersten Datenbankzugriff
+  gemeinsam abgelehnt; beide Einzelgates bleiben separat und standardmäßig
+  geschlossen.
+- **`G-078` geschlossen:** 009 verlangt vor dem Eigentumswechsel denselben
+  bisherigen Eigentümer für Schema, Tabellenanker und alle zwölf gepinnten
+  Funktionen. Die OID-/Signaturbindung bleibt erhalten.
+- **`G-079` geschlossen:** Mitgliedschaften von und zu `workforce_owner`
+  werden fail-closed abgelehnt und nicht stillschweigend verändert. Der
+  Acceptance-Test prüft den Endzustand erneut.
+- Die neue Probe bildet die verlangte Sequenz und beide Negativfälle
+  plausibel ab. Sie bindet erwartete Ablehnungen an den konkreten Marker und
+  verwendet nach dem Rückbau neue Request-, Message- und Idempotenz-IDs.
+
+## `G-080` – Der neue Deploy-Helfer löscht außerhalb seines Manifests
+
+**Schwere:** mittel – ein reiner Quelldeploy verändert rekursiv nicht
+versionierte NAS-Dateien und widerspricht seinem eigenen Vertrag
+
+**Datei:** `deploy_to_nas.sh`
+
+Der Kopf verspricht ausdrücklich: „It never deletes anything on the NAS“.
+Tatsächlich führt der Remote-Befehl nach dem Entpacken im gesamten
+`/volume1/docker/Startup` ein `find . -name '._*' -delete` aus. Die Ziele
+stammen nicht aus der versionierten Deployliste; damit kann der Helfer Dateien
+in ausgenommenen Laufzeit- oder Secretpfaden löschen. Ob beim bisherigen Lauf
+etwas getroffen wurde, ist nicht protokolliert und wird deshalb nicht
+behauptet.
+
+Außerdem läuft der Transfer als Pipeline unter POSIX-`sh` mit `set -eu`, aber
+ohne `pipefail`. Der Status der Pipeline ist damit der Status von `ssh`, nicht
+zwingend der des lokalen `tar`. Die anschließende Manifestprüfung begrenzt das
+Risiko einer unvollständigen Übertragung, erfüllt aber nicht die behauptete
+Zusicherung „a failed transfer skips verification“.
+
+### Kleinste sichere Korrektur
+
+- Den rekursiven Löschbefehl aus dem Deploy entfernen. `COPYFILE_DISABLE=1`
+  verhindert die fraglichen macOS-Dateien bereits an der Quelle; eine
+  notwendige Bestandsbereinigung wäre ein eigener, sichtbarer Wartungsschritt.
+- Das Archiv zuerst in einer lokalen Tempdatei vollständig erzeugen und erst
+  bei Exitcode 0 übertragen. Dann wird kein nicht-portables `pipefail`
+  benötigt und ein lokaler Tar-Fehler ist eindeutig.
+- Einen fokussierten Test ergänzen: kein Remote-`delete`, Tar-Fehler verhindert
+  SSH, erfolgreiche Übertragung ruft beide NAS-Prüfungen auf.
+
+## `G-081` – Die Probe zählt ihre neuen Zusicherungen widersprüchlich
+
+**Schwere:** niedrig – kein Laufzeitfehler, aber eine unnötige falsche
+Statusangabe im Übergabesatz
+
+**Dateien:** `g045_owner_probe.py`, `REVIEW_ANTWORTEN.md`
+
+`ERWARTET` enthält jetzt **21** Einträge: elf bisherige plus zehn neue. Der
+Probe-Kopf nennt dagegen neun neue, und `REVIEW_ANTWORTEN.md` nennt neun neue
+beziehungsweise zwanzig insgesamt. `HANDOVER.md` und der ausführbare Test
+führen die korrekte Zahl 21.
+
+### Kleinste sichere Korrektur
+
+- Die beiden falschen Sätze auf zehn neu / 21 insgesamt berichtigen oder die
+  volatile Zahl dort ganz entfernen. Dafür keinen weiteren großen Wächter
+  bauen; eine einzige autoritative Zahl genügt.
+
+## Nachweis und Gate
+
+- Unabhängig lokal ausgeführt: **722 Tests PASS**
+  (`636 workforce-agent + 15 bus-realtest + 44 telegram-connector + 27
+  chain-test`).
+- NAS-Quelldeploy `fdb39e4`: `dirty=no`, 237 Dateien, Manifest und
+  `check_unmanaged` **PASS**. NAS-Git steht auf `33fc68c`.
+- NAS-Betrieb nur lesend nachgemessen: API v9 und PostgreSQL 17 gesund, Kanal
+  `DISABLED`, 0 aktive Credentials; angewendet bleiben ausschließlich 001,
+  002, 003, 005, 006 und 007. Backups, Busadresse und Rückfallpunkte **PASS**.
+- **Nicht ausgeführt:** die umgebaute 21-Punkte-Probe und damit Migration 010
+  auf einer Wegwerf-Datenbank. Kein produktiver Migrationslauf fand statt.
+
+**Freigabe an Fable/Claude:** `G-080` und `G-081` lokal klein korrigieren.
+Danach genügt ein kurzer Code-Nachcheck. Das Gate für 009/010 bleibt bis zum
+gesondert freigegebenen Wegwerf-Integrationslauf geschlossen; die
+Codekorrekturen allein sind keine NAS-Ausführungsfreigabe.
