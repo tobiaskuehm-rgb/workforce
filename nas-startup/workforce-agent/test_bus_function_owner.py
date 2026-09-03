@@ -35,6 +35,7 @@ Vertretungsreview als `SV-2026-09-03-06`).
 
 from __future__ import annotations
 
+import ast
 import pathlib
 import re
 import unittest
@@ -458,17 +459,43 @@ class ProbeWritesWithinTheAllowlistTest(unittest.TestCase):
         return set(re.findall(r"UPDATE workforce\.(\w+)", abschnitt)) | \
                set(re.findall(r"INSERT INTO workforce\.(\w+)", abschnitt))
 
+    @staticmethod
+    def psql_aufrufe(python_quelle: str) -> list[str]:
+        """Der SQL-Text jedes `psql(...)`-Aufrufs, aus dem Python-Quelltext.
+
+        Bei einem f-String sind das die konstanten Stuecke zwischen den
+        Platzhaltern - und genau dort steht der Tabellenname. Dieselbe Technik
+        wie das `RESET ROLE`-Verbot in `test_owner_probe_verdict.py`.
+        """
+        texte: list[str] = []
+        for knoten in ast.walk(ast.parse(python_quelle)):
+            if not (isinstance(knoten, ast.Call)
+                    and isinstance(knoten.func, ast.Name)
+                    and knoten.func.id == "psql"):
+                continue
+            texte.append("".join(
+                teil.value for argument in knoten.args for teil in ast.walk(argument)
+                if isinstance(teil, ast.Constant) and isinstance(teil.value, str)))
+        return texte
+
     @classmethod
-    def als_owner(cls, quelle: str) -> set[str]:
+    def als_owner(cls, python_quelle: str) -> set[str]:
         """Schreibziele **unter `SET ROLE workforce_owner`**.
 
         Nur diese laufen mit den Rechten, die 009 der Rolle gibt. Der Prepare
         der Probe schreibt Kanal und Credential als `workforce_app` - das ist
         Voraussetzung, nicht Messung, und faellt hier zu Recht nicht an.
+
+        Das Fenster ist der **Aufruf**, nicht ein Zeichenabstand
+        (`SV-2026-09-03-08`). Die erste Fassung nahm 800 Zeichen hinter jedem
+        `SET ROLE`; ein Schreibvorgang weiter hinten in derselben Anweisung
+        waere herausgefallen - die Richtung, in der ein Waechter blind wird.
+        Drei Commits vorher stand in dieser Datei die Begruendung dagegen.
         """
         ziele: set[str] = set()
-        for treffer in re.finditer(r"SET ROLE workforce_owner", quelle):
-            ziele |= cls.schreibziele(quelle[treffer.start():treffer.start() + 800])
+        for sql in cls.psql_aufrufe(python_quelle):
+            if "SET ROLE workforce_owner" in sql:
+                ziele |= cls.schreibziele(sql)
         return ziele
 
     def schreibrechte(self) -> set[str]:
@@ -488,17 +515,51 @@ class ProbeWritesWithinTheAllowlistTest(unittest.TestCase):
         Genau diese Zeile stand bis zum 2026-09-03 in der Probe, und
         `bus_channels` hat in 009 nur `SELECT`.
         """
-        frueher = ("SET ROLE workforce_owner; "
-                   "UPDATE workforce.bus_channels SET source_ref = 'PROBE-G045' "
-                   "WHERE project_id = 'START-UP'")
+        frueher = ('psql(f"SET ROLE workforce_owner; "\n'
+                   '     f"UPDATE workforce.bus_channels SET source_ref = \'{MARKE}\' "\n'
+                   '     f"WHERE project_id = \'START-UP\'")\n')
         self.assertNotIn("bus_channels", self.schreibrechte())
         self.assertEqual({"bus_channels"}, self.als_owner(frueher) - self.schreibrechte())
 
     def test_a_permitted_write_under_the_owner_role_passes(self) -> None:
         # Die Gegenrichtung: Der Waechter ist keine Sperre gegen jedes
         # `SET ROLE workforce_owner`, sondern gegen das falsche Ziel.
-        erlaubt = "SET ROLE workforce_owner; INSERT INTO workforce.bus_messages (x) VALUES (1)"
+        erlaubt = 'psql("SET ROLE workforce_owner; INSERT INTO workforce.bus_messages (x) VALUES (1)")\n'
         self.assertEqual(set(), self.als_owner(erlaubt) - self.schreibrechte())
+
+    def test_a_write_far_behind_the_set_role_is_still_found(self) -> None:
+        """`SV-2026-09-03-08`: Das Fenster ist der Aufruf, nicht 800 Zeichen.
+
+        Der Schreibvorgang steht 900 Zeichen hinter dem `SET ROLE`, in
+        derselben Anweisung. Das alte Fenster haette ihn nicht gesehen - und
+        das haelt die zweite Zusicherung fest, damit der Befund als Gegenprobe
+        erhalten bleibt und nicht als Meinung.
+        """
+        sql = ("SET ROLE workforce_owner; " + "-" * 900
+               + " UPDATE workforce.bus_channels SET source_ref = 'x'")
+        quelle = f'psql("{sql}")\n'
+        self.assertEqual({"bus_channels"}, self.als_owner(quelle))
+        # Das alte Fenster: 800 Zeichen ab dem SET ROLE.
+        anfang = sql.index("SET ROLE workforce_owner")
+        self.assertEqual(set(), self.schreibziele(sql[anfang:anfang + 800]))
+
+    def test_a_write_without_the_owner_role_in_the_same_call_does_not_count(self) -> None:
+        # Der Prepare der Probe: schreibt auf zwei nur lesbare Tabellen, aber
+        # als `workforce_app`. Er darf hier nicht anfallen - und er darf auch
+        # nicht dadurch anfallen, dass ein *anderer* Aufruf die Rolle setzt.
+        quelle = ('psql("UPDATE workforce.bus_channels SET channel_status = \'TESTING\'")\n'
+                  'psql("SET ROLE workforce_owner; SELECT 1")\n')
+        self.assertEqual(set(), self.als_owner(quelle))
+
+    def test_the_call_scan_sees_the_probe(self) -> None:
+        # Sonst waere die Aussage oben gruen ueber einer leeren Menge.
+        # Keine Zaehlung - die Probe hat genau so viele direkte psql()-Aufrufe,
+        # wie sie hat, und eine feste Zahl hier waere die naechste Kopie
+        # (`G-049`). Es reicht, dass der Scan die beiden Rollenwechsel sieht.
+        aufrufe = self.psql_aufrufe(self.PROBE.read_text(encoding="utf-8"))
+        self.assertTrue(aufrufe, "kein psql()-Aufruf gefunden - Scan kaputt")
+        self.assertTrue(any("SET ROLE workforce_owner" in a for a in aufrufe))
+        self.assertTrue(any("SET ROLE workforce_api" in a for a in aufrufe))
 
     def test_the_preparation_runs_as_the_superuser_not_as_the_owner(self) -> None:
         """Kanal und Credential sind Voraussetzung, nicht Messung.
