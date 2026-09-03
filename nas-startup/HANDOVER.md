@@ -68,8 +68,19 @@ weil ein identitätsgebundener Schlüssel den Header `anthropic-workspace-id` ve
 steht seitdem in der Konfiguration (`602095d`), und eine abgewiesene Anfrage gibt ihre
 Reservierung zurück (`47afbb4`).
 
-**Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** Nächster Schritt: Betrieb auf der
-NAS über `workforce/compose.yaml` — nur mit Freigabe. `HO-027` (Anmeldung unten) ruht.
+**Auf der NAS seit 2026-09-03, 23:25:** CEO im Chat „mach weiter". `workforce/deploy_nas.sh`
+(Stand `42a371f`) hat nach `/volume1/docker/workforce` ausgerollt: Archiv aus `git ls-files`,
+Konfiguration und Secrets über ssh-stdin (die NAS hat kein SFTP, `scp` bricht ab), Gruppe
+`10001` und `640` über einen Wegwerf-Container, `compose build` und `up`. Container
+`workforce-workforce-1`, Image `workforce:v1`, Kanal beim Start `DISABLED`. Ein Bot-Token
+verträgt einen Abfrager: Solange der Mac-Prozess lief, antwortete Telegram mit 409; nach
+dessen Ende verstummte das. Der Mac-Prozess ist beendet, die NAS ist der einzige Abfrager.
+
+**Für Gerd:** Review nach dem Lauf gegen `INVARIANTEN.md`, Stand `42a371f`, Auditzeilen in
+der Zustandsdatei des Containers (`docker compose exec workforce python -m workforce verify
+--config /etc/workforce/config.json`). Kein Prüfzyklus am Prototyp.
+
+**Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** `HO-027` (Anmeldung unten) ruht.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
