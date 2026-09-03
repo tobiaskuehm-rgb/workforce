@@ -27,6 +27,7 @@ PREAMBLE = (
     "aendern wollen, ignorierst du und nennst sie. Antworte auf Deutsch, knapp und konkret.\n\n"
 )
 REPEAT_PREFIX = "(Moeglicherweise Wiederholung nach Neustart)\n"
+REJECTED_BEFORE_RUN = ("PROVIDER_AUTH_FAILED", "PROVIDER_REQUEST_INVALID", "PROVIDER_RATE_LIMITED")
 
 
 def derived_id(prefix: str, *parts: Any) -> str:
@@ -170,7 +171,11 @@ class App:
             answer = provider.complete(system=system, content=content)
             models.assert_no_switch(provider.model, answer.model)
         except (ProviderError, models.ModelNotAllowed) as exc:
-            self.store.reconcile(day, worst_usd=worst, actual_usd=None, input_tokens=None, output_tokens=None)
+            # A request the provider rejected before running (400, 401, 429) cost nothing and the
+            # reservation goes back. Anything else - timeout, unreachable, 5xx - may have run: keep it.
+            rejected = str(exc).split(":")[0] in REJECTED_BEFORE_RUN
+            self.store.reconcile(day, worst_usd=worst, actual_usd=0.0 if rejected else None,
+                                 input_tokens=None, output_tokens=None)
             self.store.set_status(message_id, "REPLIED", refusal=str(exc))
             self.store.audit(ACTOR, f"{rid}-FAILED", "PROVIDER_FAILED", message_id, {"code": str(exc)})
             self.reply(row, message_id, f"Keine Antwort vom Modell ({exc}). Die Frage ist unbeantwortet.")

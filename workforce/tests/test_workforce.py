@@ -153,13 +153,20 @@ class ReplyTest(Harness):
         self.assertNotIn("geheim", boundary.render(out))
         self.assertEqual(("message_id", "sender_id"), out.disclosure.fields)
 
-    def test_a_provider_failure_is_answered_and_charged(self):
-        self.make(FakeProvider(paid=True, fail="PROVIDER_RATE_LIMITED")); self.activate()
+    def test_an_unknown_failure_keeps_the_reservation(self):
+        self.make(FakeProvider(paid=True, fail="PROVIDER_UNREACHABLE")); self.activate()
         self.telegram.queue.append(update(1, "hallo"))
         self.app.poll_once()
-        self.assertIn("PROVIDER_RATE_LIMITED", self.telegram.sent[0][1])
+        self.assertIn("PROVIDER_UNREACHABLE", self.telegram.sent[0][1])
         self.assertEqual(1, self.store.budget(app_module.today(lambda: self.now))["calls"])
         self.assertGreater(self.store.budget(app_module.today(lambda: self.now))["usd"], 0)
+
+    def test_a_rejected_request_gives_the_reservation_back_but_counts_the_call(self):
+        self.make(FakeProvider(paid=True, fail="PROVIDER_REQUEST_INVALID:invalid_request_error")); self.activate()
+        self.telegram.queue.append(update(1, "hallo"))
+        self.app.poll_once()
+        budget = self.store.budget(app_module.today(lambda: self.now))
+        self.assertEqual((1, 0.0), (budget["calls"], round(budget["usd"], 9)))
 
     def test_the_refusal_kind_survives_a_restart(self):
         self.make(FakeProvider(refused=True, text="abgelehnt")); self.activate()
