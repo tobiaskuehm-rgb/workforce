@@ -7,8 +7,10 @@ die Vertretung ist damit beendet. Ihre acht Befunde stehen unter dem Tag
 ohne `G-`Nummer, die vergibt er (`G-006`). Was er zuerst lesen sollte, steht
 unten unter „Leseweg für Gerd".
 
-**Aktive Arbeit:** keine. `SV-2026-09-03-07` und `-08` sind geschlossen
-(`c9b1623`, und der Commit danach).
+**Aktive Arbeit (2026-09-03, Mittag):** Claude Code (Fable 5.1) liest Gerds
+neuen Zielnachcheck (`b3deb78`, „Rückbau und Owner-Gates nachschärfen") und
+arbeitet ihn ab. `SV-2026-09-03-07` und `-08` sind geschlossen (`c9b1623`,
+`0f94660`).
 
 ## Leseweg für Gerd
 
@@ -126,16 +128,13 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
 ## Stand
 
 - **Gepusht** ist alles bis `0f94660` (Freigabe des Nutzers im Chat am
-  2026-09-03, „dann los"). **Deployt** ist weiterhin `e38b3d7` — auf `e38b3d7`
-  232 Dateien, 0 fehlend, 0 abweichend, 0 unerwartet, `check_unmanaged` `PASS`.
-  **Der Deploy des aktuellen Standes ist nicht erfolgt:** Das Manifest wurde
-  erzeugt (`8036a20`, `dirty=no`, 236 Dateien), der Transfer per `tar | ssh`
-  wurde von der Berechtigungsprüfung des Werkzeugs abgewiesen — dieselbe
-  Sperre, die am 2026-09-02 den ersten Probe-Versuch traf, keine Projektregel.
-  Der Nutzer führt den dokumentierten Deploy-Befehl selbst aus; nachgetragen
-  wird hier erst, was `verify_manifest.sh` auf der NAS bestätigt hat
-  (Leitplanke 6). Bis dahin liest Gerd auf der NAS den Stand `e38b3d7` —
-  ohne `010`, ohne `SV-…-07`/`-08` und ohne diesen Leseweg. `compose.yaml` weicht bis dahin vom benannten
+  2026-09-03, „dann los"). **Deployt ist `b3deb78`** — vom Nutzer selbst
+  ausgeführt, weil der Transfer per `tar | ssh` für Claude von der
+  Berechtigungsprüfung des Werkzeugs abgewiesen wurde (dieselbe Sperre wie
+  beim ersten Probe-Versuch am 2026-09-02, keine Projektregel). Auf der NAS
+  gemessen: `dirty=no`, 236 Dateien, 0 fehlend, 0 abweichend, 0 unerwartet,
+  `RESULT: PASS`; `check_unmanaged` 62 Einträge, `PASS`. `b3deb78` ist Gerds
+  eigener Commit mit seinem neuen Zielnachcheck in `REVIEW_GERD.md`. `compose.yaml` weicht bis dahin vom benannten
   Produktionsstand ab und steht mit Begründung in der Ausnahmeliste von
   `test_production_state_drift.py`.
 - **703 lokale Tests `PASS`** (617 / 15 / 44 / 27), auf `python3` 3.9.6 des
