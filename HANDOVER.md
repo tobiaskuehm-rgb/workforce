@@ -155,14 +155,13 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
 
 ## Stand
 
-- **Deployt ist `fdb39e4`** — über `deploy_to_nas.sh` und die enge
-  Berechtigungsregel dafür (`.claude/settings.local.json`, nur dieser eine
-  Befehlsweg). Auf der NAS gemessen für `fdb39e4` — `dirty=no`, 237 Dateien,
-  0 fehlend, 0 abweichend, 0 unerwartet, `RESULT: PASS`; `check_unmanaged`
-  63 Einträge, `PASS`. Damit liegen die Korrekturen zu `G-077` bis `G-079`,
-  die umgebaute Probe und die Antworten dort, wo Gerd liest. Davor `b3deb78`
-  vom Nutzer von Hand, weil ein `tar | ssh`-Einzeiler von der
-  Berechtigungsprüfung des Werkzeugs abgewiesen wurde. `compose.yaml` weicht bis dahin vom benannten
+- **Deployt ist `c717526`** — über `deploy_to_nas.sh` (seit `G-080` ohne
+  Remote-Löschen, Archiv vor `ssh`) und die enge Berechtigungsregel dafür
+  (`.claude/settings.local.json`, nur dieser eine Befehlsweg). Auf der NAS
+  gemessen für `c717526` — `dirty=no`, 239 Dateien, 0 fehlend, 0 abweichend,
+  0 unerwartet, `RESULT: PASS`; `check_unmanaged` 64 Einträge, `PASS`. Damit
+  liegen `G-080`/`G-081`, die Gesamtprüfung und die Antworten dort, wo Gerd
+  liest. `compose.yaml` weicht bis dahin vom benannten
   Produktionsstand ab und steht mit Begründung in der Ausnahmeliste von
   `test_production_state_drift.py`.
 - **731 lokale Tests `PASS`** (645 / 15 / 44 / 27), auf `python3` 3.9.6 des
