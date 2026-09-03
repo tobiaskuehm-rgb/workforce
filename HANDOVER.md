@@ -165,13 +165,15 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
 
 ## Stand
 
-- **Deployt ist `c717526`** — über `deploy_to_nas.sh` (seit `G-080` ohne
-  Remote-Löschen, Archiv vor `ssh`) und die enge Berechtigungsregel dafür
-  (`.claude/settings.local.json`, nur dieser eine Befehlsweg). Auf der NAS
-  gemessen für `c717526` — `dirty=no`, 239 Dateien, 0 fehlend, 0 abweichend,
-  0 unerwartet, `RESULT: PASS`; `check_unmanaged` 64 Einträge, `PASS`. Damit
-  liegen `G-080`/`G-081`, die Gesamtprüfung und die Antworten dort, wo Gerd
-  liest. `compose.yaml` weicht bis dahin vom benannten
+- **Deployt ist `0dc2ad0`** — über `deploy_to_nas.sh` (seit `G-080` ohne
+  Remote-Löschen, seit `G-091` mit festem Ziel) und die enge
+  Berechtigungsregel dafür (`.claude/settings.local.json`, nur dieser eine
+  Befehlsweg). Auf der NAS gemessen für `0dc2ad0` — `dirty=no`, 242 Dateien,
+  0 fehlend, 0 abweichend, 0 unerwartet, `RESULT: PASS`; `check_unmanaged`
+  64 Einträge, `PASS`. Damit liegen die Korrekturen zu `G-082` bis `G-091`,
+  die neuen Wächter und die Antworten dort, wo Gerd liest. Das umgebaute
+  `nas_status.sh` ist dort **nicht** gelaufen — sein erster Lauf auf der NAS
+  ist Gerds Nachcheck vorbehalten. `compose.yaml` weicht bis dahin vom benannten
   Produktionsstand ab und steht mit Begründung in der Ausnahmeliste von
   `test_production_state_drift.py`.
 - **795 lokale Tests `PASS`** (698 / 15 / 55 / 27), auf `python3` 3.9.6 des
