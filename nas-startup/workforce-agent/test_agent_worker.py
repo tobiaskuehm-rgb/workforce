@@ -31,7 +31,8 @@ class FakeBus:
 
     def acknowledge(self, message_id, *, decision, note, request_id):
         self.acks.append(
-            {"message_id": message_id, "decision": decision, "request_id": request_id}
+            {"message_id": message_id, "decision": decision, "request_id": request_id,
+             "note": note}
         )
         return {"decision": decision}
 
@@ -577,3 +578,55 @@ class BudgetStopBeforeTheProviderTest(unittest.TestCase):
             agent_worker.handle_message(bus, provider, message(), policy="BODY",
                                         budget=haushalt, state=store)
         self.assertEqual([], store.snapshot())
+
+
+class AcknowledgementNoteTest(unittest.TestCase):
+    """`G-087`: Die Bestaetigungsnotiz unterscheidet Antwort und Ablehnung.
+
+    Gemessen in der Gesamtpruefung: ANSWERED, Providerfehler und
+    Modell-Refusal trugen dieselbe Notiz "Vom Agenten bearbeitet und
+    beantwortet." - und der Antworttext beim Providerfehler sagte "bleibt
+    offen", waehrend der Bus-Datensatz ACCEPTED war.
+    """
+
+    def _note(self, provider, **extra):
+        bus = FakeBus()
+        result = agent_worker.handle_message(bus, provider, message(**extra), policy="BODY")
+        return result["result"], bus.acks[0]["note"], bus.sent[0]["body"]
+
+    def test_an_answer_says_answered(self):
+        result, note, _ = self._note(ScriptedProvider(text="Fachliche Antwort."))
+        self.assertEqual("ANSWERED", result)
+        self.assertEqual("Vom Agenten beantwortet.", note)
+
+    def test_a_provider_failure_names_its_identifier(self):
+        result, note, body = self._note(ScriptedProvider(error="AGENT_PROVIDER_RATE_LIMITED"))
+        self.assertEqual("REFUSED", result)
+        self.assertEqual("Vom Agenten abgelehnt: AGENT_PROVIDER_RATE_LIMITED", note)
+        # Und der Antworttext behauptet nicht mehr, die Nachricht bleibe offen.
+        self.assertNotIn("bleibt offen", body)
+        self.assertIn("bestaetigt", body)
+        self.assertIn("manuelle Pruefung", body)
+
+    def test_a_model_refusal_names_itself(self):
+        result, note, _ = self._note(ScriptedProvider(refused=True))
+        self.assertEqual("REFUSED", result)
+        self.assertEqual("Vom Agenten abgelehnt: AGENT_MODEL_REFUSED", note)
+
+    def test_a_data_boundary_refusal_names_its_identifier(self):
+        result, note, _ = self._note(ScriptedProvider(),
+                                     body="x" * (data_boundary.MAX_OUTBOUND_CHARS + 1))
+        self.assertEqual("REFUSED", result)
+        self.assertTrue(note.startswith("Vom Agenten abgelehnt: AGENT_OUTBOUND_TOO_LARGE"), note)
+
+    def test_the_two_notes_differ(self):
+        # Der Befund in einem Satz.
+        _, antwort, _ = self._note(ScriptedProvider(text="Antwort."))
+        _, ablehnung, _ = self._note(ScriptedProvider(error="AGENT_PROVIDER_UNREACHABLE"))
+        self.assertNotEqual(antwort, ablehnung)
+
+    def test_the_note_is_a_stable_identifier_not_a_text(self):
+        # Die Kennung ist der stabile Teil - ^[A-Z0-9_:]+$ hinter dem Praefix.
+        _, note, _ = self._note(ScriptedProvider(error="AGENT_PROVIDER_HTTP_529"))
+        kennung = note.split(": ", 1)[1]
+        self.assertRegex(kennung, r"^[A-Z0-9_:]+$")

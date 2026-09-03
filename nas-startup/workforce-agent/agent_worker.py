@@ -131,6 +131,13 @@ def _send_reply(client, message, sender_id, message_id, body) -> dict[str, Any]:
     )
 
 
+def acknowledgement_note(refused: bool, refusal: str | None) -> str:
+    """What the bus record says about the outcome - answer or named refusal."""
+    if not refused:
+        return "Vom Agenten beantwortet."
+    return f"Vom Agenten abgelehnt: {refusal or 'AGENT_REPLY_REFUSED'}"[:1000]
+
+
 def reply_subject(inbound_subject: str) -> str:
     subject = (inbound_subject or "Anfrage").strip()
     if subject.lower().startswith("re:"):
@@ -371,9 +378,15 @@ def handle_message(
                     # below, where there is genuinely nothing durable to protect.
                     provider_error = str(error)
                     vorgang["refusal"] = str(error)
+                    # "bleibt offen" said the old text - while the bus record
+                    # was acknowledged as ACCEPTED a few lines further down
+                    # (review finding G-087). What stays open is the question,
+                    # not the message.
                     reply_text = (
                         "Diese Anfrage konnte technisch nicht bearbeitet werden "
-                        f"({error}). Sie bleibt offen und braucht eine manuelle Pruefung."
+                        f"({error}). Die Nachricht ist damit bestaetigt; die "
+                        "fachliche Frage ist unbeantwortet und braucht eine "
+                        "manuelle Pruefung."
                     )
                     refused = True
                 else:
@@ -424,6 +437,11 @@ def handle_message(
                     else:
                         reply_text = reply.text
                         refused = reply.refused
+                        if reply.refused:
+                            # A refusal by the model is a refusal with a name,
+                            # like every other one here (G-087).
+                            vorgang["refusal"] = "AGENT_MODEL_REFUSED" + (
+                                f":{reply.refusal_category}" if reply.refusal_category else "")
 
         # 3. Write the answer back to the original sender. The recipient comes
         #    from the bus record, never from model output.
@@ -447,11 +465,18 @@ def handle_message(
     # 4. Only now acknowledge. Everything above is done and durable; a failure
     #    here leaves the message DELIVERED and the store at REPLIED, so the
     #    next run resumes at exactly this step without paying again.
+    #
+    #    The note carries the outcome (review finding G-087). It used to say
+    #    "bearbeitet und beantwortet" for every outcome, so a rate-limited
+    #    provider and a real answer looked identical in bus_messages and in
+    #    the audit row the acknowledgement writes - the only way to tell them
+    #    apart was to read the reply body. The identifier is the stable part;
+    #    it is what the reply text also names.
     try:
         client.acknowledge(
             message_id,
             decision="ACCEPTED",
-            note="Vom Agenten bearbeitet und beantwortet.",
+            note=acknowledgement_note(refused, vorgang["refusal"]),
             request_id=f"{REQUEST_PREFIX}-ACK-{derived_key(message_id, 'ack')}",
         )
     except bus_client.BusError as error:
