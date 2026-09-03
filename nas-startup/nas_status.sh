@@ -32,16 +32,38 @@ echo "--- API meldet ---"
 # Migrationsstand - es steht auf 002, solange die Bus-Migration da ist, auch
 # wenn 007 laengst angewendet ist. Den wirklichen Stand zeigt der Abschnitt
 # Datenbank weiter unten. Der Feldname hat schon einmal in die Irre gefuehrt.
-sudo $DOCKER exec startup-workforce-api-1 python -c "
+#
+# Der Container wird aufgeloest, nicht benannt (G-042, G-085): ein
+# Containername ist eine Ableitung aus Projektordner, Dienst und Index. Und
+# ein Fehlschlag zaehlt - die erste Fassung druckte "(API nicht erreichbar)"
+# und meldete darunter PASS.
+api_id="$(sudo $DOCKER compose ps -q workforce-api 2>/dev/null || true)"
+if [ -z "$api_id" ]; then
+    echo "FAIL: kein Container fuer den Dienst workforce-api - laeuft der Stack?"
+    problems=$((problems + 1))
+else
+    api_out="$(sudo $DOCKER exec "$api_id" python -c "
 import json, urllib.request
 with urllib.request.urlopen('http://127.0.0.1:8080/bus/v1/status', timeout=5) as r:
     print(json.dumps(json.load(r), sort_keys=True))
-" 2>/dev/null || echo "(API nicht erreichbar)"
+" 2>&1)"
+    api_code=$?
+    if [ "$api_code" -eq 0 ]; then
+        echo "$api_out"
+    else
+        echo "FAIL: API-Abfrage Exitcode $api_code"
+        echo "$api_out" | tail -3
+        problems=$((problems + 1))
+    fi
+fi
 
 echo
 echo "--- Datenbank ---"
+# Unaligned mit | als Trenner, damit die Werte unten maschinell gelesen werden
+# koennen; die Migrationsliste ist kommagetrennt ohne Leerzeichen, in genau
+# der Form, in der production_state.txt sie fuehrt.
 cat > /tmp/nas_status.sql <<'SQL'
-SELECT 'Migrationen' AS was, string_agg(migration_id, ', ' ORDER BY migration_id) AS wert
+SELECT 'Migrationen' AS was, string_agg(migration_id, ',' ORDER BY migration_id) AS wert
 FROM workforce.schema_migrations
 UNION ALL SELECT 'Kanal', channel_status FROM workforce.bus_channels WHERE project_id = 'START-UP'
 UNION ALL SELECT 'aktive Credentials', count(*)::text FROM workforce.bus_credentials
@@ -58,15 +80,61 @@ UNION ALL SELECT 'workforce_app SUPERUSER',
   CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'workforce_app' AND rolsuper) THEN 'ja - G-045: nicht per ALTER ROLE entziehbar' ELSE 'nein' END
 UNION ALL SELECT 'Datenbankgroesse', pg_size_pretty(pg_database_size(current_database()));
 SQL
-sudo $DOCKER run --rm --network startup_backend \
+# Ausgabe und Exitcode getrennt festhalten (G-085). Die erste Fassung haengte
+# ein `| grep` an und zaehlte nur bei leerer Ausgabe ein Problem: Der Status
+# einer Pipeline ist der ihres letzten Befehls, und grep ist erfolgreich,
+# sobald es eine Zeile ausgibt - auch die Zeile "psql: error: ...". Dieselbe
+# Falle, die run_gate() unten fuer die Gates schon vermeidet.
+db_out="$(sudo $DOCKER run --rm --network startup_backend \
   -v "$(pwd)/startup.db.env:/run/startup.db.env:ro" \
   -v /tmp/nas_status.sql:/tmp/q.sql:ro postgres:17-alpine sh -c '
     export PGHOST="${DB_HOST:-db}"
     export PGUSER="$(sed -n "s/^POSTGRES_USER=//p" /run/startup.db.env)"
     export PGDATABASE="$(sed -n "s/^POSTGRES_DB=//p" /run/startup.db.env)"
     export PGPASSWORD="$(sed -n "s/^POSTGRES_PASSWORD=//p" /run/startup.db.env)"
-    psql -f /tmp/q.sql' 2>&1 | grep -vE "^\(|^$" || problems=$((problems + 1))
+    psql -v ON_ERROR_STOP=1 -At -F "|" -f /tmp/q.sql' 2>&1)"
+db_code=$?
 rm -f /tmp/nas_status.sql
+if [ "$db_code" -ne 0 ]; then
+    echo "FAIL: Datenbankabfrage Exitcode $db_code"
+    printf '%s\n' "$db_out" | tail -3
+    problems=$((problems + 1))
+else
+    printf '%s\n' "$db_out" | awk -F'|' '{ printf "%-24s %s\n", $1, $2 }'
+fi
+
+# Sollwerte, maschinell gepruef (G-085). Das Runbook sagt "Abbruch, wenn nicht
+# Kanal DISABLED, 0 aktive Credentials, Migrationen 001-003 und 005-007" - und
+# ein Wert, der in der Ausgabe fehlt, ist kein Abbruch, wenn niemand ihn
+# vermisst. Also werden die drei hier verglichen, nicht vom Operator gelesen.
+# Die Migrationsmenge kommt aus production_state.txt, dem einen Ort, der den
+# laufenden Stand nennt (G-050) - keine zweite Liste hier. Kanal und
+# Credentials sind fuer ein geschlossenes Fenster fest; wer nas_status.sh
+# waehrend eines offenen Fensters als Messung braucht, setzt EXPECT_CHANNEL
+# ausdruecklich.
+echo
+echo "--- Sollwerte (Preflight) ---"
+wert() { printf '%s\n' "$db_out" | sed -n "s/^$1|//p" | head -1; }
+pruefe() {
+    if [ -z "$2" ]; then
+        echo "FAIL: $1 nicht gemessen, erwartet $3"
+        problems=$((problems + 1))
+    elif [ "$2" = "$3" ]; then
+        echo "PASS: $1 = $3"
+    else
+        echo "FAIL: $1 = $2, erwartet $3"
+        problems=$((problems + 1))
+    fi
+}
+soll_migrationen="$(sed -n 's/^APPLIED_MIGRATIONS=//p' production_state.txt 2>/dev/null | head -1)"
+if [ -z "$soll_migrationen" ]; then
+    echo "FAIL: production_state.txt nennt keine APPLIED_MIGRATIONS"
+    problems=$((problems + 1))
+else
+    pruefe "Migrationen" "$(wert Migrationen)" "$soll_migrationen"
+fi
+pruefe "Kanal" "$(wert Kanal)" "${EXPECT_CHANNEL:-DISABLED}"
+pruefe "aktive Credentials" "$(wert 'aktive Credentials')" "${EXPECT_ACTIVE_CREDENTIALS:-0}"
 
 # A pipeline returns the exit code of its LAST command, so `check | tail`
 # reports whether `tail` worked - never whether the check passed. The first
