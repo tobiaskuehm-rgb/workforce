@@ -677,3 +677,122 @@ class OutboundDataBoundaryTest(unittest.TestCase):
             "TELEGRAM_ALLOWED_TASK_IDS": "CEO-TG-TEST-001",
         })
         self.assertEqual("METADATA_ONLY", settings.outbound_policy)
+
+
+class ClaimLeaseTest(unittest.TestCase):
+    """`G-083`: Ein Update in CLAIMED verfaellt nach einer Frist - und nur dann.
+
+    Gemessen in der Gesamtpruefung vom 2026-09-03: Claim, kein Abschluss,
+    zweiter Prozess, dasselbe Update von Telegram erneut geliefert -
+    DUPLICATE, fuer immer. Ein /task des CEO war weg, und die Auditzeile sagte
+    "schon erledigt".
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.pfad = Path(self.tmp.name) / "state.sqlite3"
+        self.now = 1000.0
+
+    def _store(self, **extra):
+        return AuditStore(self.pfad, clock=lambda: self.now, **extra)
+
+    def _connector(self, store):
+        settings = Settings(
+            enabled=True, kill_switch=False, telegram_bot_token=BOT_TOKEN,
+            allowed_chat_id=111, allowed_user_id=222,
+            allowed_recipient_ids=frozenset({"AI-ENG-001"}),
+            allowed_task_ids=frozenset({"CEO-TG-TEST-002"}),
+            workforce_base_url="https://nas.example.test:8443",
+            workforce_bus_token=BUS_TOKEN, state_path=self.pfad,
+        )
+        telegram, workforce = FakeTelegram(), FakeWorkforce()
+        return TelegramConnector(settings, store, telegram, workforce), telegram, workforce
+
+    def test_a_redelivery_within_the_lease_is_still_a_duplicate(self):
+        erster = self._store()
+        self.assertEqual("CLAIMED", erster.claim_update(4711, "h"))
+        erster.close()                       # der Prozess stirbt vor finish_update
+        self.now += 5
+        zweiter = self._store()
+        self.assertEqual("DUPLICATE", zweiter.claim_update(4711, "h"))
+
+    def test_a_crashed_claim_is_retried_after_the_lease(self):
+        erster = self._store()
+        erster.claim_update(4711, "h")
+        erster.close()
+        self.now += telegram_connector.UPDATE_LEASE_SECONDS + 1
+        zweiter = self._store()
+        self.assertEqual("RETRY", zweiter.claim_update(4711, "h"))
+        row = zweiter._connection.execute(
+            "SELECT processing_status, attempts FROM processed_updates WHERE update_id = 4711"
+        ).fetchone()
+        self.assertEqual(("CLAIMED", 2), row)
+
+    def test_the_connector_processes_a_retried_update_and_says_so(self):
+        # Ende zu Ende: der CEO-Befehl kommt beim zweiten Anlauf durch.
+        item = update(4712, "/task AI-ENG-001 CEO-TG-TEST-002 | Technikcheck | Kurzer Bericht")
+        erster = self._store()
+        erster.claim_update(4712, TelegramConnector._fingerprint(item))
+        erster.close()
+        self.now += telegram_connector.UPDATE_LEASE_SECONDS + 1
+        connector, telegram, workforce = self._connector(self._store())
+        self.assertEqual("PROCESSED", connector.process_update(item))
+        self.assertEqual(1, len(workforce.tasks))
+        ereignisse = [e["event_type"] for e in connector.store.list_audit()]
+        self.assertIn("UPDATE_RETRIED", ereignisse)
+        self.assertNotIn("DUPLICATE_IGNORED", ereignisse)
+
+    def test_two_processes_cannot_both_take_an_expired_claim(self):
+        erster = self._store()
+        erster.claim_update(4713, "h")
+        erster.close()
+        self.now += telegram_connector.UPDATE_LEASE_SECONDS + 1
+        a, b = self._store(), self._store()
+        self.assertEqual("RETRY", a.claim_update(4713, "h"))
+        self.assertEqual("DUPLICATE", b.claim_update(4713, "h"),
+                         "der zweite sieht die frische Lease des ersten")
+
+    def test_a_finished_update_never_becomes_a_retry(self):
+        store = self._store()
+        store.claim_update(4714, "h")
+        store.finish_update(4714, "PROCESSED")
+        self.now += 10 * telegram_connector.UPDATE_LEASE_SECONDS
+        self.assertEqual("DUPLICATE", store.claim_update(4714, "h"))
+
+    def test_attempts_run_out_and_the_update_is_abandoned_audibly(self):
+        item = update(4715, "/status")
+        fp = TelegramConnector._fingerprint(item)
+        store = self._store(max_attempts=3)
+        store.claim_update(4715, fp)                       # Versuch 1
+        for erwartet in ("RETRY", "RETRY"):                 # Versuche 2 und 3
+            self.now += telegram_connector.UPDATE_LEASE_SECONDS + 1
+            self.assertEqual(erwartet, store.claim_update(4715, fp))
+        self.now += telegram_connector.UPDATE_LEASE_SECONDS + 1
+        connector, telegram, _ = self._connector(store)
+        self.assertEqual("EXHAUSTED", connector.process_update(item))
+        self.assertEqual([], telegram.sent)
+        ereignisse = [e["event_type"] for e in store.list_audit()]
+        self.assertIn("UPDATE_ABANDONED", ereignisse)
+        row = store._connection.execute(
+            "SELECT processing_status FROM processed_updates WHERE update_id = 4715").fetchone()
+        self.assertEqual("FAILED", row[0])
+
+    def test_a_store_from_before_the_lease_is_upgraded_in_place(self):
+        # Die Datei auf dem Kettenvolume ist aelter als G-083. Sie bekommt die
+        # zwei Spalten dazu, nichts wird umgeschrieben, und ein alter
+        # haengengebliebener CLAIMED-Eintrag wird genau einmal nachgeholt.
+        alt = sqlite3.connect(self.pfad)
+        alt.executescript("""
+            CREATE TABLE processed_updates (
+                update_id INTEGER PRIMARY KEY, payload_hash TEXT NOT NULL,
+                processing_status TEXT NOT NULL, created_at TEXT NOT NULL, finished_at TEXT);
+            INSERT INTO processed_updates VALUES (1, 'h', 'CLAIMED', '2026-09-01T00:00:00+00:00', NULL);
+            INSERT INTO processed_updates VALUES (2, 'h', 'PROCESSED', '2026-09-01T00:00:00+00:00', '2026-09-01T00:00:01+00:00');
+        """)
+        alt.commit(); alt.close()
+        store = self._store()
+        spalten = {r[1] for r in store._connection.execute("PRAGMA table_info(processed_updates)")}
+        self.assertTrue({"claimed_at", "attempts"} <= spalten)
+        self.assertEqual("RETRY", store.claim_update(1, "h"))
+        self.assertEqual("DUPLICATE", store.claim_update(2, "h"))

@@ -49,6 +49,17 @@ OUTBOUND_POLICIES = ("METADATA_ONLY", "BODY")
 # Hard ceiling regardless of configuration. Telegram itself accepts far more,
 # but a short summary is the point: the bus stays the system of record.
 MAX_OUTBOUND_BODY_CHARS = 1500
+
+# A claimed update that never finished - because the process died between
+# claim and completion - becomes claimable again after this (review finding
+# G-083). Processing one update is a handful of HTTPS calls, so five minutes
+# is generous; long enough that a slow bus cannot get an update stolen
+# mid-flight, short enough that a crash does not hold a CEO command for a
+# working day. Within the lease a redelivery is a duplicate, as before.
+UPDATE_LEASE_SECONDS = 300
+# After this many claims the update is abandoned and audited as such, rather
+# than retried on every redelivery forever.
+UPDATE_MAX_ATTEMPTS = 3
 HELP_TEXT = (
     "START-UP Telegram-Pilot\n"
     "/status – technischen Busstatus lesen\n"
@@ -471,8 +482,18 @@ class WorkforceApiClient:
 class AuditStore:
     """Append-only audit metadata plus Telegram update deduplication."""
 
-    def __init__(self, path: Path):
+    def __init__(
+        self,
+        path: Path,
+        *,
+        lease_seconds: int = UPDATE_LEASE_SECONDS,
+        max_attempts: int = UPDATE_MAX_ATTEMPTS,
+        clock=time.time,
+    ):
         self.path = path
+        self.lease_seconds = lease_seconds
+        self.max_attempts = max_attempts
+        self.clock = clock
         path.parent.mkdir(parents=True, exist_ok=True)
         self._connection = sqlite3.connect(path)
         self._connection.execute("PRAGMA journal_mode=WAL")
@@ -484,7 +505,9 @@ class AuditStore:
                 processing_status TEXT NOT NULL
                     CHECK (processing_status IN ('CLAIMED', 'PROCESSED', 'FAILED')),
                 created_at TEXT NOT NULL,
-                finished_at TEXT
+                finished_at TEXT,
+                claimed_at REAL NOT NULL DEFAULT 0,
+                attempts INTEGER NOT NULL DEFAULT 1
             );
             CREATE TABLE IF NOT EXISTS audit_events (
                 event_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -509,6 +532,18 @@ class AuditStore:
             """
         )
         self._connection.commit()
+        # Additive upgrade of a store written before G-083: the two lease
+        # columns are added with defaults, nothing is rewritten. A CLAIMED row
+        # from before carries claimed_at 0 - an expired lease - and is retried
+        # once, which is exactly what it was owed.
+        vorhanden = {row[1] for row in
+                     self._connection.execute("PRAGMA table_info(processed_updates)")}
+        for spalte, definition in (("claimed_at", "REAL NOT NULL DEFAULT 0"),
+                                   ("attempts", "INTEGER NOT NULL DEFAULT 1")):
+            if spalte not in vorhanden:
+                self._connection.execute(
+                    f"ALTER TABLE processed_updates ADD COLUMN {spalte} {definition}")
+        self._connection.commit()
         try:
             os.chmod(path, 0o600)
         except OSError:
@@ -523,23 +558,73 @@ class AuditStore:
         return datetime.now(timezone.utc).isoformat()
 
     def claim_update(self, update_id: int, payload_hash: str) -> str:
+        """Take the update, or say why not. Five answers, three of them new.
+
+        CLAIMED    first sight, ours to process
+        DUPLICATE  same update already seen - finished, or still held within
+                   its lease by a process that may be working on it
+        CONFLICT   same update id, different payload
+        RETRY      held past its lease by a process that never finished; taken
+                   over atomically, attempt counted (review finding G-083)
+        EXHAUSTED  taken over too often; marked FAILED so a redelivery stops
+                   here instead of circling
+
+        Before G-083 a CLAIMED row was a DUPLICATE forever: a process that
+        died between claim and completion left the update stuck, and Telegram's
+        redelivery of it was "already seen". A CEO command vanished without a
+        reply and with an audit line saying it had been handled. The lease is
+        what the agent's state store has had since G-002, on the inbound side.
+
+        BEGIN IMMEDIATE, so two processes on one volume cannot both take an
+        expired claim: the second sees the first's fresh claimed_at.
+        """
+        now = self.clock()
+        cursor = self._connection.cursor()
+        cursor.execute("BEGIN IMMEDIATE")
         try:
-            with self._connection:
-                self._connection.execute(
-                    """
-                    INSERT INTO processed_updates (
-                        update_id, payload_hash, processing_status, created_at
-                    ) VALUES (?, ?, 'CLAIMED', ?)
-                    """,
-                    (update_id, payload_hash, self._now()),
-                )
-            return "CLAIMED"
-        except sqlite3.IntegrityError:
-            row = self._connection.execute(
-                "SELECT payload_hash FROM processed_updates WHERE update_id = ?",
+            row = cursor.execute(
+                "SELECT payload_hash, processing_status, claimed_at, attempts "
+                "FROM processed_updates WHERE update_id = ?",
                 (update_id,),
             ).fetchone()
-            return "DUPLICATE" if row and row[0] == payload_hash else "CONFLICT"
+            if row is None:
+                cursor.execute(
+                    """
+                    INSERT INTO processed_updates (
+                        update_id, payload_hash, processing_status, created_at,
+                        claimed_at, attempts
+                    ) VALUES (?, ?, 'CLAIMED', ?, ?, 1)
+                    """,
+                    (update_id, payload_hash, self._now(), now),
+                )
+                cursor.execute("COMMIT")
+                return "CLAIMED"
+
+            stored_hash, status, claimed_at, attempts = row
+            if stored_hash != payload_hash:
+                cursor.execute("COMMIT")
+                return "CONFLICT"
+            if status != "CLAIMED" or now - claimed_at < self.lease_seconds:
+                cursor.execute("COMMIT")
+                return "DUPLICATE"
+            if attempts >= self.max_attempts:
+                cursor.execute(
+                    "UPDATE processed_updates SET processing_status = 'FAILED', "
+                    "finished_at = ? WHERE update_id = ?",
+                    (self._now(), update_id),
+                )
+                cursor.execute("COMMIT")
+                return "EXHAUSTED"
+            cursor.execute(
+                "UPDATE processed_updates SET claimed_at = ?, attempts = attempts + 1 "
+                "WHERE update_id = ?",
+                (now, update_id),
+            )
+            cursor.execute("COMMIT")
+            return "RETRY"
+        except Exception:
+            cursor.execute("ROLLBACK")
+            raise
 
     def finish_update(self, update_id: int, status: str) -> None:
         if status not in {"PROCESSED", "FAILED"}:
@@ -752,7 +837,17 @@ class TelegramConnector:
             return "REJECTED"
         update_id = raw_update_id
         claim = self.store.claim_update(update_id, self._fingerprint(update))
-        if claim != "CLAIMED":
+        if claim == "EXHAUSTED":
+            # Taken over UPDATE_MAX_ATTEMPTS times and never finished. Said
+            # once in the audit, then left alone; the offset moves on.
+            self.store.audit(
+                "UPDATE_ABANDONED",
+                "DENY",
+                update_id=update_id,
+                metadata={"reason": "ATTEMPTS_EXHAUSTED"},
+            )
+            return claim
+        if claim not in {"CLAIMED", "RETRY"}:
             event = "DUPLICATE_IGNORED" if claim == "DUPLICATE" else "IDEMPOTENCY_CONFLICT"
             self.store.audit(
                 event,
@@ -763,6 +858,10 @@ class TelegramConnector:
             return claim
 
         self.store.audit("UPDATE_RECEIVED", "PASS", update_id=update_id)
+        if claim == "RETRY":
+            # Visible in the audit: this is a second attempt after a crash,
+            # not a first sight.
+            self.store.audit("UPDATE_RETRIED", "PASS", update_id=update_id)
         authorized_chat_id: int | None = None
         try:
             chat_id, user_id, chat_type, text = self._message_fields(update)
