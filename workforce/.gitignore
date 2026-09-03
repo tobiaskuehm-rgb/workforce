@@ -3,3 +3,4 @@ config.json
 *.db
 *.db-wal
 *.db-shm
+config.nas.json
