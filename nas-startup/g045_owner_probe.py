@@ -10,10 +10,16 @@ Append-only-Zusicherungen aus 006/007.
 
 **Diese Probe laeuft in einem Wegwerf-Container, nicht gegen die Produktion.**
 
-**Gelaufen am 2026-09-03: `RESULT: PASS`**, elf Zusicherungen; Nachweis in
-`evidence/2026-09-03_g045_owner_probe_run.md`. Jeder weitere Lauf ist wieder
-eine Ausfuehrung auf der NAS und braucht die Freigabe des CEO. Die Produktion
-war und bleibt unberuehrt: `009` ist dort nicht angewendet.
+**Gelaufen am 2026-09-03 (Vormittag): `RESULT: PASS`**, damals elf
+Zusicherungen; Nachweis in `evidence/2026-09-03_g045_owner_probe_run.md`.
+
+**Seitdem umgebaut und in dieser Form nicht gelaufen** (Gerds siebzehnter
+Zielnachcheck, `G-077` bis `G-079`): Die Probe fuehrt jetzt den ganzen Weg
+`009 -> Abnahme 009 -> 010 -> Abnahme 010 -> Bus-Funktionsaufruf` und davor
+zwei Negativfaelle, in denen `009` verweigern muss. Neun Zusicherungen sind
+damit neu und **ungemessen**, bis der naechste freigegebene Lauf sie misst.
+Jeder Lauf ist eine Ausfuehrung auf der NAS und braucht die Freigabe des CEO.
+Die Produktion war und bleibt unberuehrt: `009` ist dort nicht angewendet.
 
 Regel 15 ist der Grund fuer den Zuschnitt: Eine Probe muss die **Rollenlage**
 der Produktion nachbauen, nicht nur ihr Schema. `initdb` macht `POSTGRES_USER`
@@ -120,10 +126,32 @@ PROBE_SENDER = "SAO-001"
 PROBE_RECIPIENT = "AI-ENG-001"
 REQUEST_ID_SEND = "PROBE-G045-SEND"
 
+# Der zweite Aufruf, nach dem Rueckbau. Eigene Ids: Die Bus-Idempotenz wuerde
+# denselben Schluessel als Wiederholung behandeln und dieselbe Nachricht
+# zurueckgeben - das saehe aus wie ein Aufruf und waere keiner.
+REQUEST_ID_SEND_AFTER = "PROBE-G045-SEND-AFTER-ROLLBACK"
+PROBE_MSG_ID_AFTER = "MSG-PROBE-G045-AFTER-ROLLBACK"
+PROBE_IDEM_AFTER = "IDEM-PROBE-G045-AFTER-ROLLBACK"
+ABNAHME_MARKER_010 = "Bus function owner rollback acceptance: PASS"
+
+# Die zwei Negativfaelle (G-078, G-079): 009 muss **verweigern**, und zwar mit
+# genau dem benannten Abbruch. Ein anderer Fehlschlag - Container weg,
+# Tippfehler, fremde Ausnahme - ist keine bestandene Vorbedingung (G-014).
+G078_MARKER = "MIGRATION_009_PINNED_FUNCTION_FOREIGN_OWNER"
+G079_MARKER = "MIGRATION_009_OWNER_ROLE_HAS_MEMBERS"
+
 # Jede Zusicherung, die diese Probe belegen soll, mit ihrem genauen Sollwert.
 # Ein Schluessel, der im Ergebnis fehlt, ist ein Fehlschlag - nicht ein
 # uebergangener Punkt. Genau daran ist die erste Fassung gescheitert.
 ERWARTET = {
+    # Zuerst die Negativfaelle, auf der frischen Datenbank vor dem echten 009.
+    # Beide muessen 009 zum benannten Abbruch bringen; die Transaktion rollt
+    # zurueck, also bleibt nichts liegen - und dass nichts liegen bleibt, wird
+    # gemessen, nicht angenommen.
+    "009 verweigert fremden Funktionseigentuemer (G-078)": f"verweigert: {G078_MARKER}",
+    "Funktionseigentuemer nach dem Negativfall zurueckgesetzt": "ok",
+    "009 verweigert Rollenmitglied (G-079)": f"verweigert: {G079_MARKER}",
+    "Mitgliedschaft nach dem Negativfall zurueckgenommen": "ok",
     "009 angewendet": "ja",
     "SECURITY DEFINER beim Superuser, nachher": "0",
     "Relationen im Besitz von workforce_owner": "0",
@@ -158,6 +186,15 @@ ERWARTET = {
     "public-USAGE ueber PUBLIC (Voreinstellung)": "t",
     "direkte Schema-Grants ausserhalb workforce": "0",
     "Abnahmetest 009": "ok",
+    # Der Rueckbau, und danach die Aussage, auf die es im Fenster ankommt:
+    # **der Bus laeuft vor und nach dem Rueckbau.** 010 war bis zu diesem
+    # Umbau auf keiner Instanz gelaufen.
+    "010 angewendet": "ja",
+    "SECURITY DEFINER beim Superuser, nach Rueckbau": "12",
+    "Rechte von workforce_owner nach Rueckbau": "0",
+    "bus_send_message nach Rueckbau": "ok",
+    "Audit-Event nach Rueckbau": "1",
+    "Abnahmetest 010": "ok",
 }
 
 
@@ -234,6 +271,27 @@ def trigger_urteil(code: int, ausgabe: str) -> str:
         fremd = ausgabe.split("PROBE_TRIGGER_DENIED_", 1)[1].split()[0].strip()
         return f"abgewiesen, aber mit SQLSTATE {fremd} statt {TRIGGER_ERWARTETE_SQLSTATE}"
     return f"unbestimmt: kein Marker: {ausgabe.strip()[-160:] or '(keine Ausgabe)'}"
+
+
+def abbruch_urteil(code: int, ausgabe: str, marker: str) -> str:
+    """Hat die Migration mit genau diesem benannten Abbruch verweigert?
+
+    Rein und ohne NAS. Drei Ausgaenge, nur der erste ist bestanden:
+
+      * Exitcode ungleich 0 **und** der Marker in der Ausgabe - die
+        Vorbedingung hat gegriffen
+      * Exitcode 0 - die Migration ist durchgelaufen, die Vorbedingung fehlt
+      * alles andere - irgendein Fehlschlag, aber nicht der erwartete
+
+    Der dritte Fall ist der aus `G-014`: "irgendein Fehler kam zurueck" ist
+    kein bestandener Negativtest. Ein weggeraeumter Container haette sonst die
+    Vorbedingung bewiesen.
+    """
+    if code == 0:
+        return "DURCHGELAUFEN - die Vorbedingung hat nicht gegriffen"
+    if marker in ausgabe:
+        return f"verweigert: {marker}"
+    return f"unbestimmt: Exitcode {code}: {ausgabe.strip()[-160:] or '(keine Ausgabe)'}"
 
 
 def psql(sql: str) -> tuple[int, str]:
@@ -324,6 +382,44 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
         "WHERE n.nspname = 'workforce' AND p.prosecdef AND r.rolsuper")
     ergebnisse.append(("SECURITY DEFINER beim Superuser, vorher",
                        skalar(superuser_definer)))
+
+    # --- Negativfall G-078: eine der zwoelf gehoert jemand anderem -----------
+    # Der bisherige Eigentuemer wird **gelesen**, nicht benannt (G-042), damit
+    # er nachher exakt wiederhergestellt werden kann.
+    eigner_vorher = skalar(
+        "SELECT r.rolname FROM pg_proc p JOIN pg_roles r ON r.oid = p.proowner "
+        "WHERE p.oid = 'workforce.bus_authenticate(text, text)'::regprocedure")
+    psql("ALTER FUNCTION workforce.bus_authenticate(text, text) OWNER TO workforce_api")
+    ergebnisse.append(("009 verweigert fremden Funktionseigentuemer (G-078)",
+                       abbruch_urteil(*ssh(
+                           f"{DOCKER} exec {NAME} psql -U workforce_app -d workforce "
+                           f"-v ON_ERROR_STOP=1 -f /probe/migrations/009_bus_function_owner.sql 2>&1"),
+                           G078_MARKER)))
+    psql(f"ALTER FUNCTION workforce.bus_authenticate(text, text) OWNER TO {eigner_vorher}")
+    eigner_nachher = skalar(
+        "SELECT r.rolname FROM pg_proc p JOIN pg_roles r ON r.oid = p.proowner "
+        "WHERE p.oid = 'workforce.bus_authenticate(text, text)'::regprocedure")
+    ergebnisse.append(("Funktionseigentuemer nach dem Negativfall zurueckgesetzt",
+                       "ok" if eigner_nachher == eigner_vorher and eigner_vorher
+                       and not eigner_vorher.startswith("FEHLER")
+                       else f"{eigner_nachher!r} statt {eigner_vorher!r}"))
+
+    # --- Negativfall G-079: die Rolle existiert schon und hat ein Mitglied ---
+    # Danach bleibt die Rolle stehen - das echte 009 unten findet sie also vor
+    # und laeuft den Zweig "Rolle existiert", den G-079 ueberhaupt betrifft.
+    psql("CREATE ROLE workforce_owner NOLOGIN; GRANT workforce_owner TO workforce_api")
+    ergebnisse.append(("009 verweigert Rollenmitglied (G-079)",
+                       abbruch_urteil(*ssh(
+                           f"{DOCKER} exec {NAME} psql -U workforce_app -d workforce "
+                           f"-v ON_ERROR_STOP=1 -f /probe/migrations/009_bus_function_owner.sql 2>&1"),
+                           G079_MARKER)))
+    psql("REVOKE workforce_owner FROM workforce_api")
+    ergebnisse.append(("Mitgliedschaft nach dem Negativfall zurueckgenommen",
+                       "ok" if skalar(
+                           "SELECT count(*) FROM pg_auth_members am "
+                           "JOIN pg_roles r ON r.oid = am.roleid "
+                           "WHERE r.rolname = 'workforce_owner'") == "0"
+                       else "Mitgliedschaft besteht weiter"))
 
     # --- 009 anwenden -------------------------------------------------------
     ergebnis = anwenden("009_bus_function_owner.sql")
@@ -450,6 +546,48 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
         f"{DOCKER} exec {NAME} psql -U workforce_app -d workforce "
         f"-v ON_ERROR_STOP=1 -f /probe/tests/009_bus_function_owner_acceptance.sql 2>&1"),
         ABNAHME_MARKER)))
+
+    # --- Rueckbau 010, und der Bus danach ------------------------------------
+    # Gerds Freigabe zum siebzehnten Zielnachcheck: der ganze Weg
+    # 009 -> Abnahme 009 -> 010 -> Abnahme 010 -> Bus-Funktionstest. Die
+    # Aussage, auf die es im Fenster ankommt, ist die letzte: **der Bus laeuft
+    # vor und nach dem Rueckbau.** Vorher war sie nirgends gemessen.
+    ergebnis = anwenden("010_bus_function_owner_rollback.sql")
+    ergebnisse.append(("010 angewendet", "ja" if ergebnis == "ok" else ergebnis))
+    if ergebnis != "ok":
+        return
+    ergebnisse.append(("SECURITY DEFINER beim Superuser, nach Rueckbau",
+                       skalar(superuser_definer)))
+    ergebnisse.append(("Rechte von workforce_owner nach Rueckbau", skalar(
+        "SELECT count(*) FROM pg_class c "
+        "CROSS JOIN LATERAL aclexplode(c.relacl) AS a "
+        "JOIN pg_roles r ON r.oid = a.grantee "
+        "WHERE r.rolname = 'workforce_owner'")))
+
+    aufruf_code, aufruf = psql(
+        f"SET ROLE workforce_api; "
+        f"SELECT set_config('app.actor_id', '{PROBE_SENDER}', true); "
+        f"SELECT set_config('app.request_id', '{REQUEST_ID_SEND_AFTER}', true); "
+        f"SELECT (workforce.bus_send_message('{PROBE_HASH}', '{REQUEST_ID_SEND_AFTER}', "
+        f"'{PROBE_MSG_ID_AFTER}', 'START-UP', '{PROBE_RECIPIENT}', '{PROBE_IDEM_AFTER}', "
+        f"'Probe G045 nach Rueckbau', 'Derselbe Weg, nach 010.', "
+        f"'INTERNAL_COMMUNICATION', 'NEED_TO_KNOW', NULL, NULL, NULL)).message_id")
+    gesendet = aufruf.splitlines()[-1].strip() if aufruf.strip() else ""
+    ergebnisse.append((
+        "bus_send_message nach Rueckbau",
+        "ok" if aufruf_code == 0 and gesendet == PROBE_MSG_ID_AFTER
+        else lauf_ergebnis(aufruf_code, aufruf, PROBE_MSG_ID_AFTER)))
+    ergebnisse.append((
+        "Audit-Event nach Rueckbau",
+        skalar("SELECT count(*) FROM workforce.bus_events "
+               f"WHERE request_id = '{REQUEST_ID_SEND_AFTER}' AND actor_id = '{PROBE_SENDER}' "
+               f"AND record_type = 'MESSAGE' AND event_type = 'INSERT' "
+               f"AND record_key = '{PROBE_MSG_ID_AFTER}'")))
+
+    ergebnisse.append(("Abnahmetest 010", lauf_ergebnis(*ssh(
+        f"{DOCKER} exec {NAME} psql -U workforce_app -d workforce "
+        f"-v ON_ERROR_STOP=1 -f /probe/tests/010_bus_function_owner_rollback_acceptance.sql 2>&1"),
+        ABNAHME_MARKER_010)))
 
 
 def main() -> int:

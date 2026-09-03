@@ -253,7 +253,11 @@ class VerdictCoversEveryAssuranceTest(unittest.TestCase):
     """
 
     def test_every_assurance_is_named(self) -> None:
-        for schluessel in ("009 angewendet",
+        for schluessel in ("009 verweigert fremden Funktionseigentuemer (G-078)",
+                           "Funktionseigentuemer nach dem Negativfall zurueckgesetzt",
+                           "009 verweigert Rollenmitglied (G-079)",
+                           "Mitgliedschaft nach dem Negativfall zurueckgenommen",
+                           "009 angewendet",
                            "SECURITY DEFINER beim Superuser, nachher",
                            "Relationen im Besitz von workforce_owner",
                            "Kanal und Credential vorbereitet",
@@ -263,10 +267,54 @@ class VerdictCoversEveryAssuranceTest(unittest.TestCase):
                            "Trigger abschaltbar",
                            "public-USAGE ueber PUBLIC (Voreinstellung)",
                            "direkte Schema-Grants ausserhalb workforce",
-                           "Abnahmetest 009"):
+                           "Abnahmetest 009",
+                           "010 angewendet",
+                           "SECURITY DEFINER beim Superuser, nach Rueckbau",
+                           "Rechte von workforce_owner nach Rueckbau",
+                           "bus_send_message nach Rueckbau",
+                           "Audit-Event nach Rueckbau",
+                           "Abnahmetest 010"):
             with self.subTest(schluessel=schluessel):
                 self.assertIn(schluessel, probe.ERWARTET)
-        self.assertEqual(11, len(probe.ERWARTET))
+        self.assertEqual(21, len(probe.ERWARTET))
+
+    def test_the_negative_cases_expect_the_named_abort(self) -> None:
+        """`G-078`/`G-079`: verweigert heisst "mit genau diesem Marker".
+
+        Die Sollwerte tragen den Abbruchnamen aus der Migration. Steht in 009
+        ein anderer Name, laeuft die Erwartung ins Leere - und das faellt hier
+        auf, nicht erst im Fenster.
+        """
+        migration = (ROOT / "nas-startup" / "postgres-init"
+                     / "009_bus_function_owner.sql").read_text(encoding="utf-8")
+        for marker in (probe.G078_MARKER, probe.G079_MARKER):
+            with self.subTest(marker=marker):
+                # Zusicherung und Marker stehen auch mal auf zwei Zeilen -
+                # dieselbe Falle wie in NoHardcodedCountsTest.
+                self.assertRegex(migration, rf"RAISE EXCEPTION\s+'{marker}")
+        self.assertEqual(f"verweigert: {probe.G078_MARKER}",
+                         probe.ERWARTET["009 verweigert fremden Funktionseigentuemer (G-078)"])
+        self.assertEqual(f"verweigert: {probe.G079_MARKER}",
+                         probe.ERWARTET["009 verweigert Rollenmitglied (G-079)"])
+
+    def test_the_run_after_the_rollback_uses_its_own_ids(self) -> None:
+        # Derselbe Idempotenzschluessel waere eine Wiederholung: Der Bus gaebe
+        # dieselbe Nachricht zurueck, und das saehe aus wie ein Aufruf.
+        self.assertNotEqual(probe.PROBE_MSG_ID, probe.PROBE_MSG_ID_AFTER)
+        self.assertNotEqual(probe.PROBE_IDEM, probe.PROBE_IDEM_AFTER)
+        self.assertNotEqual(probe.REQUEST_ID_SEND, probe.REQUEST_ID_SEND_AFTER)
+
+    def test_the_previous_owner_is_read_back_not_named(self) -> None:
+        """`G-042`: Der Eigentuemer nach dem Negativfall kommt aus dem Katalog.
+
+        Ein `OWNER TO workforce_app` waere heute richtig und morgen ein
+        abgeschriebener Name. Gelesen wird vorher, zurueckgesetzt auf das
+        Gelesene, und das Ergebnis wird gemessen.
+        """
+        quelle = PROBE.read_text(encoding="utf-8")
+        self.assertNotIn("OWNER TO workforce_app", quelle)
+        self.assertIn("OWNER TO {eigner_vorher}", quelle)
+        self.assertIn("Funktionseigentuemer nach dem Negativfall zurueckgesetzt", quelle)
 
     def test_the_probe_binds_the_audit_event_to_the_run(self) -> None:
         quelle = PROBE.read_text(encoding="utf-8")
@@ -308,6 +356,51 @@ class VerdictCoversEveryAssuranceTest(unittest.TestCase):
         self.assertEqual([], [a for a in argumente if "RESET ROLE" in a])
         # Gegenprobe: derselbe Scan findet das SET ROLE, das dort stehen muss.
         self.assertTrue(any("SET ROLE workforce_owner" in a for a in argumente))
+
+
+class AbortVerdictTest(unittest.TestCase):
+    """`abbruch_urteil()` - der Negativfall einer Migration, an den Marker gebunden.
+
+    `G-014` in seiner dritten Form in dieser Datei: Ein Fehlschlag ist erst
+    dann die erwartete Ablehnung, wenn der benannte Abbruch in der Ausgabe
+    steht. Exitcode allein reicht nicht - ein weggeraeumter Container hat auch
+    einen.
+    """
+
+    def test_the_named_abort_is_a_refusal(self) -> None:
+        ausgabe = f"psql:009.sql:120: ERROR:  {probe.G078_MARKER}: workforce.bus_authenticate(text,text) gehoert workforce_api"
+        self.assertEqual(f"verweigert: {probe.G078_MARKER}",
+                         probe.abbruch_urteil(3, ausgabe, probe.G078_MARKER))
+
+    def test_a_migration_that_runs_through_is_not_a_refusal(self) -> None:
+        ergebnis = probe.abbruch_urteil(0, "COMMIT", probe.G078_MARKER)
+        self.assertTrue(ergebnis.startswith("DURCHGELAUFEN"), ergebnis)
+
+    def test_a_different_abort_of_the_same_migration_is_not_this_refusal(self) -> None:
+        # Genau der Fall, den eine Exitcode-Pruefung uebersieht: 009 bricht ab,
+        # aber aus einem anderen Grund - hier die Mitgliedschaft statt des
+        # Eigentuemers.
+        ausgabe = f"ERROR:  {probe.G079_MARKER}: workforce_api"
+        ergebnis = probe.abbruch_urteil(3, ausgabe, probe.G078_MARKER)
+        self.assertTrue(ergebnis.startswith("unbestimmt"), ergebnis)
+
+    def test_a_process_failure_is_not_a_refusal(self) -> None:
+        for code, ausgabe in ((255, "ssh: connect to host synology port 22: Connection refused"),
+                              (1, "Error response from daemon: No such container: g045probe"),
+                              (127, ""), (2, "psql: error: connection to server failed")):
+            with self.subTest(code=code, ausgabe=ausgabe):
+                ergebnis = probe.abbruch_urteil(code, ausgabe, probe.G078_MARKER)
+                self.assertTrue(ergebnis.startswith("unbestimmt"), ergebnis)
+
+    def test_the_negative_cases_go_through_it(self) -> None:
+        # Sonst stuende der Marker in ERWARTET und niemand verglaeiche ihn.
+        baum = ast.parse(PROBE.read_text(encoding="utf-8"))
+        aufrufe = [k for k in ast.walk(baum)
+                   if isinstance(k, ast.Call) and isinstance(k.func, ast.Name)
+                   and k.func.id == "abbruch_urteil"]
+        self.assertEqual(2, len(aufrufe))
+        marker = {k.args[-1].id for k in aufrufe if isinstance(k.args[-1], ast.Name)}
+        self.assertEqual({"G078_MARKER", "G079_MARKER"}, marker)
 
 
 if __name__ == "__main__":
