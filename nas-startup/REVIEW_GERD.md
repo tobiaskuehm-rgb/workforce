@@ -1548,3 +1548,115 @@ laufenden Container, keine Kanal-/Credential-Aktivierung, kein externer
 Modellaufruf und keine produktive Rechteänderung.** Lokale, nicht
 zustandsverändernde Tests sind erlaubt. Der Teststatus bleibt **ROT – wartet
 auf Korrektur, Gesamtprüfung, Gerd-Nachcheck und danach CEO-Freigabe**.
+
+---
+
+# Neunzehnter Zielnachcheck – Fables Gesamtprüfung auf `557df50`
+
+## Ergebnis
+
+Geprüft wurden die Korrekturen, Fables drei Prüfpässe, die neun Befunde in
+`GESAMTPRUEFUNG_2026-09-03.md`, der Stand `0148ace` und der NAS-Betrieb.
+
+- **`G-080` geschlossen:** Das Deployarchiv wird vor SSH vollständig lokal
+  erzeugt; es gibt keine Transferpipeline und kein Remote-`delete` mehr. Die
+  Verhaltensgegenproben tragen.
+- **`G-081` geschlossen:** `ERWARTET` bleibt die einzige autoritative Anzahl;
+  die falschen historischen Zahlen sind sichtbar berichtigt.
+- Die Gesamtprüfung hat **neun echte neue Befunde** geliefert. Alle werden
+  übernommen und nachstehend mit `G-`IDs versehen. Fables technische Belege
+  und Gegenproben sind nachvollziehbar; verworfen wird keiner.
+- Die Einstufung „keiner blockiert den Integrationslauf“ wird nicht
+  übernommen. `GP-04` und `GP-05` betreffen unmittelbar Preflight und
+  ausführbares Runbook. `GP-02` kann einen CEO-Auftrag dauerhaft verlieren.
+  Diese drei sind für die Testreife **hoch**, auch wenn der isolierte
+  009/010-Wegwerfprobe sie nicht alle ausführt.
+
+## Übernommene Befunde
+
+| Gerd-ID | Fable-ID | Schwere | Entscheidung |
+|---|---|---:|---|
+| `G-082` | `GP-2026-09-03-01` | mittel | Bestätigt: Budgetstopp nach Claim darf keine 30-Minuten-Sperre und keinen verbrauchten Bearbeitungsversuch erzeugen. |
+| `G-083` | `GP-2026-09-03-02` | **hoch** | Bestätigt: Ein Telegram-Update in `CLAIMED` braucht eine atomare Lease-/Retry-Regel; sonst geht ein Auftrag nach einem Absturz dauerhaft verloren. |
+| `G-084` | `GP-2026-09-03-03` | mittel | Bestätigt: Betreff ist Inhalt. Unter `METADATA_ONLY` darf er Telegram nicht erreichen; eine spätere Öffnung wäre eine eigene CEO-Entscheidung. |
+| `G-085` | `GP-2026-09-03-04` | **hoch** | Bestätigt: `nas_status.sh` muss API- und DB-Exitcodes selbst messen und die vom Runbook verlangten Sollwerte fail-closed prüfen. |
+| `G-086` | `GP-2026-09-03-05` | **hoch** | Bestätigt: Das Phase-5-Runbook darf den entfernten unsicheren Deploy-Einzeiler nicht weiter ausführen; nur der getestete Helfer ist autoritativ. |
+| `G-087` | `GP-2026-09-03-06` | niedrig | Bestätigt: Acknowledge und Audit müssen Antwort und technische/fachliche Ablehnung unterscheiden. |
+| `G-088` | `GP-2026-09-03-07` | niedrig | Bestätigt: Der Effizienzbericht darf entgegen seinem Vertrag nicht jeden vorherigen Lauf überschreiben; gleichzeitig keine unbegrenzte Berichtssammlung einführen. |
+| `G-089` | `GP-2026-09-03-08` | mittel | Bestätigt und höher eingestuft: Ein Echo-Lauf darf keinen unbenutzten kostenpflichtigen Modellschlüssel verlangen oder mounten. |
+| `G-090` | `GP-2026-09-03-09` | niedrig | Bestätigt: Die kopierbare Echo-Beispielkonfiguration muss ohne Claude-Modellwert starten. |
+
+### Präzisierungen für die Korrektur
+
+- `G-082`: Claim nur freigeben, wenn noch kein Provideraufruf und keine
+  dauerhafte Antwort entstanden ist. Das Zurücksetzen muss atomar sein und
+  darf keinen Versuch verbrauchen; die bestehenden Crash-/Reply-Resumption-
+  Garantien dürfen sich nicht ändern.
+- `G-083`: `CLAIMED` nicht pauschal sofort wiederholen. Innerhalb der Lease
+  bleibt es eine Dublette; erst nach Ablauf erfolgt ein atomarer Retry mit
+  Versuchszähler. Zwei Prozesse dürfen dasselbe Update nicht gleichzeitig
+  übernehmen.
+- `G-084`: Die restriktive, bereits für die erste Datengrenze geltende
+  Semantik wird vereinheitlicht: kein vom Menschen geschriebener Betreff unter
+  `METADATA_ONLY`.
+- `G-085`: Ein bloß gedrucktes `(API nicht erreichbar)` oder `psql: error`
+  muss den Gesamtstatus und Exitcode rot machen. Die erwarteten Werte Kanal
+  `DISABLED`, 0 aktive Credentials und exakte Migrationsmenge müssen als
+  Preflight maschinenlesbar geprüft werden, nicht vom Operator erraten.
+- `G-088`: Pro Run ein eindeutiges Artefakt mit kleiner, expliziter
+  Aufbewahrungsregel; keine zweite dauerhafte Kopie von Payloads oder Secrets.
+- `G-089`: Echo und bezahlter Provider erhalten getrennte Secret-Mounts. Der
+  Echo-Pfad bleibt ohne Internet- und Modellschlüssel.
+
+## `G-091` – Deployziel ist ungeprüfter Remote-Shelltext
+
+**Schwere:** mittel – eine geerbte oder fehlerhafte Umgebungsvariable kann den
+Quelldeploy auf ein anderes Ziel lenken oder den Remote-Befehl erweitern
+
+**Datei:** `deploy_to_nas.sh`
+
+Der Helfer liest `PRODUCTION_HOST` und `PRODUCTION_ROOT` ungeprüft aus der
+Umgebung. `PRODUCTION_ROOT` wird anschließend zwischen einfache Anführungs-
+zeichen in einen SSH-Shellstring eingesetzt. Ein Wert mit `'`, Zeilenumbruch
+oder Shellsyntax beendet diese Begrenzung. Ein mit `-` beginnender Host kann
+außerdem als SSH-Option interpretiert werden. Für dieses Projekt ist das
+freigegebene Ziel bereits eindeutig: Host `synology`, Pfad
+`/volume1/docker/Startup`.
+
+### Kleinste sichere Korrektur
+
+- Für den Produktionshelfer Host und Pfad auf die beiden autoritativen Werte
+  fest binden. Falls später ein Stagingziel nötig wird, erhält es einen eigenen
+  expliziten Modus mit strenger Validierung; keine beliebige Shellzeichenfolge.
+- Tests für abweichenden Host, abweichenden Pfad, führendes `-`, Quote und
+  Zeilenumbruch: Abbruch vor `tar` und `ssh`.
+
+## Unabhängiger Nachweis
+
+- Lokal selbst ausgeführt: **731 Tests PASS**
+  (`645 workforce-agent + 15 bus-realtest + 44 telegram-connector + 27
+  chain-test`).
+- `git diff --check`: PASS; Prüfstand und Git-Remote stimmen auf `0148ace`
+  überein.
+- NAS nur lesend: API v9 und PostgreSQL 17 gesund, Kanal `DISABLED`, 0 aktive
+  Credentials, Migrationen weiterhin nur 001, 002, 003, 005, 006 und 007;
+  Manifest/Backups/Busadresse/unverwaltete Pfade PASS. Quelldeploy ist
+  `c717526`, NAS-Git `0148ace`.
+- Die Aussage des heutigen `nas_status.sh` wurde in diesem Lauf zusätzlich an
+  der tatsächlich sichtbaren API- und DB-Ausgabe plausibilisiert. Seine von
+  `G-085` betroffenen Fehlerpfade bleiben dennoch unzuverlässig.
+- Nicht ausgeführt: umgebaute 009/010-Probe, Migration 010, Phase-5-Fenster,
+  Kanal-/Credential-Aktivierung oder Modellaufruf.
+
+## Gate und Auftrag an Fable
+
+**Noch keine Testfreigabe.** Fable darf ausschließlich `G-082` bis `G-091`
+lokal korrigieren, die vorhandenen Gegenproben in dauerhafte Tests überführen
+und den gesamten lokalen Testsatz ausführen. Keine neue Funktion, keine neue
+Roadmap und keine zweite Gesamtprüfung; danach genügt Gerds kurzer
+diff-basierter Zielnachcheck.
+
+Erst wenn dieser Nachcheck keine neuen testkritischen Befunde ergibt, kann der
+CEO gesondert den **isolierten 009/010-Wegwerfprobe-Lauf** freigeben. Diese
+spätere Freigabe umfasst weder Phase 5 insgesamt noch produktive Migrationen,
+Kanal/Credentials oder externe Modelle. Status bleibt **ROT**.
