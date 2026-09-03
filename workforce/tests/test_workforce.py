@@ -312,10 +312,10 @@ class ConfigTest(unittest.TestCase):
     def test_the_workspace_header_is_sent_exactly_when_configured(self):
         from workforce.providers import ClaudeProvider
         model = models.resolve("claude-sonnet-5", provider="claude")
-        self.assertNotIn("anthropic-workspace-id", ClaudeProvider(model, api_key="k")._headers)
-        with_id = ClaudeProvider(model, api_key="k", workspace_id="wrkspc_x")._headers
+        self.assertNotIn("anthropic-workspace-id", ClaudeProvider(model, api_key="sk-ant-TESTKEY")._headers)
+        with_id = ClaudeProvider(model, api_key="sk-ant-TESTKEY", workspace_id="wrkspc_x")._headers
         self.assertEqual("wrkspc_x", with_id["anthropic-workspace-id"])
-        self.assertNotIn("k", json.dumps({h: v for h, v in with_id.items() if h != "x-api-key"}))
+        self.assertNotIn("sk-ant-TESTKEY", json.dumps({h: v for h, v in with_id.items() if h != "x-api-key"}))
 
     def test_a_paid_model_needs_the_allowlist_and_the_right_provider(self):
         with self.assertRaises(models.ModelNotAllowed):
