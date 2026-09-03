@@ -44,7 +44,13 @@ def _post_json(url: str, body: Dict[str, Any], headers: Dict[str, str], timeout:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         codes = {401: "PROVIDER_AUTH_FAILED", 429: "PROVIDER_RATE_LIMITED", 400: "PROVIDER_REQUEST_INVALID"}
-        raise ProviderError(codes.get(exc.code, f"PROVIDER_HTTP_{exc.code}")) from exc
+        # The error *type* travels as a stable suffix; the message text does not.
+        try:
+            kind = str(json.loads(exc.read() or b"{}").get("error", {}).get("type", ""))
+        except (ValueError, OSError):
+            kind = ""
+        code = codes.get(exc.code, f"PROVIDER_HTTP_{exc.code}")
+        raise ProviderError(f"{code}:{kind}" if kind else code) from exc
     except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
         raise ProviderError("PROVIDER_UNREACHABLE") from exc
     except json.JSONDecodeError as exc:
@@ -95,16 +101,20 @@ class ClaudeProvider:
     name = "claude"
     is_paid = True
 
-    def __init__(self, model: models.Model, *, api_key: str, timeout: float = 120.0) -> None:
+    def __init__(self, model: models.Model, *, api_key: str, workspace_id: str = "", timeout: float = 120.0) -> None:
         self.model = model
         self._key = api_key
         self._timeout = timeout
+        # An identity-linked key must name the workspace it acts in (HTTP 400 otherwise).
+        self._headers = {"x-api-key": api_key, "anthropic-version": ANTHROPIC_VERSION}
+        if workspace_id:
+            self._headers["anthropic-workspace-id"] = workspace_id
 
     def complete(self, *, system: str, content: str) -> Reply:
         response = _post_json(ANTHROPIC_URL, {
             "model": self.model.name, "max_tokens": self.model.max_output_tokens,
             "system": system, "messages": [{"role": "user", "content": content}],
-        }, {"x-api-key": self._key, "anthropic-version": ANTHROPIC_VERSION}, self._timeout)
+        }, self._headers, self._timeout)
         usage = response.get("usage") or {}
         common = {"model": str(response.get("model", self.model.name)),
                   "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens")}
@@ -118,7 +128,8 @@ class ClaudeProvider:
         return Reply(text=text, **common)
 
 
-def build(provider: str, model_name: str, *, ollama_url: str, api_key: Optional[str]) -> Any:
+def build(provider: str, model_name: str, *, ollama_url: str, api_key: Optional[str],
+          workspace_id: str = "") -> Any:
     """The key is only handed in for claude; nobody else may even receive it."""
     model = models.resolve(model_name, provider=provider)
     if provider == "echo":
@@ -128,5 +139,5 @@ def build(provider: str, model_name: str, *, ollama_url: str, api_key: Optional[
     if provider == "claude":
         if not api_key:
             raise ProviderError("PROVIDER_KEY_MISSING")
-        return ClaudeProvider(model, api_key=api_key)
+        return ClaudeProvider(model, api_key=api_key, workspace_id=workspace_id)
     raise ProviderError(f"PROVIDER_UNKNOWN:{provider}")

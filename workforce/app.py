@@ -244,7 +244,8 @@ def build_app(config: Config, *, store: Optional[Store] = None, log: Callable[[s
         if identity.provider == "claude" and key is None:
             key = read_secret(config.secrets_dir, "anthropic_api_key")
         providers[identity.name] = build(identity.provider, identity.model, ollama_url=config.ollama_url,
-                                         api_key=key if identity.provider == "claude" else None)
+                                         api_key=key if identity.provider == "claude" else None,
+                                         workspace_id=config.anthropic_workspace_id)
     token = read_secret(config.secrets_dir, "telegram_bot_token")
     telegram = TelegramClient(token, base_url=config.telegram_base_url)
     return App(config, store or Store(config.db_path), telegram, providers, log=log)

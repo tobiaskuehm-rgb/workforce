@@ -46,6 +46,7 @@ class Config:
     lease_seconds: int
     max_attempts: int
     telegram_base_url: str
+    anthropic_workspace_id: str = ""
 
     def route_allowed(self, sender: str, recipient: str) -> bool:
         return (sender, recipient) in self.routes
@@ -121,6 +122,7 @@ def parse(values: Dict[str, Any]) -> Config:
         lease_seconds=int(values.get("lease_seconds", 300)),
         max_attempts=int(values.get("max_attempts", 3)),
         telegram_base_url=base,
+        anthropic_workspace_id=str(values.get("anthropic_workspace_id", "")).strip(),
     )
 
 
