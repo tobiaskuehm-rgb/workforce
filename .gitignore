@@ -29,3 +29,6 @@ __pycache__/
 # files to the NAS, and names a commit - so a committed copy is stale by
 # definition.
 DEPLOY_MANIFEST.txt
+
+# Claude Code: persoenliche Berechtigungen dieses Rechners (Deploy-Regel).
+.claude/settings.local.json

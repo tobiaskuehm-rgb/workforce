@@ -132,9 +132,10 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
   ausgeführt, weil der Transfer per `tar | ssh` für Claude von der
   Berechtigungsprüfung des Werkzeugs abgewiesen wurde (dieselbe Sperre wie
   beim ersten Probe-Versuch am 2026-09-02, keine Projektregel). Auf der NAS
-  gemessen: `dirty=no`, 236 Dateien, 0 fehlend, 0 abweichend, 0 unerwartet,
-  `RESULT: PASS`; `check_unmanaged` 62 Einträge, `PASS`. `b3deb78` ist Gerds
-  eigener Commit mit seinem neuen Zielnachcheck in `REVIEW_GERD.md`. `compose.yaml` weicht bis dahin vom benannten
+  gemessen für `b3deb78` — `dirty=no`, 236 Dateien, 0 fehlend, 0 abweichend,
+  0 unerwartet, `RESULT: PASS`; `check_unmanaged` 62 Einträge, `PASS`.
+  `b3deb78` ist Gerds eigener Commit mit seinem neuen Zielnachcheck in
+  `REVIEW_GERD.md`. `compose.yaml` weicht bis dahin vom benannten
   Produktionsstand ab und steht mit Begründung in der Ausnahmeliste von
   `test_production_state_drift.py`.
 - **703 lokale Tests `PASS`** (617 / 15 / 44 / 27), auf `python3` 3.9.6 des
@@ -209,6 +210,10 @@ NAS       /volume1/docker/git/workforce.git                           ← Git-Re
 Am Deploy ändert das nichts: Am Code wird im Repo gearbeitet, auf
 `/volume1/docker/Startup/` wird deployt. Ausnahme sind die beiden
 Review-Dateien: Sie werden zusätzlich auf der NAS gespiegelt.
+
+**Seit dem 2026-09-03 als Skript:** `sh nas-startup/deploy_to_nas.sh` — dieselben
+drei Schritte, fail-closed, versioniert. Der Block darunter dokumentiert, was
+das Skript tut.
 
 Deploy (`rsync` und `scp` funktionieren auf dieser DSM nicht). **Versionierte Dateien, nie ganze Verzeichnisse** — ein verzeichnisweites Archiv nimmt Secrets und Laufzeitdateien mit (Befund `G-020`). Die Dateiliste geht über `-T` in `tar`, nicht über `$(…)`: **zsh zerlegt eine unquotierte Variable nicht in Wörter**, und die Pfade kämen als ein einziges Argument an.
 

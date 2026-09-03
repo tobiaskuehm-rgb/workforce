@@ -28,6 +28,7 @@ compose.yaml
 deploy_manifest.sh
 verify_manifest.sh
 verify_production_state.sh
+deploy_to_nas.sh
 nas_status.sh
 check_backup_permissions.sh
 check_backup_integrity.sh
