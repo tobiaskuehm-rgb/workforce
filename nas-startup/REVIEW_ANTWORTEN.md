@@ -3206,3 +3206,122 @@ weniger. Der Probe-Kopf nennt jetzt keine Anzahl mehr und verweist auf
 `ERWARTET`; die Antwort oben trägt einen datierten Nachtrag statt einer
 Umschreibung. Kein neuer Wächter — `test_owner_probe_verdict.py` führt die
 autoritative Zahl bereits.
+
+---
+
+# Neunzehnter Zielnachcheck: `G-082` bis `G-091`
+
+Alle zehn bestätigt und behoben, auf Prüfstand `557df50` aufgesetzt, je
+Befund ein Commit, jede Gegenprobe aus der Gesamtprüfung als dauerhafter Test.
+Kein NAS-Lauf, kein Integrationslauf, nichts auf der NAS ausgeführt.
+
+## `G-082` — Budgetstopp vor dem Provideraufruf
+
+**Bestätigt.** `state_store.release_untouched()` — ein `UPDATE`, atomar, nur
+auf `IN_PROGRESS` ohne Antwort — setzt `claimed_at` zurück und nimmt den
+Versuch zurück; der Worker ruft es genau in dem `except`, das die Reservierung
+abfängt, und reicht die Ausnahme dann weiter. `REPLIED`/`DONE` kann es nie
+treffen (Test), die Crash-/Reply-Wiederaufnahme bleibt (bestehende Tests).
+Deine Präzisierung „darf keinen Versuch verbrauchen": der Test misst
+`attempts == 1` nach Stopp und Wiederaufnahme, und die Gegenprobe hält fest,
+dass der alte Weg `2` ergab.
+
+## `G-083` — Telegram-Update in `CLAIMED`
+
+**Bestätigt, `hoch` übernommen.** `processed_updates` bekommt `claimed_at` und
+`attempts`, additiv, mit In-place-Upgrade einer vorhandenen Datei (ein alter
+hängengebliebener `CLAIMED`-Eintrag trägt `claimed_at 0` und wird genau einmal
+nachgeholt). `claim_update()` läuft in `BEGIN IMMEDIATE`: innerhalb der Lease
+(`UPDATE_LEASE_SECONDS = 300`) bleibt es `DUPLICATE`, danach `RETRY` mit
+Zähler, nach `UPDATE_MAX_ATTEMPTS = 3` `EXHAUSTED` und `FAILED` — auditiert
+als `UPDATE_ABANDONED`. Zwei Prozesse: der zweite sieht die frische Lease des
+ersten und bekommt `DUPLICATE` (Test). Der Connector verarbeitet `RETRY` und
+auditiert `UPDATE_RETRIED`. Sieben Tests, darunter der gemessene Absturzfall.
+
+## `G-084` — Betreff unter `METADATA_ONLY`
+
+**Bestätigt.** `OUTBOUND_FIELDS` ist die maschinenlesbare Feldtabelle je
+Policy (`G-054`); der Renderer liest nur sie. Betreff und Body gehen zusammen:
+beide bleiben unter `METADATA_ONLY` zu Hause, beide brauchen unter `BODY` die
+Task auf der Allowlist (`G-003`). Zwei Tests pinnten das alte Verhalten — der
+Betreff *musste* im Chat stehen — und sagen jetzt das Gegenteil. Kommentar,
+`chain.env.example` und README sind nachgezogen. Eine spätere Öffnung wäre,
+wie du sagst, eine eigene CEO-Entscheidung; die steht nirgends.
+
+## `G-085` — `nas_status.sh`
+
+**Bestätigt, `hoch` übernommen.** Der API-Container wird über
+`docker compose ps -q workforce-api` aufgelöst; Ausgabe und Exitcode jedes
+Blocks werden getrennt festgehalten, jeder Fehlschlag zählt — auch ein
+gedrucktes `psql: error`. Die Sollwerte werden maschinell verglichen: Kanal
+`DISABLED`, 0 aktive Credentials, und die Migrationsmenge **aus
+`production_state.txt`**, nicht als zweite Liste (`G-050`); ein fehlender
+Wert ist ein Fehlschlag (Regel 45). `EXPECT_CHANNEL`/`EXPECT_ACTIVE_CREDENTIALS`
+für ein absichtlich offenes Fenster, ausdrücklich gesetzt.
+`test_nas_status.py` fährt das Skript gegen Stubs für `sudo`, `docker`, die
+fünf Gates und den Backup-Ordner: zwölf Fälle, darunter deine beiden.
+
+## `G-086` — Runbook §4
+
+**Bestätigt, `hoch` übernommen.** Abschnitt 4 ist ein Aufruf:
+`sh deploy_to_nas.sh`. `test_runbook_targets.py` verlangt in jedem *aktiven*
+Runbook, dass kein ausgeführter Befehl auf der NAS löscht oder ein Archiv in
+`ssh` pipet, und dass das Skript wirklich gerufen wird. `PHASE4_RUNBOOK.md`
+ist seit dem 2026-09-01 ein Ausführungsprotokoll und trägt die alte Zeile als
+Geschichte; die Ausnahme ist kein Listeneintrag, sondern der Kopf des
+Dokuments („ausgeführt am"), und ein Test belegt, dass sie etwas trägt —
+PHASE4 wird erkannt, PHASE5 nicht, und PHASE4 enthält die Zeile.
+
+## `G-087` — Bestätigungsnotiz
+
+**Bestätigt.** `Vom Agenten beantwortet.` oder
+`Vom Agenten abgelehnt: <Kennung>` — die Kennung ist die stabile Größe,
+dieselbe, die der Antworttext nennt; die Modellablehnung heißt jetzt
+`AGENT_MODEL_REFUSED[:Kategorie]`. Der Antworttext sagt, was zutrifft: Die
+Nachricht ist bestätigt, die fachliche Frage unbeantwortet. Da die Notiz in
+`bus_messages.acknowledgement_note` landet und der Audit-Trigger den ganzen
+Datensatz schreibt, ist der Ausgang jetzt aus der Datenbank allein lesbar.
+
+## `G-088` — Effizienzbericht
+
+**Bestätigt.** `AGENT_REPORT_PATH` ist eine Vorlage; geschrieben wird
+`efficiency-<run_id>.json`, exklusiv geöffnet — ein vorhandener Bericht
+desselben Laufs wird gemeldet, nicht ersetzt. Aufbewahrung klein und
+ausdrücklich: `AGENT_REPORT_KEEP` (Vorgabe 20, nie unter 1) neueste bleiben,
+ältere derselben Form werden entfernt, fremde Dateien nie. Keine zweite Kopie
+von Nutzlast oder Geheimnis — der Bericht enthält bauartbedingt keine.
+
+## `G-089` — Echo ohne Modellschlüssel
+
+**Bestätigt, `mittel` übernommen.** `compose.agent.yaml` ist der bezahlte
+Pfad und pinnt `AGENT_PROVIDER: claude`; das neue `compose.agent-echo.yaml`
+pinnt `echo`, mountet nur den Bus-Token und leert den Schlüsselpfad. „Ohne
+Internet" ist eine Eigenschaft der DSM-Regel für `172.31.254.2/32` (nur 8443
+zur NAS); die Datei kann das nicht hinzufügen und behauptet es nicht.
+`test_compose_secrets.py` liest den gepinnten Provider aus der Datei und
+verlangt, dass kein Echo-Dienst irgendwo einen Modellschlüssel mountet.
+
+## `G-090` — Vorlage
+
+**Bestätigt.** `AGENT_MODEL` ist auskommentiert und erklärt.
+`test_env_examples.py` schickt jede `.env.example` des Agenten durch
+`build_provider()` und hält den historischen Fall als Gegenprobe.
+
+## `G-091` — Deployziel
+
+**Bestätigt.** `synology` und `/volume1/docker/Startup` sind Konstanten. Sind
+`PRODUCTION_HOST`/`PRODUCTION_ROOT` gesetzt — gleich womit —, bricht das
+Skript mit Exit 3 vor `tar` und `ssh` ab: Deine fünf Fälle (fremder Host,
+fremder Pfad, führendes `-`, Quote, Zeilenumbruch) sind je ein Test, dazu das
+konstante Ziel im tatsächlichen `ssh`-Aufruf. Nebenbei bekommt die Prüfung
+auf der NAS `< /dev/null`, damit ein `ssh` nie auf einer geerbten Pipe wartet
+— das hatte in dieser Sitzung einen Testlauf blockiert.
+
+## Nachweis
+
+Regeln 53–56 in `CLAUDE.md` und beiden `AGENTS.md`. Testzahlen und
+Deploy-Stand in `HANDOVER.md`. **Nicht ausgeführt und nicht behauptet:** die
+API-Suite, jedes SQL gegen einen echten Parser, die 21-Punkte-Probe, Migration
+010, Phase 5. Status bleibt, wie du ihn festgelegt hast: **ROT** — bis zu
+deinem diff-basierten Nachcheck und danach der gesonderten CEO-Freigabe für den
+isolierten 009/010-Wegwerflauf.

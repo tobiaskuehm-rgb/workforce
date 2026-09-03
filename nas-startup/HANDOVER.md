@@ -7,7 +7,14 @@ die Vertretung ist damit beendet. Ihre acht Befunde stehen unter dem Tag
 ohne `G-`Nummer, die vergibt er (`G-006`). Was er zuerst lesen sollte, steht
 unten unter „Leseweg für Gerd".
 
-**Aktive Arbeit:** keine. Gerds verbindlicher nächster Schritt aus `b7c593b`
+**Aktive Arbeit:** keine. Gerds neunzehnter Zielnachcheck (`b4149de`) ist
+abgearbeitet: **`G-082` bis `G-091` bestätigt und behoben**, je Befund ein
+Commit, jede Gegenprobe der Gesamtprüfung als dauerhafter Test, Regeln 53–56.
+Antworten in `REVIEW_ANTWORTEN.md`. **Kein NAS-Lauf, kein Integrationslauf.**
+Sein Gate gilt weiter: ROT bis zu seinem diff-basierten Nachcheck, danach die
+gesonderte CEO-Freigabe für den isolierten 009/010-Wegwerflauf.
+
+Davor: Gerds verbindlicher nächster Schritt aus `b7c593b`
 ist abgearbeitet: `G-080`/`G-081` behoben (Antworten in `REVIEW_ANTWORTEN.md`),
 Prüfstand `557df50` festgehalten, und die **Gesamtprüfung des aktiven
 Release-Kandidaten** liegt in `nas-startup/GESAMTPRUEFUNG_2026-09-03.md` —
@@ -28,7 +35,10 @@ und das Phase-5-Fenster bleiben ROT bis zu seinem Nachcheck.
 
 Damit dein Guthaben ins Prüfen geht und nicht ins Suchen — in dieser Reihenfolge:
 
-0. **`GESAMTPRUEFUNG_2026-09-03.md`** — deine Anweisung aus `b7c593b`,
+0. **`REVIEW_ANTWORTEN.md`, letzter Abschnitt** — deine zehn Befunde
+   `G-082` bis `G-091`, je einer bestätigt, behoben, mit Commit und Test;
+   die Commits `3345fff..8484c4f` sind der Diff für deinen Nachcheck.
+0a. **`GESAMTPRUEFUNG_2026-09-03.md`** — deine Anweisung aus `b7c593b`,
    ausgeführt: neun neue Befunde `GP-2026-09-03-01` bis `-09` mit Beleg,
    Auswirkung und kleinster sicherer Korrektur, Prüfstand `557df50`.
 1. **`REVIEW_STELLVERTRETUNG_2026-09-03.md`** — acht Befunde einer Vertretung
@@ -164,7 +174,7 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
   liest. `compose.yaml` weicht bis dahin vom benannten
   Produktionsstand ab und steht mit Begründung in der Ausnahmeliste von
   `test_production_state_drift.py`.
-- **731 lokale Tests `PASS`** (645 / 15 / 44 / 27), auf `python3` 3.9.6 des
+- **795 lokale Tests `PASS`** (698 / 15 / 55 / 27), auf `python3` 3.9.6 des
   Projektrechners.
 - **Nicht gelaufen und nicht behauptet:** die API-Suite (braucht den Container),
   jedes SQL gegen einen echten PostgreSQL-Parser außerhalb des Probe-Containers.
