@@ -48,8 +48,25 @@
 --
 -- **Nicht angewendet.** Diese Migration hat ihr eigenes Gate in `compose.yaml`
 -- und braucht ein eigenes Fenster mit eigener Freigabe. Ein Fehlgriff bei den
--- Rechten legt den Bus still - deshalb der Abnahmetest daneben und der
--- Rueckbau als Teil derselben Entscheidung.
+-- Rechten legt den Bus still - deshalb der Abnahmetest daneben.
+--
+-- **Einen vorbereiteten Rueckbau gibt es nicht, und das steht hier, statt
+-- behauptet zu werden.** Eine fruehere Fassung dieses Absatzes nannte den
+-- "Rueckbau als Teil derselben Entscheidung"; im Repo existiert keiner - keine
+-- Migration `010`, kein Runbook-Abschnitt, kein Nachweis (Vertretungsreview,
+-- `SV-2026-09-03-04`). Das ist Leitplanke 7 an der Stelle, an der sie operativ
+-- wird: Der Satz stand in dem Absatz, den man liest, waehrend man ueber die
+-- Freigabe entscheidet.
+--
+-- Trivial waere der Rueckbau auch nicht: Eigentumswechsel fuer zwoelf
+-- Funktionen, danach die Frage, was mit Rolle und Rechten geschieht - und
+-- `DROP ROLE` scheitert an jeder erteilten Berechtigung, was dieses Projekt in
+-- `G-043` schon einmal bezahlt hat. Er gehoert als **additive** Migration
+-- `010` geschrieben, mit `DROP OWNED BY` vor jedem Versuch, die Rolle zu
+-- entfernen, oder mit der bewussten Entscheidung, sie stehen zu lassen.
+--
+-- **Solange das fehlt, ist 009 nicht freigabereif** - unabhaengig davon, wie
+-- gut ihr SQL inzwischen ist.
 
 BEGIN;
 

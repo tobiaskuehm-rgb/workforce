@@ -12,17 +12,25 @@ Das ist Leitplanke 7 in ihrer teuersten Form: Die Anforderung stand richtig im
 Kommentar, gebaut war etwas anderes, und der Kommentar blieb als Zusicherung
 stehen.
 
-Die Migration pinnt jetzt Namen und Stelligkeit und bricht ab, wenn der
-Katalog etwas anderes enthaelt. Diese Datei ist die zweite Haelfte davon: Sie
-leitet dieselben Mengen erneut aus `002` und `005` ab und haelt sie gegen die
-Listen in `009` und im Abnahmetest. Aendert eine Migration die Busfunktionen
-oder ihre Tabellenzugriffe, wird diese Datei rot - dieselbe Aufgabe, die
-`bus_rules.py` fuer die Uebergangsregeln erfuellt.
+Die Migration pinnt zwoelf **vollstaendige Identitaetssignaturen** und bricht
+ab, wenn der Katalog etwas anderes enthaelt. Diese Datei ist die zweite Haelfte
+davon: Sie leitet dieselben Mengen erneut aus `002` und `005` ab und haelt sie
+gegen die Listen in `009` und im Abnahmetest. Aendert eine Migration die
+Busfunktionen oder ihre Tabellenzugriffe, wird diese Datei rot - dieselbe
+Aufgabe, die `bus_rules.py` fuer die Uebergangsregeln erfuellt.
 
-Warum Name und Stelligkeit und nicht der Typ: Der Katalog schreibt Typen
-anders als die Quelle (`timestamptz` wird `timestamp with time zone`). Eine
-abgeschriebene Typliste waere genau die Gedaechtnisleistung, die `G-044`
-verboten hat.
+Warum die Typen dabeistehen und `G-044` trotzdem eingehalten ist: Abgeschrieben
+wird nichts. Die Typen kommen aus der Quelle - `signatur()` liest sie aus den
+`CREATE FUNCTION`-Koepfen -, und `to_regprocedure()` normalisiert sie beim
+Aufloesen selbst, `timestamptz` also zu `timestamp with time zone`. Ein
+Gedaechtniswert waere es erst, wenn jemand die Katalogschreibweise von Hand
+eintraege.
+
+Eine frueherer Fassung dieses Kopfes pinnte `name:stelligkeit` und begruendete
+das ausdruecklich damit, Typen seien zu riskant. Nach der `G-075`-Korrektur
+stand dieser Absatz weiter da und argumentierte gegen den Code unter ihm - die
+Sorte Text, nach der jemand die Loesung zurueckrepariert (`G-054`, gefunden im
+Vertretungsreview als `SV-2026-09-03-06`).
 """
 
 from __future__ import annotations
@@ -347,22 +355,26 @@ class GrantAllowlistTest(unittest.TestCase):
         """
         aktiv = "\n".join(z for z in ACCEPTANCE.read_text(encoding="utf-8").splitlines()
                           if not z.lstrip().startswith("--"))
-        selbst = aktiv[aktiv.index("ACCEPTANCE_009_SELF_CHECK_FAILED"):]
-        widerspruch = "JOIN pg_roles r ON r.oid = a.grantee"
+        selbst = aktiv[aktiv.index("ACCEPTANCE_009_SELF_CHECK"):]
+        join = "JOIN pg_roles r ON r.oid = a.grantee"
 
-        # Der Block, der die Vorgabe belegt, darf den Join nicht enthalten.
-        # Abgegrenzt wird an seinem eigenen `IF NOT EXISTS (` - ein fester
-        # Zeichenabstand haette die vorige Pruefung mit erfasst, die den Join
-        # zu Recht fuehrt.
-        bis = aktiv.index("keine PUBLIC-Vorgabe auf public")
-        vorgabe = aktiv[aktiv.rindex("IF NOT EXISTS (", 0, bis):bis]
-        self.assertIn("a.grantee = 0", vorgabe)
-        self.assertIn("privilege_type = 'USAGE'", vorgabe)
-        self.assertNotIn(widerspruch, vorgabe)
-
-        # Der Block, der das Ausblenden belegt, muss ihn enthalten.
-        self.assertIn(widerspruch, selbst)
+        # Zwei Abfragen ueber `a.grantee = 0`, und genau eine davon fuehrt den
+        # Join. Gezaehlt statt an einer Fehlermeldung verankert: Die vorige
+        # Fassung dieses Tests hing an dem Satz „keine PUBLIC-Vorgabe auf
+        # public" und schlug fehl, als `SV-2026-09-03-03` ihn entfernte - zu
+        # Recht, sie besteht auf ihrem Anker. Der Zaehlvergleich haelt
+        # dieselbe Aussage, ohne an einer Formulierung zu haengen.
+        bloecke = [b for b in selbst.split("IF EXISTS (") if "a.grantee = 0" in b]
+        self.assertEqual(2, len(bloecke), "erwartet: eine Abfrage mit, eine ohne Join")
+        self.assertEqual(1, sum(1 for b in bloecke if join in b))
+        self.assertEqual(1, sum(1 for b in bloecke if join not in b))
         self.assertIn("PUBLIC nicht ausgeblendet", selbst)
+
+        # Und die Aussage haengt nicht mehr am Schema `public` - genau das war
+        # `SV-2026-09-03-03`: Ein Entzug von `USAGE ON SCHEMA public FROM
+        # PUBLIC` haette die Selbstpruefung rot gemacht, obwohl die Zusicherung
+        # von 009 unveraendert gilt.
+        self.assertNotIn("nspname = 'public'", selbst)
 
     def test_no_knowledge_table_is_granted(self) -> None:
         self.assertEqual([], sorted(t for t in erteilte_rechte(MIGRATION)

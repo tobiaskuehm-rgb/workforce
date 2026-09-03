@@ -29,8 +29,34 @@
 # 2026-09-02 passiert. Wer die Adresse aendert, aendert sie hier; ein Test haelt
 # alle uebrigen Vorkommen dagegen.
 
-PRODUCTION_COMMIT=672e0a7
-VERIFIED_AT=2026-09-01
+# 2026-09-03, SV-2026-09-03-05: PRODUCTION_COMMIT wandert von 672e0a7 auf
+# 0238768. Geaendert hat sich unter den FILE=-Eintraegen genau einer,
+# compose.yaml, und zwar durch ab0f719 - den gegateten Block
+# APPLY_MIGRATION_009_FUNCTION_OWNER mit dem Wert "false". Die Datei liegt seit
+# dem Deploy von 21c40a7 auf der NAS; verify_production_state.sh meldete
+# deshalb FAIL gegen 672e0a7, gemessen am 2026-09-03, und PASS gegen 0238768.
+#
+# **Am laufenden System hat sich dadurch nichts geaendert, und das ist keine
+# Beschoenigung, sondern der Grund, warum G-041 existiert:** Eine
+# Compose-Aenderung wirkt erst nach --force-recreate. Der Container laeuft
+# unveraendert weiter, das Gate steht auf "false", Migration 009 ist nicht
+# angewendet. Diese Datei nennt den laufenden Quellstand - der Dateistand auf
+# der NAS ist jetzt 0238768, die laufenden Prozesse sind aeltere Instanzen
+# derselben Dateien.
+#
+# Dass "Datei deployt, System unveraendert" hier keinen eigenen Platz hat, ist
+# eine bekannte Grenze dieser Bauform. Sie in ein zweites Feld zu spalten waere
+# eine zweite Wahrheit; stattdessen steht es als datierte Notiz da, wie die
+# Zeilen darueber auch.
+#
+# Der Tag produktiv-v9 wandert mit, wie es die Notiz vom 2026-09-02 fuer
+# denselben Fall festhaelt. Er zeigte bis zum 2026-09-03 auf 672e0a7; das steht
+# hier, damit die Verschiebung ruecknehmbar ist, ohne die Historie zu
+# durchsuchen. Beide Commits tragen dieselbe app.py und dasselbe Dockerfile -
+# ein Rueckbau auf einen der beiden baut dasselbe Image.
+
+PRODUCTION_COMMIT=0238768
+VERIFIED_AT=2026-09-03
 API_IMAGE=startup-workforce-api:v9
 BUS_BASE_URL=https://192-168-68-81.k30068872219.direct.quickconnect.to:8443
 APPLIED_MIGRATIONS=001_employee_registry,002_workforce_bus,003_workforce_bus_trigger_fix,005_bus_denial_audit,006_legacy_registry_tables,007_least_privilege_roles

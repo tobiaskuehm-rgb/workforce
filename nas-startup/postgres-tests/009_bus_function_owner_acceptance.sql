@@ -401,28 +401,43 @@ BEGIN
     -- der nicht hinsehen kann, meldet PASS. Die beiden Tatsachen brauchen
     -- deshalb zwei getrennte Abfragen.
     --
-    -- (a) Die Vorgabefreigabe an PUBLIC existiert wirklich. Ohne sie waere
-    --     die Aussage von Abschnitt 4b gruen ueber einer leeren Menge.
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_namespace n
-        CROSS JOIN LATERAL aclexplode(n.nspacl) AS a
-        WHERE n.nspname = 'public' AND a.grantee = 0 AND a.privilege_type = 'USAGE'
-    ) THEN
-        RAISE EXCEPTION
-            'ACCEPTANCE_009_SELF_CHECK_FAILED: keine PUBLIC-Vorgabe auf public - '
-            'dann prueft Abschnitt 4b nichts';
-    END IF;
-
-    -- (b) Und der Join auf `pg_roles`, den Abschnitt 4b verwendet, blendet
-    --     genau diesen Eintrag aus. Erst beides zusammen belegt, dass dort
-    --     die Pseudorolle uebergangen wird und nicht etwa alles.
+    -- Die belegte Aussage lautet: **der Katalogblick kann eine PUBLIC-Zeile
+    -- sehen und blendet sie trotzdem aus.** Sie lautet nicht "`public` traegt
+    -- eine solche Zeile" - das waere eine Voreinstellung, die 009 weder
+    -- herstellt noch zusichert.
+    --
+    -- Eine frueherer Fassung verlangte genau das und schrieb `nspname =
+    -- 'public'` fest. Damit widersprach die Selbstpruefung dem Abschnitt 4b
+    -- desselben Tests, der einen leeren `nspacl` ausdruecklich als zulaessig
+    -- behandelt - und sie waere rot geworden, sobald jemand
+    -- `USAGE ON SCHEMA public FROM PUBLIC` entzieht, also bei einer Haertung,
+    -- die dieses Projekt anderswo selbst vornimmt. Das ist die Spiegelform von
+    -- `G-074`: derselbe Fehler, nur mit umgekehrtem Vorzeichen
+    -- (Vertretungsreview, `SV-2026-09-03-03`).
+    --
+    -- Gesucht wird deshalb ueber **alle** Schemata. Findet sich nirgends eine
+    -- PUBLIC-Zeile, ist das eine benannte Aussage und kein Abbruch: Abschnitt
+    -- 4b prueft dann eine leere Menge, was der Leser wissen muss, was aber
+    -- keine bestandene Migration blockieren darf.
     IF EXISTS (
         SELECT 1 FROM pg_namespace n
         CROSS JOIN LATERAL aclexplode(n.nspacl) AS a
-        JOIN pg_roles r ON r.oid = a.grantee
-        WHERE n.nspname = 'public' AND a.grantee = 0
+        WHERE a.grantee = 0
     ) THEN
-        RAISE EXCEPTION 'ACCEPTANCE_009_SELF_CHECK_FAILED: PUBLIC nicht ausgeblendet';
+        -- Es gibt sie - also muss der Join auf `pg_roles`, den Abschnitt 4b
+        -- verwendet, genau sie ausblenden. Erst beides zusammen belegt, dass
+        -- dort die Pseudorolle uebergangen wird und nicht etwa alles.
+        IF EXISTS (
+            SELECT 1 FROM pg_namespace n
+            CROSS JOIN LATERAL aclexplode(n.nspacl) AS a
+            JOIN pg_roles r ON r.oid = a.grantee
+            WHERE a.grantee = 0
+        ) THEN
+            RAISE EXCEPTION 'ACCEPTANCE_009_SELF_CHECK_FAILED: PUBLIC nicht ausgeblendet';
+        END IF;
+    ELSE
+        RAISE NOTICE 'ACCEPTANCE_009_SELF_CHECK: keine PUBLIC-Zeile im Katalog - '
+                     'Abschnitt 4b prueft an dieser Stelle eine leere Menge';
     END IF;
 
     RAISE NOTICE 'Bus function owner acceptance: PASS';
