@@ -148,6 +148,61 @@ class DeployScriptBehaviourTest(unittest.TestCase):
         self.assertTrue(zeilen[1].startswith("ssh "), zeilen)
 
 
+class TargetIsAConstantTest(unittest.TestCase):
+    """`G-091`: Host und Pfad sind Konstanten; eine Ueberschreibung ist ein Abbruch.
+
+    Die erste Fassung las PRODUCTION_HOST und PRODUCTION_ROOT aus der Umgebung
+    und setzte den Pfad zwischen einfache Anfuehrungszeichen in den
+    Remote-Shellstring. Ein Wert mit Quote, Zeilenumbruch oder Shellsyntax
+    haette die Begrenzung beendet; ein Host mit fuehrendem "-" liest sich als
+    ssh-Option. Jede gesetzte Variable bricht jetzt ab - vor tar und vor ssh.
+    """
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.att = Attrappen(pathlib.Path(self.tmp.name))
+
+    def assertAbgebrochenVorAllem(self, **umgebung: str) -> None:
+        code, ausgabe = self.att.lauf(**umgebung)
+        self.assertEqual(3, code, ausgabe)
+        self.assertIn("G-091", ausgabe)
+        self.assertEqual([], self.att.aufrufe("tar"), "vor tar")
+        self.assertEqual([], self.att.aufrufe("ssh"), "vor ssh")
+
+    def test_a_different_host_aborts(self) -> None:
+        self.assertAbgebrochenVorAllem(PRODUCTION_HOST="staging")
+
+    def test_a_different_root_aborts(self) -> None:
+        self.assertAbgebrochenVorAllem(PRODUCTION_ROOT="/volume1/docker/Other")
+
+    def test_a_host_that_reads_as_an_ssh_option_aborts(self) -> None:
+        self.assertAbgebrochenVorAllem(PRODUCTION_HOST="-oProxyCommand=touch /tmp/x")
+
+    def test_a_root_with_a_quote_aborts(self) -> None:
+        self.assertAbgebrochenVorAllem(PRODUCTION_ROOT="/volume1/docker/Startup'; rm -rf /; echo '")
+
+    def test_a_root_with_a_newline_aborts(self) -> None:
+        self.assertAbgebrochenVorAllem(PRODUCTION_ROOT="/volume1/docker/Startup\nrm -rf /")
+
+    def test_the_constant_target_is_what_reaches_ssh(self) -> None:
+        code, _ = self.att.lauf()
+        self.assertEqual(0, code)
+        for aufruf in self.att.aufrufe("ssh"):
+            self.assertIn(" synology ", aufruf + " ")
+            self.assertIn("/volume1/docker/Startup", aufruf)
+
+    def test_the_script_reads_no_target_from_the_environment(self) -> None:
+        aktiv = "\n".join(z for z in SKRIPT.read_text(encoding="utf-8").splitlines()
+                          if not z.lstrip().startswith("#"))
+        # Die Variablen duerfen genannt werden - im Abbruch -, aber nie ein
+        # Ziel liefern.
+        self.assertNotIn('host="${PRODUCTION_HOST', aktiv)
+        self.assertNotIn('root="${PRODUCTION_ROOT', aktiv)
+        self.assertIn('host="synology"', aktiv)
+        self.assertIn('root="/volume1/docker/Startup"', aktiv)
+
+
 class DeployScriptTextTest(unittest.TestCase):
     """Zwei Zusicherungen, die man auch dem Text ansieht - als zweite Linie."""
 

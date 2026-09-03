@@ -31,8 +31,25 @@ set -eu
 # of its own.
 
 cd "$(dirname "$0")"
-host="${PRODUCTION_HOST:-synology}"
-root="${PRODUCTION_ROOT:-/volume1/docker/Startup}"
+
+# The target is a constant, not an environment variable (review finding
+# G-091). The first version read PRODUCTION_HOST and PRODUCTION_ROOT from the
+# environment and pasted the path between single quotes into the remote shell
+# string - a value carrying a quote, a newline or shell syntax would have
+# ended that quoting, and a host starting with "-" reads as an ssh option. For
+# this project the approved target is exactly one: host `synology`, folder
+# /volume1/docker/Startup. A staging target, should one ever exist, gets its
+# own explicit mode with strict validation - not a free-form string.
+#
+# Both variables are refused outright if set, whatever their value: an
+# inherited or mistyped override must stop the deploy before tar and ssh, not
+# steer it. verify_production_state.sh keeps its read-only overrides.
+host="synology"
+root="/volume1/docker/Startup"
+if [ -n "${PRODUCTION_HOST:-}" ] || [ -n "${PRODUCTION_ROOT:-}" ]; then
+    echo "FAIL: PRODUCTION_HOST/PRODUCTION_ROOT sind gesetzt - dieses Skript deployt nur nach $host:$root (G-091)" >&2
+    exit 3
+fi
 
 liste="$(mktemp)"
 archiv="$(mktemp)"
@@ -48,5 +65,7 @@ COPYFILE_DISABLE=1 tar czf "$archiv" -T "$liste"
 ssh -o BatchMode=yes "$host" "cd '$root' && tar xzf -" < "$archiv"
 
 echo "== 3/3 Pruefung auf der NAS"
+# stdin closed on purpose: this call needs none, and an ssh that inherits an
+# open pipe can sit there waiting for it.
 ssh -o BatchMode=yes "$host" \
-  "cd '$root' && grep -qx 'dirty=no' DEPLOY_MANIFEST.txt && sh verify_manifest.sh && sh check_unmanaged.sh"
+  "cd '$root' && grep -qx 'dirty=no' DEPLOY_MANIFEST.txt && sh verify_manifest.sh && sh check_unmanaged.sh" < /dev/null
