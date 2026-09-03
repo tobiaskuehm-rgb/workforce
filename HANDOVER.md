@@ -61,9 +61,15 @@ Zustandsdatei: eine Nachricht bei Kanal `DISABLED` als `IGNORED` verbucht, `/sta
 Audit intakt, Zustellabgleich `PASS`. Der Prototyp hat diesen Weg in vier Tagen nie
 gegeben; der Neubau nach einem Abend.
 
-**Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** Nächste Schritte: echtes Modell
-(braucht `workforce/secrets/anthropic_api_key` vom CEO), dann Betrieb auf der NAS über
-`workforce/compose.yaml` — nur mit Freigabe. `HO-027` (Anmeldung unten) ruht.
+**Erste Modellantwort: 2026-09-03, später Abend, auf dem Mac.** `claude-sonnet-5` über die
+Messages-API ohne SDK, Datengrenze `BODY`. Aus der Datei: 296 Eingabe- und 112 Ausgabe-Token,
+0,0017 USD, keine Ablehnung, `SENT` mit externer Id, `DONE`, `verify` `PASS`. Davor zwei 400er,
+weil ein identitätsgebundener Schlüssel den Header `anthropic-workspace-id` verlangt; die Id
+steht seitdem in der Konfiguration (`602095d`), und eine abgewiesene Anfrage gibt ihre
+Reservierung zurück (`47afbb4`).
+
+**Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** Nächster Schritt: Betrieb auf der
+NAS über `workforce/compose.yaml` — nur mit Freigabe. `HO-027` (Anmeldung unten) ruht.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
