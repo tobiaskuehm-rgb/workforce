@@ -381,3 +381,117 @@ nicht beantworten. **Kein OK für Migration 009**, solange `-04` offen ist: Eine
 Migration, die den Bus stilllegen kann, wird nicht ohne benannten Rückbau
 angewendet. Für das Phase-5-Fenster ändert dieser Durchgang nichts; es bleibt
 rot aus den Gründen, die `HANDOVER.md` nennt.
+
+---
+
+# Nachcheck derselben Vertretung — Stand `e38b3d7`
+
+Geprüft am 2026-09-03 nach der Übergabe: die Commits `cbd1887..e38b3d7`, also
+Claudes Antworten auf `SV-2026-09-03-01` bis `-06`, den Probe-Lauf und den
+neuen Übergabestand. Wieder ohne NAS-Zugriff; alle Messungen laufen auf dem Mac.
+
+## Ergebnis
+
+- **`SV-…-01` und `-02` geschlossen.** Die Probe ruft `bus_send_message` als
+  `workforce_api` auf, liest den Rückgabewert und bindet das Auditereignis an
+  Request-Id, Akteur, `MESSAGE`, `INSERT` und `record_key`. Die
+  Parameterreihenfolge stimmt mit der Signatur aus `002` überein (nachgesehen,
+  nicht angenommen), `p_message_id` ist wirklich ein Eingabewert, und die Route
+  `SAO-001 → AI-ENG-001` entsteht aus dem Routen-Seed in `002`.
+  **Entscheidend: die Allowlist in `009` wurde nicht angefasst** — der Diff
+  ändert dort nur Kommentare. Genau die Verbreiterung, vor der `-01` gewarnt
+  hat, ist ausgeblieben.
+- **`SV-…-03` geschlossen.** Die Selbstprüfung sucht über alle Schemata und
+  meldet die fehlende Voraussetzung als `NOTICE` statt als Abbruch. Beide
+  Hälften binden weiter, und die Konstruktion kann rot werden.
+- **`SV-…-04` bleibt offen — richtig so.** Der Satz im Migrationskopf ist
+  richtiggestellt statt eingelöst, die Entscheidung ist benannt: keine
+  ungeprüfte `010` in einer Woche ohne Review. Der Befund bleibt das Gate vor
+  `009`.
+- **`SV-…-05` geschlossen.** `PRODUCTION_COMMIT=0238768`, datierte Notiz,
+  `produktiv-v9` zeigt tatsächlich auf `0238768` (nachgesehen). Der neue
+  `test_production_state_drift.py` nimmt den historischen Fall
+  (`672e0a7` → `compose.yaml`) als Gegenprobe — er kann also rot werden.
+- **`SV-…-06` geschlossen.**
+- **Regel 49** steht in `CLAUDE.md`, alle vier Spiegeldateien sind identisch.
+  `583 + 15 + 44 + 27 = 669` Tests **PASS**.
+
+## Zum Probe-Lauf: angenommen
+
+Die Freigabe lautete „kein OK, solange `-01` und `-02` offen sind". Beide waren
+behoben, bevor gelaufen wurde, dann kam die Freigabe des CEO im Chat, und die
+Produktion blieb unberührt. **Die Bedingung war erfüllt; der Lauf ist gedeckt.**
+Die Zweideutigkeit lag in meiner Formulierung, nicht in der Ausführung — gemeint
+war „nicht bevor die Korrektur nachgeprüft ist", geschrieben stand die schwächere
+Fassung. Dass die Übergabe die Stelle von sich aus offengelegt hat, statt sie als
+gedeckt zu behandeln, ist das erwünschte Verhalten.
+
+Der Nachweis selbst ist plausibel und intern stimmig: Die Reihenfolge der Zeilen
+in der Messwerttabelle folgt der **Anhängereihenfolge im Code**, nicht der
+Reihenfolge in `ERWARTET` — die beiden unterscheiden sich, und eine
+nachträglich zusammengeschriebene Tabelle hätte eher der Erwartung gefolgt. Elf
+Zusicherungen, vierzehn Zeilen, drei davon informativ: stimmt mit `ERWARTET`
+überein. Der dokumentierte erste rote Lauf gehört zu den nützlicheren Teilen des
+Nachweises.
+
+## `SV-2026-09-03-07` – `REVIEW_ANTWORTEN.md` sagt, die Probe sei nicht gelaufen
+
+**Schwere:** mittel — der Widerspruch steht in dem Dokument, das der Prüfer
+liest, um zu sehen, was geschehen ist
+
+**Datei:** `REVIEW_ANTWORTEN.md`, Abschnitt „Nachweis" am Ende des sechzehnten
+Zielnachchecks
+
+**Beobachtung.** Dort steht: „**Nicht ausgeführt und nicht behauptet:** … 
+`g045_owner_probe.py`, Migration `009`. Der Probe-Lauf wurde am 2026-09-03
+erneut versucht und erneut von der Berechtigungsprüfung des Werkzeugs
+abgewiesen." Daneben liegen `evidence/2026-09-03_g045_owner_probe_run.md` mit
+`RESULT: PASS` und ein `HANDOVER.md`, das den Lauf ausführlich beschreibt.
+
+Die Reihenfolge erklärt es: `99e28ff` schrieb die Antworten, `86491b0` führte
+die Probe aus. `REVIEW_ANTWORTEN.md` ist danach nicht mehr angefasst worden —
+nachgemessen über `git log -- REVIEW_ANTWORTEN.md`, genau ein Commit im
+Bereich `cbd1887..HEAD`.
+
+**Warum problematisch.** Es ist `G-067` in Reinform: eine Gegenwartsaussage, die
+zum Zeitpunkt des Schreibens stimmte und beim Lesen falsch ist. Gerd liest ab
+dem 07.09. zuerst diese Datei; sie sagt ihm, der zentrale Lauf habe nicht
+stattgefunden, während zwei andere Dokumente das Gegenteil belegen. Zwei
+Wahrheiten im selben Übergabesatz sind schlimmer als eine fehlende — er müsste
+raten, welches Dokument jünger ist.
+
+**Kleinste sichere Korrektur.** Den Absatz auf den Stand nach dem Lauf ziehen
+und den Nachweis verlinken; „nicht ausgeführt" bleibt für die API-Suite und den
+echten SQL-Parser richtig. Der Nachweis wird nicht umgeschrieben, sondern die
+Aussage datiert — dieselbe Bauform, die `production_state.txt` schon verwendet.
+
+## `SV-2026-09-03-08` – Der neue Probe-Wächter misst in einem festen Zeichenabstand
+
+**Schwere:** niedrig — heute wirkungslos, aber genau die Fragilität, die dieses
+Projekt zweimal bezahlt hat
+
+**Datei:** `workforce-agent/test_bus_function_owner.py`,
+`ProbeWritesWithinTheAllowlistTest.als_owner()`
+
+**Beobachtung.** Der Wächter sammelt Schreibziele aus den **800 Zeichen** nach
+jedem `SET ROLE workforce_owner`. Ein Schreibvorgang, der weiter hinten in
+derselben Anweisung steht, fällt heraus — und das ist die Richtung, in der ein
+Wächter blind wird, nicht die, in der er zu viel meldet.
+
+Drei Commits vorher steht in derselben Testdatei die Begründung dagegen:
+„Abgegrenzt wird an seinem eigenen `IF NOT EXISTS (` — ein fester
+Zeichenabstand hätte die vorige Prüfung mit erfasst." Dieselbe Klasse wie die
+Zeilengrenze, an der `NoHardcodedCountsTest` schon zweimal vorbeigelesen hat.
+
+**Kleinste sichere Korrektur.** Das Fenster an die Struktur binden statt an eine
+Zahl: bis zum nächsten `SET ROLE`, zum nächsten `psql(`-Aufruf oder zum Ende des
+Strings. Die Gegenprobe dazu ist billig — ein Schreibziel jenseits der Grenze
+muss den Wächter rot machen.
+
+## Gate
+
+Unverändert: **kein OK für Migration `009`**, solange `SV-2026-09-03-04` offen
+ist — daran ändert der `PASS` der Probe nichts, und die Übergabe sagt das selbst.
+Die beiden neuen Punkte sind klein und blockieren nichts; `-07` gehört vor dem
+07.09. erledigt, damit Gerd nicht zwei widersprechende Dokumente vorfindet.
+Phase 5 bleibt rot aus den Gründen, die `HANDOVER.md` nennt.
