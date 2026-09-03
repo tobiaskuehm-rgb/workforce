@@ -1,112 +1,109 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-03, 07:50 — von Claude Code.
+**Zuletzt aktualisiert:** 2026-09-03, 08:10 — von Claude Code.
+**Übergabe an:** die **Vertretung**. Gerd ist bis zum 2026-09-07 nicht
+verfügbar; danach ist ein großes Review geplant.
 
-**Zuletzt geprüft:** 2026-09-03 — **sechzehnter Zielnachcheck in Vertretung**,
-Stand `0238768`, sechs Befunde unter dem Tag `SV-2026-09-03-NN` in
-`REVIEW_STELLVERTRETUNG_2026-09-03.md`. Gerd ist bis zum 2026-09-07 weg; die
-Vertretung hat nach seinem Verfahren geprüft, `REVIEW_GERD.md` nicht angefasst
-und keine `G-`Nummer vergeben. **Alle sechs selbst nachgemessen, alle sechs
-bestätigt und behoben** (`REVIEW_ANTWORTEN.md`), Regel 49 in `CLAUDE.md`.
+## Was seit dem sechzehnten Zielnachcheck (`0238768`) passiert ist
 
-Zwei davon sind unangenehm: `SV-...-01` — die Probe schrieb unter
-`SET ROLE workforce_owner` auf `bus_channels`, wo `009` ihr nur `SELECT` gibt.
-Das Ziel stammte aus der Zeit, als `009` noch `ALL TABLES` erteilte; beim
-Verengen der Allowlist für `G-071` habe ich es mitgerissen. Das ist genau die
-Bewegung, die ich am Vortag als Verschärfung von `G-014` selbst aufgeschrieben
-hatte — und am Morgen des 2026-09-03 bin ich beim Durchlesen derselben Datei ein
-zweites Mal daran vorbeigegangen. `SV-...-02`: Die Probe rief keine der zwölf
-Funktionen auf, obwohl ihre erste Zeile genau das fragt. Beides zusammen behoben
-— sie ruft jetzt `bus_send_message` als `workforce_api` auf.
+Die Vertretung hat am 2026-09-03 nach Gerds Verfahren geprüft und sechs Befunde
+unter `SV-2026-09-03-01` bis `-06` in
+`nas-startup/REVIEW_STELLVERTRETUNG_2026-09-03.md` abgelegt. `REVIEW_GERD.md`
+blieb unangetastet, es gibt keine erfundene `G-`Nummer (`G-006`).
 
-**Vorher, am 2026-09-02 — von Gerd, fünfzehnter Zielnachcheck auf
-Commit `ea5ae2a`. Sein Urteil: `G-070`, `G-072` und `G-073` **geschlossen**,
-`G-071` „stark verbessert, aber nicht geschlossen" mit drei Restbefunden
-`G-074`–`G-076`. Alle drei habe ich selbst nachgeprüft, alle drei bestätigt und
-behoben.
+**Alle sechs selbst nachgemessen, alle sechs bestätigt und behoben.** Antworten
+in `REVIEW_ANTWORTEN.md`, Regel 49 in `CLAUDE.md`. Danach ist
+`g045_owner_probe.py` gelaufen.
 
-**Danach ist etwas passiert, das dieser Kopf festhalten muss.** Gerd hat einen
-Gegencheck gefahren und **drei weitere Befunde** gefunden. Sein Schreibvorgang
-in `REVIEW_GERD.md` (`+130` Zeilen) **wurde abgelehnt**, unmittelbar bevor sein
-Nutzungslimit griff. Er ist **bis 2026-09-07 nicht verfügbar**; danach ist ein
-großes Review geplant.
+## Der Punkt, den die Vertretung zuerst ansehen sollte
 
-**Die drei Befunde haben deshalb keine `G-`Nummer.** Ich vergebe keine
-(`G-006`) und fasse `REVIEW_GERD.md` nicht an — das ist seine Datei. Sie stehen
-vollständig in `REVIEW_ANTWORTEN.md` und im Tagesbericht
-`interim-bus/daily/2026-09-03/01_claude.md` des iCloud-Arbeitssatzes:
+Ihre Freigabe lautete wörtlich: **„Kein OK für `g045_owner_probe.py`, solange
+`-01` und `-02` offen sind."**
 
-1. **Der Trigger-Negativtest akzeptierte jeden Prozessfehler** als „Zugriff
-   verweigert". Ein weggeräumter Container hätte den zentralen
-   Sicherheitsnachweis der Probe erbracht. Das verletzt `G-014`, das längst in
-   `CLAUDE.md` steht — **ich habe die Regel beim Beheben von `G-076` selbst
-   verloren**: Die vorige Textprüfung war schwach, aber sie war eine Bindung,
-   und beim Umstellen auf Exitcodes fiel sie ersatzlos weg. Die Ablehnung hängt
-   jetzt an SQLSTATE `42501`.
-2. **Die PUBLIC-Selbstprüfung war logisch leer** — `a.grantee = 0` und
-   gleichzeitig ein Join auf `pg_roles`, wo es zur OID `0` keine Zeile gibt.
-   `EXISTS` war immer falsch; der Wächter konnte nie anschlagen. Jetzt zwei
-   getrennte Abfragen. Regel 47.
-3. **Eine vorhandene Rolle konnte `CREATE` auf `workforce` behalten** — damit
-   legt sie eigene Relationen an, ist deren Eigentümerin und kann auf ihnen
-   Trigger abschalten, also genau der Weg, den `009` zumachen soll.
-   `REVOKE ALL ON SCHEMA workforce` kommt jetzt vor dem `GRANT USAGE`. Regel 48.
+Die Reihenfolge war: erst `-01` und `-02` behoben, dann eine Freigabe des CEO im
+Chat, dann der Lauf. Die genannte Bedingung war damit erfüllt — **aber die
+Vertretung hat den Lauf nicht selbst erneut freigegeben.** Das ist die Stelle,
+an der dieser Stand nachgesehen und nicht nachgelesen gehört. Ich lege sie
+offen, statt sie als gedeckt zu behandeln.
 
-**Zwischenstand 2026-09-03: ein Vertretungsreview liegt vor.** Weil Gerd bis
-zum 07.09. ausfaellt und der Stand seit `ea5ae2a` ungeprueft war, ist ein
-sechzehnter Zielnachcheck nach seinem Verfahren gelaufen und steht in
-`nas-startup/REVIEW_STELLVERTRETUNG_2026-09-03.md`. Es ist **nicht** seine
-Datei; `REVIEW_GERD.md` blieb unangetastet. Die Befunde tragen deshalb keine
-`G-`Nummer (`G-006`), sondern das Praefix `SV-2026-09-03-NN` — Gerd kann sie
-beim naechsten Durchgang uebernehmen, umnummerieren oder zurueckweisen.
+Dieselbe Einschränkung gilt für die Aufhebung der Sperren insgesamt: Der CEO hat
+sie am 2026-09-02/03 im Chat erteilt und verlangt, dass alles dokumentiert wird.
+Das ist eine echte Freigabe, aber **kein Eintrag im Entscheidungslog** —
+geführt als `CEO-CHAT-2026-09-02/PENDING-DEC` (`G-006`).
 
-Sechs Punkte, zwei davon `hoch`, und sie halten `g045_owner_probe.py` und
-Migration `009` weiter zu: Die Probe schreibt auf `bus_channels`, worauf `009`
-ihr nur `SELECT` gibt (`SV-…-01`), und sie ruft keine der zwoelf Funktionen auf,
-obwohl ihre Kopfzeile genau danach fragt (`SV-…-02`). Dazu eine Selbstpruefung
-im Abnahmetest, die an einer PostgreSQL-Voreinstellung haengt (`-03`), ein im
-Migrationskopf versprochener Rueckbau, den es nicht gibt (`-04`),
-`production_state.txt`, das `compose.yaml` auf `672e0a7` pinnt, obwohl der
-`009`-Gate-Block deployt ist (`-05`), und ein Moduldocstring, der den Stand vor
-`G-075` beschreibt (`-06`). Beantwortet ist noch keiner.
+## Der Probe-Lauf: `RESULT: PASS`, elf Zusicherungen
 
-**Aktive Arbeit:** keine. Alles ist committet und auf die NAS gepusht.
+Nachweis: `evidence/2026-09-03_g045_owner_probe_run.md`. Wegwerf-Container auf
+der NAS mit `POSTGRES_USER=workforce_app`, also der Bootstrap-Superuser-Lage der
+Produktion (Regel 15). Aufgeräumt mit `docker rm -f`, nie ein `prune` (`G-038`);
+nachgesehen, kein Container blieb zurück.
 
-## Stand am 2026-09-02, 23:45
+**Vier Annahmen sind dadurch Messungen geworden:**
 
-- Commit `f22e6e1`, gepusht. Deploy `21c40a7` auf der NAS geprüft — 228 Dateien, 0 fehlend,
-  0 abweichend und 0 unerwartet auf Commit `21c40a7`. `check_unmanaged` `PASS`.
-- **651 lokale Tests `PASS`** (565 / 15 / 44 / 27).
-- Produktion unverändert: Migrationen `001`–`003` und `005`–`007`, Kanal
-  `DISABLED`, 0 aktive Credentials, `workforce_owner` existiert nicht.
+| bis dahin | jetzt |
+|---|---|
+| Braucht eine Identity-Spalte Sequenzrechte? Doku schweigt | **Nein** — `bus_events` wurde beschrieben, `009` erteilt keine. Abschnitt 3c beantwortet |
+| Feuert der Audit-Trigger unter `workforce_owner`? | **Ja** — genau ein Ereignis, gebunden an Request-Id, Akteur, `MESSAGE`, `INSERT`, `record_key` |
+| Ist `42501` die richtige SQLSTATE? | **Ja** — das Abschalten wird mit genau dieser Kennung abgewiesen |
+| `G-074`-Gegenprobe auf echter Instanz | **Beide Hälften** — `has_schema_privilege` meldet `t`, direkte Schema-Grants außerhalb `workforce`: `0` |
 
-**Neu dazugekommen:** `workforce-agent/test_sql_structure.py`. Auf diesem Mac
-läuft kein PostgreSQL — weder Docker noch `psql` —, jede SQL-Änderung war also
-bis zu ihrem ersten Lauf auf der NAS völlig ungeprüft. Der Test schließt fünf
-Fehlerklassen aus (Dollar-Quote-Balance, deklarierte gegen benutzte Variablen,
-`RAISE`-Platzhalter gegen Argumente, Transaktionsklammer) und **ersetzt keinen
-Parser**: Katalogspalten, Typen und Semantik sieht er nicht. Vier Gegenproben
-gehören dazu.
+Dazu das, was `SV-...-02` verlangt hatte: **`bus_send_message` läuft als
+`workforce_api` durch.** Die Allowlist reicht auf dem Weg, den die Funktion
+wirklich nimmt — der teuerste Ausgang einer Rechtemigration ist eine zu **enge**
+Allowlist, und der zeigt sich nur dort.
+
+**Der erste Lauf war rot**, und das gehört in diese Übergabe:
+`FAIL: Eventzuwachs '3' statt '1'`. Die Ursache lag bei mir — der Zähler stand
+**vor** dem Prepare, der selbst zwei Auditzeilen schreibt. Das Urteil aus
+`G-070` wurde also **rot statt still** und nannte Soll und Ist; die gebundene
+Abfrage stand im selben Lauf schon richtig auf `1`. Der Zähler steht jetzt
+hinter dem Prepare.
+
+**Was der Lauf nicht belegt:** nichts über die Produktion. `009` ist dort nicht
+angewendet. Ein Durchlauf mit einer Nachricht, kein Dauerbetrieb; Last,
+Nebenläufigkeit und die übrigen elf Funktionen sind nicht gemessen. Und die
+Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
 
 ## Was offen ist
 
-- **Migration `009` ist gegatet und nicht angewendet.** Sie ist am 2026-09-02
-  zweimal umgebaut worden und von niemandem geprüft.
-- **`g045_owner_probe.py` ist am 2026-09-03 gelaufen: `RESULT: PASS`**, elf
-  Zusicherungen, Nachweis in `evidence/2026-09-03_g045_owner_probe_run.md`.
-  Damit sind die vier offenen Annahmen Messungen: Sequenzrechte braucht eine
-  Identity-Spalte **nicht** (`009` Abschnitt 3c beantwortet), der Audit-Trigger
-  feuert unter dem neuen Eigentümer, die SQLSTATE ist `42501`, und die
-  `G-074`-Gegenprobe steht in beiden Hälften. Dazu belegt: `bus_send_message`
-  läuft als `workforce_api` durch — die Allowlist reicht auf dem echten Pfad.
-  Der erste Lauf meldete `FAIL` (Eventzähler stand vor dem Prepare); das Urteil
-  aus `G-070` wurde also rot statt still.
+- **`SV-2026-09-03-04` bleibt offen und hält `009` zu.** Der Migrationskopf
+  verspricht einen Rückbau, den es nicht gibt: Es existiert keine Migration
+  `010`, und `DROP ROLE` scheitert an jeder erteilten Berechtigung (`G-043`).
+  **Eine Migration, die den Bus stilllegen kann, wird nicht ohne benannten
+  Rückbau angewendet.** Der `PASS` der Probe ändert daran nichts.
+- **Migration `009` ist gegatet und nicht angewendet.** Produktion: Migrationen
+  `001`–`003` und `005`–`007`, Kanal `DISABLED`, 0 aktive Credentials,
+  `workforce_owner` existiert nicht.
 - **Phase 5 bleibt ROT.** Kein Kanal, kein Credential, kein Modellaufruf, kein
   Build auf der NAS. `G-030` — die Kette ist nie durchgelaufen — bleibt offen.
-- Der CEO hat am 2026-09-02 im Chat die Sperren aufgehoben und verlangt, dass
-  alles dokumentiert wird. Das ist eine echte Freigabe, aber kein Eintrag im
-  Entscheidungslog: `CEO-CHAT-2026-09-02/PENDING-DEC` (`G-006`). Ebenso die
-  Aufhebung des `23:30`-Coding-Stopps aus `DEC-033` für diese Nacht.
+- **Gerds drei Gegencheck-Befunde vom 2026-09-02 haben weiterhin keine Nummer.**
+  Sein Schreibvorgang in `REVIEW_GERD.md` (`+130` Zeilen) wurde abgelehnt, bevor
+  sein Limit griff. Sie stehen vollständig in `REVIEW_ANTWORTEN.md` und im
+  Tagesbericht; behoben sind sie (Regeln 47 und 48, plus die Verschärfung von
+  `G-014`). Gerd kann sie ab dem 07.09. übernehmen oder zurückweisen.
+
+## Stand
+
+- Commit `86491b0`, gepusht und deployt — auf `86491b0` 232 Dateien, davon 0 fehlend, 0 abweichend, 0 unerwartet.
+  `check_unmanaged` `PASS`.
+- **669 lokale Tests `PASS`** (583 / 15 / 44 / 27), auf `python3` 3.9.6 des
+  Projektrechners.
+- **Nicht gelaufen und nicht behauptet:** die API-Suite (braucht den Container),
+  jedes SQL gegen einen echten PostgreSQL-Parser außerhalb des Probe-Containers.
+
+`workforce-agent/test_sql_structure.py` schließt fünf SQL-Fehlerklassen aus
+(Dollar-Quote-Balance, deklarierte gegen benutzte Variablen,
+`RAISE`-Platzhalter gegen Argumente, Transaktionsklammer) und **ersetzt keinen
+Parser** — Katalogspalten, Typen und Semantik sieht er nicht. Vier Gegenproben
+gehören dazu.
+
+## Vorschlag für den nächsten Schritt
+
+Migration `010` als benannter Rückbau zu `009`, gegatet wie `009` selbst und
+additiv: `REVOKE` der Allowlist, Eigentumsrückgabe der zwölf Funktionen an
+`workforce_app`, `DROP OWNED BY` vor `DROP ROLE`. Damit fiele `SV-...-04`, und
+`009` wäre erstmals entscheidungsreif. Ich habe sie bewusst **nicht**
+geschrieben, solange niemand prüft — das wäre nur mehr ungeprüfte SQL.
 
 ## Wie die Zusammenarbeit läuft
 
