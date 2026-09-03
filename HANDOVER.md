@@ -7,7 +7,12 @@ die Vertretung ist damit beendet. Ihre acht Befunde stehen unter dem Tag
 ohne `G-`Nummer, die vergibt er (`G-006`). Was er zuerst lesen sollte, steht
 unten unter „Leseweg für Gerd".
 
-**Aktive Arbeit:** keine. Gerds siebzehnter Zielnachcheck (`b3deb78`,
+**Aktive Arbeit (2026-09-03, nachmittags):** Claude Code (Fable 5.1) arbeitet
+Gerds verbindlichen nächsten Schritt aus `b7c593b` ab — zuerst `G-080`/`G-081`,
+dann die Gesamtprüfung des aktiven Release-Kandidaten in drei Pässen. **Kein
+Integrationslauf.**
+
+Davor: Gerds siebzehnter Zielnachcheck (`b3deb78`,
 `G-077` bis `G-079`) ist abgearbeitet — alle drei bestätigt und behoben,
 Antworten in `REVIEW_ANTWORTEN.md`, Regeln 51 und 52. Dazu die von ihm
 verlangte Erweiterung des Probelaufs. **Sein Gate gilt weiter:** `009`/`010`
@@ -233,10 +238,16 @@ Deploy (`rsync` und `scp` funktionieren auf dieser DSM nicht). **Versionierte Da
 ```bash
 cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup"
 REQUIRE_CLEAN=1 DEPLOY_FILE_LIST_OUT=/tmp/liste.txt sh deploy_manifest.sh <pfade>
-COPYFILE_DISABLE=1 tar czf - -T /tmp/liste.txt \
-  | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
+COPYFILE_DISABLE=1 tar czf /tmp/archiv.tgz -T /tmp/liste.txt
+ssh synology "cd /volume1/docker/Startup && tar xzf -" < /tmp/archiv.tgz
 ssh synology "cd /volume1/docker/Startup && grep -qx 'dirty=no' DEPLOY_MANIFEST.txt && sh verify_manifest.sh && sh check_unmanaged.sh"
 ```
+
+Kein `find … -delete` auf der NAS mehr und keine Pipeline in `ssh` (`G-080`):
+Das Archiv ist fertig, bevor `ssh` startet, und ein Tar-Fehler bleibt ein
+Tar-Fehler. Was eine Umbenennung auf der NAS zurücklässt, meldet
+`verify_manifest.sh` als `UNERWARTET`; aufgeräumt wird das sichtbar und von
+Hand, nie als Nebenwirkung des Deploys.
 
 ---
 
