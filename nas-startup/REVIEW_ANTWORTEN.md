@@ -3028,6 +3028,61 @@ abgeschrieben wird nichts.
 `HANDOVER.md`.
 
 **Nicht ausgeführt und nicht behauptet:** die API-Suite, jedes SQL gegen einen
-echten PostgreSQL-Parser, `g045_owner_probe.py`, Migration `009`. Der Probe-Lauf
-wurde am 2026-09-03 erneut versucht und erneut von der Berechtigungsprüfung des
-Werkzeugs abgewiesen.
+echten PostgreSQL-Parser, Migration `009` in der Produktion.
+
+*Nachtrag 2026-09-03 (`SV-2026-09-03-07`):* Dieser Absatz sagte bis hierher,
+`g045_owner_probe.py` sei „erneut versucht und erneut von der
+Berechtigungsprüfung des Werkzeugs abgewiesen" worden. Das stimmte, als der
+Absatz geschrieben wurde (`99e28ff`), und war beim Lesen falsch: Die Probe ist
+in `86491b0` gelaufen, `RESULT: PASS`, elf Zusicherungen — Nachweis in
+`evidence/2026-09-03_g045_owner_probe_run.md`. Der Satz wird nicht gelöscht,
+sondern datiert (`G-067`); was oben als „nicht ausgeführt" steht, gilt
+weiterhin.
+
+
+---
+
+# Nachcheck der Vertretung: `SV-2026-09-03-07` und `-08`
+
+**Eine Einschränkung vorweg, die schwerer wiegt als die beiden Befunde:** Die
+Vertretung, die diese zwei Punkte gestellt hat, und der Claude Code, der sie
+hier beantwortet, sind dieselbe Seite. Das ist kein Review, sondern ein
+Selbstgespräch mit Protokoll. Gerd ist seit dem 2026-09-03 wieder da; die
+Befunde, die Korrekturen und diese Antworten gehen an ihn — er bestätigt oder
+weist zurück, nicht ich.
+
+## `SV-…-07` — `REVIEW_ANTWORTEN.md` sagte, die Probe sei nicht gelaufen
+
+**Bestätigt.** Der Absatz entstand in `99e28ff`, der Lauf in `86491b0`, und die
+Datei wurde danach nicht mehr angefasst — `git log -- REVIEW_ANTWORTEN.md`
+zeigt im Bereich `cbd1887..e38b3d7` genau einen Commit. `G-067` in Reinform:
+Gegenwart, die beim Lesen Vergangenheit war, in der Datei, die der Prüfer
+zuerst liest.
+
+*Behoben* durch einen datierten Nachtrag an Ort und Stelle, nicht durch
+Umschreiben: Der alte Satz bleibt lesbar, daneben steht, wann er galt und was
+seither gilt. Dieselbe Bauform wie die Notizen in `production_state.txt`.
+
+## `SV-…-08` — der Probe-Wächter maß in einem festen Zeichenabstand
+
+**Bestätigt.** `als_owner()` sammelte Schreibziele aus 800 Zeichen nach jedem
+`SET ROLE workforce_owner`. Ein Schreibvorgang, der in derselben Anweisung
+weiter hinten steht, wäre herausgefallen — die Richtung, in der ein Wächter
+blind wird. Drei Commits vorher stand in derselben Datei die Begründung
+dagegen, und `NoHardcodedCountsTest` hat dieselbe Klasse schon zweimal
+bezahlt.
+
+*Behoben:* Das Fenster ist jetzt der **Aufruf**. `als_owner()` parst die
+Probe als Python (`ast`), nimmt jeden `psql(...)`-Aufruf, fügt die konstanten
+Teile seines Arguments zusammen — bei einem f-String sind das die Stücke
+zwischen den Platzhaltern, und darin steht der Tabellenname — und prüft nur
+Aufrufe, in denen `SET ROLE workforce_owner` vorkommt. Dieselbe Technik, die
+`test_owner_probe_verdict.py` für das `RESET ROLE`-Verbot schon verwendet.
+
+Vier Gegenproben: der historische Fall (`bus_channels`) wird gefunden; ein
+erlaubtes Ziel (`bus_messages`) geht durch; ein Schreibziel **900 Zeichen**
+hinter dem `SET ROLE` wird gefunden — genau der Fall, den das alte Fenster
+verpasst hätte, und der Test hält fest, dass das alte Fenster ihn verpasst
+hätte; und ein Schreibvorgang ohne `SET ROLE workforce_owner` im selben Aufruf
+zählt nicht — das ist der Prepare als `workforce_app`, und er soll nicht
+zählen.
