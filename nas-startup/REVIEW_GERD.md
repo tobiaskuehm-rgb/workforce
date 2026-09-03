@@ -1505,3 +1505,46 @@ führen die korrekte Zahl 21.
 Danach genügt ein kurzer Code-Nachcheck. Das Gate für 009/010 bleibt bis zum
 gesondert freigegebenen Wegwerf-Integrationslauf geschlossen; die
 Codekorrekturen allein sind keine NAS-Ausführungsfreigabe.
+
+## Verbindlicher nächster Schritt vor dem Integrationslauf
+
+Der CEO hat Gerd am 2026-09-03 beauftragt, den erforderlichen Prüfumfang vor
+dem Testlauf festzulegen. Gerd verlangt dafür einmalig die Prüfung des gesamten
+**aktiven Release-Kandidaten** durch Fable 5.1. Das ist eine Prüf-, keine
+Umbau- oder Testfreigabe.
+
+### Reihenfolge
+
+1. Zuerst ausschließlich `G-080` und `G-081` korrigieren und lokal testen.
+2. Den danach sauberen Commit als Prüfstand festhalten; während der
+   Gesamtprüfung keine Korrekturen und keine neuen Funktionen einmischen.
+3. Den aktiven Release-Umfang einmal im `/3erLoop` prüfen:
+   - **Pass 1:** Code und Konfiguration gegen aktive Entscheidungen,
+     Berechtigungen, Gates und dokumentierte Betriebsgrenzen prüfen.
+   - **Pass 2:** Python, SQL, Compose, Rollen, Secrets, Inbox/Outbox, Tasks,
+     Handoffs, Idempotenz, Nebenläufigkeit, Wiederanlauf, Audit, Daten- und
+     Kostenbegrenzungen, Telegram/Agentenwege sowie Deploy, Backup und
+     Rollback aus unabhängiger Risiko- und Qualitätssicht prüfen.
+   - **Pass 3:** Befunde durch konkrete Codepfade und lokale Gegenproben
+     bestätigen oder verwerfen; insbesondere falschgrüne Tests, stille
+     Seiteneffekte, unnötige Datenkopien, doppelte Kommunikationswege und die
+     vollständige Rückbaubarkeit von 009/010 kontrollieren.
+4. Nur neue, konkrete Befunde mit Schwere, Beleg, Auswirkung und kleinster
+   sicherer Korrektur dokumentieren. Geschlossene Befunde nicht wiederholen,
+   historische Archive nicht vollständig neu prüfen und keine neue Roadmap
+   erzeugen.
+5. Ergebnis an Gerd übergeben. Erst nach Gerds Zielnachcheck darf der CEO um
+   die gesonderte Freigabe für den Wegwerf-Integrationslauf gebeten werden.
+
+### Umfang und Grenzen
+
+Zum aktiven Umfang gehören die über `deploy_paths.txt` ausgelieferten
+Programm-, SQL-, Konfigurations-, Test- und Betriebspfade sowie die dafür
+maßgeblichen Entscheidungen. Historische ZIPs, abgeschlossene Altberichte und
+inaktive Entwürfe werden nur bei einem konkreten Widerspruch herangezogen.
+
+Bis dahin: **kein NAS-Testlauf, keine Migration 009/010, keine Änderung der
+laufenden Container, keine Kanal-/Credential-Aktivierung, kein externer
+Modellaufruf und keine produktive Rechteänderung.** Lokale, nicht
+zustandsverändernde Tests sind erlaubt. Der Teststatus bleibt **ROT – wartet
+auf Korrektur, Gesamtprüfung, Gerd-Nachcheck und danach CEO-Freigabe**.
