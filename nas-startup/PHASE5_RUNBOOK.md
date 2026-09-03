@@ -92,19 +92,31 @@ denselben Inhalt ein zweites Mal.
 ## 4. Zielmanifest und Deploy
 
 ```bash
-cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && REQUIRE_CLEAN=1 DEPLOY_FILE_LIST_OUT=/tmp/startup-phase5-files.txt sh deploy_manifest.sh
-cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && COPYFILE_DISABLE=1 tar czf - -T /tmp/startup-phase5-files.txt | ssh synology "cd /volume1/docker/Startup && tar xzf - && find . -name '._*' -delete"
-ssh synology "cd /volume1/docker/Startup && grep -qx 'dirty=no' DEPLOY_MANIFEST.txt && sh verify_manifest.sh && sh check_unmanaged.sh"
+cd "/Users/Tobi/Documents/Codex/workorce claude/nas-startup" && sh deploy_to_nas.sh
 ```
 
-Der erste Befehl bricht bei einem schmutzigen Git-Baum ab und erzeugt die
-Transferliste aus genau derselben Git-Dateimenge, deren Hashes im Manifest
-stehen. Der zweite Befehl **überträgt** diese Dateien; ein nur lokal erzeugtes
-Manifest ist noch kein Deploy (`G-064`). Der dritte verlangt auf der NAS
-`dirty=no`, keine fehlende, abweichende oder unerwartete Datei und keinen
-unverwalteten Top-Level-Pfad. Die Pfadliste steht seit `G-052` versioniert in
-`deploy_paths.txt`; ein Skript, das dort fehlt, ist sonst schlicht nicht
-abgedeckt.
+**Ein Aufruf, kein abgeschriebener Einzeiler** (`G-086`). Bis zum 2026-09-03
+standen hier drei Zeilen, die die Prozedur ein zweites Mal enthielten — mit
+der `tar | ssh`-Pipeline ohne `pipefail` und dem `find … -delete` über den
+ganzen Zielordner, die `G-080` aus dem Skript entfernt hat. Das Runbook führte
+den unsicheren Weg also weiter aus, während der getestete daneben lag.
+Dieselbe Klasse wie die Deployliste vor `G-052`: Zwei Abschriften derselben
+Sache laufen auseinander, und die, die im Fenster gelesen wird, ist die
+falsche.
+
+Das Skript fährt die drei Schritte, fail-closed und jeder mit eigenem
+Exitstatus: Manifest nur bei sauberem Git-Baum, aus genau der Dateimenge,
+deren Hashes im Manifest stehen; Archiv **lokal fertig gebaut**, dann
+übertragen — ein nur lokal erzeugtes Manifest ist noch kein Deploy
+(`G-064`); danach auf der NAS `dirty=no`, keine fehlende, abweichende oder
+unerwartete Datei und kein unverwalteter Top-Level-Pfad. Es löscht nichts auf
+der NAS; was eine Umbenennung dort zurücklässt, meldet `verify_manifest.sh`
+als `UNERWARTET`, und aufgeräumt wird das sichtbar und von Hand. Host und
+Zielpfad sind im Skript fest gebunden (`G-091`), nicht aus der Umgebung.
+Die Pfadliste steht seit `G-052` versioniert in `deploy_paths.txt`; ein
+Skript, das dort fehlt, ist sonst schlicht nicht abgedeckt.
+
+Abbruch, wenn nicht beide `RESULT: PASS` am Ende stehen.
 
 ### 4.1 Beide Agent-Images bauen und aus ihrem echten Dateisatz importieren
 

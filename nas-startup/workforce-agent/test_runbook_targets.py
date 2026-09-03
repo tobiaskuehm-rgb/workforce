@@ -578,6 +578,36 @@ def helper_script_offenders(text: str,
     return sorted(offenders)
 
 
+def executed(text: str) -> bool:
+    """Is this runbook an execution record rather than a plan?
+
+    The head of an executed runbook says "ausgeführt am <Datum>" (G-046);
+    test_document_consistency.py enforces that form. Read here, not listed.
+    """
+    kopf = "\n".join(text.splitlines()[:8])
+    return bool(re.search(r"ausgeführt am \d{4}-\d{2}-\d{2}", kopf))
+
+
+def deploy_shortcut_offenders(text: str) -> list[str]:
+    """Commands that carry the deploy procedure instead of calling the script.
+
+    Review finding G-086. Section 4 of the Phase-5 runbook kept the three-line
+    deploy - `tar | ssh` without pipefail and `find . -name '._*' -delete`
+    over the whole target folder - after G-080 had removed exactly that from
+    deploy_to_nas.sh. Two copies of one procedure drift apart, and the one
+    read in the window is the wrong one (G-052 class). So: no executed command
+    deletes on the NAS, and none pipes an archive into ssh; the script does
+    the deploy.
+    """
+    offenders = []
+    for command in all_commands(text):
+        if re.search(r"\bfind\b.*-delete", command):
+            offenders.append(f"remote delete: {command[:80]}")
+        if re.search(r"\btar\b[^|]*\|\s*ssh\b", command):
+            offenders.append(f"tar piped into ssh: {command[:80]}")
+    return offenders
+
+
 def function_arity() -> dict[str, int]:
     """Parameter count per workforce function, from the migrations."""
     arity: dict[str, int] = {}
@@ -768,6 +798,33 @@ class RunbookTargetsTest(unittest.TestCase):
         self.assertEqual(["4"], cross_reference_offenders(erfunden))
         self.assertEqual([], cross_reference_offenders("## 4. Vier\n\nSiehe Abschnitt 4.\n"))
 
+    def test_no_command_deploys_by_hand_or_deletes_on_the_nas(self) -> None:
+        # Nur Runbooks, die noch ausgefuehrt werden. PHASE4 ist seit dem
+        # 2026-09-01 ein Ausfuehrungsprotokoll und traegt die alte Zeile als
+        # Geschichte; die wird nicht umgeschrieben (G-046). Die Ausnahme ist
+        # keine Liste, sondern der Kopf des Dokuments - dieselbe Erkennung wie
+        # in test_document_consistency.py.
+        aktive = [(n, t) for n, t in self.runbooks if not executed(t)]
+        self.assertTrue(aktive, "kein aktives Runbook - Erkennung kaputt")
+        for name, text in aktive:
+            with self.subTest(runbook=name):
+                self.assertEqual([], deploy_shortcut_offenders(text))
+
+    def test_the_executed_runbook_is_recognised_as_such(self) -> None:
+        # Sonst waere die Ausnahme oben eine Luecke statt einer Grenze.
+        phase4 = (NAS / "PHASE4_RUNBOOK.md").read_text(encoding="utf-8")
+        phase5 = (NAS / "PHASE5_RUNBOOK.md").read_text(encoding="utf-8")
+        self.assertTrue(executed(phase4))
+        self.assertFalse(executed(phase5))
+        # Und die alte Zeile steht dort wirklich - die Ausnahme traegt etwas.
+        self.assertNotEqual([], deploy_shortcut_offenders(phase4))
+
+    def test_the_deploy_goes_through_the_script(self) -> None:
+        # Die Gegenrichtung: Das aktive Runbook ruft den getesteten Helfer.
+        phase5 = (NAS / "PHASE5_RUNBOOK.md").read_text(encoding="utf-8")
+        self.assertTrue(any("sh deploy_to_nas.sh" in c for c in all_commands(phase5)),
+                        "PHASE5_RUNBOOK.md ruft deploy_to_nas.sh nicht")
+
     def test_every_function_call_has_the_right_number_of_arguments(self) -> None:
         self.check_each(lambda t: self.assertEqual([], call_arity_offenders(t)))
 
@@ -781,6 +838,30 @@ class RunbookTargetsTest(unittest.TestCase):
         # `docker save startup-workforce-api:v7` is correct and must stay.
         self.assertIn("docker save startup-workforce-api:v7", self.text)
         self.assertEqual([], container_name_offenders(self.text))
+
+
+class DeployShortcutIsDetectedTest(unittest.TestCase):
+    """Die alte Zeile aus Abschnitt 4 muss den Waechter rot machen."""
+
+    ALT = ('```bash\n'
+           'cd "/x" && COPYFILE_DISABLE=1 tar czf - -T /tmp/l.txt | ssh synology '
+           '"cd /volume1/docker/Startup && tar xzf - && find . -name \'._*\' -delete"\n'
+           '```\n')
+
+    def test_the_historical_line_is_reported_twice(self) -> None:
+        befunde = deploy_shortcut_offenders(self.ALT)
+        self.assertEqual(2, len(befunde), befunde)
+        self.assertTrue(any(b.startswith("remote delete") for b in befunde))
+        self.assertTrue(any(b.startswith("tar piped") for b in befunde))
+
+    def test_the_script_call_is_not_reported(self) -> None:
+        self.assertEqual([], deploy_shortcut_offenders(
+            '```bash\ncd "/x" && sh deploy_to_nas.sh\n```\n'))
+
+    def test_prose_mentioning_the_words_is_not_a_command(self) -> None:
+        # Ein Absatz, der "find -delete" erklaert, ist kein Befehl (G-042).
+        self.assertEqual([], deploy_shortcut_offenders(
+            "Frueher stand hier `find . -delete` und `tar | ssh`.\n"))
 
 
 class WeakenedControlIsDetectedTest(unittest.TestCase):
