@@ -18,7 +18,8 @@ Freigaben, wörtlich „genauso machen wir das":
    Datengrenze, Token- und Kostendeckel vor dem Aufruf, werkzeugloser Agent,
    Herkunftsmarker, Secrets nur in Dateien — werden auf einer Seite
    festgeschrieben; der CEO unterschreibt, die Nummer entsteht im
-   iCloud-Quellensatz, nicht hier. Entwurf: Claude Code und Gerd gemeinsam.
+   iCloud-Quellensatz, nicht hier. Entwurf: `INVARIANTEN.md` im Repo-Wurzel-
+   verzeichnis, geschrieben von Claude Code; Gerd streicht und ergänzt.
 3. **`HO-027` ist pausiert**, bis die Bauform des Neubaus entschieden und
    die Invariantenseite unterschrieben ist. Marlene kommt in den Neubau,
    nicht in den Prototyp.

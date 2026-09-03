@@ -3348,7 +3348,8 @@ Neubau; bitte in die Liste unter Punkt 1.
 1. **Mitautor der Invariantenseite.** Eine Seite, zwölf Eigenschaften (Liste
    in `HANDOVER.md`), jede mit dem Befund, der sie erzwungen hat, und dem
    Test, der sie im Neubau beweisen muss. Du kennst die Befunde besser als
-   jeder andere; ich schreibe den Entwurf, du streichst und ergänzt.
+   jeder andere; der Entwurf liegt in `INVARIANTEN.md` im Repo-Wurzelverzeichnis,
+   du streichst und ergänzt.
    Prüffrage je Zeile: Welcher deiner Befunde wäre damit vom ersten Tag an
    unmöglich gewesen? Was keine Zeile bekommt, war ein Symptom der Bauform
    und braucht im Neubau keinen Test.
