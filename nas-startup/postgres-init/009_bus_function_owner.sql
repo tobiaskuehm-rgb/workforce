@@ -251,7 +251,7 @@ BEGIN
     -- 4b. Und sie sind wirklich SECURITY DEFINER. Ohne das koennte eine
     --     gleichnamige Funktion ohne dieses Attribut die Liste erfuellen und
     --     der Eigentumswechsel waere wirkungslos.
-    SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY 1), '{}')
+    SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY p.oid::regprocedure::text), '{}')
       INTO v_ohne_secdef
     FROM pg_proc p WHERE p.oid = ANY (v_oids) AND NOT p.prosecdef;
     IF array_length(v_ohne_secdef, 1) IS NOT NULL THEN
@@ -264,7 +264,7 @@ BEGIN
     --     nach einer Anwendung von `004` waeren es die sieben
     --     Knowledge-Funktionen, und die haette die dynamische Auswahl der
     --     ersten Fassung stillschweigend mituebernommen (`G-071`).
-    SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY 1), '{}')
+    SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY p.oid::regprocedure::text), '{}')
       INTO v_fremd
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
@@ -284,21 +284,31 @@ BEGIN
         EXECUTE format('ALTER FUNCTION %s OWNER TO workforce_owner', v_proc::text);
         v_count := v_count + 1;
     END LOOP;
-    IF v_count <> array_length(v_signaturen, 1) THEN
-        RAISE EXCEPTION 'MIGRATION_009_OWNER_TRANSFER_INCOMPLETE: % von %',
-            v_count, array_length(v_signaturen, 1);
+    -- Dieser Vergleich war nicht erreichbar: Die Schleife oben legt je
+    -- Signatur genau eine OID ab und bricht sonst ab, also war `v_count`
+    -- immer gleich der Laenge. Er prueft jetzt, was wirklich schiefgehen
+    -- kann - dass zwei Eintraege der Liste auf **dieselbe** Funktion zeigen.
+    -- Ein doppelter Eintrag durch Kopieren faellt sonst erst indirekt in 4c
+    -- auf, und dort mit einer irrefuehrenden Meldung.
+    IF v_count <> (SELECT count(DISTINCT x) FROM unnest(v_oids) AS x) THEN
+        RAISE EXCEPTION 'MIGRATION_009_DUPLICATE_SIGNATURE: % Eintraege, % Funktionen',
+            v_count, (SELECT count(DISTINCT x) FROM unnest(v_oids) AS x);
     END IF;
 
     -- 4e. Nachgemessen, in derselben Transaktion und an denselben OIDs. Die
     --     Aussage reicht genau so weit wie der Zugriff: Was nach einer
     --     spaeteren `004` mit den Knowledge-Funktionen ist, verspricht diese
     --     Migration nicht (`G-071`).
+    -- Die Kennung nennt genau das, was geprueft wird. Sie hiess vorher
+    -- `..._STILL_SUPERUSER_OWNED`, die Bedingung fragt aber nach jedem
+    -- fremden Eigentuemer - ein Name, der weniger behauptet als er prueft,
+    -- ist dieselbe Klasse wie ein Kommentar, der mehr behauptet.
     IF EXISTS (
         SELECT 1 FROM pg_proc p
         JOIN pg_roles r ON r.oid = p.proowner
         WHERE p.oid = ANY (v_oids) AND r.rolname <> 'workforce_owner'
     ) THEN
-        RAISE EXCEPTION 'MIGRATION_009_STILL_SUPERUSER_OWNED';
+        RAISE EXCEPTION 'MIGRATION_009_OWNER_TRANSFER_FAILED';
     END IF;
 
     RAISE NOTICE 'Eigentuemer gewechselt: % Funktionen', v_count;

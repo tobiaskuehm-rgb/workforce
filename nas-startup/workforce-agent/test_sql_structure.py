@@ -239,9 +239,25 @@ class WeakenedSqlIsDetectedTest(unittest.TestCase):
                    "unbalancierte Dollar-Quotes")
 
     def test_a_raise_with_too_few_arguments_is_reported(self) -> None:
-        self._fund(self.original.replace(
-            "v_count, array_length(v_signaturen, 1);",
-            "v_count;", 1), "Platzhalter")
+        """Angehaengt statt an einer Zeile verankert.
+
+        Die erste Fassung strich ein Argument aus einer bestimmten
+        `RAISE`-Zeile der Migration. Als diese Zeile am 2026-09-03 aus einem
+        anderen Grund ersetzt wurde, schlug die Gegenprobe fehl - zu Recht, sie
+        besteht darauf, dass ihre Aenderung wirklich greift. Ein Fehlerfall,
+        der die Datei bloss ergaenzt, prueft denselben Pruefer und ueberlebt
+        jede Umformulierung.
+        """
+        block = ("\nDO $p$\nDECLARE\n    v_x integer := 1;\nBEGIN\n"
+                 "    RAISE EXCEPTION 'PROBE: % und %', v_x;\nEND;\n$p$;\n")
+        self._fund(self.original + block, "2 Platzhalter, 1 Argument(e)")
+
+    def test_a_raise_with_matching_arguments_is_not_reported(self) -> None:
+        # Die Gegenrichtung: Ein korrekter RAISE darf nicht gemeldet werden,
+        # sonst waere der Pruefer oben nur eine Sperre gegen jedes RAISE.
+        block = ("\nDO $p$\nDECLARE\n    v_x integer := 1;\nBEGIN\n"
+                 "    RAISE EXCEPTION 'PROBE: % und %', v_x, v_x;\nEND;\n$p$;\n")
+        self.assertEqual([], befunde(self.pfad, quelle=self.original + block))
 
     def test_a_migration_without_its_transaction_is_reported(self) -> None:
         self._fund(self.original.replace("\nCOMMIT;", "\n", 1),

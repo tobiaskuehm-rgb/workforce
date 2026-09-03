@@ -106,7 +106,7 @@ BEGIN
 
     -- Die Gegenrichtung: nichts ausserhalb der zwoelf gehoert ihm. Ohne das
     -- bestuende der Test auch ueber einer zu breiten Verschiebung.
-    SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY 1), '{}')
+    SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY p.oid::regprocedure::text), '{}')
       INTO v_zuviel
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace

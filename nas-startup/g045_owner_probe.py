@@ -58,6 +58,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import time
 
 HOST = "synology"
 DOCKER = "sudo /usr/local/bin/docker"
@@ -242,7 +243,11 @@ def start() -> None:
         if "accepting connections" in ssh(
                 f"{DOCKER} exec {NAME} pg_isready -U workforce_app -d workforce 2>&1")[1]:
             return
-        ssh("sleep 2")
+        # Lokal warten, nicht per `ssh "sleep 2"`. Die erste Fassung baute
+        # dafuer je Runde eine eigene SSH-Verbindung auf - eine Sitzung zur
+        # NAS, um nichts zu tun. Das kostet mehr Zeit als das Warten selbst
+        # und macht die Wartezeit von der Netzlage abhaengig.
+        time.sleep(2)
     raise RuntimeError("Probe-Datenbank wurde nicht bereit")
 
 
@@ -261,8 +266,17 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
 
     # 007 verlangt die beiden Login-Rollen; auf der NAS kommen sie aus dem
     # Secret-Store, hier aus Wegwerfwerten.
-    psql("CREATE ROLE workforce_api LOGIN PASSWORD 'wegwerf1'")
-    psql("CREATE ROLE workforce_backup LOGIN PASSWORD 'wegwerf2'")
+    #
+    # Der Rueckgabewert wird geprueft. Die erste Fassung warf ihn weg - genau
+    # die Klasse, die `G-076` an anderer Stelle getroffen hat. Scheitert eine
+    # Rollenanlage, bricht spaeter `007` ab und die Meldung zeigt auf die
+    # Migration statt auf die Ursache.
+    for rolle, passwort in (("workforce_api", "wegwerf1"),
+                            ("workforce_backup", "wegwerf2")):
+        code, ausgabe = psql(f"CREATE ROLE {rolle} LOGIN PASSWORD '{passwort}'")
+        if code != 0:
+            ergebnisse.append((f"Rolle {rolle}", lauf_ergebnis(code, ausgabe)))
+            return
 
     for datei in MIGRATIONEN:
         ergebnis = anwenden(datei)
