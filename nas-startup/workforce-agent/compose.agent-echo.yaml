@@ -1,0 +1,63 @@
+name: startup-workforce-agent-echo
+
+# One bounded agent run with the echo provider: no model, no key, no route to
+# any provider. This is the dry run - the whole bus path, nothing external.
+#
+# Split out of compose.agent.yaml on 2026-09-03 (review finding G-089). That
+# file listed the Anthropic key as a secret without condition, so an echo run
+# could not even start without a key file and, once it had one, mounted a paid
+# credential into a container that never reads it. A container gets only the
+# secret values it uses (G-017). Here that is the bus token and nothing else.
+#
+# "No internet" is a property of the DSM firewall rule for 172.31.254.2/32,
+# which opens TCP 8443 to the NAS and nothing further; this file cannot add to
+# that and does not try. The outbound network is the same one the paid file
+# uses, because the API is reached the same way.
+#
+# test_compose_secrets.py holds the line: a service that pins
+# AGENT_PROVIDER=echo mounts no model key.
+
+services:
+  workforce-agent-echo:
+    image: startup-workforce-agent:v1
+    build:
+      context: .
+    restart: "no"
+    env_file:
+      - workforce-agent.env
+    environment:
+      AGENT_STRICT_SECRETS: "true"
+      # Pinned over the env file, so this file cannot become a paid run by
+      # editing a different file.
+      AGENT_PROVIDER: echo
+      # Emptied on purpose: the env file may still name the key path for the
+      # paid run, and an empty value is "no key" for providers.read_api_key().
+      ANTHROPIC_API_KEY_FILE: ""
+    volumes:
+      # Crash-recovery state, as in the paid file (review finding G-001).
+      - agent_state_v1:/var/lib/startup-agent
+    secrets:
+      - agent_bus_token
+    networks:
+      outbound:
+        ipv4_address: 172.31.254.2
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  agent_state_v1:
+
+networks:
+  outbound:
+    ipam:
+      config:
+        - subnet: 172.31.254.0/29
+
+secrets:
+  agent_bus_token:
+    file: ./secrets/agent_bus_token

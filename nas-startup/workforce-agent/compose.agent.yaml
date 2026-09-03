@@ -1,14 +1,21 @@
 name: startup-workforce-agent
 
-# One bounded agent run. Same isolated-subnet + fixed-address pattern the bus
-# realtest and the Telegram connector already use, so exactly one /32 has to be
-# allowed through the DSM firewall on TCP 8443 for the test window.
+# One bounded agent run **with the paid model provider**. Same isolated-subnet
+# + fixed-address pattern the bus realtest and the Telegram connector already
+# use, so exactly one /32 has to be allowed through the DSM firewall on TCP
+# 8443 for the test window.
 #
-# The container needs two kinds of outbound reach:
-#   - the NAS API on 8443, which the firewall rule covers
-#   - api.anthropic.com, only when AGENT_PROVIDER=claude
-# With AGENT_PROVIDER=echo it needs neither a key nor the internet, which makes
-# the first dry run genuinely free of external contact.
+# This file is the paid path and says so (review finding G-089): the provider
+# is pinned to `claude` here, over whatever workforce-agent.env says, and the
+# model key is mounted because this container uses it. The container needs
+# two kinds of outbound reach - the NAS API on 8443, which the firewall rule
+# covers, and api.anthropic.com. A paid run needs its own CEO gate
+# (DEC-027/ENG-008); this file does not grant it, it only makes the paid
+# footprint explicit.
+#
+# The echo dry run lives in compose.agent-echo.yaml. It used to be this file
+# with AGENT_PROVIDER=echo in the env file - which still required the key file
+# to exist and mounted it into a container that never uses it (G-017 class).
 
 services:
   workforce-agent:
@@ -21,6 +28,10 @@ services:
     environment:
       # Not negotiable on the NAS: a key may only come from a file.
       AGENT_STRICT_SECRETS: "true"
+      # Pinned here, not left to the env file: the secret footprint below is
+      # only right for this provider.
+      AGENT_PROVIDER: claude
+      ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
     volumes:
       # Crash-recovery state. Without a durable volume a restart re-pays for
       # every model call it had already made (review finding G-001).

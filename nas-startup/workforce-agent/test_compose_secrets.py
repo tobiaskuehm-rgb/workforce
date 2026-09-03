@@ -130,6 +130,75 @@ class ComposeSecretFootprintTest(unittest.TestCase):
             self.assertEqual([DB_ENV], refs, f"{path}:{name}")
 
 
+# --- G-089: Echo und bezahlter Provider haben getrennte Secret-Mounts --------
+#
+# compose.agent.yaml listed the Anthropic key as a secret without condition,
+# so an echo dry run could not start without a key file and, once it had one,
+# mounted a paid credential into a container that never reads it (G-017
+# class). The provider is now pinned per file, and the secret footprint has
+# to match the provider that is pinned.
+
+AGENT_FILES = (pathlib.Path("workforce-agent/compose.agent.yaml"),
+               pathlib.Path("workforce-agent/compose.agent-echo.yaml"))
+
+
+def pinned_provider(path: pathlib.Path, service: str) -> str | None:
+    """`AGENT_PROVIDER: <x>` from the raw environment block of one service.
+
+    compose_scan records environment *keys* only - values are none of its
+    business for secrets. For this one key the value is the property, so it is
+    read from the text, narrowly.
+    """
+    import re
+    text = (ROOT / path).read_text(encoding="utf-8")
+    block = text.split(f"\n  {service}:\n", 1)
+    if len(block) < 2:
+        return None
+    body = re.split(r"\n  \S", block[1], maxsplit=1)[0]
+    treffer = re.search(r"^\s+AGENT_PROVIDER:\s*(\S+)", body, re.MULTILINE)
+    return treffer.group(1).strip("'\"") if treffer else None
+
+
+def model_key_offenders(tree) -> list[str]:
+    """Services pinned to echo that still mount a model key."""
+    return [
+        f"{path}:{name} -> {sorted(service.secrets)}"
+        for path, services in tree.items()
+        for name, service in services.items()
+        if pinned_provider(path, name) == "echo"
+        and any("api_key" in s for s in service.secrets)
+    ]
+
+
+class ProviderSecretFootprintTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tree = compose_scan.scan_tree(ROOT)
+
+    def test_both_agent_files_pin_their_provider(self) -> None:
+        self.assertEqual("claude", pinned_provider(AGENT_FILES[0], "workforce-agent"))
+        self.assertEqual("echo", pinned_provider(AGENT_FILES[1], "workforce-agent-echo"))
+
+    def test_the_echo_run_mounts_only_the_bus_token(self) -> None:
+        echo = self.tree[AGENT_FILES[1]]["workforce-agent-echo"]
+        self.assertEqual(["agent_bus_token"], echo.secrets)
+
+    def test_the_paid_run_mounts_the_key_it_uses(self) -> None:
+        paid = self.tree[AGENT_FILES[0]]["workforce-agent"]
+        self.assertEqual(["agent_bus_token", "anthropic_api_key"], sorted(paid.secrets))
+
+    def test_no_echo_service_anywhere_mounts_a_model_key(self) -> None:
+        self.assertEqual([], model_key_offenders(self.tree))
+
+    def test_the_scan_sees_the_secrets_at_all(self) -> None:
+        self.assertTrue(any(s.secrets for services in self.tree.values() for s in services.values()),
+                        "kein Dienst mit secrets - Scan kaputt")
+
+    def test_a_key_on_an_echo_service_would_be_caught(self) -> None:
+        tree = {AGENT_FILES[1]: {"workforce-agent-echo": compose_scan.Service(
+            name="workforce-agent-echo", secrets=["agent_bus_token", "anthropic_api_key"])}}
+        self.assertEqual(1, len(model_key_offenders(tree)))
+
+
 class WeakenedControlIsDetectedTest(unittest.TestCase):
     """The guard has to notice when the property is broken again.
 
