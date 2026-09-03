@@ -57,6 +57,10 @@ DOCUMENTS = (
 # than silent loss of coverage.
 NOT_CHECKED = {
     "REVIEW_GERD.md", "REVIEW_ANTWORTEN.md", "GESAMTREVIEW_GERD_2026-09-01.md",
+    # Ein Vertretungsreview aus derselben Sitzung, in der Gerd nicht verfuegbar
+    # war. Es traegt seine eigene Datumsmarke im Namen und zitiert - wie jedes
+    # Review hier - den Stand, der beim Schreiben galt.
+    "REVIEW_STELLVERTRETUNG_2026-09-03.md",
     "NACHREVIEW_GERD_2026-09-01_C625B8C.md", "BERICHT_FUER_GERD.md",
     "DEC_ENTWUERFE_2026-08-31.md", "2026-08-13_workforce_bus_nas_deployment.md",
     "ACCEPTANCE_CHECKLIST.md", "BUS_PACKAGE_MANIFEST.md",

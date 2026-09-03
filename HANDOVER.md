@@ -35,6 +35,24 @@ vollständig in `REVIEW_ANTWORTEN.md` und im Tagesbericht
    Trigger abschalten, also genau der Weg, den `009` zumachen soll.
    `REVOKE ALL ON SCHEMA workforce` kommt jetzt vor dem `GRANT USAGE`. Regel 48.
 
+**Zwischenstand 2026-09-03: ein Vertretungsreview liegt vor.** Weil Gerd bis
+zum 07.09. ausfaellt und der Stand seit `ea5ae2a` ungeprueft war, ist ein
+sechzehnter Zielnachcheck nach seinem Verfahren gelaufen und steht in
+`nas-startup/REVIEW_STELLVERTRETUNG_2026-09-03.md`. Es ist **nicht** seine
+Datei; `REVIEW_GERD.md` blieb unangetastet. Die Befunde tragen deshalb keine
+`G-`Nummer (`G-006`), sondern das Praefix `SV-2026-09-03-NN` — Gerd kann sie
+beim naechsten Durchgang uebernehmen, umnummerieren oder zurueckweisen.
+
+Sechs Punkte, zwei davon `hoch`, und sie halten `g045_owner_probe.py` und
+Migration `009` weiter zu: Die Probe schreibt auf `bus_channels`, worauf `009`
+ihr nur `SELECT` gibt (`SV-…-01`), und sie ruft keine der zwoelf Funktionen auf,
+obwohl ihre Kopfzeile genau danach fragt (`SV-…-02`). Dazu eine Selbstpruefung
+im Abnahmetest, die an einer PostgreSQL-Voreinstellung haengt (`-03`), ein im
+Migrationskopf versprochener Rueckbau, den es nicht gibt (`-04`),
+`production_state.txt`, das `compose.yaml` auf `672e0a7` pinnt, obwohl der
+`009`-Gate-Block deployt ist (`-05`), und ein Moduldocstring, der den Stand vor
+`G-075` beschreibt (`-06`). Beantwortet ist noch keiner.
+
 **Aktive Arbeit:** keine. Alles ist committet und auf die NAS gepusht.
 
 ## Stand am 2026-09-02, 23:45
