@@ -2881,3 +2881,120 @@ Typen und Semantik sieht es nicht.
 echten PostgreSQL-Parser, `g045_owner_probe.py`, Migration `009`. Der Probe-Lauf
 wurde am 2026-09-02 versucht und von der Berechtigungsprüfung des Werkzeugs
 abgewiesen, nicht von einer Projektregel.
+
+---
+
+# Sechzehnter Zielnachcheck (Vertretung): `SV-2026-09-03-01` bis `-06`
+
+Gerd ist bis zum 2026-09-07 nicht verfügbar. Eine Vertretung hat nach seinem
+Verfahren geprüft und die Befunde unter `SV-2026-09-03-NN` abgelegt
+(`REVIEW_STELLVERTRETUNG_2026-09-03.md`), weil eine `G-`Nummer nicht erfunden
+wird (`G-006`) und `REVIEW_GERD.md` ihm gehört.
+
+**Alle sechs selbst nachgemessen, alle sechs bestätigt.** Zwei davon hatte ich
+am selben Morgen beim eigenen Durchlesen in der Hand und übersehen.
+
+## `SV-...-01` — die Probe schrieb auf eine Tabelle ohne Schreibrecht
+
+**Bestätigt, unabhängig nachgemessen** mit dem projekteigenen Ableitungsmodul:
+
+```
+workforce_owner darf schreiben auf: ['bus_denials','bus_events','bus_handoffs','bus_messages','bus_tasks']
+die Probe schreibt auf:             ['bus_channels']
+Rechte auf dem Ziel:                {'bus_channels': ['SELECT']}
+```
+
+Der Lauf wäre mit `42501` gescheitert, und mit ihm drei weitere Zusicherungen.
+
+**Der Befund hat eine Vorgeschichte, die schwerer wiegt als er selbst.** Das
+Schreibziel stammte aus der Zeit, als `009` noch `ALL TABLES` erteilte. Beim
+Verengen der Allowlist für `G-071` habe ich es mitgerissen — dieselbe Bewegung,
+die ich am Vortag als Verschärfung von `G-014` selbst aufgeschrieben hatte:
+*eine Härtung an einer Stelle kann eine Kontrolle an einer anderen aufheben.*
+Am Morgen des 2026-09-03 bin ich beim Lesen derselben Datei ein zweites Mal
+daran vorbeigegangen.
+
+Und die zweite Ordnung ist die eigentliche Gefahr: Der Fehlschlag liest sich wie
+„die Allowlist ist zu eng", und die schnellste Reparatur im Fenster wäre ein
+`UPDATE`-Grant — genau die Verbreiterung, gegen die `G-071` gebaut wurde.
+
+## `SV-...-02` — kein Aufruf der zwölf Funktionen
+
+**Bestätigt.** Die erste Zeile der Datei fragt „laufen die Funktionen danach
+ohne Superuser weiter?"; keiner der zehn `ERWARTET`-Schlüssel maß einen Aufruf.
+`has_function_privilege` im Abnahmetest ist eine Katalogzeile, kein Lauf.
+
+**Behoben zusammen mit `-01`, auf dem von der Vertretung empfohlenen Weg:** Die
+Probe setzt Kanal und Credential als `workforce_app` — Voraussetzung, nicht
+Messung — und ruft dann `bus_send_message` als `workforce_api` auf, liest den
+Rückgabewert und bindet das Audit-Event an Request-Id, Akteur, `MESSAGE`,
+`INSERT` und `record_key`. Damit prüft ein Schritt die Allowlist auf dem echten
+Pfad, den Audit-Trigger unter dem neuen Eigentümer und die offene
+Sequenzfrage aus `009` Abschnitt 3c.
+
+Drei Wächter dazu: Schreibziele unter `SET ROLE workforce_owner` müssen in der
+Allowlist liegen (historischer Fall als Gegenprobe), die Probe muss eine der
+zwölf Funktionen aufrufen, und der Prepare darf **nicht** unter der Owner-Rolle
+laufen — sonst wäre er selbst wieder ein Schreibversuch auf zwei nur lesbare
+Tabellen. Als Regel 49 festgehalten.
+
+## `SV-...-03` — die Selbstprüfung widersprach Abschnitt 4b
+
+**Bestätigt.** 4b behandelt einen leeren `nspacl` ausdrücklich als zulässig;
+6(a) verlangte vom selben Feld das Gegenteil. Sie wäre rot geworden, sobald
+jemand `USAGE ON SCHEMA public FROM PUBLIC` entzieht — eine Härtung, die dieses
+Projekt anderswo selbst vornimmt. Die Spiegelform von `G-074`.
+
+Gesucht wird jetzt über **alle** Schemata; findet sich nirgends eine
+PUBLIC-Zeile, ist das ein `NOTICE` („Abschnitt 4b prüft hier eine leere Menge")
+und kein Abbruch.
+
+## `SV-...-04` — ein Rückbau, den es nicht gibt
+
+**Bestätigt.** Keine Migration `010`, kein Runbook-Abschnitt, kein Nachweis. Der
+Satz stand in dem Absatz, den man liest, während man über die Freigabe
+entscheidet — Leitplanke 7 an ihrer operativen Stelle.
+
+**Ich habe den Satz richtiggestellt, statt schnell eine `010` zu schreiben.** Ein
+Rückbau ist ein Eigentumswechsel für zwölf Funktionen plus die Frage, was mit
+Rolle und Rechten geschieht, und `DROP ROLE` scheitert an jeder erteilten
+Berechtigung (`G-043`). Weitere ungeprüfte SQL zu erzeugen, während fünf Tage
+niemand prüft, wäre der schlechtere Tausch. Im Kopf steht jetzt, dass es keinen
+gibt, wie einer aussehen müsste — additiv, mit `DROP OWNED BY` — und **dass
+`009` ohne ihn nicht freigabereif ist**.
+
+## `SV-...-05` — `production_state.txt` pinnte einen überholten Commit
+
+**Bestätigt, und auf der NAS nachgemessen:** `RESULT: FAIL` gegen `672e0a7`,
+`RESULT: PASS` gegen `0238768`. Abgewichen ist genau eine Datei, `compose.yaml`,
+durch den gegateten `009`-Block aus `ab0f719`.
+
+`PRODUCTION_COMMIT` steht jetzt auf `0238768`, mit datierter Notiz — samt der
+Feststellung, dass sich **am laufenden System nichts geändert hat**, weil eine
+Compose-Änderung erst nach `--force-recreate` wirkt (`G-041`). Der Tag
+`produktiv-v9` wandert mit, wie es die Notiz vom 2026-09-02 für denselben Fall
+festhält; sein alter Zielwert steht in der Datei, damit die Verschiebung
+rücknehmbar ist.
+
+Dazu `test_production_state_drift.py`: vergleicht jede `FILE=`-Zeile zwischen
+`PRODUCTION_COMMIT` und `HEAD`, **ohne NAS**, mit begründeter Ausnahmeliste in
+beide Richtungen. Er hätte am Tag der Änderung angeschlagen.
+
+## `SV-...-06` — der Kopf argumentierte gegen den eigenen Code
+
+**Bestätigt.** Der Moduldocstring warb weiter für `name:stelligkeit` und
+**gegen** Typen, unter Berufung auf `G-044` — in der Datei, die man liest, bevor
+man an den Pins arbeitet. Genau die Sorte Text, nach der jemand die Lösung
+zurückrepariert. Der Kopf nennt jetzt die Auflösung, die `signatur()` schon
+enthielt: Die Typen kommen aus der Quelle, `to_regprocedure()` normalisiert sie;
+abgeschrieben wird nichts.
+
+## Nachweis
+
+`583 + 15 + 44 + 27 = 669` lokale Tests `PASS`. Deploy und Manifest siehe
+`HANDOVER.md`.
+
+**Nicht ausgeführt und nicht behauptet:** die API-Suite, jedes SQL gegen einen
+echten PostgreSQL-Parser, `g045_owner_probe.py`, Migration `009`. Der Probe-Lauf
+wurde am 2026-09-03 erneut versucht und erneut von der Berechtigungsprüfung des
+Werkzeugs abgewiesen.
