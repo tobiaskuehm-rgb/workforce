@@ -7,7 +7,7 @@ die Vertretung ist damit beendet. Ihre acht Befunde stehen unter dem Tag
 ohne `G-`Nummer, die vergibt er (`G-006`). Was er zuerst lesen sollte, steht
 unten unter „Leseweg für Gerd".
 
-**Aktive Arbeit:** keine. Gerds neunzehnter Zielnachcheck (`b4149de`) ist
+**Aktive Arbeit:** **Claude Code, seit 2026-09-03 nachmittags: `HO-027`** — Marlene (`POA-001`) technisch integrieren. Betroffen: `postgres-init/011_*`, `postgres-tests/011_*`, `compose.yaml` (neues Gate), `private-office/`, `PRIVATE_OFFICE_RUNBOOK.md`, `deploy_paths.txt`, neue Wächter unter `workforce-agent/`, und das Skillpaket `marlene/skills/private-office-assistant/` im Repo-Wurzelverzeichnis. Nichts auf der NAS. Die vorige Zeile lautete „keine" und gilt für alles andere weiter. Gerds neunzehnter Zielnachcheck (`b4149de`) ist
 abgearbeitet: **`G-082` bis `G-091` bestätigt und behoben**, je Befund ein
 Commit, jede Gegenprobe der Gesamtprüfung als dauerhafter Test, Regeln 53–56.
 Antworten in `REVIEW_ANTWORTEN.md`. **Kein NAS-Lauf, kein Integrationslauf.**
