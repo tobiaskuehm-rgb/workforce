@@ -7,12 +7,16 @@ die Vertretung ist damit beendet. Ihre acht Befunde stehen unter dem Tag
 ohne `G-`Nummer, die vergibt er (`G-006`). Was er zuerst lesen sollte, steht
 unten unter „Leseweg für Gerd".
 
-**Aktive Arbeit (2026-09-03, nachmittags):** Claude Code (Fable 5.1) arbeitet
-Gerds verbindlichen nächsten Schritt aus `b7c593b` ab — zuerst `G-080`/`G-081`,
-dann die Gesamtprüfung des aktiven Release-Kandidaten in drei Pässen. **Kein
-Integrationslauf.** `G-080`/`G-081` sind behoben; **Prüfstand ist `557df50`**
-— während der Gesamtprüfung werden keine Korrekturen und keine Funktionen
-eingemischt, nur das Ergebnis geschrieben.
+**Aktive Arbeit:** keine. Gerds verbindlicher nächster Schritt aus `b7c593b`
+ist abgearbeitet: `G-080`/`G-081` behoben (Antworten in `REVIEW_ANTWORTEN.md`),
+Prüfstand `557df50` festgehalten, und die **Gesamtprüfung des aktiven
+Release-Kandidaten** liegt in `nas-startup/GESAMTPRUEFUNG_2026-09-03.md` —
+neun neue Befunde unter dem Tag `GP-2026-09-03-NN` (fünf `mittel`, vier
+`niedrig`, keiner `hoch`), sechs davon mit lokaler Gegenprobe, dazu der
+Abschnitt „Geprüft und nicht bestätigt". Keine `G-`Nummer (`G-006`); Gerd
+übernimmt oder weist zurück. **Kein Integrationslauf, nichts auf der NAS
+ausgeführt.** Der Teststatus bleibt ROT bis zu Gerds Nachcheck und der
+anschließenden CEO-Freigabe.
 
 Davor: Gerds siebzehnter Zielnachcheck (`b3deb78`,
 `G-077` bis `G-079`) ist abgearbeitet — alle drei bestätigt und behoben,
@@ -24,6 +28,9 @@ und das Phase-5-Fenster bleiben ROT bis zu seinem Nachcheck.
 
 Damit dein Guthaben ins Prüfen geht und nicht ins Suchen — in dieser Reihenfolge:
 
+0. **`GESAMTPRUEFUNG_2026-09-03.md`** — deine Anweisung aus `b7c593b`,
+   ausgeführt: neun neue Befunde `GP-2026-09-03-01` bis `-09` mit Beleg,
+   Auswirkung und kleinster sicherer Korrektur, Prüfstand `557df50`.
 1. **`REVIEW_STELLVERTRETUNG_2026-09-03.md`** — acht Befunde einer Vertretung
    nach deinem Verfahren, Tag `SV-2026-09-03-01` bis `-08`, plus ein Nachcheck.
    Keine `G-`Nummer, keine Zeile in deiner Datei: Du übernimmst, nummerierst um

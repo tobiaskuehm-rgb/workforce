@@ -61,6 +61,9 @@ NOT_CHECKED = {
     # war. Es traegt seine eigene Datumsmarke im Namen und zitiert - wie jedes
     # Review hier - den Stand, der beim Schreiben galt.
     "REVIEW_STELLVERTRETUNG_2026-09-03.md",
+    # Die Gesamtpruefung des Release-Kandidaten auf Gerds Anweisung (b7c593b):
+    # ein Pruefbericht mit Datum im Namen, der den Stand 557df50 zitiert.
+    "GESAMTPRUEFUNG_2026-09-03.md",
     "NACHREVIEW_GERD_2026-09-01_C625B8C.md", "BERICHT_FUER_GERD.md",
     "DEC_ENTWUERFE_2026-08-31.md", "2026-08-13_workforce_bus_nas_deployment.md",
     "ACCEPTANCE_CHECKLIST.md", "BUS_PACKAGE_MANIFEST.md",
