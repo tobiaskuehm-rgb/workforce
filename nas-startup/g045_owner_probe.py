@@ -9,8 +9,11 @@ das: Nur der Eigentuemer einer Tabelle oder ein Superuser kann
 Append-only-Zusicherungen aus 006/007.
 
 **Diese Probe laeuft in einem Wegwerf-Container, nicht gegen die Produktion.**
-Sie ist nie gelaufen - ein Lauf ist eine Ausfuehrung auf der NAS und braucht
-die Freigabe des CEO.
+
+**Gelaufen am 2026-09-03: `RESULT: PASS`**, elf Zusicherungen; Nachweis in
+`evidence/2026-09-03_g045_owner_probe_run.md`. Jeder weitere Lauf ist wieder
+eine Ausfuehrung auf der NAS und braucht die Freigabe des CEO. Die Produktion
+war und bleibt unberuehrt: `009` ist dort nicht angewendet.
 
 Regel 15 ist der Grund fuer den Zuschnitt: Eine Probe muss die **Rollenlage**
 der Produktion nachbauen, nicht nur ihr Schema. `initdb` macht `POSTGRES_USER`
@@ -47,8 +50,11 @@ auch von einem fremden Ereignis kommen koennen.
 Das Urteil liegt deshalb jetzt in `bewertung()`: eine reine Funktion ueber
 `ERWARTET`, in der **jede** Zusicherung namentlich steht und ein fehlender
 Schluessel ein Fehlschlag ist. Sie wird von `test_owner_probe_verdict.py`
-lokal gegen ihre Negativfaelle gefahren - eine Probe, die nie gelaufen ist,
-muss wenigstens in ihrer Bewertung geprueft sein.
+lokal gegen ihre Negativfaelle gefahren. Das war zunaechst das einzig
+Pruefbare an einer Datei, die nie gelaufen war - und es hat sich beim ersten
+echten Lauf ausgezahlt: Der meldete `FAIL` mit Soll und Ist statt still
+durchzugehen (der Eventzaehler stand vor dem Prepare und mass zwei Zeilen mit,
+die nicht zur Messung gehoeren).
 
     ssh-Zugang zur NAS vorausgesetzt:
         python3 g045_owner_probe.py
@@ -335,8 +341,6 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
     # --- Frage 2: feuert der Audit-Trigger unter workforce_owner? -----------
     # Das ist der Kern. workforce_owner hat auf bus_record_change kein
     # EXECUTE; laut Dokumentation wird das beim Ausloesen nicht geprueft.
-    vor_events = skalar("SELECT count(*) FROM workforce.bus_events")
-
     # Kanal und Credential, damit `bus_authenticate` ueberhaupt aufloest. Beides
     # als `workforce_app`, also nicht Teil der Messung - nur ihre Voraussetzung.
     # `002` seedet die Routenmatrix bereits, `SAO-001 -> AI-ENG-001` existiert.
@@ -358,6 +362,13 @@ def messen(ergebnisse: list[tuple[str, str]]) -> None:
                        else lauf_ergebnis(vorbereiten_code, vorbereiten, "TESTING")))
     if vorbereiten_code != 0 or bereit != "TESTING":
         return
+
+    # Erst **hier** gezaehlt, nach dem Prepare. Der schreibt selbst zwei
+    # Auditzeilen - Kanal auf TESTING und das Credential -, und die erste
+    # Fassung zaehlte davor: Der Lauf vom 2026-09-03 meldete deshalb einen
+    # Zuwachs von 3 statt 1 und wurde zu Recht rot. Gemessen werden soll der
+    # Aufruf, nicht seine Voraussetzung.
+    vor_events = skalar("SELECT count(*) FROM workforce.bus_events")
 
     # **Der eigentliche Nachweis.** Ein echter Aufruf einer der zwoelf
     # Funktionen, als `workforce_api` - also auf dem Weg, den die API im

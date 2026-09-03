@@ -92,12 +92,15 @@ gehören dazu.
 
 - **Migration `009` ist gegatet und nicht angewendet.** Sie ist am 2026-09-02
   zweimal umgebaut worden und von niemandem geprüft.
-- **`g045_owner_probe.py` ist nie gelaufen.** Der Versuch am 2026-09-02 wurde
-  von der Berechtigungsprüfung des Werkzeugs abgewiesen, nicht von einer
-  Projektregel. Sie ist der einzige Weg, vier Annahmen in Messungen zu
-  verwandeln: die Sequenzrechte-Frage aus `009` Abschnitt 3c, ob der
-  Audit-Trigger unter dem neuen Eigentümer feuert, die SQLSTATE `42501`, und
-  Gerds Integrationsgegenprobe zu `G-074`.
+- **`g045_owner_probe.py` ist am 2026-09-03 gelaufen: `RESULT: PASS`**, elf
+  Zusicherungen, Nachweis in `evidence/2026-09-03_g045_owner_probe_run.md`.
+  Damit sind die vier offenen Annahmen Messungen: Sequenzrechte braucht eine
+  Identity-Spalte **nicht** (`009` Abschnitt 3c beantwortet), der Audit-Trigger
+  feuert unter dem neuen Eigentümer, die SQLSTATE ist `42501`, und die
+  `G-074`-Gegenprobe steht in beiden Hälften. Dazu belegt: `bus_send_message`
+  läuft als `workforce_api` durch — die Allowlist reicht auf dem echten Pfad.
+  Der erste Lauf meldete `FAIL` (Eventzähler stand vor dem Prepare); das Urteil
+  aus `G-070` wurde also rot statt still.
 - **Phase 5 bleibt ROT.** Kein Kanal, kein Credential, kein Modellaufruf, kein
   Build auf der NAS. `G-030` — die Kette ist nie durchgelaufen — bleibt offen.
 - Der CEO hat am 2026-09-02 im Chat die Sperren aufgehoben und verlangt, dass

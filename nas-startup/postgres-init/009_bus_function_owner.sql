@@ -224,6 +224,12 @@ TO workforce_owner;
 --     Auditspur in `bus_events`, deren Schluessel genau so eine Spalte ist:
 --     Geht es durch, braucht es nichts; scheitert es, nennt der Fehler die
 --     Sequenz und das Recht kommt gezielt dazu.
+--
+--     **Am 2026-09-03 gemessen: es braucht nichts.** Der Probelauf schrieb
+--     ueber `bus_send_message` in `bus_messages`, der Audit-Trigger fuegte in
+--     `bus_events` ein, und beides ging ohne jedes Sequenzrecht durch
+--     (`evidence/2026-09-03_g045_owner_probe_run.md`). Die Frage ist damit
+--     beantwortet und nicht mehr offen; die Migration erteilt weiterhin keine.
 
 -- 4. Pruefung und Eigentumsuebergang, in einem Block und ueber dieselben OIDs.
 --
