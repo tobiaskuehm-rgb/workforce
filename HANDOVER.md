@@ -1,8 +1,25 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-02, 23:45 — von Claude Code.
+**Zuletzt aktualisiert:** 2026-09-03, 07:50 — von Claude Code.
 
-**Zuletzt geprüft:** 2026-09-02 — von Gerd, fünfzehnter Zielnachcheck auf
+**Zuletzt geprüft:** 2026-09-03 — **sechzehnter Zielnachcheck in Vertretung**,
+Stand `0238768`, sechs Befunde unter dem Tag `SV-2026-09-03-NN` in
+`REVIEW_STELLVERTRETUNG_2026-09-03.md`. Gerd ist bis zum 2026-09-07 weg; die
+Vertretung hat nach seinem Verfahren geprüft, `REVIEW_GERD.md` nicht angefasst
+und keine `G-`Nummer vergeben. **Alle sechs selbst nachgemessen, alle sechs
+bestätigt und behoben** (`REVIEW_ANTWORTEN.md`), Regel 49 in `CLAUDE.md`.
+
+Zwei davon sind unangenehm: `SV-...-01` — die Probe schrieb unter
+`SET ROLE workforce_owner` auf `bus_channels`, wo `009` ihr nur `SELECT` gibt.
+Das Ziel stammte aus der Zeit, als `009` noch `ALL TABLES` erteilte; beim
+Verengen der Allowlist für `G-071` habe ich es mitgerissen. Das ist genau die
+Bewegung, die ich am Vortag als Verschärfung von `G-014` selbst aufgeschrieben
+hatte — und am Morgen des 2026-09-03 bin ich beim Durchlesen derselben Datei ein
+zweites Mal daran vorbeigegangen. `SV-...-02`: Die Probe rief keine der zwölf
+Funktionen auf, obwohl ihre erste Zeile genau das fragt. Beides zusammen behoben
+— sie ruft jetzt `bus_send_message` als `workforce_api` auf.
+
+**Vorher, am 2026-09-02 — von Gerd, fünfzehnter Zielnachcheck auf
 Commit `ea5ae2a`. Sein Urteil: `G-070`, `G-072` und `G-073` **geschlossen**,
 `G-071` „stark verbessert, aber nicht geschlossen" mit drei Restbefunden
 `G-074`–`G-076`. Alle drei habe ich selbst nachgeprüft, alle drei bestätigt und
