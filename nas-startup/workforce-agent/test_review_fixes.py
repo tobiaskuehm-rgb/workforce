@@ -82,26 +82,44 @@ class MigrationsAreSeparatelyGatedTest(unittest.TestCase):
     def setUp(self) -> None:
         self.compose = (ROOT / "compose.yaml").read_text()
 
-    def test_both_gates_default_to_closed(self) -> None:
-        for gate in ("APPLY_MIGRATION_004_KNOWLEDGE",
-                     "APPLY_MIGRATION_005_BUS_DENIAL_AUDIT",
-                     "APPLY_MIGRATION_006_LEGACY_TABLES",
-                     "APPLY_MIGRATION_007_LEAST_PRIVILEGE"):
+    def gates(self) -> set[str]:
+        """Gefunden, nicht aufgezaehlt.
+
+        Die erste Fassung listete 004 bis 007 - die Gates, die es beim
+        Schreiben gab. 008, 009 und 010 kamen spaeter dazu und waren von
+        dieser Zusicherung nie erfasst: Ein neues Gate mit `"true"` haette
+        hier nichts ausgeloest. Eine Aufzaehlung altert mit jedem Zuwachs,
+        und zwar still.
+        """
+        import re
+
+        return set(re.findall(r"^\s+(APPLY_MIGRATION_\w+):", self.compose, re.MULTILINE))
+
+    def test_the_gate_derivation_is_not_empty(self) -> None:
+        # Sonst laufen die beiden Pruefungen unten ueber eine leere Menge und
+        # bestehen, weil sie nichts ansehen (Regel 47).
+        gefunden = self.gates()
+        self.assertGreaterEqual(len(gefunden), 7, sorted(gefunden))
+        self.assertIn("APPLY_MIGRATION_010_FUNCTION_OWNER_ROLLBACK", gefunden)
+
+    def test_every_gate_defaults_to_closed(self) -> None:
+        for gate in sorted(self.gates()):
             with self.subTest(gate=gate):
                 self.assertIn(f'{gate}: "false"', self.compose)
 
-    def test_each_migration_checks_its_own_gate(self) -> None:
+    def test_every_gate_guards_exactly_one_existing_migration(self) -> None:
         # A shared gate would couple exactly the two things the finding
-        # separated.
-        for gate, migration in (
-            ("APPLY_MIGRATION_004_KNOWLEDGE", "004_knowledge_capability.sql"),
-            ("APPLY_MIGRATION_005_BUS_DENIAL_AUDIT", "005_bus_denial_audit.sql"),
-            ("APPLY_MIGRATION_006_LEGACY_TABLES", "006_legacy_registry_tables.sql"),
-            ("APPLY_MIGRATION_007_LEAST_PRIVILEGE", "007_least_privilege_roles.sql"),
-        ):
-            with self.subTest(migration=migration):
+        # separated. And a gate whose number names no migration is a gate
+        # nobody can open on purpose.
+        import re
+
+        for gate in sorted(self.gates()):
+            with self.subTest(gate=gate):
                 self.assertIn(f'"$${{{gate}:-false}}" != "true"', self.compose)
-                self.assertIn(migration, self.compose)
+                nummer = re.match(r"APPLY_MIGRATION_(\d{3})_", gate).group(1)
+                dateien = sorted((ROOT / "postgres-init").glob(f"{nummer}_*.sql"))
+                self.assertEqual(1, len(dateien), f"{gate}: {dateien}")
+                self.assertIn(f"migrations/{dateien[0].name}", self.compose)
 
     def test_the_three_applied_migrations_stay_automatic(self) -> None:
         # 001-003 are long applied on the NAS; gating them would turn a

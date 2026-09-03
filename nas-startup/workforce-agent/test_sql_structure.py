@@ -22,8 +22,8 @@ Leitplanke 7 und der Grund, warum es hier steht.
 
 Die Gegenprobe ist Teil des Tests, nicht ein Zusatz: `WeakenedSqlIsDetectedTest`
 baut vier Fehler in eine Kopie ein und verlangt, dass jeder auffaellt. Ohne sie
-waere ein Pruefer, der aus Versehen nichts liest, gruen ueber achtzehn Dateien -
-genau die Lage, die `compose_scan.py` als Regel hinterlassen hat.
+waere ein Pruefer, der aus Versehen nichts liest, gruen ueber den ganzen
+Bestand - genau die Lage, die `compose_scan.py` als Regel hinterlassen hat.
 """
 
 from __future__ import annotations
