@@ -14,8 +14,12 @@ archiv="$(mktemp)"; liste="$(mktemp)"
 git ls-files workforce > "$liste"
 COPYFILE_DISABLE=1 tar czf "$archiv" -T "$liste"
 ssh -o BatchMode=yes "$host" "mkdir -p '$root/secrets' && cd '$root' && tar xzf - --strip-components=1" < "$archiv"
-scp -q workforce/config.nas.json "$host:$root/config.json"
-scp -q workforce/secrets/telegram_bot_token workforce/secrets/anthropic_api_key "$host:$root/secrets/"
+# scp needs the SFTP subsystem, which this NAS does not offer ("Connection closed"); a file
+# over ssh stdin does not. umask 027 so a secret is never world-readable, not even briefly.
+ssh -o BatchMode=yes "$host" "umask 027 && cat > '$root/config.json'" < workforce/config.nas.json
+for s in telegram_bot_token anthropic_api_key; do
+  ssh -o BatchMode=yes "$host" "umask 027 && cat > '$root/secrets/$s'" < "workforce/secrets/$s"
+done
 ssh -o BatchMode=yes "$host" "cd '$root' \
   && $docker run --rm -v '$root/secrets:/s' alpine sh -c 'chgrp 10001 /s/* && chmod 640 /s/*' \
   && $docker compose build -q && $docker compose up -d && $docker compose ps" < /dev/null
