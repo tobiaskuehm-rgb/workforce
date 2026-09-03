@@ -53,7 +53,17 @@ Standardbibliothek, eigene Tests unter `workforce/tests/`, Anleitung in
 `workforce/README.md`. Nichts auf der NAS; der erste echte Lauf ist auf dem Mac mit
 Echo-Provider und dem Telegram-Bot geplant. Prototyp unter `nas-startup/` unverändert.
 
-**Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** `HO-027` (Anmeldung unten) ruht.
+**Erste echte Antwort: 2026-09-03, abends, auf dem Mac.** Neuer Telegram-Bot, Kern aus
+`workforce/` (Stand `827e64b`), Echo-Provider, kein Modell, keine NAS. Aus der
+Zustandsdatei: eine Nachricht bei Kanal `DISABLED` als `IGNORED` verbucht, `/start` als
+`CHANNEL ACTIVE` mit Akteur `CEO`, dann für eine Nachricht die Kette `RECEIVED`, `CLAIM`,
+`BOUNDARY`, `RESERVED`, `REPLIED`, `SENT` mit externer Telegram-Id, `DONE`. `verify`:
+Audit intakt, Zustellabgleich `PASS`. Der Prototyp hat diesen Weg in vier Tagen nie
+gegeben; der Neubau nach einem Abend.
+
+**Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** Nächste Schritte: echtes Modell
+(braucht `workforce/secrets/anthropic_api_key` vom CEO), dann Betrieb auf der NAS über
+`workforce/compose.yaml` — nur mit Freigabe. `HO-027` (Anmeldung unten) ruht.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
