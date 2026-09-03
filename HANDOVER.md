@@ -1,8 +1,41 @@
 # Arbeitsstand und Prüfschleife
 
 **Zuletzt aktualisiert:** 2026-09-03, 10:40 — von Claude Code.
-**Übergabe an:** die **Vertretung**. Gerd ist bis zum 2026-09-07 nicht
-verfügbar; danach ist ein großes Review geplant.
+**Übergabe an:** **Gerd.** Er hat seit dem 2026-09-03 wieder Nutzungsguthaben;
+die Vertretung ist damit beendet. Ihre acht Befunde stehen unter dem Tag
+`SV-2026-09-03-NN` in `nas-startup/REVIEW_STELLVERTRETUNG_2026-09-03.md` —
+ohne `G-`Nummer, die vergibt er (`G-006`). Was er zuerst lesen sollte, steht
+unten unter „Leseweg für Gerd".
+
+**Aktive Arbeit:** keine. `SV-2026-09-03-07` und `-08` sind geschlossen
+(`c9b1623`, und der Commit danach).
+
+## Leseweg für Gerd
+
+Damit dein Guthaben ins Prüfen geht und nicht ins Suchen — in dieser Reihenfolge:
+
+1. **`REVIEW_STELLVERTRETUNG_2026-09-03.md`** — acht Befunde einer Vertretung
+   nach deinem Verfahren, Tag `SV-2026-09-03-01` bis `-08`, plus ein Nachcheck.
+   Keine `G-`Nummer, keine Zeile in deiner Datei: Du übernimmst, nummerierst um
+   oder weist zurück. Auch „stimmt nicht, weil …" ist ein Ergebnis.
+2. **`REVIEW_ANTWORTEN.md`**, drei Abschnitte von hinten: „Gerds Gegencheck vom
+   2026-09-02" — das sind **deine drei** Befunde, deren Schreibvorgang
+   abgelehnt wurde, bevor dein Limit griff; sie warten auf deine Nummer.
+   Dann „Sechzehnter Zielnachcheck (Vertretung)" und „Nachcheck der
+   Vertretung" mit den Antworten auf die acht `SV-`Punkte.
+3. **Von niemandem außer Claude gelesen:**
+   `postgres-init/010_bus_function_owner_rollback.sql` samt Abnahmetest und
+   `workforce-agent/test_bus_function_owner_rollback.py` (der Rückbau zu 009,
+   Antwort auf `SV-…-04`, nie gelaufen, auch nicht im Wegwerf-Container);
+   Regel 50 in `AGENTS.md`; die Umbauten an `g045_owner_probe.py` und ihr
+   Lauf in `evidence/2026-09-03_g045_owner_probe_run.md`.
+4. **Zwei Dinge, die nur du entscheiden kannst:** ob die Schließung von
+   `SV-…-04` durch `010` trägt, und ob `009` damit freigabereif ist. Bis dahin
+   bleibt beides zu.
+
+Eine Einschränkung, die du kennen musst: Die Vertretung hat am selben Tag
+Befunde gestellt und — als Claude Code — teils selbst behoben. Das ist ein
+Selbstgespräch mit Protokoll, kein Review. Deshalb steht es hier oben.
 
 ## Was seit dem sechzehnten Zielnachcheck (`0238768`) passiert ist
 
@@ -92,13 +125,15 @@ Korrekturen an `009` selbst hat außer der Vertretung niemand gelesen.
 
 ## Stand
 
-- Zuletzt gepusht und deployt ist `e38b3d7` — auf `e38b3d7` 232 Dateien, davon 0 fehlend, 0 abweichend, 0 unerwartet.
-  `check_unmanaged` `PASS`.
-- **Danach nur lokal:** `bf63b7d`, `d7ff322` und die Arbeit an `010`. Push und
-  Deploy brauchen die Freigabe des Nutzers im Chat; `compose.yaml` weicht
-  deshalb vom benannten Produktionsstand ab und steht mit Begründung in der
-  Ausnahmeliste von `test_production_state_drift.py`.
-- **700 lokale Tests `PASS`** (614 / 15 / 44 / 27), auf `python3` 3.9.6 des
+- **Gepusht** ist alles bis `0f94660` (Freigabe des Nutzers im Chat am
+  2026-09-03, „dann los"). **Deployt** ist weiterhin `e38b3d7` — auf `e38b3d7`
+  232 Dateien, 0 fehlend, 0 abweichend, 0 unerwartet, `check_unmanaged` `PASS`.
+  Der Deploy des aktuellen Standes folgt in dieser Sitzung und wird hier
+  nachgetragen, sobald `verify_manifest.sh` ihn bestätigt hat — nicht vorher
+  (Leitplanke 6). `compose.yaml` weicht bis dahin vom benannten
+  Produktionsstand ab und steht mit Begründung in der Ausnahmeliste von
+  `test_production_state_drift.py`.
+- **703 lokale Tests `PASS`** (617 / 15 / 44 / 27), auf `python3` 3.9.6 des
   Projektrechners.
 - **Nicht gelaufen und nicht behauptet:** die API-Suite (braucht den Container),
   jedes SQL gegen einen echten PostgreSQL-Parser außerhalb des Probe-Containers.
