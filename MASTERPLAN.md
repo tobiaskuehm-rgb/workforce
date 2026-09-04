@@ -132,3 +132,39 @@ Konfiguration.
 - Jede Identität hat Policy, Budget und Gedächtnis für sich. Was Marlene weiß, weiß Thorsten
   nicht.
 - Der Prototyp bleibt Orakel; Anastasia und Gerd bleiben angelegt, ohne Arbeit, bis es sie gibt.
+
+## 7. Unternehmenskontext (CEO, 2026-09-03) und zehn Konzepte
+
+**Lage:** Haupterwerb Beamter im feuerwehrtechnischen Dienst. Daneben private Vermietung,
+Kryptoanlagen, Nebentätigkeit im Bau. Ziel: ein Unternehmen mit kleiner Belegschaft, und die
+Belegschaft sind die KI-Identitäten.
+
+**Zwei Rahmen, die jedes Konzept prägen.** Erstens das Nebentätigkeitsrecht: Jede gewerbliche
+Tätigkeit braucht die Genehmigung des Dienstherrn und hat Zeit- und Einkommensgrenzen; die
+Verwaltung eigenen Vermögens ist in der Regel frei. Was davon im Einzelfall gilt, klärt der
+Dienstherr, nicht dieses Dokument. Zweitens ist die Zeit die knappe Größe, nicht das Kapital:
+Das Beamteneinkommen ist die Basis, die KI-Belegschaft soll Kapazität ohne eigene Stunden
+liefern — also alles, was Verwaltung, Recherche, Rechnen und Schreiben ist.
+
+**Zehn Konzepte**, kurz; Bewertung und Reihenfolge in der Chat-Antwort vom 2026-09-03:
+
+1. **Vermietung als Kern.** Bestand professionell verwalten, alle zwei bis drei Jahre ein Objekt
+   dazu; Marlene Verwaltung, CFO Rücklagen und Cashflow, Thorsten Objektanalyse.
+2. **Bau: von der Hand zur Aufsicht.** Baubegleitung, Angebotsprüfung, Mängelverfolgung,
+   Bautagebuch; das System dokumentiert, er entscheidet vor Ort.
+3. **Brandschutz-Beratung.** Fachwissen aus dem Hauptberuf für Vermieter und Kleinbetriebe;
+   Vorlagen und Schulungsunterlagen aus dem System. Genehmigung und Interessenkollision zuerst klären.
+4. **Sanieren mit Eigenleistung.** Kaufen, mit Bau-Können herrichten, vermieten; CFO rechnet,
+   Thorsten sucht Förderung. Beim Verkauf die Grenze zum gewerblichen Grundstückshandel beachten.
+5. **Krypto als Reserve mit Regeln.** Kein Handel durch das System; schriftliche Allokation,
+   Rebalancing-Termine, Steuerdokumentation. CFO führt, der Mensch handelt.
+6. **Verwaltung für andere Kleinvermieter.** Marlene als Produkt, zwei bis fünf Kunden in der
+   Region; Gewerbe, also Genehmigung.
+7. **Möblierte oder Ferienvermietung.** Höhere Rendite, mehr Kommunikation, die das System
+   übernimmt; örtliche Regeln zur Zweckentfremdung prüfen.
+8. **Lager- und Werkstattflächen für Handwerker.** Netzwerk aus dem Bau, Nachfrage im ländlichen
+   Raum; Thorsten Markt, Marlene Mieter.
+9. **Das System selbst als Produkt.** KI-Büro für Nebenerwerber und Kleinvermieter; Kern offen,
+   Einrichtung bezahlt. Technisch nah, Markt unbekannt.
+10. **Die Klammer: Firma mit KI-Belegschaft.** Ein Dach über Vermietung, Bau und Beratung, CFO
+    konsolidiert; Rechtsform und Steuern mit dem Steuerberater. Schritt drei bis fünf Jahre.
