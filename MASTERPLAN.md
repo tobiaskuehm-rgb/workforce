@@ -224,3 +224,22 @@ nichts kostet und alles freischaltet. Steuern in Grundzügen lernt man einmal f�
 Und die KI-Belegschaft senkt den Lernbedarf messbar: Thorsten bereitet Stoff auf und fragt ab,
 der CFO rechnet vor, Marlene hält Fristen — was bleibt, ist das, was ein Abschluss oder eine
 Erlaubnis verlangt, und das kann niemand für dich lernen.
+
+### Gesamttabelle: Bewertung, Lernbedarf, Investition (2026-09-03)
+
+Fasst die beiden Tabellen oben zusammen. Noten 1 bis 5, Körper 5 = keine körperliche Arbeit.
+Beträge grob, Zulassungen „prüfen".
+
+| Rang | # | Konzept | Ertrag | Recht | Zeit | Körper | Σ | Lernbedarf | Einmalig | Laufend / Jahr |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 1 | Vermietung als Kern | 4 | 5 | 5 | 4 | **18** | Mietrecht, Nebenkosten; kein Abschluss | nächstes Objekt: 20–30 % EK + 8–12 % Nebenkosten | Rücklage 1–1,5 % Gebäudewert |
+| 2 | 5 | Krypto als Reserve mit Regeln | 2 | 4 | 5 | 5 | **16** | Steuer, Haltefrist, Verwahrung; ein Wochenende | Hardware-Wallet 80–150 € | Tracking 0–150 € |
+| 3 | 10 | Die Klammer, in 3–5 Jahren | 3 | 3 | 4 | 5 | 15 | Buchführung, Steuern; Rechtsform mit StB | UG ab 1 €, Gründung 500–1.000 €; GmbH 25.000 € | StB 1.500–3.000 €, IHK, Genehmigung |
+| 4 | 0 | Ursprungskonzept: Firma jetzt | 3 | 2 | 4 | 5 | 14 | wie 10, nur früher | wie 10 | wie 10, ohne Geschäft darunter |
+| 4 | 6 | Verwaltung für andere Kleinvermieter | 3 | 3 | 4 | 4 | 14 | § 34c GewO, Weiterbildungspflicht, WEG-Zertifikat (prüfen); Kurs 1.500–3.000 € | Erlaubnis, Gewerbe 300–1.000 € | Haftpflicht 300–600 € |
+| 6 | 3 | Brandschutz-Beratung | 4 | 2 | 3 | 4 | 13 | Brandschutzbeauftragter vfdb 12-09 (1.500–2.500 €, Anerkennung prüfen); Nachweisberechtigung LBO (prüfen); Fachplaner 5.000–8.000 € | Ausbildung 2.000–8.000 € | Haftpflicht 500–1.500 €, Genehmigung |
+| 6 | 8 | Lager- und Werkstattflächen | 3 | 3 | 4 | 3 | 13 | Baurecht, Bauantrag, Gewerbemietrecht | Halle 100.000–250.000 € oder Container 3.000–5.000 €/Stück | Grundsteuer, Versicherung, Instandhaltung |
+| 8 | 2 | Bau als Aufsicht | 3 | 3 | 3 | 3 | 12 | VOB/B, Mängelrecht; IHK-Bauleiter 2.000–4.000 €; Qualifikation je Umfang (prüfen) | Tablet, Software < 1.500 € | Haftpflicht 500–1.000 €, Genehmigung |
+| 8 | 9 | Das System als Produkt | 2 | 4 | 1 | 5 | 12 | Vertrieb, Support, Datenschutz | fast nichts | deine Zeit |
+| 10 | 7 | Möblierte Vermietung | 3 | 3 | 3 | 2 | 11 | USt bei Kurzzeitvermietung, Meldepflicht, Zweckentfremdung (prüfen) | Möblierung 10.000–25.000 €/Einheit | Reinigung, Plattformen, Verschleiß |
+| 11 | 4 | Sanieren mit Eigenleistung | 4 | 2 | 2 | 1 | 9 | Förderung mit Energieberater, Kalkulation, Baurecht | Kaufpreis + 300–1.000 €/m² | Zinsen; Verkauf nur mit StB |
