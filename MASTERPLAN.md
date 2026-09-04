@@ -243,3 +243,51 @@ Beträge grob, Zulassungen „prüfen".
 | 8 | 9 | Das System als Produkt | 2 | 4 | 1 | 5 | 12 | Vertrieb, Support, Datenschutz | fast nichts | deine Zeit |
 | 10 | 7 | Möblierte Vermietung | 3 | 3 | 3 | 2 | 11 | USt bei Kurzzeitvermietung, Meldepflicht, Zweckentfremdung (prüfen) | Möblierung 10.000–25.000 €/Einheit | Reinigung, Plattformen, Verschleiß |
 | 11 | 4 | Sanieren mit Eigenleistung | 4 | 2 | 2 | 1 | 9 | Förderung mit Energieberater, Kalkulation, Baurecht | Kaufpreis + 300–1.000 €/m² | Zinsen; Verkauf nur mit StB |
+
+### Sechs Gesichtspunkte und die Simulation „Was müsste passieren, damit X auf Platz 1 steht"
+
+Einmalig und Laufend in Punkte umgemünzt, 5 ist am günstigsten. **Einmalig:** 5 unter 500 €,
+4 bis 5.000 €, 3 bis 25.000 €, 2 bis 100.000 €, 1 darüber. **Laufend je Jahr:** 5 unter 200 €,
+4 bis 1.000 €, 3 bis 3.000 €, 2 bis 10.000 €, 1 darüber. Höchstwert 30.
+
+| Rang | # | Konzept | Ertrag | Recht | Zeit | Körper | Einmalig | Laufend | Σ |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 5 | Krypto als Reserve | 2 | 4 | 5 | 5 | 5 | 5 | **26** |
+| 2 | 1 | Vermietung als Kern | 4 | 5 | 5 | 4 | 2 | 3 | **23** |
+| 3 | 10 | Die Klammer, später | 3 | 3 | 4 | 5 | 4 | 3 | 22 |
+| 3 | 6 | Verwaltung für andere | 3 | 3 | 4 | 4 | 4 | 4 | 22 |
+| 3 | 9 | System als Produkt | 2 | 4 | 1 | 5 | 5 | 5 | 22 |
+| 6 | 0 | Ursprungskonzept jetzt | 3 | 2 | 4 | 5 | 4 | 3 | 21 |
+| 7 | 3 | Brandschutz-Beratung | 4 | 2 | 3 | 4 | 3 | 4 | 20 |
+| 7 | 2 | Bau als Aufsicht | 3 | 3 | 3 | 3 | 4 | 4 | 20 |
+| 9 | 8 | Lager- und Werkstattflächen | 3 | 3 | 4 | 3 | 1 | 3 | 17 |
+| 10 | 7 | Möblierte Vermietung | 3 | 3 | 3 | 2 | 3 | 2 | 16 |
+| 11 | 4 | Sanieren mit Eigenleistung | 4 | 2 | 2 | 1 | 1 | 2 | 12 |
+
+**Vorsicht mit dieser Summe:** Zwei Kostenspalten belohnen, wenig zu tun. Deshalb steht die
+Krypto-Reserve mit Ertrag 2 vorn. Zählt Ertrag doppelt, bleibt sie vorn; erst dreifach gezählt
+überholt die Vermietung. Die Summe misst Aufwand, nicht Erfolg.
+
+**Simulation.** Ziel ist Σ 26, also gleichauf mit Platz 1. Je Konzept: welche Noten sich ändern
+müssten, was das in der Wirklichkeit ist, und ob es ohne Änderung des Konzepts erreichbar ist.
+
+| # | Konzept | Σ | Lücke | Hebel (Note von → nach) | Was das in der Wirklichkeit ist | Erreichbar |
+|---|---|---|---|---|---|---|
+| 5 | Krypto-Reserve | 26 | 0 | — | nichts; und bei gewichtetem Ertrag fällt es sofort | ist es, nach Zählung |
+| 1 | Vermietung | 23 | 3 | Ertrag 4→5, Körper 4→5, Laufend 3→3 | Miet- und Nebenkostenoptimierung durch den CFO; Hausmeisterdienst ~1.000 €/Jahr; Objektkauf über Kredit ohne Eigenkapitaleinsatz hebt Einmalig nicht, nur die Bank | **ja, mit Phase 2–3 des Systems plus Hausmeister** |
+| 10 | Klammer | 22 | 4 | Recht 3→5, Ertrag 3→4, Einmalig 4→5 | Nebentätigkeitsgenehmigung erteilt, Steuerberater bestellt, mindestens eine Linie läuft darunter, UG statt GmbH | ja, in zwei bis drei Jahren; ist der Plan |
+| 6 | Verwaltung für andere | 22 | 4 | Recht 3→5, Ertrag 3→4, Körper 4→5 | § 34c-Erlaubnis, Genehmigung, Haftpflicht; fünf zahlende Kleinvermieter; keine Begehungen, alles über das System | ja, 12–18 Monate, ~3.000 € und Vertrieb |
+| 9 | System als Produkt | 22 | 4 | Zeit 1→3, Ertrag 2→4 | Support automatisiert oder ein Partner, der ihn übernimmt; zahlende Kunden, die es heute nicht gibt | nur mit Partner; dann ist es dessen Geschäft |
+| 0 | Ursprungskonzept jetzt | 21 | 5 | Recht 2→4, Ertrag 3→4, Laufend 3→4, Einmalig 4→5 | dieselben Schritte wie bei 10 — Genehmigung, Geschäft darunter, günstiger Steuerberater, UG | ja, aber dann **ist** es Konzept 10 |
+| 3 | Brandschutz | 20 | 6 | Recht 2→5, Zeit 3→4, Einmalig 3→4, Ertrag 4→5 | Genehmigung erteilt, Zertifikat Brandschutzbeauftragter statt Fachplaner (~2.000 €), Haftpflicht; Vorlagen im System, Begehungen gebündelt; drei bis fünf Dauerkunden | **ja, in 12 Monaten — wenn der Dienstherr ja sagt**; das erreichbarste Geschäftskonzept |
+| 2 | Bau als Aufsicht | 20 | 6 | Recht 3→5, Zeit 3→4, Einmalig 4→5, Laufend 4→5, Körper 3→4 | Genehmigung, Dokumentation nur aus Fotos der Bauherren, keine Präsenz | höchstens 24: ohne Baustelle ist es keine Aufsicht mehr |
+| 8 | Lagerflächen | 17 | 9 | Einmalig 1→3, Körper 3→5, Ertrag 3→4, Recht 3→4, Laufend 3→4 | Container statt Halle, Verpachtung an einen Betreiber, Vollbelegung, Baugenehmigung | höchstens 24: das Kapital bleibt |
+| 7 | Möblierte Vermietung | 16 | 10 | Körper 2→5, Ertrag 3→4, Recht 3→4, Einmalig 3→4 | Reinigungsdienst (senkt Laufend auf 1), Zweckentfremdung geklärt, bestehende Einheit nutzen | höchstens 21: der Reinigungsdienst frisst den Mehrertrag |
+| 4 | Sanieren mit Eigenleistung | 12 | 14 | Körper 1→5, Zeit 2→4 | Handwerker statt Eigenleistung — dann fällt Ertrag auf 2, und das Kapital bleibt 1 | nein: ohne Eigenleistung ist es Konzept 1 mit Kredit |
+
+**Was die Simulation zeigt.** Vier Konzepte kommen ohne Verbiegen nach oben: Vermietung (mit
+dem System und einem Hausmeister), Brandschutz (mit der Genehmigung), Verwaltung für andere
+(mit Erlaubnis und Vertrieb) und die Klammer (mit der Zeit). Bei allen vier ist derselbe Hebel
+der größte: die Note **Recht**, also ein Antrag beim Dienstherrn. Die unteren vier erreichen
+Platz 1 nicht, weil ihr Nachteil im Konzept steckt — Kapital oder Körper — und jede Abhilfe
+das Konzept in ein anderes verwandelt.
