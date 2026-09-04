@@ -198,3 +198,29 @@ ohne laufendes Geschäft darunter ist Struktur, die Genehmigung, Kosten und Zeit
 sie etwas trägt. Die Firma entsteht aus Konzept 1 mit dem KI-Backoffice, Konzept 5 als Reserve,
 und einer genehmigten zweiten Linie aus 2 oder 3. Konzept 10 ist dann kein Projekt mehr,
 sondern ein Name für das, was schon läuft.
+
+### Lernbedarf und Investitionsbedarf je Konzept (2026-09-03)
+
+Zahlen sind grobe Spannen aus dem Gedächtnis, keine Angebote; Zulassungsfragen sind mit
+„prüfen" markiert und gehören zu Dienstherr, IHK oder Steuerberater. In der Reihenfolge des
+Rankings.
+
+| # | Konzept | Lernbedarf, Ausbildung | Investition einmalig | Laufend je Jahr |
+|---|---|---|---|---|
+| 1 | Vermietung als Kern | Mietrecht und Nebenkostenabrechnung in Grundzügen (VHS/IHK-Kurs, Haus & Grund); Anlage V. Kein Abschluss nötig. | Nächstes Objekt: 20–30 % Eigenkapital plus Kaufnebenkosten 8–12 % (Grunderwerbsteuer Thüringen 5 %, prüfen; Notar und Grundbuch ~2 %; Makler bis 3,57 %) | Rücklage 1–1,5 % des Gebäudewerts, Verwaltung im System ~50 € Modellkosten |
+| 5 | Krypto als Reserve | Steuerliche Behandlung (Haltefrist ein Jahr, Freigrenze, prüfen), Verwahrung. Kein Kurs, ein Wochenende Lesen. | Hardware-Wallet 80–150 € | Tracking-Werkzeug 0–150 € |
+| 10 | Die Klammer, später | Buchführung und Steuern in Grundzügen; Rechtsformwahl mit Steuerberater. | UG ab 1 € Kapital, Gründung 500–1.000 €; GmbH 25.000 € Stammkapital, halb einzuzahlen | Steuerberater 1.500–3.000 €, IHK-Beitrag, Nebentätigkeitsgenehmigung |
+| 0 | Ursprungskonzept jetzt | wie 10, nur früher | wie 10 | wie 10, ohne Geschäft darunter |
+| 6 | Verwaltung für andere | Erlaubnis nach § 34c GewO für Wohnimmobilienverwalter mit Weiterbildungspflicht (prüfen); für WEG zusätzlich zertifizierter Verwalter (IHK). Kurs 1.500–3.000 €. | Erlaubnis und Gewerbeanmeldung 300–1.000 € | Vermögensschadenhaftpflicht 300–600 €, Weiterbildung |
+| 3 | Brandschutz-Beratung | Brandschutzbeauftragter nach vfdb 12-09 (1.500–2.500 €, Teile davon durch den Dienst ggf. anerkannt, prüfen); für Brandschutznachweise die Nachweisberechtigung nach Landesbauordnung (prüfen); Fachplaner Brandschutz 5.000–8.000 €, Monate. | Ausbildung 2.000–8.000 € | Berufshaftpflicht 500–1.500 €, Nebentätigkeitsgenehmigung |
+| 8 | Lager- und Werkstattflächen | Baurecht und Bauantrag, Gewerbemietrecht. | Grundstück plus Systemhalle grob 100.000–250.000 €, oder Lagercontainer 3.000–5.000 € je Stück als Einstieg | Grundsteuer, Versicherung, Instandhaltung |
+| 2 | Bau als Aufsicht | VOB/B, Mängelrecht, Bauleitung (IHK-Kurs 2.000–4.000 €); ob eine Bauleiterrolle nach Landesbauordnung eine bestimmte Qualifikation verlangt, hängt vom Umfang ab (prüfen). | Tablet, Software unter 1.500 € | Haftpflicht 500–1.000 €, Nebentätigkeitsgenehmigung |
+| 9 | System als Produkt | Vertrieb, Support, Datenschutz mit Auftragsverarbeitung. | fast nichts | deine Zeit, die einzige Größe, die zählt |
+| 7 | Möblierte Vermietung | Umsatzsteuer bei Kurzzeitvermietung, Meldepflichten, Zweckentfremdung (prüfen). | Möblierung 10.000–25.000 € je Einheit | Reinigung, Plattformgebühren, höherer Verschleiß |
+| 4 | Sanieren mit Eigenleistung | Förderprogramme (KfW, BAFA, Energieberater als Voraussetzung), Kalkulation, Baurecht. | Kaufpreis plus 300–1.000 € je m² Sanierung, Werkzeug | Zinsen; beim Verkauf Steuerberater wegen Grundstückshandel |
+
+**Was quer über alle Konzepte gilt:** Der Nebentätigkeitsantrag ist die eine Ausbildung, die
+nichts kostet und alles freischaltet. Steuern in Grundzügen lernt man einmal für alle Linien.
+Und die KI-Belegschaft senkt den Lernbedarf messbar: Thorsten bereitet Stoff auf und fragt ab,
+der CFO rechnet vor, Marlene hält Fristen — was bleibt, ist das, was ein Abschluss oder eine
+Erlaubnis verlangt, und das kann niemand für dich lernen.
