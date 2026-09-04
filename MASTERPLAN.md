@@ -169,27 +169,29 @@ liefern — also alles, was Verwaltung, Recherche, Rechnen und Schreiben ist.
 10. **Die Klammer: Firma mit KI-Belegschaft.** Ein Dach über Vermietung, Bau und Beratung, CFO
     konsolidiert; Rechtsform und Steuern mit dem Steuerberater. Schritt drei bis fünf Jahre.
 
-### Bewertung der Konzepte (2026-09-03)
+### Bewertung der Konzepte (2026-09-03, vier Gesichtspunkte)
 
-Drei Gesichtspunkte, Noten 1 bis 5: **Ertrag und Skalierung** (was es einbringt und ob es ohne
+Vier Gesichtspunkte, Noten 1 bis 5: **Ertrag und Skalierung** (was es einbringt und ob es ohne
 mehr Stunden wächst), **Recht und Risiko** (Nebentätigkeitsrecht, Kapitalbindung, Haftung,
 Schwankung), **Zeit und Passung** (wie viele Stunden es vom CEO braucht und wie viel davon die
-KI-Belegschaft trägt). Konzept 0 ist das Ursprungskonzept des CEO: jetzt ein Unternehmen mit
-kleiner KI-Belegschaft als Dach über den drei bestehenden Linien.
+KI-Belegschaft trägt) und **Körperliche Arbeit** (5 = keine, 1 = überwiegend körperlich; der
+Hauptberuf ist selbst körperlich, und Verletzung oder Erschöpfung trifft das Grundeinkommen).
+Konzept 0 ist das Ursprungskonzept des CEO: jetzt ein Unternehmen mit kleiner KI-Belegschaft
+als Dach über den drei bestehenden Linien.
 
-| # | Konzept | Ertrag | Recht/Risiko | Zeit/Passung | Summe | Rang |
-|---|---|---|---|---|---|---|
-| 1 | Vermietung als Kern | 4 | 5 | 5 | **14** | 1 |
-| 5 | Krypto als Reserve mit Regeln | 2 | 4 | 5 | **11** | 2 |
-| 6 | Verwaltung für andere Kleinvermieter | 3 | 3 | 4 | 10 | 3 |
-| 8 | Lager- und Werkstattflächen | 3 | 3 | 4 | 10 | 3 |
-| 10 | Die Klammer, in drei bis fünf Jahren | 3 | 3 | 4 | 10 | 3 |
-| 0 | Ursprungskonzept: die Firma jetzt | 3 | 2 | 4 | 9 | 6 |
-| 2 | Bau: von der Hand zur Aufsicht | 3 | 3 | 3 | 9 | 6 |
-| 3 | Brandschutz-Beratung | 4 | 2 | 3 | 9 | 6 |
-| 7 | Möblierte oder Ferienvermietung | 3 | 3 | 3 | 9 | 6 |
-| 4 | Sanieren mit Eigenleistung | 4 | 2 | 2 | 8 | 10 |
-| 9 | Das System als Produkt | 2 | 4 | 1 | 7 | 11 |
+| # | Konzept | Ertrag | Recht/Risiko | Zeit/Passung | Körperlich | Summe | Rang |
+|---|---|---|---|---|---|---|---|
+| 1 | Vermietung als Kern | 4 | 5 | 5 | 4 | **18** | 1 |
+| 5 | Krypto als Reserve mit Regeln | 2 | 4 | 5 | 5 | **16** | 2 |
+| 10 | Die Klammer, in drei bis fünf Jahren | 3 | 3 | 4 | 5 | 15 | 3 |
+| 0 | Ursprungskonzept: die Firma jetzt | 3 | 2 | 4 | 5 | 14 | 4 |
+| 6 | Verwaltung für andere Kleinvermieter | 3 | 3 | 4 | 4 | 14 | 4 |
+| 3 | Brandschutz-Beratung | 4 | 2 | 3 | 4 | 13 | 6 |
+| 8 | Lager- und Werkstattflächen | 3 | 3 | 4 | 3 | 13 | 6 |
+| 2 | Bau: von der Hand zur Aufsicht | 3 | 3 | 3 | 3 | 12 | 8 |
+| 9 | Das System als Produkt | 2 | 4 | 1 | 5 | 12 | 8 |
+| 7 | Möblierte oder Ferienvermietung | 3 | 3 | 3 | 2 | 11 | 10 |
+| 4 | Sanieren mit Eigenleistung | 4 | 2 | 2 | 1 | 9 | 11 |
 
 **Fazit.** Das Ursprungskonzept ist als Ziel richtig und als erster Schritt falsch: Eine Firma
 ohne laufendes Geschäft darunter ist Struktur, die Genehmigung, Kosten und Zeit bindet, bevor
