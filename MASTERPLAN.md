@@ -291,3 +291,72 @@ dem System und einem Hausmeister), Brandschutz (mit der Genehmigung), Verwaltung
 der größte: die Note **Recht**, also ein Antrag beim Dienstherrn. Die unteren vier erreichen
 Platz 1 nicht, weil ihr Nachteil im Konzept steckt — Kapital oder Körper — und jede Abhilfe
 das Konzept in ein anderes verwandelt.
+
+### Gesamtbewertung und drei Wege (2026-09-03)
+
+**Was aus allem zusammen folgt.** Vier Tatsachen tragen jede Entscheidung: Die Zeit ist knapp,
+nicht das Kapital. Das Recht ist das Tor — ohne Nebentätigkeitsgenehmigung gibt es kein Gewerbe,
+mit ihr öffnen sich vier Konzepte auf einmal. Der Körper ist das Risiko, weil er das
+Grundeinkommen trägt. Und das System ist da: Es macht Verwaltung, Recherche, Rechnen und
+Schreiben zu Kosten von Cent, und das ist genau die Arbeit, an der Nebenerwerbe sonst scheitern.
+Die Einzelkonzepte sind deshalb keine Alternativen, sondern Bausteine. Drei Wege, sie zu
+kombinieren, jeder über drei Jahre durchgespielt. Zahlen sind grobe Spannen.
+
+**Weg A — Bestand und Backoffice.** Vermietung als Kern, Krypto als Reserve mit Regeln, das
+System als Verwaltung. Kein Gewerbe, kein Antrag. Jahr 1: Marlene und CFO übernehmen Rockhausen
+vollständig, Nebenkosten und Miete werden geprüft, Rücklagen geführt. Jahr 2: Eigenkapital für
+das nächste Objekt wächst, Thorsten prüft Objekte. Jahr 3: zweites Objekt, wenn die Zahlen es
+tragen.
+
+| | Jahr 1 | Jahr 2 | Jahr 3 |
+|---|---|---|---|
+| Zeit je Woche | 2 h | 2 h | 3 h |
+| Investition | 0 | 0 | 40.000–60.000 € Eigenkapital |
+| Ertrag gegenüber heute | +0–1.000 € durch Optimierung | +0–1.000 € | +0–2.000 € Cashflow, dazu Vermögensaufbau |
+| Risiko | Leerstand, Zins | dito | Zinsbindung, Kaufpreis |
+| Systemphasen | 0–3 | 3–4 | 4 |
+
+**Weg B — Fachmann.** Weg A plus Brandschutz-Beratung. Jahr 1: Nebentätigkeitsantrag, Zertifikat
+Brandschutzbeauftragter, Haftpflicht, Vorlagen und Prüflisten im System, erste zwei Aufträge aus
+dem eigenen Netz. Jahr 2: drei bis fünf Dauerkunden, Begehungen gebündelt an freien Tagen.
+Jahr 3: Nachweisberechtigung prüfen, wenn Nachfrage nach Brandschutznachweisen kommt.
+
+| | Jahr 1 | Jahr 2 | Jahr 3 |
+|---|---|---|---|
+| Zeit je Woche | 3 h, davon Ausbildung | 5–6 h | 6–8 h, am Zeitlimit |
+| Investition | 2.500–4.000 € | 1.000 € Haftpflicht | 1.000 €, ggf. Fachplaner 5.000–8.000 € |
+| Ertrag gegenüber heute | 0–2.000 € | 5.000–10.000 € Honorar | 10.000–20.000 €; Ablieferungsgrenzen für Nebentätigkeitsvergütung prüfen |
+| Risiko | Genehmigung versagt, dann zurück auf A | Interessenkollision, Haftung | Zeitgrenze, Abhängigkeit vom Dienstherrn |
+| Systemphasen | 0–3 | 3–4 | 4 |
+
+**Weg C — Verwalter.** Weg A plus Verwaltung für andere Kleinvermieter. Jahr 1: Antrag,
+§ 34c-Erlaubnis, Kurs, Vermögensschadenhaftpflicht, zwei Kunden aus dem Umfeld, das System
+bekommt eine Mandantentrennung als neue Invariante. Jahr 2: fünf Kunden, 15–25 Einheiten.
+Jahr 3: 30–50 Einheiten, Paperless als Aktenschrank.
+
+| | Jahr 1 | Jahr 2 | Jahr 3 |
+|---|---|---|---|
+| Zeit je Woche | 3–4 h | 4 h | 4–5 h, das System trägt den Zuwachs |
+| Investition | 3.000–4.500 € | 600 € Haftpflicht, Weiterbildung | 600 € |
+| Ertrag gegenüber heute | 0–2.000 € | 4.000–8.000 € bei 20–30 € je Einheit und Monat | 8.000–15.000 € |
+| Risiko | Genehmigung versagt, dann zurück auf A | Haftung für Fremdgeld, Kundengewinnung | Regulierung, Mandantendaten |
+| Systemphasen | 0–4 | 4 | 4–5 |
+
+**Bewertung der drei Wege**, dieselben sechs Gesichtspunkte, dazu Robustheit: was bleibt, wenn
+der Dienstherr nein sagt.
+
+| Weg | Ertrag | Recht | Zeit | Körper | Einmalig | Laufend | Σ | Wenn die Genehmigung versagt wird |
+|---|---|---|---|---|---|---|---|---|
+| A Bestand und Backoffice | 3 | 5 | 5 | 4 | 3 | 3 | **23** | unberührt, braucht keine |
+| B Fachmann | 4 | 3 | 3 | 4 | 4 | 4 | 22 | fällt auf A zurück, Ausbildung bleibt nützlich |
+| C Verwalter | 3 | 3 | 4 | 4 | 4 | 4 | 22 | fällt auf A zurück, Kurs war umsonst |
+
+**Fazit.** A ist kein Weg neben B und C, sondern der Boden unter beiden: Er beginnt jetzt, kostet
+nichts, braucht keinen Antrag und ist zugleich das, wofür Phase 1 bis 3 des Systems gebaut
+werden. B hat den besten Ertrag je Stunde und den kürzesten Lernweg, weil der Stoff aus dem
+Hauptberuf kommt, und stößt in Jahr 3 an die Zeitgrenze. C passt am besten zum System, weil das
+System den Zuwachs trägt, und ist am langsamsten im Ertrag. Die Entscheidung zwischen B und C
+fällt nicht heute, sondern mit der Antwort des Dienstherrn: Der Antrag für B wird zuerst
+gestellt, weil Brandschutz das höhere Honorar je Stunde bringt und die Ausbildung auch bei
+einem Nein nicht verloren ist. C bleibt der Weg für Jahr 2, wenn B versagt wird oder die
+Zeitgrenze erreicht ist.
