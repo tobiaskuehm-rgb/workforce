@@ -360,3 +360,41 @@ fällt nicht heute, sondern mit der Antwort des Dienstherrn: Der Antrag für B w
 gestellt, weil Brandschutz das höhere Honorar je Stunde bringt und die Ausbildung auch bei
 einem Nein nicht verloren ist. C bleibt der Weg für Jahr 2, wenn B versagt wird oder die
 Zeitgrenze erreicht ist.
+
+### Die Suche, einmal breit gelaufen (2026-09-03)
+
+Einwand des CEO: Das Ranking galt nur für elf Konzepte, die aus dem Bestand kamen; das Sieb
+hatte nie eine breite Menge gesehen. Deshalb einmal 40 Kandidaten aus sechs Feldern —
+Feuerwehr- und Brandschutzwissen, Bau, Immobilien, Kapital, Digital und Wissen, sonstige
+Dienstleistung — durch die vier Ausschlussfragen und die sechs Noten. Quelle ist Wissen, keine
+Marktdaten; den Markttest machen Kunden. Ausgeschieden: alles Körperliche (Feuerlöscherwartung,
+Rauchmelderservice, Hausmeister, Gerätevermietung), alles mit Dienstkollision (Brandursachen-
+gutachten), alles, was Anlage und nicht Geschäft ist (Depot, Staking, Beteiligungen), Makler
+und Grundstücksentwicklung (Zeit, Kapital, Vertrieb).
+
+| Kandidat | Ertrag | Recht | Zeit | Körper | Einmalig | Laufend | Σ | Anmerkung |
+|---|---|---|---|---|---|---|---|---|
+| Dozent an Feuerwehrschule oder VHS | 3 | 4 | 3 | 5 | 5 | 5 | **25** | meist genehmigt, oft im dienstlichen Interesse; Stundenhonorar, nicht skalierbar |
+| Buch oder Fachbeiträge Brandschutz | 2 | 5 | 3 | 5 | 5 | 5 | 25 | schriftstellerisch meist genehmigungsfrei (prüfen); Ertrag klein |
+| Vorlagen-Shop: Brandschutzordnung, Nebenkosten, Hausordnung | 2 | 4 | 4 | 5 | 5 | 5 | 25 | Systemanteil sehr hoch, Ertrag klein, passiv |
+| Online-Kurs Vorbereitung Feuerwehr-Laufbahnprüfung | 3 | 4 | 3 | 5 | 4 | 5 | 24 | einmal bauen, Thorsten schreibt mit; Nische mit Nachfrage |
+| Nebenkostenabrechnung als Dienst für Kleinvermieter | 2 | 3 | 4 | 5 | 5 | 5 | 24 | C ohne Fremdgeld; Grenze zur Rechtsdienstleistung prüfen |
+| Vermietung als Kern (1) | 4 | 5 | 5 | 4 | 2 | 3 | 23 | unverändert |
+| Bauherrenberatung vor dem Kauf | 3 | 3 | 4 | 4 | 5 | 4 | 23 | zwei Stunden Begehung, festes Honorar; Sachkunde belegen |
+| KI-Einrichtung für Handwerksbetriebe | 3 | 3 | 2 | 5 | 5 | 5 | 23 | Support frisst Zeit; nur als Paket mit Pauschale |
+| Garagen und Stellplätze vermieten | 2 | 5 | 5 | 4 | 3 | 4 | 23 | Einstieg in 8 ohne Halle |
+| Brandschutzhelfer-Schulungen nach DGUV | 4 | 3 | 3 | 4 | 4 | 4 | 22 | Gruppen zu festen Sätzen; Ausbilderqualifikation, Genehmigung |
+| Photovoltaik auf eigenen Dächern | 3 | 4 | 5 | 4 | 2 | 4 | 22 | kleine Anlagen meist Vermögensverwaltung (prüfen); Kapital |
+| Verwaltung für andere (6) | 3 | 3 | 4 | 4 | 4 | 4 | 22 | unverändert |
+| Brandschutz-Beratung (3) | 4 | 2 | 3 | 4 | 3 | 4 | 20 | unverändert |
+| Energieberatung | 4 | 3 | 2 | 4 | 3 | 4 | 20 | lange Ausbildung, geförderter Markt |
+
+**Was die breite Suche ändert.** Brandschutzbeauftragter allein ist nicht das Beste; er ist der
+teuerste Einstieg in das Feld, das die Suche als Ganzes bestätigt: **Wissen aus dem Hauptberuf
+verkaufen.** Dozententätigkeit, Brandschutzhelfer-Schulungen, Beratung, Kurs und Vorlagen liegen
+alle dort, teilen eine Ausbildung, einen Antrag und Thorstens Vorbereitung. Weg B wird deshalb
+breiter: nicht „Brandschutzbeauftragter", sondern **„Brandschutzwissen"** — beginnend mit dem,
+was am wenigsten Genehmigung braucht (Dozent, Schulung, Vorlagen), und die Beratung als
+Ausbau. Weg A bekommt zwei passive Bausteine dazu: Vorlagen-Shop und Nebenkostenabrechnung als
+Dienst, beide fast vollständig vom System getragen. Die Reihenfolge A jetzt, Antrag für B
+bald, bleibt; der Antrag nennt jetzt das ganze Feld.
