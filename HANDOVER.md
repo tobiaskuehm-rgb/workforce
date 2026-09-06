@@ -80,7 +80,18 @@ dessen Ende verstummte das. Der Mac-Prozess ist beendet, die NAS ist der einzige
 der Zustandsdatei des Containers (`docker compose exec workforce python -m workforce verify
 --config /etc/workforce/config.json`). Kein Prüfzyklus am Prototyp.
 
-**Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** `HO-027` (Anmeldung unten) ruht.
+**Skills eingesammelt, 2026-09-06.** Ein Ort, eine Form: `skills/NAME/SKILL.md` im Repo ist
+zugleich Skill für Claude Code (Verweis aus `~/.claude/skills`) und Systemtext der Identität im
+Bot (`system_prompt_file`). Marlene aus `~/.claude/skills` geholt; Karl, Thorsten, Anastasia
+aus dem iCloud-Quellensatz (`00_COMPANY_STATE.txt`, `interim-bus/rules`, Thorstens
+Opportunity-Filter v0.2) geschrieben; CFO neu, Name offen; Gerd aus seinen Prüfrunden, nur
+für Claude Code und Codex. **Für Codex/Gerd:** Die Skill-Kopien im iCloud-Satz sind ab jetzt
+Archiv; Änderungen nur noch im Repo. Register in `skills/README.md`, geführt von Anastasia.
+Auf der NAS läuft Stand `39a3bc5` mit fünf Identitäten, Karl als Standard, `@NAME` im Chat.
+
+**Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** Nächster Schritt: Gerds Review des
+Neubaus nach dem Lauf gegen `INVARIANTEN.md`, Stand `39a3bc5`, Befunde ab `G-092` in
+`REVIEW_GERD.md` im Wurzelverzeichnis. `HO-027` (Anmeldung unten) ruht.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
