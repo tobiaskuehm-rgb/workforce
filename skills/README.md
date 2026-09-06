@@ -16,6 +16,7 @@ welche Rolle in welchem Status hat, führt Anastasia.
 | Thorsten `RAS-001` | `thorsten/` | aus Opportunity-Filter v0.2 des Quellensatzes und `FILTER.md`, 2026-09-06 |
 | Anastasia `PEO-001` | `anastasia/` | aus Company State, Regel 4 und ihrer Organisationsbestandsaufnahme, 2026-09-06 |
 | CFO, Name offen | `cfo/` | neu, 2026-09-06; Name und `DEC`-Eintrag durch den CEO |
+| Marv Skillbauer, Kennung offen, fachliche Führung Anastasia | `marv/` | hat sich selbst gebaut, eingesammelt aus `~/.claude/skills` am 2026-09-06; Werkzeugrolle, kein Bot-Skill |
 | Gerd `AI-ENG-001` | `gerd/` | aus seinen Prüfrunden, 2026-09-06; kein Bot-Skill, lebt in Claude Code und Codex |
 
 Quelle der Rollen: `00_COMPANY_STATE.txt` und `interim-bus/rules/` im iCloud-Quellensatz
