@@ -14,6 +14,10 @@ archiv="$(mktemp)"; liste="$(mktemp)"
 git ls-files workforce > "$liste"
 COPYFILE_DISABLE=1 tar czf "$archiv" -T "$liste"
 ssh -o BatchMode=yes "$host" "mkdir -p '$root/secrets' && cd '$root' && tar xzf - --strip-components=1" < "$archiv"
+# The skills are company assets outside the package; they land beside it as $root/skills.
+git ls-files skills > "$liste"
+COPYFILE_DISABLE=1 tar czf "$archiv" -T "$liste"
+ssh -o BatchMode=yes "$host" "cd '$root' && tar xzf -" < "$archiv"
 # scp needs the SFTP subsystem, which this NAS does not offer ("Connection closed"); a file
 # over ssh stdin does not. umask 027 so a secret is never world-readable, not even briefly.
 ssh -o BatchMode=yes "$host" "umask 027 && cat > '$root/config.json'" < workforce/config.nas.json
