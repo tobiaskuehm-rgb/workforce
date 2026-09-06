@@ -324,6 +324,23 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual("wrkspc_x", with_id["anthropic-workspace-id"])
         self.assertNotIn("sk-ant-TESTKEY", json.dumps({h: v for h, v in with_id.items() if h != "x-api-key"}))
 
+    def test_a_skill_file_is_the_system_prompt_without_its_front_matter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            skill = pathlib.Path(tmp) / "SKILL.md"
+            skill.write_text("---\nname: x\ndescription: y\n---\n\n# Rolle\nDu bist X.\n", encoding="utf-8")
+            values = json.loads(json.dumps(BASE))
+            values["identities"]["A"] = {"provider": "echo", "model": "echo-v1", "policy": "BODY",
+                                          "system_prompt_file": "SKILL.md"}
+            cfg = config.parse(values, base_dir=tmp)
+            self.assertEqual("# Rolle\nDu bist X.", cfg.identities["A"].system_prompt)
+            values["identities"]["A"]["system_prompt_file"] = "fehlt.md"
+            with self.assertRaises(config.ConfigError):
+                config.parse(values, base_dir=tmp)
+            values["identities"]["A"] = {"provider": "echo", "model": "echo-v1", "policy": "BODY",
+                                          "system_prompt": "a", "system_prompt_file": "SKILL.md"}
+            with self.assertRaises(config.ConfigError):
+                config.parse(values, base_dir=tmp)
+
     def test_a_paid_model_needs_the_allowlist_and_the_right_provider(self):
         with self.assertRaises(models.ModelNotAllowed):
             models.resolve("claude-opus-9", provider="claude")

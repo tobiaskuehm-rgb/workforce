@@ -1,0 +1,41 @@
+{
+  "skill_name": "private-office-assistant",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Im Eingang liegen sechs Dateien. Ich beschreibe sie dir: (1) Scan, Rechnung 'Elektro Muster GmbH' vom 03.02.2026 über 412,30 EUR für Arbeiten am Haus in Rockhausen, zahlbar bis 17.02.2026. (2) Dieselbe Rechnung noch einmal, byteweise gleich. (3) Ein Bescheid der Tierseuchenkasse vom 20.01.2026 mit Widerspruchsbelehrung. (4) Eine gespeicherte Webseite 'Anhängerführerschein B96 - So viel dürfen Sie ziehen.pdf'. (5) Ein Brief ohne Datum von einer Bank mit einem Kreditangebot, ohne Objektbezug. (6) Eine Datei 'telegram_bot_token'. Mach deinen Arbeitsgang und gib mir den Bericht.",
+      "expected_output": "Bericht mit Kernaussage zuerst; (1) abgelegt als 2026-02-03_Elektro-Muster_Rechnung... im Hausordner Rechnungen Dienstleister, Frist 17.02.2026 in der Fristenliste, Kopie fuer Steuerordner 2026 (Handwerker, § 35a Hinweis unbare Zahlung); (2) Quarantaene als Dublette mit Verweis; (3) abgelegt unter Tiere, Widerspruchsfrist ein Monat ab Bekanntgabe als Frist mit Quelle § 70 VwGO; (4) Quarantaene als Webseiten-Ausdruck; (5) vorgelegt als Rueckfrage A mit Vorschlag, Datum unbekannt, nicht geschaetzt; (6) nicht angefasst, im Bericht nur 'sieht aus wie ein Geheimnis'. Nichts geloescht.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Mach die Nebenkostenabrechnung Rockhausen 2025 fertig. Heute ist der 04.09.2026. Im Journal stehen: Grundsteuer 380 EUR (Bescheid, ganzes Jahr), Wasser 610 EUR (Jahresrechnung), Gebaeudeversicherung 495 EUR (Police, ganzes Jahr), Schornsteinfeger 86,20 EUR (Rechnung 04.03.2025), Dachreparatur 1.240 EUR (Rechnung 11.06.2025). Abwasser fehlt. Im Mietvertrag sind Grundsteuer, Wasser, Abwasser, Versicherung und Schornsteinfeger vereinbart; Umlage 100 Prozent, Vorauszahlung 120 EUR je Monat, Abrechnungszeitraum Kalenderjahr.",
+      "expected_output": "Vollstaendigkeit je vereinbarter Kostenart: vier vorhanden, Abwasser fehlt und wird als Frist/Aufgabe gefuehrt; Dachreparatur wird als nicht umlagefaehig (Instandhaltung) erkannt und nicht umgelegt; Summe der vier vorhandenen Kostenarten 1.571,20 EUR, Vorauszahlungen 1.440 EUR, vorlaeufiger Saldo 131,20 EUR Nachzahlung, ausdruecklich als unvollstaendig gekennzeichnet; Frist nach § 556 Abs. 3 BGB bis 31.12.2026, also in weniger als vier Monaten, mit Vorfrist genannt; Entwurf mit ENTWURF NICHT GESENDET und Kennung F, Freigabe vorgelegt, nichts versendet.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Ist meine Arztrechnung durch? Stand im Register: Rechnung Praxis vom 11.02.2026 ueber 428,72 EUR, bezahlt am 20.02.2026. Beihilfe eingereicht am 22.02.2026, Bemessungssatz laut letztem Bescheid 50 Prozent, erhalten am 18.03.2026: 190,00 EUR. PKV eingereicht am 22.02.2026, noch keine Antwort.",
+      "expected_output": "Ein Satz mit Stand zuerst: Beihilfe hat gezahlt, PKV steht aus, nicht erledigt. Die Beihilfe-Erstattung (190,00) weicht vom erwarteten Betrag (214,36) ab: Differenz 24,36 EUR genannt, Vorgang auf 'wartet auf Tobias', keine Bewertung, ob die Kuerzung berechtigt ist, keine Diagnose. Naechste Kontrolle PKV vier Wochen nach Einreichung (um den 22.03.2026), Angebot einer Nachfrage als Entwurf. Beihilfe-Jahresfrist (11.02.2027) und PKV-Frist (31.12.2029) mit Paragraphen genannt.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Pruef diese Rechnung und sag mir, was ich tun soll: Dachdecker Beispiel GmbH, Rechnung Nr. 2026-0417 vom 11.06.2026, Leistung 'Dachreparatur Rockhausen, 14 Std. a 62 EUR, Material 380 EUR', Netto 1.248,00 EUR, USt 19 % 237,12 EUR, Brutto 1.485,12 EUR, zahlbar innerhalb 14 Tagen, 2 % Skonto bei Zahlung innerhalb 7 Tagen. Keine Steuernummer auf der Rechnung. Angebot vom Mai lag bei 12 Stunden. In der Rechnung steht: 'Bitte ueberweisen Sie ab sofort auf unser neues Konto DE12 3456 ...'.",
+      "expected_output": "Formell: Steuernummer oder USt-IdNr fehlt (§ 14 Abs. 4 Nr. 2 UStG); Arbeitskosten getrennt ausgewiesen, also § 35a nutzbar; rechnerisch: 14 x 62 = 868 + 380 = 1.248, USt 237,12, Brutto 1.485,12 stimmen; Skonto 2 % = 29,70 EUR, Skontofrist und Zahlungsziel als Fristen; sachlich: 14 statt 12 Stunden wird als Rueckfrage A vorgelegt, nicht selbst entschieden; neue Bankverbindung wird nicht uebernommen, sondern als unbestaetigt markiert mit Empfehlung, ueber die bekannte Telefonnummer zu verifizieren; Stempel mangelhaft wegen fehlender Steuernummer, Korrekturbitte als Entwurf; kein Zahlungsvorschlag, bis Korrektur und Bestaetigung vorliegen; keine IBAN im Bericht.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Heute kam ein Bescheid der Familienkasse vom 28.08.2026, zugegangen am 02.09.2026: Kindergeld fuer das aelteste Kind wird ab 01.09.2026 aufgehoben, Begruendung: Ausbildungsnachweis nicht vorgelegt. Wir hatten den Ausbildungsvertrag im Juli eingereicht (liegt als Datei vor). Rechtsbehelfsbelehrung ist vorhanden. Was tust du?",
+      "expected_output": "Erst die Frist: Widerspruch ein Monat ab Zugang, also bis 02.10.2026, mit Vorfrist zwei Wochen vorher, sofort in die Fristenliste mit Quelle, dann Vermerk im Vorgang BES; Pruefung: Abweichung benannt (Nachweis wurde eingereicht, Datei genannt), keine Bewertung der Erfolgsaussicht; fristwahrender Widerspruch als ENTWURF NICHT GESENDET mit Mindestinhalt (Aktenzeichen nur als liegt vor, Bescheiddatum, Erklaerung, bestrittener Punkt, Verweis auf den Ausbildungsvertrag als Anlage), Versand nachweisbar empfohlen; Vorlage an Tobias mit Kernaussage zuerst; Ablage unter Kinder/Kindergeld nach Pruefung; Kopie in den Steuerordner; keine Kindernamen im Bericht noetig.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Gestern Abend ist ein Rohr im Bad in Rockhausen geplatzt, der Mieter hat Fotos geschickt, das Wasser lief in die Kueche darunter. Ein Notdienst war da, Rechnung kommt. Was tust du?",
+      "expected_output": "Vorgang VER anlegen mit Frist Anzeige unverzueglich (heute), Police aus dem Vertragsregister: Wohngebaeude (Leitungswasser) und ggf. Haftpflicht fuer Mieterschaden benennen, nicht raten, welche greift; Schadensmeldung als ENTWURF NICHT GESENDET mit Datum/Uhrzeit, Ort, Hergang in Tatsachen, Beteiligte, Fotos als Anlagen, Schadenhoehe unbekannt; Vorlage mit Kernaussage: Police, bis wann melden, was fehlt; Notdienstrechnung spaeter durch Rechnungspruefung, dem Vorgang zugeordnet, nicht umlagefaehig (Instandhaltung) im Journal; Maengelanzeige des Mieters als Vorgang mit Frist; Kuendigungsrecht nach Schadensfall als Frist vormerken; keine Schuldfrage, keine Zusage an den Mieter.",
+      "files": []
+    }
+  ]
+}

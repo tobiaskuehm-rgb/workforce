@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import pathlib
 import stat
 from dataclasses import dataclass
 from typing import Any, Dict, Tuple
@@ -63,7 +64,25 @@ def _require(values: Dict[str, Any], key: str, kind: type) -> Any:
     return value
 
 
-def parse(values: Dict[str, Any]) -> Config:
+def read_prompt_file(path: str) -> str:
+    """A SKILL.md doubles as the system prompt: the YAML front matter is for Claude Code, the
+    body is the role. One file, two readers - the text cannot drift between them."""
+    try:
+        text = pathlib.Path(path).read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise ConfigError(f"CONFIG_PROMPT_FILE_MISSING:{path}") from exc
+    if text.startswith("---\n"):
+        end = text.find("\n---\n", 4)
+        if end == -1:
+            raise ConfigError(f"CONFIG_PROMPT_FILE_FRONTMATTER:{path}")
+        text = text[end + 5:]
+    body = text.strip()
+    if not body:
+        raise ConfigError(f"CONFIG_PROMPT_FILE_EMPTY:{path}")
+    return body
+
+
+def parse(values: Dict[str, Any], *, base_dir: str = ".") -> Config:
     identities: Dict[str, Identity] = {}
     raw_identities = _require(values, "identities", dict)
     if not raw_identities:
@@ -79,9 +98,16 @@ def parse(values: Dict[str, Any]) -> Config:
             raise ConfigError(f"CONFIG_POLICY_UNKNOWN:{policy}")
         if name == HUMAN:
             raise ConfigError("CONFIG_IDENTITY_RESERVED:CEO")
+        if ("system_prompt" in raw) == ("system_prompt_file" in raw):
+            raise ConfigError(f"CONFIG_PROMPT_ONE_OF:{name}")
+        if "system_prompt_file" in raw:
+            file_path = os.path.join(base_dir, _require(raw, "system_prompt_file", str))
+            prompt = read_prompt_file(file_path)
+        else:
+            prompt = _require(raw, "system_prompt", str)
         identities[name] = Identity(
             name=name, provider=provider, model=_require(raw, "model", str),
-            policy=policy, system_prompt=_require(raw, "system_prompt", str))
+            policy=policy, system_prompt=prompt)
 
     default = _require(values, "default_identity", str)
     if default not in identities:
@@ -136,7 +162,7 @@ def load(path: str) -> Config:
         raise ConfigError("CONFIG_NOT_JSON") from exc
     if not isinstance(values, dict):
         raise ConfigError("CONFIG_NOT_OBJECT")
-    return parse(values)
+    return parse(values, base_dir=os.path.dirname(os.path.abspath(path)))
 
 
 def read_secret(secrets_dir: str, name: str) -> str:

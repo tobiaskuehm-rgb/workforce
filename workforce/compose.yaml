@@ -11,6 +11,7 @@ services:
     volumes:
       - workforce-state:/var/lib/workforce
       - ./config.json:/etc/workforce/config.json:ro
+      - ./skills:/etc/workforce/skills:ro
     secrets:
       - telegram_bot_token
       - anthropic_api_key

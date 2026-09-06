@@ -8,7 +8,7 @@ host="synology"
 root="/volume1/docker/workforce"
 docker="sudo /usr/local/bin/docker"
 cd "$(dirname "$0")/.."
-[ -z "$(git status --porcelain -- workforce)" ] || { echo "FAIL: workforce/ hat unversionierte Aenderungen" >&2; exit 1; }
+[ -z "$(git status --porcelain -- workforce skills)" ] || { echo "FAIL: workforce/ hat unversionierte Aenderungen" >&2; exit 1; }
 [ -f workforce/config.nas.json ] || { echo "FAIL: workforce/config.nas.json fehlt" >&2; exit 1; }
 archiv="$(mktemp)"; liste="$(mktemp)"
 git ls-files workforce > "$liste"
