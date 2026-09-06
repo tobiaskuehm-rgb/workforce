@@ -26,6 +26,6 @@ for s in telegram_bot_token anthropic_api_key; do
 done
 ssh -o BatchMode=yes "$host" "cd '$root' \
   && $docker run --rm -v '$root/secrets:/s' alpine sh -c 'chgrp 10001 /s/* && chmod 640 /s/*' \
-  && $docker compose build -q && $docker compose up -d && $docker compose ps" < /dev/null
+  && $docker compose build -q && $docker compose up -d --force-recreate && $docker compose ps" < /dev/null
 rm -f "$archiv" "$liste"
 echo "RESULT: deployed $(git rev-parse --short HEAD)"
