@@ -11,6 +11,12 @@ welche Rolle in welchem Status hat, führt Anastasia.
 
 | Identität | Ordner | Stand |
 |---|---|---|
+| Karl `SAO-001`, Standard | `karl/` | aus Company State, Regel 5 und Review-Vorlage des Quellensatzes, 2026-09-06 |
 | Marlene `POA-001` | `marlene/` | eingesammelt aus `~/.claude/skills`, Verweis zurückgelegt |
-| Gerd `AI-ENG-001` | `gerd/` | aus seinen Prüfrunden geschrieben, 2026-09-06 |
-| Karl, Thorsten, Anastasia, CFO | — | einzusammeln aus ChatGPT und NAS |
+| Thorsten `RAS-001` | `thorsten/` | aus Opportunity-Filter v0.2 des Quellensatzes und `FILTER.md`, 2026-09-06 |
+| Anastasia `PEO-001` | `anastasia/` | aus Company State, Regel 4 und ihrer Organisationsbestandsaufnahme, 2026-09-06 |
+| CFO, Name offen | `cfo/` | neu, 2026-09-06; Name und `DEC`-Eintrag durch den CEO |
+| Gerd `AI-ENG-001` | `gerd/` | aus seinen Prüfrunden, 2026-09-06; kein Bot-Skill, lebt in Claude Code und Codex |
+
+Quelle der Rollen: `00_COMPANY_STATE.txt` und `interim-bus/rules/` im iCloud-Quellensatz
+`Startup_Codex`, einmalig geholt am 2026-09-06. Ab jetzt gilt nur diese Ablage.

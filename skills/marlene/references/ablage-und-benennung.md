@@ -8,7 +8,7 @@ ISO 15489, der Standard für Schriftgutverwaltung, verlangt von einer Unterlage 
 
 `JJJJ-MM-TT_Absender_Betreff.erweiterung`
 
-- **Datum zuerst, ISO 8601.** Dann ist alphabetische Reihenfolge gleich zeitliche Reihenfolge, in jedem Programm, auf jedem System. Das Datum ist das Dokumentdatum.
+- **Datum zuerst, ISO 8601.** Dann ist alphabetische Reihenfolge gleich zeitliche Reihenfolge, in jedem Programm, auf jedem System. Das Datum ist das Dokumentdatum. Steht bei Vorlagen, Verträgen, Listen und Exposés kein Datum im Text, gilt das Dateidatum als Dokumentdatum, ohne Kennzeichnung (Entscheidung Tobias, 2026-09-06, Praxistest A7); bei Rechnungen, Bescheiden und Briefen bleibt das Datum im Text Pflicht.
 - **Nur Buchstaben, Ziffern, Bindestrich, Unterstrich.** Keine Leerzeichen, keine Umlaute, keine Sonderzeichen; sie brechen, sobald ein Name in eine Adresse, ein Skript, eine Sicherung oder eine Cloud-Synchronisation gerät. `Knöll` wird `Knoell`, `Straße` wird `Strasse`.
 - **Bindestrich innerhalb eines Feldes, Unterstrich zwischen Feldern.** `Holzbau-Knoell` ist ein Absender, `_` trennt ihn vom Betreff.
 - **Dokumentnummer in den Betreff,** wenn es eine gibt: `Rechnung-RG-25-007`.
@@ -41,6 +41,8 @@ Darunter gliedert sich alles nach **Objekt, Person oder Sparte**. Ein Haus hat S
 7. **Steuerrelevantes bekommt zusätzlich eine Kopie** in `09_Kopie Steuer/JJJJ/`; das Original bleibt am Sachort.
 
 ## Dubletten und Wertloses
+
+Liegt ein Dokument in der Drive-Ablage in anderer Fassung (gleicher Name, andere Bytes), gilt die Drive-Fassung; die Fassung aus Schreibtisch, Dokumente oder Downloads geht mit Verweis in die Quarantäne (Entscheidung Tobias, 2026-09-06, Praxistest A5).
 
 Eine Dublette ist byteweise gleich; gleicher Name allein reicht nicht. Bei Dubletten bleibt die Fassung, die schon am richtigen Ort liegt, oder sonst die älteste; die anderen gehen mit Verweis in die Quarantäne. Webseiten-Ausdrucke erkennt man an Adresse und Druckdatum in Kopf- oder Fußzeile und am Namen, der ein Seitentitel ist; Bildschirmfotos an ihrem Namen. Beides ist Quarantäne mit Grund, kein Löschen.
 
