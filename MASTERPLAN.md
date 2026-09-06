@@ -398,3 +398,32 @@ was am wenigsten Genehmigung braucht (Dozent, Schulung, Vorlagen), und die Berat
 Ausbau. Weg A bekommt zwei passive Bausteine dazu: Vorlagen-Shop und Nebenkostenabrechnung als
 Dienst, beide fast vollständig vom System getragen. Die Reihenfolge A jetzt, Antrag für B
 bald, bleibt; der Antrag nennt jetzt das ganze Feld.
+
+### Das Modell des CEO, geprüft (2026-09-06)
+
+Der CEO hatte das Modell vor dem System: **A Krypto, B Immobilien** als Anlageklassen, die von
+allein Rendite tragen; **C Nebentätigkeit mit rund zwanzig Stunden je Woche**, entweder zum
+besten Stundenlohn oder besser als eigenes Business, nicht körperlich, geistig und KI-gestützt,
+mit hohem Ertrag. Der Filter über Wochen soll C finden. Das Modell hält. Es ist die saubere Form
+der Wege A, B, C aus Abschnitt „Gesamtbewertung", und die KI ändert daran genau eine Sache:
+die Decke von C. Ohne KI sind zwanzig Stunden zwanzig Stunden Leistung; mit dem System tragen
+sie das Drei- bis Fünffache, weil Vorbereitung, Verwaltung, Recherche und Schreiben nicht mehr
+aus diesen Stunden kommen. Erst das macht aus einem Stundenlohn ein Business.
+
+Drei Anpassungen, damit es trägt:
+
+1. **Die zwanzig Stunden werden geteilt.** Was als Nebentätigkeit zählt — bezahlte Arbeit für
+   andere, gewerblicher Aufbau — unterliegt der Grenze des Nebentätigkeitsrechts, grob ein
+   Fünftel der Wochenarbeitszeit, dazu Einkommensgrenzen; der Antrag klärt die Zahl. Der Rest
+   der zwanzig Stunden ist Denken, Lernen und Steuern des Systems, und das ist keine
+   Nebentätigkeit.
+2. **C muss KI-vervielfältigbar sein.** Kriterium Systemanteil mindestens 60 Prozent: Der
+   Ertrag darf nicht an der Stunde vor Ort hängen. Brandschutzwissen erfüllt das, Bauarbeit
+   nicht, Beratung nur mit Vorlagen und Schulungspaketen.
+3. **Der Ausstieg aus der Stunde ist eingeplant.** Sobald Zeit- oder Einkommensgrenze erreicht
+   sind, übernimmt das System plus ein bezahlter Trainer die Stunden; der CEO ist Inhaber.
+   Ob das noch Nebentätigkeit oder Vermögensverwaltung ist, entscheidet das Recht — das ist
+   Konzept 10, die Klammer, und der Grund, warum sie im Plan steht.
+
+Nebenwirkung, die im ursprünglichen Modell fehlte: A und B werden durch das System billiger,
+weil Verwaltung, Fristen und Zahlen nicht mehr an der Zeit des CEO hängen.
