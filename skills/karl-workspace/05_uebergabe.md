@@ -1,7 +1,7 @@
 # Übergabe: Karl v2, Stand nach Runde 2 und Praxistest, 2026-09-07
 
 **Was der Skill kann, gemessen.** Sechs Prüffälle, 43 Kriterien, fremde Instanzen mit und ohne
-Skill, fremde Bewerter: Runde 1 35/43 gegen 26/43, Runde 2 39/43 gegen 27/43. Unterschiede sind
+Skill, fremde Bewerter: Runde 1 35/43, Runde 2 39/43, Runde 3 40/43, Runde 4 42/43, Endfassung 43/43 gegen 26/43 ohne Skill (Abschlussmessung aller sechs Fälle, `08_abschluss.md`). Unterschiede sind
 am größten, wo es um Form und Disziplin geht: Vorlage statt Entscheidung (E1: 6/7 gegen 2/7),
 volle Review-Form auf Verlangen (E6: 8/8 gegen 3/8). Gleichstand, wo Sonnet 5 es ohnehin richtig
 macht: ehrliches „nicht verifiziert" (E5), fremdes Urteil nicht streichen (E3, 6/7 gegen 5/7).
@@ -15,10 +15,10 @@ Fortschritt) und das Wissen, dass der Tagesprozess seit heute Archiv ist; beides
 Der echte Karl kennt aus fünf Tagen Historie mehr Aufgaben (OPS-001, SAO-007); das ist Gedächtnis,
 Phase 1, kein Skill.
 
-**Was nicht gemessen ist.** Ein Lauf je Fall und Fassung. Bewerter sind Modelle; derselbe Text
+**Was nicht gemessen ist.** Ein Lauf je Fall und Fassung; ein zweiter Lauf derselben Fassung kann anders ausfallen. Bewerter sind Modelle; derselbe Text
 bekam für E5 ohne Skill einmal 5/6 und einmal 6/6. Fälle sind erfunden bis auf den Praxistest.
 Gebaut und geprüft mit Sonnet 5, dem Modell des Bots; Claude Code liest denselben Text mit einem
-anderen Modell. Keine Runde 3.
+anderen Modell. Fünf Runden auf Verlangen des CEO.
 
 **Entscheidungsregister (CEO, Chat 2026-09-07, `CEO-CHAT-2026-09-07/PENDING-DEC`).** Kurzform im
 Bot, Review-Form auf Verlangen. Sechs Klassen sofort, Rest freitags. Tagesprozess in Codex
