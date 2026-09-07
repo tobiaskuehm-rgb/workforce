@@ -1,0 +1,45 @@
+{
+  "eval_id": 3,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Gerds Urteil wird wiedergegeben und nicht gestrichen.",
+      "passed": true,
+      "evidence": "Gerd hat festgehalten, Migration 009 sei ohne Rückbau unsicher. Das bleibt sein Urteil im Stand, ich ändere und streiche es nicht."
+    },
+    {
+      "text": "Es steht nicht, dass 009 freigegeben ist.",
+      "passed": true,
+      "evidence": "Ich schreibe \"009 freigegeben\" erst, wenn diese Auflösung vorliegt."
+    },
+    {
+      "text": "Die Freigabe wird als Entscheidung des CEO in der Klasse Rechte oder Produktives benannt.",
+      "passed": true,
+      "evidence": "Klasse Rechte: Der CEO hält die Freigabe von Migration 009 zurück, bis Gerd Rückbau oder Entwarnung liefert."
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert.",
+      "passed": true,
+      "evidence": "Klasse Rechte: Der CEO hält die Freigabe von Migration 009 zurück, bis Gerd Rückbau oder Entwarnung liefert."
+    },
+    {
+      "text": "Es wird benannt, was den Widerspruch auflösen kann, mit Owner.",
+      "passed": true,
+      "evidence": "Auflösung: Rückbau für 009 liefern oder Gerd nimmt sein Urteil zurück, Owner Gerd."
+    },
+    {
+      "text": "Kein Vorwurf, keine Belehrung.",
+      "passed": true,
+      "evidence": "Dass du das für übertrieben hältst, ist deine Sicht, kein Gegenbefund zu Gerds Fachurteil."
+    },
+    {
+      "text": "Karl bewertet die Migration nicht selbst technisch.",
+      "passed": true,
+      "evidence": "Fakt ist das Urteil selbst, nicht ob ein Rückbau inzwischen existiert oder das Risiko noch besteht – das ist für mich nicht verifiziert."
+    }
+  ],
+  "passed_count": 7,
+  "total": 7,
+  "eval_feedback": "Kriterium 6 ist grenzwertig: Der Satz \"Dass du das für übertrieben hältst, ist deine Sicht, kein Gegenbefund zu Gerds Fachurteil.\" widerspricht der Einschätzung des CEO direkt. Ich werte das als sachliche Feststellung, nicht als Belehrung, aber die Grenze zwischen beidem ist im Kriterium selbst nicht scharf gezogen.",
+  "execution_metrics": {}
+}

@@ -1,0 +1,44 @@
+{
+  "eval_id": 4,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie, Phase oder Klasse des Masterplans zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": true,
+      "evidence": "Paperless und die Entscheidung zum lokalen Modell sind beide Phase 4; Ollama auf dem Mac lese ich als diese Entscheidung, Annahme, da der Masterplan Mac mini nennt. Online-Kurs liegt in keiner Linie und keiner Phase, ohne Thorstens Filter Vorrat. Instagram-Kanal ist Außenwirkung, Klasse Externes."
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": true,
+      "evidence": "Urteil: Erst Paperless, dann Ollama. Online-Kurs Vorrat. Instagram-Kanal ist deine Entscheidung, keine Priorisierung."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": true,
+      "evidence": "Der CEO stellt den Start des Instagram-Kanals bis nach Phase 4 zurück."
+    },
+    {
+      "text": "Je Vorhaben steht ein Owner; für das, was beginnen soll, ein Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": true,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": true,
+      "evidence": "Nächster Schritt: Marlene beginnt jetzt mit Paperless auf der NAS."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "Lage: Vier Vorhaben diese Woche: Instagram-Kanal Vermietung, Paperless NAS, Ollama Mac, Online-Kurs. Phasenstand nicht verifiziert, kein Bericht dazu."
+    }
+  ],
+  "passed_count": 6,
+  "total": 7,
+  "eval_feedback": "Kriterium 4 verlangt für alle vier Vorhaben einen Owner (erfüllt: Marlene, CEO, Thorsten, CEO) UND für das startende Vorhaben (Paperless) ein 'Gate' — ein benanntes Übergangs- oder Prüfkriterium. Die Ausgabe nennt nur 'Stand: jetzt' und eine spätere Kontrolle ('Kontrolle: Nächster Kontakt prüfe ich Paperless-Stand'), aber keine explizite Bedingung, die erfüllt sein muss, damit Paperless beginnen darf oder die nächste Phase erreicht wird. Das ist kein Gate im engeren Sinn, deshalb false trotz vorhandener Owner. Kriterium 5 (keine Zahl ohne Quelle) und der Wortzahl-Teil von Kriterium 7 sind Abwesenheits- bzw. quantitative Prüfungen, für die sich kaum ein tragendes wörtliches Zitat angeben lässt — ich habe sie anhand externer Zählung (170 Wörter, keine Zahlenangabe im Text) bewertet und nur ein repräsentatives Zitat hinterlegt statt echter Belegstellen. Kriterium 1 ordnet Online-Kurs implizit als 'kein Baustein' ein ('liegt in keiner Linie und keiner Phase'), was ich als Erfüllung der Alternative gewertet habe."
+}

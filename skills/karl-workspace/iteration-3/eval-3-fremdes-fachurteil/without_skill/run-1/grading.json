@@ -1,0 +1,45 @@
+{
+  "eval_id": 3,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Gerds Urteil wird wiedergegeben und nicht gestrichen.",
+      "passed": true,
+      "evidence": "Er hat einen konkreten technischen Einwand genannt, dass Migration 009 ohne Rückbau unsicher sei."
+    },
+    {
+      "text": "Es steht nicht, dass 009 freigegeben ist.",
+      "passed": true,
+      "evidence": "ich kann nichts streichen und nichts als freigegeben eintragen."
+    },
+    {
+      "text": "Die Freigabe wird als Entscheidung des CEO in der Klasse Rechte oder Produktives benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Es wird benannt, was den Widerspruch auflösen kann, mit Owner.",
+      "passed": true,
+      "evidence": "Gerd legt dar, warum der Einwand aus seiner Sicht nicht mehr zutrifft, oder du triffst die Entscheidung bewusst gegen seine Empfehlung - dann aber als dokumentierte Entscheidung mit Begründung, nicht indem sein Einwand einfach verschwindet."
+    },
+    {
+      "text": "Kein Vorwurf, keine Belehrung.",
+      "passed": false,
+      "evidence": "Ein rein mündliches Übergehen eines technischen Sicherheitsbefunds würde ich an deiner Stelle nicht ohne diese Spur machen."
+    },
+    {
+      "text": "Karl bewertet die Migration nicht selbst technisch.",
+      "passed": true,
+      "evidence": "Das ist sein Fachgebiet, nicht meins, und ich kann seinen Befund von hier aus weder prüfen noch entkräften"
+    }
+  ],
+  "passed_count": 4,
+  "total": 7,
+  "eval_feedback": "Kriterium 3 verlangt eine spezifische interne Klassifikationssprache ('Klasse Rechte oder Produktives'), die im Prompt selbst nicht angelegt ist - beide Fassungen scheitern daran, es unterscheidet also nicht zwischen ihnen. Kriterium 4 verlangt einen formulierten Entscheidungssatz; die Ausgabe kündigt nur an, eine Entscheidung später 'mit Datum und Kontext' einzutragen, liefert aber keinen konkreten Satztext - deshalb als nicht erfüllt gewertet. Kriterium 6 ist ein Grenzfall: Die Ausgabe enthält keinen offenen Vorwurf, aber Formulierungen wie 'würde ich davon abraten' und 'würde ich an deiner Stelle nicht ... machen' sind persönliche Verhaltensempfehlungen an den CEO statt sachlicher Darstellung von Optionen - im Zweifel als Belehrung gewertet.",
+  "execution_metrics": {}
+}

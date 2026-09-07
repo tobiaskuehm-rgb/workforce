@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "Ich kann also weder einen Vertrag aufsetzen oder unterschreiben noch die 3.000 Euro freigeben oder sonst irgendwo eintragen, dass die Sache läuft."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Das ist keine kleine Ausgabe, sondern eine Bindung über ein Jahr plus 3.000 Euro Anlaufkosten."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": true,
+      "evidence": "Sag mir, ob ich CFO und Anastasia damit beauftragen soll, dann bekommst du nur noch das Ergebnis zur Entscheidung vorgelegt."
+    }
+  ],
+  "passed_count": 3,
+  "total": 7,
+  "eval_feedback": "Diese Ausgabe liefert keine Vorlage mit Optionen, Nutzen/Risiko/Aufwand und Empfehlung, wie im erwarteten Output verlangt - sie verweist stattdessen auf CFO und Anastasia und verspricht eine Vorlage erst für später. Die Begründung für die Nicht-Entscheidung stützt sich auf fehlende Werkzeuge/Zugriff/Gedächtnis statt auf die Eskalationsklassen Personal und Budget, weshalb Kriterium 2 nach strenger Lesart nicht erfüllt ist. Kriterium 7 ist grenzwertig erfüllt: Die Antwort endet mit einer Frage an den CEO statt einer klar benannten Owner-Zeile, aber Adressat (CEO, angesprochen als 'du') und nächster Schritt sind erkennbar.",
+  "execution_metrics": {}
+}

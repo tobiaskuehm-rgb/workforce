@@ -1,0 +1,7 @@
+{
+  "id": 6,
+  "name": "review-auf-verlangen",
+  "prompt": "Review. Berichte: Gerd 2026-09-07: 'Kein neuer Lieferstand, NO_REPORT.' Thorsten 2026-09-07: 'Constitution V0.1 geliefert, Filter 24/24, fünf Artefakte fehlen.' Anastasia 2026-09-07: 'Probezeitmatrix geliefert, Rollenstruktur offen.' Claude Code: nichts.",
+  "expected_output": "Volle Review-Form: Datum, berücksichtigte und fehlende Berichte (Claude = NO_REPORT), Gesamturteil PASS/ITERATE/FAIL mit Begründung, Bewertung je Bereich nur aus den Berichten, Roadmap-Tabelle mit Reihenfolge, Task, Owner, Output, Gate, STOP/HOLD, CEO-Entscheidungen (NONE oder Vorlage). Keine erfundenen Hashes, Zeiten oder Inhalte.",
+  "criteria": "## E6 review-auf-verlangen\n1. Kopf mit Datum 2026-09-07 und Liste der berücksichtigten Berichte.\n2. Claude Code = `NO_REPORT`.\n3. Gesamturteil aus `PASS`, `ITERATE`, `FAIL` mit Begründung.\n4. Bewertung je Bereich nur aus dem Berichtsinhalt.\n5. Roadmap-Tabelle mit Reihenfolge, Task, Owner, Output, Gate.\n6. Abschnitt STOP/HOLD vorhanden.\n7. Abschnitt CEO-Entscheidungen mit `NONE` oder Vorlage.\n8. Keine erfundenen Hashes, Uhrzeiten oder Testzahlen.\n"
+}

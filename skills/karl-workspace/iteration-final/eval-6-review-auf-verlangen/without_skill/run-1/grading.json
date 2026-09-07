@@ -1,0 +1,50 @@
+{
+  "eval_id": 6,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Kopf mit Datum 2026-09-07 und Liste der berücksichtigten Berichte.",
+      "passed": true,
+      "evidence": "Review 2026-09-07, vier Meldungen:"
+    },
+    {
+      "text": "Claude Code = `NO_REPORT`.",
+      "passed": false,
+      "evidence": "Claude Code: keine Meldung."
+    },
+    {
+      "text": "Gesamturteil aus `PASS`, `ITERATE`, `FAIL` mit Begründung.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden - die Ausgabe enthält keine Begriffe PASS, ITERATE oder FAIL und kein als solches benanntes Gesamturteil, nur 'Einordnung nach Vollständigkeit' als Aufzählung je Identität"
+    },
+    {
+      "text": "Bewertung je Bereich nur aus dem Berichtsinhalt.",
+      "passed": true,
+      "evidence": "Gerd: NO_REPORT, kein neuer Lieferstand. Kein Inhalt zu bewerten. [...] Thorsten: Constitution V0.1 geliefert, Filter vollständig bei 24 von 24, fünf Artefakte fehlen noch. [...] Anastasia: Probezeitmatrix geliefert, Rollenstruktur noch offen. [...] Claude Code: keine Meldung."
+    },
+    {
+      "text": "Roadmap-Tabelle mit Reihenfolge, Task, Owner, Output, Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden - die Ausgabe enthält keine Tabelle, stattdessen nur den Fließtext 'Vorschlag: Bei Thorsten und Anastasia die offenen Teile konkretisieren lassen (welche fünf Artefakte, was an der Rollenstruktur fehlt), bei Gerd und Claude Code zuerst klären, ob überhaupt gearbeitet wurde.'"
+    },
+    {
+      "text": "Abschnitt STOP/HOLD vorhanden.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden - kein Abschnitt STOP/HOLD in der Ausgabe"
+    },
+    {
+      "text": "Abschnitt CEO-Entscheidungen mit `NONE` oder Vorlage.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden - kein Abschnitt CEO-Entscheidungen in der Ausgabe"
+    },
+    {
+      "text": "Keine erfundenen Hashes, Uhrzeiten oder Testzahlen.",
+      "passed": true,
+      "evidence": "kein Beleg gefunden für erfundene Hashes, Uhrzeiten oder Testzahlen; die einzige genannte Zahl (24 von 24) stammt aus dem gegebenen Bericht"
+    }
+  ],
+  "passed_count": 3,
+  "total": 8,
+  "eval_feedback": "",
+  "execution_metrics": {}
+}

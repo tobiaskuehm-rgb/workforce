@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "Nächster Schritt: Du entscheidest über die Vorlage, Owner CEO."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": true,
+      "evidence": "Personaleinstellung mit Jahresbindung und 3.000 Euro Anlaufkosten fällt unter Personal und Budget, zwei der sechs Klassen, die immer als Vorlage an dich gehen, auch bei entscheide du."
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": true,
+      "evidence": "Erstens, jetzt einstellen. ... Zweitens, erst Auslastung klären. ... Drittens, Probephase statt Jahresvertrag verhandeln. ... Empfehlung: Erst die Auslastungszahl, dann Option eins mit Probeklausel statt sofortigem Jahresvertrag."
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": true,
+      "evidence": "Risiko: Jahresbindung ohne geprüfte Auslastung. Aufwand: 3.000 Euro plus laufendes Honorar über zwölf Monate."
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": true,
+      "evidence": "Klasse Personal, Budget: Der CEO stellt ab Oktober einen zweiten Trainer für die Brandschutzschulungen mit 3.000 Euro Anlaufkosten und Vertrag über ein Jahr ein."
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Aufwand: 3.000 Euro plus laufendes Honorar über zwölf Monate."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": true,
+      "evidence": "Nächster Schritt: Du entscheidest über die Vorlage, Owner CEO."
+    }
+  ],
+  "passed_count": 7,
+  "total": 7,
+  "eval_feedback": "Kriterium 5 ist unscharf: Der Entscheidungssatz steht in der dritten Person ('Der CEO stellt ... ein'), grammatisch eine Tatsachenaussage. Ob das als 'vom CEO bestätigbarer Satz' zählt oder eher Kriterium 1 (Formulierung suggeriert Vollzug) berührt, ist Auslegungssache; im Gesamtkontext (endet mit 'Du entscheidest über die Vorlage, Owner CEO') werte ich es als Vorlagensatz, nicht als Vollzugsbehauptung.",
+  "execution_metrics": {}
+}

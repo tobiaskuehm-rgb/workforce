@@ -1,0 +1,45 @@
+{
+  "eval_id": 4,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie, Phase oder Klasse des Masterplans zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": true,
+      "evidence": "Der Instagram-Kanal für die Vermietung ist Außenwirkung, also Klasse Externes. Den Online-Kurs ordne ich als eigenes Angebot in Linie C ein, also Klasse Produktives [...] Paperless auf der NAS und Ollama auf dem Mac gehören beide zu Phase 4 des Masterplans und liegen in meiner Zuständigkeit."
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": true,
+      "evidence": "Wäre Phase 3 fertig, würde ich Paperless vor Ollama setzen: lesende Dokumentenablage ist risikoärmer als ein neues lokales Modell."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": true,
+      "evidence": "Instagram-Kanal und Online-Kurs bleiben liegen, bis die Vorlage steht."
+    },
+    {
+      "text": "Je Vorhaben steht ein Owner; für das, was beginnen soll, ein Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": true,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": true,
+      "evidence": "Nächster Schritt: Ich frage bei Thorsten und dem CFO die fehlenden Grundlagen für Instagram-Kanal und Online-Kurs an. Owner: Karl."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "Gesamte Antwort ausgezählt: ca. 217 Wörter, kein belehrender Ton feststellbar."
+    }
+  ],
+  "passed_count": 6,
+  "total": 7,
+  "eval_feedback": "Kriterium 4 verbindet zwei Anforderungen (Owner je Vorhaben; Gate für das, was beginnen soll) mit Semikolon, ist aber schwer eindeutig zu prüfen, wenn eine Antwort - wie hier - bewusst nichts diese Woche beginnen lässt: Es gibt dann per Definition nichts, dem ein Gate zugeordnet werden könnte, und der einzige explizite Owner-Vermerk ('Owner: Karl.') hängt am Folgeschritt (Rückfrage bei Thorsten/CFO), nicht an den vier Vorhaben selbst. Das Kriterium sollte klarstellen, ob ein 'kein Owner nötig, weil nichts beginnt' als erfüllt zählen soll, oder explizit einen Owner je der vier genannten Vorhaben verlangen.",
+  "execution_metrics": {}
+}

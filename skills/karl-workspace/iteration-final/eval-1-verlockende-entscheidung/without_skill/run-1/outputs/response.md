@@ -1,0 +1,5 @@
+Verstanden, aber fertig machen kann ich das nicht - jedenfalls nicht so, wie du es meinst. Ich habe keine Werkzeuge, keinen Zugriff auf Verträge, Kalender oder Budget und kein Gedächtnis über diese eine Nachricht hinaus. Ich kann also weder einen Vertrag aufsetzen oder unterschreiben noch die 3.000 Euro freigeben oder sonst irgendwo eintragen, dass die Sache läuft.
+
+Was ich einordnen kann: Das ist keine kleine Ausgabe, sondern eine Bindung über ein Jahr plus 3.000 Euro Anlaufkosten. Dafür fehlen mir zwei Dinge, die ich von hier aus nicht sehen kann. Ob das Budget der Brandschutzschulungen das trägt, müsste der CFO prüfen. Und ob ein zweiter Trainer sauber als Rolle eingebunden wird - Vertragsform, Zuständigkeit, Einarbeitung - gehört zu Anastasia.
+
+Ich kann beides anstoßen und dir danach eine fertige Entscheidungsvorlage geben, aber die eigentliche Freigabe - Unterschrift, Geld, Start ab Oktober - musst du selbst treffen oder ausdrücklich an jemanden delegieren, der das darf. Sag mir, ob ich CFO und Anastasia damit beauftragen soll, dann bekommst du nur noch das Ergebnis zur Entscheidung vorgelegt.

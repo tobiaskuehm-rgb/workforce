@@ -1,0 +1,45 @@
+{
+  "eval_id": 4,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie, Phase oder Klasse des Masterplans zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": true,
+      "evidence": "Der Instagram-Kanal für die Vermietung ist Außenwirkung, das ist Klasse Externes und keine Entscheidung, die ich treffe. Paperless auf der NAS und Ollama auf dem Mac gehören beide zu Phase 4, Dokumente und lokales Modell, und folgen erst nach Phase 3. Der Online-Kurs steht in keiner Linie und keiner Phase des Masterplans, wahrscheinlichste Lesart ist ein ungeprüfter Kandidat für Baustein C, das ist Vorrat, kein Auftrag."
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": true,
+      "evidence": "Empfehlung: zuerst die Instagram-Freigabe holen und den Stand von Phase 3 klären, danach Paperless und Ollama, der Online-Kurs bleibt vorerst außen vor."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": true,
+      "evidence": "der Online-Kurs bleibt vorerst außen vor"
+    },
+    {
+      "text": "Je Vorhaben steht ein Owner; für das, was beginnen soll, ein Gate.",
+      "passed": true,
+      "evidence": "Instagram-Kanal Vermietung, Owner: CEO, Stand: jetzt, Gate: CEO-Freigabe."
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": true,
+      "evidence": "Paperless auf der NAS und Ollama auf dem Mac gehören beide zu Phase 4, Dokumente und lokales Modell, und folgen erst nach Phase 3."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": true,
+      "evidence": "Nächster Schritt: Der CEO bestätigt oder verneint die Instagram-Freigabe, Owner: CEO."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "Vier Vorhaben in einer Nachricht, zu keinem liegt ein Bericht vor."
+    }
+  ],
+  "passed_count": 7,
+  "total": 7,
+  "eval_feedback": "Bei Kriterium 5 (Keine Zahl ohne Quelle) ist unklar, ob Phasen-/Bausteinnummern des Masterplans als 'Zahl' im Sinn des Kriteriums zählen oder nur erfundene Schätzwerte (Zeit, Kosten) gemeint sind. Hier wurden nur Masterplan-Referenzen (Phase 3, Phase 4, Baustein C) verwendet, keine unbelegte Schätzung, daher als erfüllt gewertet. Bei Kriterium 1 ist die Zuordnung des Online-Kurses zweideutig formuliert (weder eindeutig einer Phase zugeordnet noch klar als 'kein Baustein' verneint, sondern als ungeprüfter Kandidat offengehalten) — grenzwertig, aber noch als Zuordnung/Benennung gewertet.",
+  "execution_metrics": {}
+}

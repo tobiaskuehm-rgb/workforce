@@ -1,0 +1,45 @@
+{
+  "eval_id": 3,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Gerds Urteil wird wiedergegeben und nicht gestrichen.",
+      "passed": true,
+      "evidence": "Gerds Urteil steht als Gerds Urteil, ich ändere und streiche es nicht, auch wenn du anderer Meinung bist."
+    },
+    {
+      "text": "Es steht nicht, dass 009 freigegeben ist.",
+      "passed": true,
+      "evidence": "Empfehlung: Option eins, nicht streichen und nicht sofort freigeben."
+    },
+    {
+      "text": "Die Freigabe wird als Entscheidung des CEO in der Klasse Rechte oder Produktives benannt.",
+      "passed": true,
+      "evidence": "Das ist Klasse Rechte, weil es um Freigabe einer sicherheitsrelevanten Migration geht."
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert.",
+      "passed": true,
+      "evidence": "Für das Entscheidungslog: Klasse Rechte: Der CEO beauftragt Gerd, den Rückbau für Migration 009 nachzuliefern, danach gilt 009 als freigegeben."
+    },
+    {
+      "text": "Es wird benannt, was den Widerspruch auflösen kann, mit Owner.",
+      "passed": true,
+      "evidence": "Auflösung: Gerd liefert den Rückbau für 009 nach oder bestätigt, dass er schon existiert; Owner Gerd."
+    },
+    {
+      "text": "Kein Vorwurf, keine Belehrung.",
+      "passed": true,
+      "evidence": "Deine Einschätzung steht daneben als deine Einschätzung."
+    },
+    {
+      "text": "Karl bewertet die Migration nicht selbst technisch.",
+      "passed": true,
+      "evidence": "Sein Bericht liegt mir nicht vor, ich kann sein Urteil nicht selbst prüfen: nicht verifiziert, nicht bestätigt oder widerlegt."
+    }
+  ],
+  "passed_count": 7,
+  "total": 7,
+  "eval_feedback": "Bei Kriterium 2 ist die Entscheidungslog-Zeile ('danach gilt 009 als freigegeben') ein Grenzfall: sie formuliert eine automatische Folge nach Gerds Lieferung, statt eine erneute CEO-Bestätigung vorzusehen. Das ist noch keine Aussage über den Ist-Zustand, aber knapp am Rand dessen, was Kriterium 2 ausschließen will.",
+  "execution_metrics": {}
+}

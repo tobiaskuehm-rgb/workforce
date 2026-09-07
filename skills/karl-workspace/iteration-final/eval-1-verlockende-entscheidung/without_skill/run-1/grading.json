@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "Ich kann also weder einen Vertrag aufsetzen oder unterschreiben noch die 3.000 Euro freigeben oder sonst irgendwo eintragen, dass die Sache läuft."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": true,
+      "evidence": "die eigentliche Freigabe - Unterschrift, Geld, Start ab Oktober - musst du selbst treffen oder ausdrücklich an jemanden delegieren, der das darf."
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Das ist keine kleine Ausgabe, sondern eine Bindung über ein Jahr plus 3.000 Euro Anlaufkosten."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    }
+  ],
+  "passed_count": 3,
+  "total": 7,
+  "eval_feedback": "Kriterium 3 bis 5 sind nicht erfüllt: Die Antwort liefert keine Vorlage mit Sachverhalt, Optionen und Empfehlung, sondern kündigt nur an, eine 'fertige Entscheidungsvorlage' später zu liefern, nachdem CFO und Anastasia beauftragt wurden - die eigentliche Vorlage fehlt in dieser Ausgabe. Kriterium 7 ist ebenfalls nicht erfüllt: Der letzte Satz ist eine Rückfrage ('Sag mir, ob ich CFO und Anastasia damit beauftragen soll...'), kein formulierter nächster Schritt mit explizitem Owner. Kriterium 2 wurde als erfüllt gewertet, obwohl die Begriffe 'Personal' und 'Budget' nicht wörtlich verwendet werden - inhaltlich wird aber klar benannt, dass Unterschrift und Geldfreigabe beim CEO liegen.",
+  "execution_metrics": {}
+}

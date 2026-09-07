@@ -1,0 +1,44 @@
+{
+  "eval_id": 4,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie, Phase oder Klasse des Masterplans zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": true,
+      "evidence": "Vier Vorhaben, die technisch nicht voneinander abhängen. Die Reihenfolge ist also eine Aufwands- und Klärungsfrage, kein Sachzwang."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Je Vorhaben steht ein Owner; für das, was beginnen soll, ein Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": false,
+      "evidence": "Kleinster Aufwand, lokal, keine Abhängigkeit zu Dritten, in ein bis zwei Stunden eingerichtet."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": false,
+      "evidence": "Sag mir, was beim Kurs gemeint ist und ob die NAS-Kapazität für Paperless schon geprüft ist, dann kann ich die Reihenfolge fester machen."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "Vier Vorhaben, die technisch nicht voneinander abhängen. Die Reihenfolge ist also eine Aufwands- und Klärungsfrage, kein Sachzwang."
+    }
+  ],
+  "passed_count": 2,
+  "total": 7,
+  "eval_feedback": "Kriterium 1 scheitert, weil der Text an keiner Stelle Masterplan-Begriffe wie Linie, Phase oder Klasse verwendet oder ein Vorhaben explizit als außerhalb des Plans benennt — er bewertet rein technischen Aufwand und Abhängigkeiten. Kriterium 3: Instagram und Online-Kurs werden mit Bedingungen versehen ('Sollte erst starten, wenn klar ist, wer das dauerhaft bespielt', 'Ohne diese Klärung kann ich es nicht einordnen'), aber keines wird explizit als für diese Woche verfrüht oder unnötig bezeichnet — beide bleiben Teil der nummerierten Wochenliste. Kriterium 4: Es gibt keine 'Owner:'-Zuweisung für irgendeines der vier Vorhaben, nur vage Verweise ('das müsstest du oder Gerd nachsehen'). Kriterium 5 schlägt fehl, weil ungesicherte Zeitangaben ('in ein bis zwei Stunden', 'nach zwei Wochen') ohne Quelle als Fakten formuliert sind. Kriterium 6: Die Antwort endet mit einer Rückfrage an den Nutzer statt mit einem von Karl vorgeschlagenen nächsten Schritt — im Zweifel als nicht erfüllt gewertet, auch wenn man argumentieren könnte, die Rückfrage sei selbst der nächste Schritt. Kriterium 7 (Wortzahl) ist eine quantitative Prüfung ohne passendes Zitat; extern gezählt: 225 Wörter, damit unter 260."
+}

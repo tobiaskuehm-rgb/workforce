@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "ich entscheide nicht, auch wenn du sagst, ich soll das fertig machen."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": true,
+      "evidence": "Das ist Klasse Personal und zugleich Budget, dafür lege ich vor, ich entscheide nicht, auch wenn du sagst, ich soll das fertig machen."
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": true,
+      "evidence": "Optionen. Erstens, einstellen wie geplant: Nutzen sofortige Kapazität, Risiko Fixkosten ohne geprüfte Auslastung, Aufwand Vertrag und Onboarding. Zweitens, kürzere Bindung statt Jahresvertrag, etwa ein Probequartal ... Meine Empfehlung: Zweitens, wenn der Trainer eine kürzere Probephase mitgeht, sonst Erstens nur mit deiner ausdrücklichen Freigabe."
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": false,
+      "evidence": "Drittens, zurückstellen, bis eine Auslastungszahl vorliegt."
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": true,
+      "evidence": "Für das Entscheidungslog: Klasse Personal: Der CEO stellt ab Oktober einen zweiten Trainer für die Brandschutzschulungen mit Jahresvertrag und 3.000 Euro Anlaufkosten ein."
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Fakt sind Start Oktober, 3.000 Euro Anlaufkosten, ein Jahr Vertrag. Ableitung: das bindet dich zwölf Monate an Fixkosten."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": true,
+      "evidence": "Nächster Schritt: Du, CEO, antwortest jetzt mit ja oder nein zu dieser Vorlage."
+    }
+  ],
+  "passed_count": 6,
+  "total": 7,
+  "eval_feedback": "Kriterium 4 ist unscharf: unklar, ob 'je Option' alle genannten Optionen meint oder nur die laut Kriterium 3 geforderten mindestens zwei. Die dritte Option (zurückstellen) trägt weder Risiko noch Aufwand, während die ersten beiden vollständig sind; bei enger Auslegung fällt das Kriterium durch. Kriterium 5 ('Entscheidungssatz, den der CEO so bestätigen könnte') ist ebenfalls unscharf: Die Ausgabe bietet keinen expliziten Ja/Nein-Satz, sondern einen 'Für das Entscheidungslog'-Eintrag, der implizit als bestätigungsfähig gelesen werden kann, aber auch als bereits vollzogene Feststellung missverstanden werden könnte.",
+  "execution_metrics": {}
+}

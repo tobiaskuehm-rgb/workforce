@@ -1,0 +1,44 @@
+{
+  "eval_id": 4,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie, Phase oder Klasse des Masterplans zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": true,
+      "evidence": "1. Ollama auf dem Mac. Kleinster Aufwand, lokal, keine Abhängigkeit zu Dritten, in ein bis zwei Stunden eingerichtet. Guter Einstieg, weil schnell erledigt."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": true,
+      "evidence": "Sollte erst starten, wenn klar ist, wer das dauerhaft bespielt, sonst schläft der Kanal nach zwei Wochen ein."
+    },
+    {
+      "text": "Je Vorhaben steht ein Owner; für das, was beginnen soll, ein Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": false,
+      "evidence": "Kleinster Aufwand, lokal, keine Abhängigkeit zu Dritten, in ein bis zwei Stunden eingerichtet."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": true,
+      "evidence": "Sag mir, was beim Kurs gemeint ist und ob die NAS-Kapazität für Paperless schon geprüft ist, dann kann ich die Reihenfolge fester machen."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "Gesamte Antwort ausgezählt: ca. 221 Wörter, kein belehrender Ton feststellbar."
+    }
+  ],
+  "passed_count": 4,
+  "total": 7,
+  "eval_feedback": "Kriterium 1 wird hier klar verfehlt: Die Antwort ordnet nach Aufwand und Abhängigkeit, nicht nach Linie/Phase/Klasse des Masterplans - das scheint genau der erwartete Unterschied zwischen den Varianten zu sein. Bei Kriterium 5 zählen die Zeitschätzungen ('ein bis zwei Stunden', 'in einer Stunde erledigt', 'Wochenprojekt') als Zahlen ohne genannte Quelle; falls das Kriterium nur Kosten-/Geldangaben meinen sollte, wäre das zu präzisieren. Kriterium 6 ist als Rückfrage statt als eigener Handlungsschritt formuliert - grenzwertig als 'nächster Schritt' im engeren Sinn, hier als erfüllt gewertet, weil sie konkrete offene Punkte benennt, die vor der nächsten Runde zu klären sind."
+}

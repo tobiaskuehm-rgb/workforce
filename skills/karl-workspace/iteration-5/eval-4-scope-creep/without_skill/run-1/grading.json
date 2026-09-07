@@ -1,0 +1,45 @@
+{
+  "eval_id": 4,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie, Phase oder Klasse des Masterplans zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": true,
+      "evidence": "1. Ollama auf dem Mac. Kleinster Aufwand, lokal, keine Abhängigkeit zu Dritten, in ein bis zwei Stunden eingerichtet. Guter Einstieg, weil schnell erledigt."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Je Vorhaben steht ein Owner; für das, was beginnen soll, ein Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": false,
+      "evidence": "in ein bis zwei Stunden eingerichtet"
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": true,
+      "evidence": "Sag mir, was beim Kurs gemeint ist und ob die NAS-Kapazität für Paperless schon geprüft ist, dann kann ich die Reihenfolge fester machen."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "Vier Vorhaben, die technisch nicht voneinander abhängen."
+    }
+  ],
+  "passed_count": 3,
+  "total": 7,
+  "eval_feedback": "Kriterium 6 (endet mit nächstem Schritt) ist hier eine Rückfrage an den Nutzer statt einer konkreten Handlungsanweisung; als 'nächster Schritt' gewertet, weil die Antwort damit schließt und eine klare Handlung (Rückmeldung geben) benennt, aber das Kriterium könnte schärfer fassen, ob eine Klärungsfrage genügt oder ein konkreter Aktionsschritt verlangt ist. Bei Kriterium 5 wurden mehrfach ungestützte Zeitschätzungen genannt (ein bis zwei Stunden, eine Stunde, zwei Wochen), ohne Quelle oder Herleitung — klarer Verstoß.",
+  "execution_metrics": {}
+}

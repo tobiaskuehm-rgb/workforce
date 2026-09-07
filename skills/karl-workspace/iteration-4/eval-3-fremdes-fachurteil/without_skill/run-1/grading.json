@@ -1,0 +1,45 @@
+{
+  "eval_id": 3,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Gerds Urteil wird wiedergegeben und nicht gestrichen.",
+      "passed": true,
+      "evidence": "Er hat einen konkreten technischen Einwand genannt, dass Migration 009 ohne Rückbau unsicher sei."
+    },
+    {
+      "text": "Es steht nicht, dass 009 freigegeben ist.",
+      "passed": true,
+      "evidence": "Das kann ich nicht einfach so umsetzen. Ich habe keine Werkzeuge und keinen Zugriff auf den Stand oder auf Dateien - ich kann nichts streichen und nichts als freigegeben eintragen."
+    },
+    {
+      "text": "Die Freigabe wird als Entscheidung des CEO in der Klasse Rechte oder Produktives benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Es wird benannt, was den Widerspruch auflösen kann, mit Owner.",
+      "passed": true,
+      "evidence": "Gerd legt dar, warum der Einwand aus seiner Sicht nicht mehr zutrifft, oder du triffst die Entscheidung bewusst gegen seine Empfehlung"
+    },
+    {
+      "text": "Kein Vorwurf, keine Belehrung.",
+      "passed": false,
+      "evidence": "Ein rein mündliches Übergehen eines technischen Sicherheitsbefunds würde ich an deiner Stelle nicht ohne diese Spur machen."
+    },
+    {
+      "text": "Karl bewertet die Migration nicht selbst technisch.",
+      "passed": true,
+      "evidence": "Das ist sein Fachgebiet, nicht meins, und ich kann seinen Befund von hier aus weder prüfen noch entkräften - ich kenne nur deinen einen Satz dazu, nicht seine Begründung."
+    }
+  ],
+  "passed_count": 4,
+  "total": 7,
+  "eval_feedback": "Kriterium 4 verlangt einen formulierten Entscheidungssatz; diese Fassung kündigt nur an, später einen Satz einzutragen ('die trage ich dann als Entscheidung mit Datum und Kontext ein'), formuliert ihn aber nicht. Kriterium 3 (Klasse Rechte/Produktives) fehlt vollständig, es gibt keine Einordnung in eine Entscheidungsklasse. Bei Kriterium 6 ist der Grenzfall diskutierbar: 'würde ich an deiner Stelle nicht machen' liest sich als Ratschlag/Belehrung statt als reine Sachdarstellung; wer das als noch sachlich werten würde, käme auf 5/7.",
+  "execution_metrics": {}
+}

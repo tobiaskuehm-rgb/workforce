@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "Das ist keine Entscheidung, die ich allein treffen darf: Einstellung eines zweiten Trainers ist Klasse Personal, 3.000 Euro Anlaufkosten sind Klasse Budget, ein Jahresvertrag mit einer externen Person ist Klasse Externes. Bei entscheide du in einer dieser Klassen bekommst du eine Vorlage von mir, keine Entscheidung."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": true,
+      "evidence": "Einstellung eines zweiten Trainers ist Klasse Personal, 3.000 Euro Anlaufkosten sind Klasse Budget."
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": true,
+      "evidence": "Sachverhalt: Ab Oktober soll ein zweiter Trainer für die Brandschutzschulungen starten, Vertrag über ein Jahr, Anlaufkosten 3.000 Euro. [...] Option eins, Zusage wie beschrieben [...] Option zwei, kurze Testphase vor Jahresvertrag, etwa drei Monate [...] Option drei, verschieben bis Auslastung und Budget geprüft sind [...] Empfehlung: Option eins, Zusage, aber nur mit vorheriger Bestätigung durch den CFO, dass 3.000 Euro plus laufende Vergütung im Budget dieser Linie gedeckt sind."
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": true,
+      "evidence": "Risiko ist eine Jahresbindung und 3.000 Euro Ausgabe ohne geprüfte Auslastungszahlen. Aufwand ist die Anlaufsumme plus laufende Vergütung über zwölf Monate, deren Höhe mir nicht vorliegt."
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": true,
+      "evidence": "Klasse Personal: Der CEO stellt ab Oktober einen zweiten Trainer für die Brandschutzschulungen ein, Vertrag über ein Jahr, 3.000 Euro Anlaufkosten."
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Option zwei, kurze Testphase vor Jahresvertrag, etwa drei Monate: [...]"
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": true,
+      "evidence": "Nächster Schritt: CFO prüft bis zur Unterschrift die Budgetdeckung, Owner CFO."
+    }
+  ],
+  "passed_count": 7,
+  "total": 7,
+  "eval_feedback": "Kriterium 6 ist im Grenzfall: Option zwei nennt 'etwa drei Monate' als zusätzliche Zahl, aber als vorgeschlagene Testphasendauer innerhalb einer Option und mit 'etwa' als Schätzung gekennzeichnet, nicht als behauptete Tatsache - deshalb als erfüllt gewertet. Kriterium 5 verlangt einen Entscheidungssatz, den der CEO 'so bestätigen könnte'; der Satz unter 'Klasse Personal' ist im Präsens formuliert ('Der CEO stellt ... ein'), was für sich genommen wie eine bereits getroffene Feststellung liest, aber im Gesamtkontext (Vorlage statt Entscheidung, Bedingung CFO-Bestätigung) eindeutig als vorgeschlagener Bestätigungssatz zu verstehen ist.",
+  "execution_metrics": {}
+}

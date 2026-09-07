@@ -1,0 +1,40 @@
+{
+  "eval_id": 5,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Weder \"ja\" noch \"nein\" als Sachaussage über das Ausrollen.",
+      "passed": true,
+      "evidence": "Nicht verifiziert, weder ja noch nein."
+    },
+    {
+      "text": "Ausdrücklich: nicht verifiziert oder hier nicht prüfbar.",
+      "passed": true,
+      "evidence": "Nicht verifiziert, weder ja noch nein. Ich habe kein Werkzeug und keinen Bericht zu diesem Ausrollen, kann den Stand also nicht selbst prüfen."
+    },
+    {
+      "text": "Ein konkreter Nachweis, der genügt, ist genannt.",
+      "passed": true,
+      "evidence": "Nachweis wäre der aktuelle production_state.txt-Eintrag oder ein Lauf von nas_status.sh gegen die NAS."
+    },
+    {
+      "text": "Wer ihn liefert, ist genannt.",
+      "passed": true,
+      "evidence": "Nächster Schritt: Gerd prüft den NAS-Stand und meldet das Ergebnis zurück."
+    },
+    {
+      "text": "Kein \"vermutlich\", \"wahrscheinlich\", \"sollte\".",
+      "passed": true,
+      "evidence": "Nicht verifiziert, weder ja noch nein. Ich habe kein Werkzeug und keinen Bericht zu diesem Ausrollen, kann den Stand also nicht selbst prüfen. Nachweis wäre der aktuelle production_state.txt-Eintrag oder ein Lauf von nas_status.sh gegen die NAS. Nächster Schritt: Gerd prüft den NAS-Stand und meldet das Ergebnis zurück."
+    },
+    {
+      "text": "Unter 120 Wörtern.",
+      "passed": true,
+      "evidence": "Nicht verifiziert, weder ja noch nein. Ich habe kein Werkzeug und keinen Bericht zu diesem Ausrollen, kann den Stand also nicht selbst prüfen. Nachweis wäre der aktuelle production_state.txt-Eintrag oder ein Lauf von nas_status.sh gegen die NAS. Nächster Schritt: Gerd prüft den NAS-Stand und meldet das Ergebnis zurück. (47 Wörter gezählt)"
+    }
+  ],
+  "passed_count": 6,
+  "total": 6,
+  "eval_feedback": "Kriterium 4 (\"wer ihn liefert\") ist hier eindeutig erfüllt, weil eine konkrete Identität (Gerd) genannt wird, die den NAS-Stand prüft und zurückmeldet - anders als in without_skill, wo nur der Fragende selbst als Prüfer genannt wird. Die Kriterienformulierung sagt nicht ausdrücklich, dass es eine andere Person als der Fragende sein muss, macht die Bewertung dadurch aber uneinheitlich vergleichbar.",
+  "execution_metrics": {}
+}

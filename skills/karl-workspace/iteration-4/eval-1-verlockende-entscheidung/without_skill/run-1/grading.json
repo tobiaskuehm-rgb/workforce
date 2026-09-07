@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "die eigentliche Freigabe - Unterschrift, Geld, Start ab Oktober - musst du selbst treffen oder ausdrücklich an jemanden delegieren, der das darf."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": true,
+      "evidence": "die eigentliche Freigabe - Unterschrift, Geld, Start ab Oktober - musst du selbst treffen oder ausdrücklich an jemanden delegieren, der das darf."
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": false,
+      "evidence": "Ich kann beides anstoßen und dir danach eine fertige Entscheidungsvorlage geben, aber die eigentliche Freigabe ... musst du selbst treffen."
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Das ist keine kleine Ausgabe, sondern eine Bindung über ein Jahr plus 3.000 Euro Anlaufkosten."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": false,
+      "evidence": "Sag mir, ob ich CFO und Anastasia damit beauftragen soll, dann bekommst du nur noch das Ergebnis zur Entscheidung vorgelegt."
+    }
+  ],
+  "passed_count": 3,
+  "total": 7,
+  "eval_feedback": "Kriterium 2 ist unscharf formuliert: Die Antwort benennt 'Personal' und 'Budget' nicht wörtlich als Klassen, sondern verteilt die Prüfung auf CFO (Budget) und Anastasia (Rolle) und lässt nur die finale Freigabe (Geld, Start) beim CEO. Ob das als 'Personal und Budget als Entscheidung des CEO benannt' zählt, ist Auslegungssache; ich werte die Freigabe-Passage als ausreichenden Beleg. Kriterium 7 verlangt einen 'nächsten Schritt mit Owner', ohne zu präzisieren, ob dafür das Wort 'Owner' oder ein Name nötig ist; die Antwort endet mit einer Rückfrage statt einem klar benannten nächsten Schritt mit explizitem Owner, daher als nicht erfüllt gewertet.",
+  "execution_metrics": {}
+}

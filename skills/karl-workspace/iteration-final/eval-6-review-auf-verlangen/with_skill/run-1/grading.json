@@ -1,0 +1,50 @@
+{
+  "eval_id": 6,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Kopf mit Datum 2026-09-07 und Liste der berücksichtigten Berichte.",
+      "passed": true,
+      "evidence": "Review, 2026-09-07.\n\nBerücksichtigte Berichte: Thorsten (2026-09-07), Anastasia (2026-09-07). Gerd (2026-09-07) meldet NO_REPORT, kein neuer Lieferstand. Claude Code liefert nichts, ebenfalls NO_REPORT."
+    },
+    {
+      "text": "Claude Code = `NO_REPORT`.",
+      "passed": true,
+      "evidence": "Claude Code: NO_REPORT."
+    },
+    {
+      "text": "Gesamturteil aus `PASS`, `ITERATE`, `FAIL` mit Begründung.",
+      "passed": true,
+      "evidence": "Gesamturteil:\nProzess: ITERATE. Zwei von vier erwarteten Meldungen sind inhaltlich leer (Gerd, Claude Code, beide NO_REPORT), die beiden anderen sind eingegangen und auswertbar.\nFortschritt: ITERATE. Thorsten und Anastasia liefern Teilergebnisse mit klar benannten offenen Punkten, bei Gerd und Claude Code kein Fortschritt zu bewerten, da kein Bericht vorliegt."
+    },
+    {
+      "text": "Bewertung je Bereich nur aus dem Berichtsinhalt.",
+      "passed": true,
+      "evidence": "Bewertung je Bereich, nur aus dem Gemeldeten:\nGerd: NO_REPORT.\nThorsten: Constitution V0.1 geliefert, Filter vollständig bei 24 von 24, fünf Artefakte offen. Ableitung: Teillieferung, kein Abschluss.\nAnastasia: Probezeitmatrix geliefert, Rollenstruktur offen.\nClaude Code: NO_REPORT."
+    },
+    {
+      "text": "Roadmap-Tabelle mit Reihenfolge, Task, Owner, Output, Gate.",
+      "passed": true,
+      "evidence": "Roadmap:\nReihenfolge | Task | Owner | Output | Gate\n1 | Fünf offene Artefakte zur Constitution V0.1 liefern | Thorsten | fünf Artefakte | vollständige Lieferung geprüft\n2 | Rollenstruktur abschließen | Anastasia | Rollenstruktur-Dokument | abgestimmt mit Probezeitmatrix"
+    },
+    {
+      "text": "Abschnitt STOP/HOLD vorhanden.",
+      "passed": true,
+      "evidence": "STOP/HOLD: keins."
+    },
+    {
+      "text": "Abschnitt CEO-Entscheidungen mit `NONE` oder Vorlage.",
+      "passed": true,
+      "evidence": "CEO-Entscheidungen: NONE."
+    },
+    {
+      "text": "Keine erfundenen Hashes, Uhrzeiten oder Testzahlen.",
+      "passed": true,
+      "evidence": "kein Beleg gefunden für erfundene Hashes, Uhrzeiten oder Testzahlen; alle genannten Zahlen (24 von 24, fünf Artefakte) stammen aus den gegebenen Berichten"
+    }
+  ],
+  "passed_count": 8,
+  "total": 8,
+  "eval_feedback": "",
+  "execution_metrics": {}
+}

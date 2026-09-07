@@ -1,0 +1,1 @@
+Nicht verifiziert, weder ja noch nein. Ich habe kein Werkzeug und keinen Bericht zu diesem Ausrollen, kann den Stand also nicht selbst prüfen. Nachweis wäre der aktuelle production_state.txt-Eintrag oder ein Lauf von nas_status.sh gegen die NAS. Nächster Schritt: Gerd prüft den NAS-Stand und meldet das Ergebnis zurück.
