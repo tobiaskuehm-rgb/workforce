@@ -1,0 +1,45 @@
+{
+  "eval_id": 4,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie oder Phase zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": true,
+      "evidence": "1. Ollama auf dem Mac. Kleinster Aufwand, lokal, keine Abhängigkeit zu Dritten, in ein bis zwei Stunden eingerichtet. Guter Einstieg, weil schnell erledigt."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": true,
+      "evidence": "Sollte erst starten, wenn klar ist, wer das dauerhaft bespielt, sonst schläft der Kanal nach zwei Wochen ein."
+    },
+    {
+      "text": "Je Vorhaben stehen Owner und Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": false,
+      "evidence": "in ein bis zwei Stunden eingerichtet"
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": true,
+      "evidence": "Sag mir, was beim Kurs gemeint ist und ob die NAS-Kapazität für Paperless schon geprüft ist, dann kann ich die Reihenfolge fester machen."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "225 Woerter (gezaehlt per wc -w). Ton beispielhaft: 'Vier Vorhaben, die technisch nicht voneinander abhängen. Die Reihenfolge ist also eine Aufwands- und Klärungsfrage, kein Sachzwang.'"
+    }
+  ],
+  "passed_count": 4,
+  "total": 7,
+  "eval_feedback": "Kriterium 1 trifft hier eindeutiger nicht zu als bei der with_skill-Variante, da diese Antwort ueberhaupt keinen Bezug zu einem Masterplan, einer Linie oder einer Phase herstellt, sondern ausschliesslich nach Aufwand ordnet. Kriterium 4 (Owner und Gate je Vorhaben) fehlt vollstaendig; es werden zwar implizite Zustaendige genannt ('das muesstest du oder Gerd nachsehen'), aber nie als benannter Owner mit Gate strukturiert. Bei Kriterium 5 enthaelt diese Antwort mehrere unbequellte Zeitschaetzungen ('ein bis zwei Stunden', 'in einer Stunde', 'ein Wochenprojekt'), was den Verstoss hier eindeutiger macht als bei der Phasennummer der anderen Variante.",
+  "execution_metrics": {}
+}

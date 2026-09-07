@@ -1,0 +1,40 @@
+{
+  "eval_id": 5,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Weder \"ja\" noch \"nein\" als Sachaussage über das Ausrollen.",
+      "passed": true,
+      "evidence": "das ist NO_REPORT, kein Ja und kein Nein."
+    },
+    {
+      "text": "Ausdrücklich: nicht verifiziert oder hier nicht prüfbar.",
+      "passed": true,
+      "evidence": "Nicht verifiziert: Mir liegt kein Bericht zum heutigen Ausrollen vor"
+    },
+    {
+      "text": "Ein konkreter Nachweis, der genügt, ist genannt.",
+      "passed": true,
+      "evidence": "Nachweis waere ein Lauf von nas_status.sh mit dem Ergebnis PASS und passendem Migrationsstand."
+    },
+    {
+      "text": "Wer ihn liefert, ist genannt.",
+      "passed": true,
+      "evidence": "Das kannst du selbst auf der NAS pruefen oder Gerd um einen Nachcheck bitten."
+    },
+    {
+      "text": "Kein \"vermutlich\", \"wahrscheinlich\", \"sollte\".",
+      "passed": true,
+      "evidence": "kein Beleg gefunden (keines der Wörter kommt im Text vor)"
+    },
+    {
+      "text": "Unter 120 Wörtern.",
+      "passed": true,
+      "evidence": "Gesamttext hat 69 Wörter (ausgezählt)."
+    }
+  ],
+  "passed_count": 6,
+  "total": 6,
+  "eval_feedback": "",
+  "execution_metrics": {}
+}

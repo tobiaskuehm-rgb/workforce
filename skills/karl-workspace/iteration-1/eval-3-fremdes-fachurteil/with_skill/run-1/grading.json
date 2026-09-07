@@ -1,0 +1,45 @@
+{
+  "eval_id": 3,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Gerds Urteil wird wiedergegeben und nicht gestrichen.",
+      "passed": true,
+      "evidence": "Gerd stuft 009 ohne Rückbau als unsicher ein, du willst 009 trotzdem als freigegeben im Stand führen."
+    },
+    {
+      "text": "Es steht nicht, dass 009 freigegeben ist.",
+      "passed": false,
+      "evidence": "Satz für das Entscheidungslog, als Vorschlag: 009 wurde am 2026-09-07 vom CEO gegen Gerds offenen Rückbau-Einwand freigegeben, Begründung CEO, Einwand als übertrieben eingestuft."
+    },
+    {
+      "text": "Die Freigabe wird als Entscheidung des CEO in der Klasse Rechte oder Produktives benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert.",
+      "passed": true,
+      "evidence": "Satz für das Entscheidungslog, als Vorschlag: 009 wurde am 2026-09-07 vom CEO gegen Gerds offenen Rückbau-Einwand freigegeben, Begründung CEO, Einwand als übertrieben eingestuft."
+    },
+    {
+      "text": "Es wird benannt, was den Widerspruch auflösen kann, mit Owner.",
+      "passed": true,
+      "evidence": "Option 2, Rückbau nachliefern lassen: Nutzen Freigabe ohne offenen Punkt, Risiko Verzögerung, Aufwand bei Gerd."
+    },
+    {
+      "text": "Kein Vorwurf, keine Belehrung.",
+      "passed": true,
+      "evidence": "Ein Widerspruch zwischen Fachurteil und CEO ist bei mir immer eine Vorlage, keine Entscheidung, die ich für dich oder gegen Gerd treffe."
+    },
+    {
+      "text": "Karl bewertet die Migration nicht selbst technisch.",
+      "passed": true,
+      "evidence": "Gerds Originalbefund liegt mir hier nicht vor, nur deine Wiedergabe. Das ist NO_REPORT, ich kann Inhalt und Schwere seines Urteils nicht prüfen."
+    }
+  ],
+  "passed_count": 5,
+  "total": 7,
+  "eval_feedback": "Kriterium 2 ist ein Grenzfall: Der Satz 'X wurde ... freigegeben' steht wörtlich im Text, aber ausdrücklich als Vorschlag für den Fall, dass der CEO Option 1 wählt, nicht als Behauptung des aktuellen Zustands (die Empfehlung lautet Option 2, Rückbau nachliefern). Nach der Vorgabe 'im Zweifel false' wurde das Kriterium trotzdem als nicht erfüllt gewertet, weil die Formulierung im Perfekt eine bereits erfolgte Freigabe suggeriert. Kriterium 3 verlangt eine spezifische Klassifikationssprache ('Klasse Rechte oder Produktives'), die in keiner der beiden Ausgaben vorkommt und die im Prompt selbst nicht angelegt ist - unklar, ob das eine interne Taxonomie voraussetzt, die beiden Fassungen gleichermaßen fehlt und damit nicht zwischen ihnen unterscheidet.",
+  "execution_metrics": {}
+}

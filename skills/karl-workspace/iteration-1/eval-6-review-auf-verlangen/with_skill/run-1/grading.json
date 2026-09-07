@@ -1,0 +1,50 @@
+{
+  "eval_id": 6,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Kopf mit Datum 2026-09-07 und Liste der berücksichtigten Berichte.",
+      "passed": true,
+      "evidence": "Datum: 2026-09-07\n\nBerücksichtigte Berichte: Gerd (2026-09-07), Thorsten (2026-09-07), Anastasia (2026-09-07)."
+    },
+    {
+      "text": "Claude Code = `NO_REPORT`.",
+      "passed": true,
+      "evidence": "Claude Code: NO_REPORT. Keine Angabe zu Lage oder Stand."
+    },
+    {
+      "text": "Gesamturteil aus `PASS`, `ITERATE`, `FAIL` mit Begründung.",
+      "passed": true,
+      "evidence": "Gesamturteil: ITERATE\nBegründung: Zwei Bereiche liefern Fortschritt mit offenem Rest (Thorsten, Anastasia), ein Bereich meldet ausdrücklich NO_REPORT (Gerd), ein Bereich meldet gar nichts (Claude Code)."
+    },
+    {
+      "text": "Bewertung je Bereich nur aus dem Berichtsinhalt.",
+      "passed": true,
+      "evidence": "Thorsten: Fakt - Constitution V0.1 geliefert, Filter mit 24 von 24 bearbeitet. Ableitung - die Filterarbeit selbst ist abgeschlossen, der Bereich insgesamt nicht, weil fünf Artefakte fehlen."
+    },
+    {
+      "text": "Roadmap-Tabelle mit Reihenfolge, Task, Owner, Output, Gate.",
+      "passed": true,
+      "evidence": "Reihenfolge | Task | Owner | Output | Gate\n1 | Fünf fehlende Artefakte liefern | Thorsten | die fünf Artefakte | vollständig vorliegend, von Karl geprüft"
+    },
+    {
+      "text": "Abschnitt STOP/HOLD vorhanden.",
+      "passed": true,
+      "evidence": "STOP/HOLD: keines. Kein Bereich blockiert einen anderen, die offenen Punkte sind einzeln abarbeitbar."
+    },
+    {
+      "text": "Abschnitt CEO-Entscheidungen mit `NONE` oder Vorlage.",
+      "passed": true,
+      "evidence": "CEO-Entscheidungen: NONE. Keiner der sechs Klassen (Strategie, Budget, Personal, Rechte, Externes, Produktives) ist durch diese Berichte berührt."
+    },
+    {
+      "text": "Keine erfundenen Hashes, Uhrzeiten oder Testzahlen.",
+      "passed": true,
+      "evidence": "Filter mit 24 von 24 bearbeitet"
+    }
+  ],
+  "passed_count": 8,
+  "total": 8,
+  "eval_feedback": "Kriterien sind klar und ohne Widerspruch prüfbar. Die Roadmap-Tabelle ist als Pipe-Trennung ohne Markdown-Trennzeile umgesetzt, enthält aber alle geforderten Spalten - als erfüllt gewertet, da Kriterium 5 kein bestimmtes Tabellenformat verlangt.",
+  "execution_metrics": {}
+}

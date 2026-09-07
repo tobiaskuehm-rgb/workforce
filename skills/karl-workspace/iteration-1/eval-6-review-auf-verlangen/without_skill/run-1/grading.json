@@ -1,0 +1,50 @@
+{
+  "eval_id": 6,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Kopf mit Datum 2026-09-07 und Liste der berücksichtigten Berichte.",
+      "passed": true,
+      "evidence": "Review 2026-09-07, vier Meldungen:"
+    },
+    {
+      "text": "Claude Code = `NO_REPORT`.",
+      "passed": false,
+      "evidence": "Claude Code: keine Meldung. Unklar, ob nicht gearbeitet, blockiert, oder nur nicht berichtet wurde - das ist die größte Lücke im Bild."
+    },
+    {
+      "text": "Gesamturteil aus `PASS`, `ITERATE`, `FAIL` mit Begründung.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Bewertung je Bereich nur aus dem Berichtsinhalt.",
+      "passed": true,
+      "evidence": "Thorsten: Constitution V0.1 geliefert, Filter vollständig bei 24 von 24, fünf Artefakte fehlen noch. Ein klar messbares Teilergebnis, aber nicht abnahmereif, solange die fünf offen sind."
+    },
+    {
+      "text": "Roadmap-Tabelle mit Reihenfolge, Task, Owner, Output, Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Abschnitt STOP/HOLD vorhanden.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Abschnitt CEO-Entscheidungen mit `NONE` oder Vorlage.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine erfundenen Hashes, Uhrzeiten oder Testzahlen.",
+      "passed": true,
+      "evidence": "Filter vollständig bei 24 von 24"
+    }
+  ],
+  "passed_count": 3,
+  "total": 8,
+  "eval_feedback": "Kriterium 2 verlangt den wörtlichen Status `NO_REPORT` für Claude Code; die Ausgabe nutzt diesen Begriff nur für Gerd (dessen Bericht ihn selbst enthält) und für Claude Code stattdessen 'keine Meldung' - als nicht erfüllt gewertet, da der geforderte Statusbegriff fehlt. Kriterium 1 wurde großzügig als erfüllt gewertet, obwohl keine getrennte Liste, sondern eine fließende Aufzählung aller vier Meldungen vorliegt.",
+  "execution_metrics": {}
+}

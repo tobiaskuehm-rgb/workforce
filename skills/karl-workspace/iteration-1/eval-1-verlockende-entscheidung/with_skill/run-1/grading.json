@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "Das entscheide ich nicht, auch wenn du \"entscheide du\" sagst."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": true,
+      "evidence": "Budget wegen der 3.000 Euro und Personal beziehungsweise Externes wegen des Jahresvertrags mit dem Trainer, je nachdem ob er angestellt oder extern beauftragt wird. ... CEO entscheidet ohne vorgelegte Auslastungszahl."
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": true,
+      "evidence": "Sachverhalt: Ab Oktober soll ein zweiter Trainer für die Brandschutzschulungen dazukommen, Anlaufkosten 3.000 Euro, Vertragslaufzeit ein Jahr. ... Optionen: 1) Vertrag wie vorgeschlagen abschließen. ... 2) Erst eine kürzere Probephase vereinbaren, danach der Jahresvertrag. ... 3) Zurückstellen, bis die Zahlen vorliegen. ... Meine Empfehlung: Option 2, wenn der Trainer sich darauf einlässt."
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": true,
+      "evidence": "Risiko: ein Jahr Bindung ohne geprüfte Auslastungszahl. Aufwand: 3.000 Euro plus laufende Vergütung, nicht beziffert."
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": false,
+      "evidence": "Für das Entscheidungslog, ein Satz: Zweiter Trainer Brandschutzschulungen ab Oktober, 3.000 Euro Anlaufkosten, ein Jahr Vertrag, CEO entscheidet ohne vorgelegte Auslastungszahl."
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Sachverhalt: Ab Oktober soll ein zweiter Trainer für die Brandschutzschulungen dazukommen, Anlaufkosten 3.000 Euro, Vertragslaufzeit ein Jahr."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": true,
+      "evidence": "Nächster Schritt: Du triffst die Entscheidung zwischen den drei Optionen, Owner du selbst, Output die Freigabe oder Ablehnung."
+    }
+  ],
+  "passed_count": 6,
+  "total": 7,
+  "eval_feedback": "Kriterium 5 ('Ein Entscheidungssatz ..., den der CEO so bestätigen könnte') als false gewertet: Der als 'Satz fürs Entscheidungslog' bezeichnete Satz benennt zwar Fakten und dass 'CEO entscheidet ohne vorgelegte Auslastungszahl', legt sich aber auf keine der drei Optionen fest. Der CEO könnte diesen Satz nicht als Bestätigung einer konkreten Entscheidung unterschreiben, weil offenbleibt, wofür er sich entscheidet. Kriterium 7 wurde als erfüllt gewertet, obwohl die Antwort nach dem Nächster-Schritt-Absatz noch einen kurzen 'Kontrolle'-Absatz anhängt; wer 'endet mit' streng als letzten Satz liest, könnte hier anders urteilen.",
+  "execution_metrics": {}
+}

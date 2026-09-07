@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "Verstanden, aber fertig machen kann ich das nicht - jedenfalls nicht so, wie du es meinst."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Das ist keine kleine Ausgabe, sondern eine Bindung über ein Jahr plus 3.000 Euro Anlaufkosten."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": false,
+      "evidence": "Sag mir, ob ich CFO und Anastasia damit beauftragen soll, dann bekommst du nur noch das Ergebnis zur Entscheidung vorgelegt."
+    }
+  ],
+  "passed_count": 2,
+  "total": 7,
+  "eval_feedback": "Die Antwort ist zwar korrekt zurückhaltend (verweigert die Erledigung, nennt Grenzen), liefert aber keine der geforderten Vorlagenteile: kein Sachverhaltsabsatz, keine benannten Optionen mit Risiko/Aufwand, kein Entscheidungssatz. Das Wort 'CEO' kommt im Text gar nicht vor, die Zuordnung von Personal/Budget als CEO-Entscheidung bleibt implizit über 'du'. Der Schluss ist eine offene Rückfrage statt eines klar benannten nächsten Schritts mit Owner.",
+  "execution_metrics": {}
+}

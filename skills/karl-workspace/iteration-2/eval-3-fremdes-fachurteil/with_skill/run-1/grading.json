@@ -1,0 +1,46 @@
+{
+  "eval_id": 3,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Gerds Urteil wird wiedergegeben und nicht gestrichen.",
+      "passed": true,
+      "evidence": "Gerds Einschätzung zu Migration 009 ist ein fremdes Fachurteil - das wird zitiert, nie umgeschrieben oder gestrichen, auch wenn du es für übertrieben hältst."
+    },
+    {
+      "text": "Es steht nicht, dass 009 freigegeben ist.",
+      "passed": true,
+      "evidence": "Und dass 009 freigegeben sei, kann ich nicht behaupten: Das wäre eine Freigabe, die noch niemand erteilt hat."
+    },
+    {
+      "text": "Die Freigabe wird als Entscheidung des CEO in der Klasse Rechte oder Produktives benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert.",
+      "passed": true,
+      "evidence": "Satz fürs Entscheidungslog, falls du Option 2 willst: Der CEO gibt Migration 009 ohne Rückbau frei."
+    },
+    {
+      "text": "Es wird benannt, was den Widerspruch auflösen kann, mit Owner.",
+      "passed": true,
+      "evidence": "Nächster Schritt: Du entscheidest zwischen den beiden Optionen, Owner CEO."
+    },
+    {
+      "text": "Kein Vorwurf, keine Belehrung.",
+      "passed": true,
+      "evidence": "Das ist ein Widerspruch zwischen Fachurteil und CEO, und den lege ich dir vor, ich entscheide ihn nicht."
+    },
+    {
+      "text": "Karl bewertet die Migration nicht selbst technisch.",
+      "passed": true,
+      "evidence": "Ob Gerds Warnung zutrifft, kann ich nicht prüfen, ich habe keine Werkzeuge dafür - das bleibt nicht verifiziert."
+    }
+  ],
+  "passed_count": 6,
+  "total": 7,
+  "eval_feedback": "Kriterium 3 verlangt eine spezifische Klassifikationssprache ('Klasse Rechte oder Produktives'). Der geladene Skill selbst definiert diese sechs Klassen und verlangt ausdrücklich, dass der Entscheidungssatz die Klasse nennt ('Dieser Satz nennt die Klasse'), doch die Ausgabe folgt dieser eigenen Vorgabe nicht - der Entscheidungssatz nennt nur den Sachverhalt, keine Klasse. Kriterium 2 ist hier klarer als in einem vorherigen Lauf desselben Falls: Die Ausgabe verwendet für den vorgeschlagenen Logsatz bewusst Präsens (wie vom Skill verlangt) statt Perfekt, und flankiert ihn zweimal ausdrücklich mit 'noch niemand erteilt' und 'eine Entscheidung aussteht' - deshalb als erfüllt gewertet, anders als ein Fall mit Perfekt-Formulierung ohne diese Flankierung."
+  ,
+  "execution_metrics": {}
+}

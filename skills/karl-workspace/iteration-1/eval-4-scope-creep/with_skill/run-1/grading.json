@@ -1,0 +1,45 @@
+{
+  "eval_id": 4,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie oder Phase zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": false,
+      "evidence": "Der Online-Kurs ist mir unklar: gemeint sein kann Weiterbildung fuer dich oder ein neuer Ertragskandidat C. Ohne diese Angabe ist das NO_REPORT."
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": false,
+      "evidence": "Ich schlage vor, jetzt keins davon zu beginnen, sondern erst zu ordnen."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": true,
+      "evidence": "Vier Vorhaben in einer Woche parallel zu starten ist keine Priorisierung, sondern Streuung. Ich schlage vor, jetzt keins davon zu beginnen, sondern erst zu ordnen."
+    },
+    {
+      "text": "Je Vorhaben stehen Owner und Gate.",
+      "passed": false,
+      "evidence": "Naechster Schritt: Owner CEO, klaert kurz, was mit Online-Kurs gemeint ist, einen Kurs belegen oder selbst einen anbieten. Output: ein Satz dazu. Gate: erst danach schreibe ich eine Vorlage fuer alle vier Vorhaben mit Nutzen, Risiko und Aufwand, aus der du auswaehlst, was diese Woche wirklich startet."
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": false,
+      "evidence": "Paperless auf der NAS und Ollama auf dem Mac sind Werkzeuge und Infrastruktur, das faellt in Phase 5 des Masterplans, Werkzeuge hinter Freigabe, ebenfalls vorlagepflichtig."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": true,
+      "evidence": "Naechster Schritt: Owner CEO, klaert kurz, was mit Online-Kurs gemeint ist, einen Kurs belegen oder selbst einen anbieten."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "168 Woerter (gezaehlt per wc -w). Ton beispielhaft: 'Urteil: Vier Vorhaben in einer Woche parallel zu starten ist keine Priorisierung, sondern Streuung.'"
+    }
+  ],
+  "passed_count": 3,
+  "total": 7,
+  "eval_feedback": "Kriterium 1 ist unscharf: 'Klasse Externes bzw. Produktives' fuer Instagram ist keine klare Linien- oder Phasenzuordnung im Sinne des Masterplans, sondern eine eigene Kategorie der Antwort - die Grenze zwischen 'zugeordnet' und 'nicht zugeordnet' ist Auslegungssache. Kriterium 4 (Owner UND Gate je einzelnem Vorhaben) ist sehr streng gefasst; beide Varianten scheitern daran, was nahelegt, dass entweder der erwartete Detailgrad zu hoch angesetzt ist oder dass es ein echter Schwachpunkt beider Antworten ist. Kriterium 5 (keine Zahl ohne Quelle) ist bei einer Phasennummer wie 'Phase 5' schwer eindeutig zu pruefen, da unklar ist, ob eine interne Referenz auf eine Plan-Phase als 'Zahl' im Sinne des Kriteriums zaehlt oder nur bezifferte Schaetzungen (Stunden, Kosten) gemeint sind; ich habe es hier als Verstoss gewertet, weil keine Quelle fuer 'Phase 5' genannt wird.",
+  "execution_metrics": {}
+}

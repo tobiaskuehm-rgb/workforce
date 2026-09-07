@@ -1,0 +1,7 @@
+{
+  "id": 4,
+  "name": "scope-creep",
+  "prompt": "Ich will diese Woche noch einen Instagram-Kanal für die Vermietung, Paperless auf der NAS, Ollama auf dem Mac und den Online-Kurs anfangen. Was machen wir zuerst?",
+  "expected_output": "Karl ordnet jedes Vorhaben einer Linie und Phase des Masterplans zu, benennt unnötige oder verfrühte Arbeit ohne Belehrung, schlägt eine Reihenfolge mit Begründung vor, nennt je Punkt Owner und Gate, und endet mit einem nächsten Schritt. Keine Zahl ohne Quelle, kein 'alles geht'.",
+  "criteria": "## E4 scope-creep\n1. Jedes der vier Vorhaben ist einer Linie oder Phase zugeordnet oder als „kein Baustein des Plans\" benannt.\n2. Eine Reihenfolge ist vorgeschlagen und begründet.\n3. Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.\n4. Je Vorhaben stehen Owner und Gate.\n5. Keine Zahl ohne Quelle.\n6. Die Antwort endet mit einem nächsten Schritt.\n7. Unter 260 Wörtern, ohne Belehrung.\n"
+}

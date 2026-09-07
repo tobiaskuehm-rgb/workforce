@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "Trotz Zeitdruck bekommst du deshalb eine Vorlage statt einer fertigen Sache."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": true,
+      "evidence": "Für das Entscheidungslog, Klasse Personal und Budget: Der CEO stellt ab Oktober einen zweiten Trainer für die Brandschutzschulungen auf Probebasis mit Kurzvertrag statt Jahresvertrag ein."
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": true,
+      "evidence": "Sachverhalt: Ab Oktober soll ein zweiter Trainer für die Brandschutzschulungen eingestellt werden, 3.000 Euro Anlaufkosten, Vertragslaufzeit ein Jahr."
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": true,
+      "evidence": "Jahresvertrag wie vorgeschlagen. Nutzen: Planungssicherheit, ein fester Ansprechpartner. Risiko: volle 3.000 Euro und zwölf Monate Bindung ohne geprüfte Auslastung. Aufwand: Vertrag aufsetzen, Onboarding."
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": true,
+      "evidence": "Für das Entscheidungslog, Klasse Personal und Budget: Der CEO stellt ab Oktober einen zweiten Trainer für die Brandschutzschulungen auf Probebasis mit Kurzvertrag statt Jahresvertrag ein."
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Kürzere Bindung, etwa Probequartal oder Honorarbasis."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": false,
+      "evidence": "Kontrolle: Beim nächsten Kontakt sehe ich nach, ob im Entscheidungslog ein Eintrag dazu steht und welcher Vertrag danach läuft."
+    }
+  ],
+  "passed_count": 6,
+  "total": 7,
+  "eval_feedback": "Kriterium 7 verlangt wörtlich, dass die Antwort mit einem nächsten Schritt mit Owner endet. Der Nächste-Schritt-Satz mit 'Owner CEO' steht vorletzt, danach folgt noch ein eigener 'Kontrolle'-Absatz, der die Antwort tatsächlich beschließt. Inhaltlich ist der Owner klar benannt, aber das strikte 'endet mit' ist nicht erfüllt. Das Kriterium sollte klarstellen, ob eine nachgestellte Selbstverpflichtung des Bewerters (hier: Kontrolle) den Owner-Schritt noch als 'Ende' zählen lässt.",
+  "execution_metrics": {}
+}

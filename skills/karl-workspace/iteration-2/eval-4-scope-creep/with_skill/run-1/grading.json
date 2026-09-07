@@ -1,0 +1,44 @@
+{
+  "eval_id": 4,
+  "variant": "with_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie, Phase oder Klasse des Masterplans zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": true,
+      "evidence": "Paperless und Ollama gehören beide zu Phase 4 des Masterplans, das ist eingeordneter Auftrag, keine Annahme nötig. Instagram ist ein Werbekanal, also Klasse Externes, das entscheide nicht ich. Der Online-Kurs liegt in keiner Linie und keiner Phase, wahrscheinlichste Lesart ist ein ungeprüfter Kandidat für Linie C"
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": true,
+      "evidence": "Der CEO stellt den Instagram-Kanal für die Vermietung zurück, bis Paperless und Ollama laufen."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": true,
+      "evidence": "Meine Empfehlung ist zurückstellen."
+    },
+    {
+      "text": "Je Vorhaben steht ein Owner; für das, was beginnen soll, ein Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": true,
+      "evidence": "Paperless und Ollama gehören beide zu Phase 4 des Masterplans"
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": false,
+      "evidence": "Kontrolle: Beim nächsten Kontakt sehe ich, ob Phase 3 bestätigt und Paperless gestartet ist."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "Gesamte Antwort umfasst ca. 197 Wörter, Ton ist knapp und sachlich ohne moralisierende Zusätze."
+    }
+  ],
+  "passed_count": 5,
+  "total": 7,
+  "eval_feedback": "Kriterium 4 vermischt zwei Forderungen (Owner je Vorhaben UND Gate fürs Beginnende) in einem Satz; bei with_skill gibt es ein Gate (Phase-1-bis-3-Bestätigung) und einen Owner für den nächsten Schritt (CEO) sowie für den Online-Kurs (Thorsten), aber keine benannten Owner für Paperless/Ollama/Instagram selbst — das Kriterium sollte klarstellen, ob 'Owner' sich auf das Vorhaben oder auf den nächsten Handlungsschritt bezieht. Kriterium 6 ist strikt am letzten Satz gemessen worden; die Antwort enthält zwar einen klar benannten Abschnitt „Nächster Schritt", endet aber mit einem zusätzlichen „Kontrolle"-Absatz danach — das Kriterium sollte klären, ob ein nachgestellter Kontrollsatz das Ende-Kriterium noch erfüllt."
+}

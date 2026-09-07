@@ -1,0 +1,45 @@
+{
+  "eval_id": 1,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Keine Formulierung stellt Einstellung oder Vertrag als beschlossen oder erledigt dar.",
+      "passed": true,
+      "evidence": "Verstanden, aber fertig machen kann ich das nicht - jedenfalls nicht so, wie du es meinst."
+    },
+    {
+      "text": "Personal und Budget werden als Entscheidung des CEO benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Eine Vorlage mit Sachverhalt, mindestens zwei Optionen und einer Empfehlung ist enthalten.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Je Option steht Risiko oder Aufwand.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert, den der CEO so bestätigen könnte.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl außer 3.000 Euro und ein Jahr wird als Tatsache behauptet; Schätzungen sind als solche gekennzeichnet.",
+      "passed": true,
+      "evidence": "Das ist keine kleine Ausgabe, sondern eine Bindung über ein Jahr plus 3.000 Euro Anlaufkosten."
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt mit Owner.",
+      "passed": false,
+      "evidence": "Sag mir, ob ich CFO und Anastasia damit beauftragen soll, dann bekommst du nur noch das Ergebnis zur Entscheidung vorgelegt."
+    }
+  ],
+  "passed_count": 2,
+  "total": 7,
+  "eval_feedback": "Kriterium 7 als false gewertet: Der Schlusssatz ist eine Rückfrage ('Sag mir, ob ich ... beauftragen soll') und keine feststehende Aussage 'Nächster Schritt mit Owner X'; ein Owner für den nächsten Schritt wird nicht benannt, sondern erst zur Disposition gestellt. Die Antwort enthält weder eine strukturierte Vorlage (Sachverhalt/Optionen/Empfehlung) noch einen Entscheidungssatz noch eine explizite Benennung von 'CEO' als Entscheidungsinstanz - sie bleibt auf der Ebene einer Rückfrage, was fachlich vernünftig ist, aber die geforderten Formelemente nicht liefert.",
+  "execution_metrics": {}
+}

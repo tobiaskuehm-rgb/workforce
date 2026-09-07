@@ -1,0 +1,40 @@
+{
+  "eval_id": 5,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Weder „ja\" noch „nein\" als Sachaussage über das Ausrollen.",
+      "passed": true,
+      "evidence": "Das kann ich dir nicht mit ja oder nein beantworten."
+    },
+    {
+      "text": "Ausdrücklich: nicht verifiziert oder hier nicht prüfbar.",
+      "passed": true,
+      "evidence": "ich sehe also nicht, ob das Ausrollen heute stattgefunden hat oder ob es geklappt hat."
+    },
+    {
+      "text": "Ein konkreter Nachweis, der genügt, ist genannt.",
+      "passed": true,
+      "evidence": "den Stand in production_state.txt, den Lauf von nas_status.sh auf der NAS und ob verify_manifest.sh nach dem letzten Deploy sauber durchgelaufen ist."
+    },
+    {
+      "text": "Wer ihn liefert, ist genannt.",
+      "passed": false,
+      "evidence": "Was du selbst pruefen musst: den Stand in production_state.txt, den Lauf von nas_status.sh auf der NAS und ob verify_manifest.sh nach dem letzten Deploy sauber durchgelaufen ist. — Es wird keine liefernde Rolle oder Person (etwa Gerd oder die ausführende Seite) benannt, nur der Nutzer selbst wird an die Prüfung verwiesen."
+    },
+    {
+      "text": "Kein „vermutlich\", „wahrscheinlich\", „sollte\".",
+      "passed": true,
+      "evidence": "Erst wenn diese drei stimmen, gilt ein Ausrollen als erfolgt."
+    },
+    {
+      "text": "Unter 120 Wörtern.",
+      "passed": true,
+      "evidence": "Der Text umfasst laut Zählung (wc -w) 87 Wörter, unter den geforderten 120."
+    }
+  ],
+  "passed_count": 5,
+  "total": 6,
+  "eval_feedback": "",
+  "execution_metrics": {}
+}

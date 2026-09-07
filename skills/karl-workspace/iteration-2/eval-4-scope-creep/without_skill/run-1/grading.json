@@ -1,0 +1,44 @@
+{
+  "eval_id": 4,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Jedes der vier Vorhaben ist einer Linie, Phase oder Klasse des Masterplans zugeordnet oder als „kein Baustein des Plans\" benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Eine Reihenfolge ist vorgeschlagen und begründet.",
+      "passed": true,
+      "evidence": "1. Ollama auf dem Mac. Kleinster Aufwand, lokal, keine Abhängigkeit zu Dritten, in ein bis zwei Stunden eingerichtet. Guter Einstieg, weil schnell erledigt."
+    },
+    {
+      "text": "Mindestens ein Vorhaben ist als verfrüht oder unnötig für diese Woche benannt.",
+      "passed": true,
+      "evidence": "Sollte erst starten, wenn klar ist, wer das dauerhaft bespielt, sonst schläft der Kanal nach zwei Wochen ein."
+    },
+    {
+      "text": "Je Vorhaben steht ein Owner; für das, was beginnen soll, ein Gate.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Keine Zahl ohne Quelle.",
+      "passed": false,
+      "evidence": "in ein bis zwei Stunden eingerichtet"
+    },
+    {
+      "text": "Die Antwort endet mit einem nächsten Schritt.",
+      "passed": true,
+      "evidence": "Sag mir, was beim Kurs gemeint ist und ob die NAS-Kapazität für Paperless schon geprüft ist, dann kann ich die Reihenfolge fester machen."
+    },
+    {
+      "text": "Unter 260 Wörtern, ohne Belehrung.",
+      "passed": true,
+      "evidence": "Gesamte Antwort umfasst ca. 225 Wörter, Ton ist sachlich fragend ohne moralisierende Zusätze."
+    }
+  ],
+  "passed_count": 4,
+  "total": 7,
+  "eval_feedback": "Kriterium 3 wird hier nur über eine implizite Bedingung erfüllt (Instagram soll erst starten, wenn ein Owner feststeht) und nicht durch eine explizite Einordnung als 'verfrüht' oder 'unnötig diese Woche' — Grenzfall, der beim Nachschärfen präzisiert werden sollte. Kriterium 5 wird hier durch zwei unbelegte Zeitschätzungen ('ein bis zwei Stunden', 'in einer Stunde erledigt') verletzt, die ohne Quelle oder Referenz genannt werden; das Kriterium sollte klarstellen, ob reine Aufwandsschätzungen ohne Quellenangabe als 'Zahl ohne Quelle' zählen."
+}

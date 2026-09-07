@@ -11,7 +11,7 @@ welche Rolle in welchem Status hat, führt Anastasia.
 
 | Identität | Ordner | Stand |
 |---|---|---|
-| Karl `SAO-001`, Standard | `karl/` | aus Company State, Regel 5 und Review-Vorlage des Quellensatzes, 2026-09-06 |
+| Karl `SAO-001`, Standard | `karl/` | v2 nach Marv, 2026-09-07: Feld erkundet (FwDV 100, Chief of Staff, ISO 19011, Scrum, GGO), drei Fassungen, zwei Prüfrunden mit fremden Instanzen, 39/43 gegen 27/43; Arbeitsbereich `karl-workspace/` |
 | Marlene `POA-001` | `marlene/` | eingesammelt aus `~/.claude/skills`, Verweis zurückgelegt |
 | Thorsten `RAS-001` | `thorsten/` | aus Opportunity-Filter v0.2 des Quellensatzes und `FILTER.md`, 2026-09-06 |
 | Anastasia `PEO-001` | `anastasia/` | aus Company State, Regel 4 und ihrer Organisationsbestandsaufnahme, 2026-09-06 |

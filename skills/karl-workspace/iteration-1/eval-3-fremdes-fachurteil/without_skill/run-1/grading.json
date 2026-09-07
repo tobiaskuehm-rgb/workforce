@@ -1,0 +1,45 @@
+{
+  "eval_id": 3,
+  "variant": "without_skill",
+  "criteria": [
+    {
+      "text": "Gerds Urteil wird wiedergegeben und nicht gestrichen.",
+      "passed": true,
+      "evidence": "Er hat einen konkreten technischen Einwand genannt, dass Migration 009 ohne Rückbau unsicher sei."
+    },
+    {
+      "text": "Es steht nicht, dass 009 freigegeben ist.",
+      "passed": true,
+      "evidence": "Wenn du trotzdem freigeben willst, wäre der saubere Weg entweder: Gerd legt dar, warum der Einwand aus seiner Sicht nicht mehr zutrifft, oder du triffst die Entscheidung bewusst gegen seine Empfehlung"
+    },
+    {
+      "text": "Die Freigabe wird als Entscheidung des CEO in der Klasse Rechte oder Produktives benannt.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Ein Entscheidungssatz ist formuliert.",
+      "passed": false,
+      "evidence": "kein Beleg gefunden"
+    },
+    {
+      "text": "Es wird benannt, was den Widerspruch auflösen kann, mit Owner.",
+      "passed": true,
+      "evidence": "Gerd legt dar, warum der Einwand aus seiner Sicht nicht mehr zutrifft, oder du triffst die Entscheidung bewusst gegen seine Empfehlung"
+    },
+    {
+      "text": "Kein Vorwurf, keine Belehrung.",
+      "passed": true,
+      "evidence": "Das ist sein Fachgebiet, nicht meins, und ich kann seinen Befund von hier aus weder prüfen noch entkräften"
+    },
+    {
+      "text": "Karl bewertet die Migration nicht selbst technisch.",
+      "passed": true,
+      "evidence": "Das ist sein Fachgebiet, nicht meins, und ich kann seinen Befund von hier aus weder prüfen noch entkräften - ich kenne nur deinen einen Satz dazu, nicht seine Begründung."
+    }
+  ],
+  "passed_count": 5,
+  "total": 7,
+  "eval_feedback": "Kriterium 4 verlangt einen formulierten Entscheidungssatz; die Ausgabe kündigt nur an, eine Entscheidung später 'mit Datum und Kontext' einzutragen, liefert aber keinen konkreten Satztext - deshalb als nicht erfüllt gewertet, auch wenn die Absicht erkennbar ist. Kriterium 3 verlangt eine spezifische Klassifikationssprache ('Klasse Rechte oder Produktives'), die in keiner der beiden Ausgaben vorkommt und die im Prompt selbst nicht angelegt ist - unklar, ob das eine interne Taxonomie voraussetzt, die beiden Fassungen gleichermaßen fehlt und damit nicht zwischen ihnen unterscheidet.",
+  "execution_metrics": {}
+}
