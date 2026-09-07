@@ -4,6 +4,7 @@
 // Vision erkennt den Text - lokal auf diesem Mac, nichts verlaesst das Haus, keine Installation.
 // Aufruf:  osascript -l JavaScript marlene_lesen.js <datei.pdf|bild>
 //          osascript -l JavaScript marlene_lesen.js --rasterisieren <ein.pdf> <aus.pdf>  (Scan ohne Textebene, fuer Tests)
+//          osascript -l JavaScript marlene_lesen.js --seiten <aus.pdf> <datei#seite> ...  (seitengenaue Reihenfolge, Dubletten weglassen)
 //          osascript -l JavaScript marlene_lesen.js --zusammenfuegen <aus.pdf> <ein1.pdf> <ein2.pdf> ...  (Vorder- und Rueckseite zu einer Datei)
 // Ausgabe: je Seite ein Block "=== Seite N (textebene|ocr) ===" gefolgt vom Text.
 // Selbsttest: marlene_lesen_selbsttest.py (Text-PDF -> Scan ohne Textebene -> zurueckgelesen).
@@ -66,7 +67,19 @@ function zusammenfuegen(argv) {
   }
   neu.writeToFile(argv[0]); return 'zusammengefuegt: ' + n + ' Seite(n) nach ' + argv[0];
 }
+function seiten(argv) {
+  // argv: <aus.pdf> <datei#seite> ... - Seiten (1-basiert) in genau dieser Reihenfolge, Quellen unberuehrt.
+  const neu = $.PDFDocument.alloc.init; const docs = {}; let n = 0;
+  for (let i = 1; i < argv.length; i++) {
+    const teile = argv[i].split('#'); const pfad = teile[0]; const nr = parseInt(teile[1], 10);
+    if (!docs[pfad]) docs[pfad] = $.PDFDocument.alloc.initWithURL($.NSURL.fileURLWithPath(pfad));
+    if (!(nr >= 1 && nr <= docs[pfad].pageCount)) return 'FEHLER: Seite ' + nr + ' gibt es nicht in ' + pfad;
+    neu.insertPageAtIndex(docs[pfad].pageAtIndex(nr - 1), n++);
+  }
+  neu.writeToFile(argv[0]); return 'zusammengestellt: ' + n + ' Seite(n) nach ' + argv[0];
+}
 function run(argv) {
+  if (argv[0] === '--seiten') return seiten(argv.slice(1));
   if (argv[0] === '--zusammenfuegen') return zusammenfuegen(argv.slice(1));
   if (argv.length === 0) return 'Aufruf: marlene_lesen.js <datei> | --rasterisieren <ein.pdf> <aus.pdf>';
   return argv[0] === '--rasterisieren' ? rasterisieren(argv[1], argv[2]) : lesen(argv[0]);
