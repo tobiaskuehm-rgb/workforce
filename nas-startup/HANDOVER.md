@@ -89,6 +89,11 @@ für Claude Code und Codex. **Für Codex/Gerd:** Die Skill-Kopien im iCloud-Satz
 Archiv; Änderungen nur noch im Repo. Register in `skills/README.md`, geführt von Anastasia.
 Auf der NAS läuft Stand `39a3bc5` mit fünf Identitäten, Karl als Standard, `@NAME` im Chat.
 
+**Karl v2, 2026-09-07:** erster Skill nach Marvs Verfahren — Feld mit Quellen, drei Fassungen,
+sechs Prüffälle, zwei Runden mit fremden Instanzen (39/43 gegen 27/43 ohne Skill), Praxistest an
+den echten Berichten vom 2026-09-07. Übergabe in `skills/karl-workspace/05_uebergabe.md`. Auf der
+NAS seit 11:53 UTC (Stand `de8818b`). Deploy rollt seitdem den committeten Baum aus (`git archive`).
+
 **Aktive Arbeit:** **Claude Code, Neubau in `workforce/`.** Nächster Schritt: Gerds Review des
 Neubaus nach dem Lauf gegen `INVARIANTEN.md`, Stand `39a3bc5`, Befunde ab `G-092` in
 `REVIEW_GERD.md` im Wurzelverzeichnis. `HO-027` (Anmeldung unten) ruht.
