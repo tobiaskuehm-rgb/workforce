@@ -12,7 +12,7 @@
 
 ## Frontmatter
 
-`name` klein, mit Bindestrich. `description` in der Sprache des Auftraggebers, drängend: was der Skill tut, und alle Anlässe, bei denen er anspringen soll, mit Beispielsätzen in Anführungszeichen, auch solche, in denen das Schlüsselwort nicht fällt („räum den Schreibtisch auf", „was ist fällig"). Und wofür er nicht gilt. Modelle lösen Skills zu selten aus, nicht zu oft.
+`name` klein, mit Bindestrich. `description` in der Sprache des Auftraggebers, drängend: was der Skill tut, und alle Anlässe, bei denen er anspringen soll, mit Beispielsätzen in Anführungszeichen, auch solche, in denen das Schlüsselwort nicht fällt („räum den Schreibtisch auf", „was ist fällig"). Und wofür er nicht gilt. Modelle lösen Skills zu selten aus, nicht zu oft. Hängt eine Stelle der description von einer offenen Antwort des Auftraggebers ab, steht dort eine sichtbare Lücke ⟨…⟩ statt einer geratenen Angabe; das ist etwas anderes als der eckige Platzhalter in einem Entwurf an Dritte (Lehre 7), der dort verboten bleibt. Die Auslöseprüfung mit zehn Testsätzen gegen alte und neue Beschreibung läuft, bevor der Auftraggeber geantwortet hat.
 
 ## SKILL.md
 

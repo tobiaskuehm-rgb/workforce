@@ -11,7 +11,11 @@ Alles auf Deutsch: Anleitungen, Referenzen, Prüffälle, Berichte, auch die Skil
 
 ## Die erste Regel
 
-**Der Auftraggeber ist die Quelle, die sich nicht nachschlagen lässt.** Bei Marlene kamen die wichtigsten Regeln nicht aus der Literatur, sondern aus zehn Antworten des Auftraggebers. Alles andere wird gemessen oder nachgeschlagen; was nur er weiß, wird gefragt, mit Empfehlung und Optionen, so wenig wie möglich und so früh wie nötig.
+**Der Auftraggeber ist die Quelle, die sich nicht nachschlagen lässt.** Bei Marlene kamen die wichtigsten Regeln nicht aus der Literatur, sondern aus zehn Antworten des Auftraggebers. Alles andere wird gemessen oder nachgeschlagen; was nur er weiß, wird gefragt, mit Empfehlung und Optionen, so wenig wie möglich und so früh wie nötig. Wo eine Empfehlung ein Raten wäre (welches Recht gilt, welcher Dienstherr), wird gemessen, was messbar ist, und die Frage als Bestätigung des Messbefunds gestellt.
+
+## Die zweite Regel
+
+**Der Umfang ist der Auftrag.** Wer einen Plan bestellt, bekommt keinen Bau; wer eine Trennung bestellt, bekommt keine Gegenbauformen. Alles, was über den Auftrag hinausgeht, ist Aufwand für den Leser und steht, wenn überhaupt, in einem Satz als Angebot. Das haben die Bewerter in Runde 1 an zwei Fassungen bemängelt, die beide sonst alles richtig hatten.
 
 ## Das Verfahren in sieben Schritten
 
@@ -33,19 +37,19 @@ Die Form eines Skillpakets steht in `references/skillpaket-form.md`. Was bei Mar
 
 **Vorlegen:** jede Frage, deren Antwort nur der Auftraggeber kennt; die Kriterien der Prüffälle, bevor sie gegen den Skill laufen; jede Änderung an echten Daten; jeden Praxistest; jede Entscheidung, ob eine Fassung reicht.
 
-**Nie:** eine Versionsnummer, einen Paragraphen, eine Schnittstelle oder einen Preis aus dem Gedächtnis; einen Skill ohne Prüffälle als fertig melden; Bewertung und Bau in derselben Instanz als unabhängig ausgeben; private Inhalte in ein Skillpaket schreiben; einen Trockenlauf als Messung bezeichnen; die Zahl „zehnmal besser" behaupten, wenn nichts gemessen ist.
+**Nie:** eine Versionsnummer, einen Paragraphen, eine Schnittstelle oder einen Preis aus dem Gedächtnis; eine unbelegte Angabe nur in einem Sammelhinweis am Ende kennzeichnen statt an der Zeile selbst; einen Skill ohne Prüffälle als fertig melden; Bewertung und Bau in derselben Instanz als unabhängig ausgeben; private Inhalte in ein Skillpaket schreiben; einen Trockenlauf als Messung bezeichnen; die Zahl „zehnmal besser" behaupten, wenn nichts gemessen ist; einer Stelle zuschreiben, sie prüfe, ob etwas rechtmäßig ist.
 
 ## Zehn Regeln
 
 1. Erst messen, dann fragen, dann bauen.
 2. Stelle vor Landschaft; ein Skill, der Technik nennt, ist an die Technik gebunden.
-3. Jede Zahl und jeder Paragraph mit Quelle; die Quelle wird abgerufen, nicht erinnert.
+3. Jede Zahl und jeder Paragraph mit Quelle; die Quelle wird abgerufen, nicht erinnert, und was nicht abgerufen wurde, trägt die Marke `[nicht belegt]` an der Zeile.
 4. Kriterien vor dem Bau; ein Kriterium, das nach dem Ergebnis geschrieben wird, prüft nichts.
 5. Wer baut, bewertet nicht; fremde Instanzen bauen, fremde Instanzen bewerten.
 6. Läufe ohne Skill sind Pflicht; ohne sie ist „gut" nicht von „normal" zu unterscheiden.
 7. Ein Prüffall, den der Skill nur mit einer Regel besteht, die ohne Skill niemand kennt, ist ein guter Prüffall.
 8. Was die Bewerter am Skill finden, wird sofort eingebaut; was sie an den Kriterien finden, in die nächste Runde.
-9. Grenzen stehen im Bericht: ein Lauf je Fall, Bewerter sind Modelle, Fälle sind erfunden.
+9. Grenzen stehen im Bericht: wie viele Läufe je Fall, Bewerter sind Modelle, Fälle sind erfunden.
 10. Fertig ist ein Skill, wenn eine weitere Runde die Kriterien schärft und nicht mehr den Skill.
 
 ## Selbstprüfung vor jeder Übergabe
@@ -60,6 +64,16 @@ Die Form eines Skillpakets steht in `references/skillpaket-form.md`. Was bei Mar
 8. Ist der Skill installiert und die Beschreibung so, dass er auch ohne das Wort „Skill" anspringt?
 9. Steht im Bericht, was gemessen und was geschätzt ist?
 10. Steht im Bericht die eine Sache, die am ehesten noch falsch ist?
+11. Ist jedes Rechenbeispiel gegen die eigene Tabelle nachgerechnet, und stimmt jede genannte Anzahl mit der Liste, die sie zählt?
+12. Liefert das Ergebnis genau den bestellten Umfang, und steht Darüberhinausgehendes höchstens als Angebot in einem Satz?
+
+## Woher diese Fassung kommt
+
+Drei Fassungen wurden entworfen und in Runde 1 gegen vier Prüffälle gemessen, je Fall durch fremde Instanzen mit jeder Fassung und ohne Skill, bewertet durch fremde Bewerter (`evals/varianten/BEWERTUNG.md`): der **Ingenieur** (ein Skill ist ein Messproblem), der **Berater** (ein Skill ist, was der Auftraggeber braucht und noch nicht sagen kann), der **Forscher** (ein Skill ist das Wissen eines Feldes, geordnet und belegt). Diese Fassung nimmt vom Ingenieur die Messtabelle vor der ersten Frage, „geprobt, nicht behauptet", die Gegenprobe am Ende jeder Trennung, die drei Bauinstanzen beim Verbessern und die Rechenbeispiele gegen die eigene Tabelle; vom Berater die Frage nach dem Maßstab mit Empfehlung und zwei Alternativen, die Kategorie „geteilt" in der Verschiebeliste, die offenen Entscheidungen als Kopf der Landschaft und die sichtbare Lücke ⟨…⟩ statt einer geratenen Angabe; vom Forscher die Marke an der Zeile, den Rollensatz „rechnet und entwirft, versendet nicht, bewertet nicht die Rechtmäßigkeit" und die Spalte „Prüfbar durch" neben jedem Kriterium. Die zweite Regel kam aus dem Vergleich: Die beiden Fassungen mit den reichsten Ausgaben verloren dort, wo sie über den Auftrag hinausgingen.
+
+## Stand der Messung
+
+Runde 1 verglich drei Fassungen gegen 32 Kriterien (Ingenieur 30, Berater 27, Forscher 27, ohne Skill 22). Runde 2 maß die Synthese gegen 40 geschärfte Kriterien: **40/40 mit Skill, 39/40 mit Skill auf Opus 5, 17/40 ohne Skill** (`../marv-skillbauer-workspace/iteration-2/BERICHT.md`). Damit ist die Regel 10 erreicht: Die letzte Runde schärfte nur noch die Kriterien. Was die Bewerter an den Kriterien fanden, steht im Bericht und gilt für Runde 3.
 
 ## Herkunft
 

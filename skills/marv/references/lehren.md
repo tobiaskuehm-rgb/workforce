@@ -18,3 +18,27 @@ Jede Zeile hier war ein Fehler oder eine Beinahe. Lies sie vor dem nächsten Ski
 14. **Die Bewerter, die die Kriterien kritisieren,** waren die beste Quelle für die nächste Runde. Ihr `eval_feedback` wird gelesen, nicht nur ihre Pass-Rate.
 15. **Der Auftraggeber antwortet in Sprachnachrichten-Deutsch,** mitten im Lauf. „Unwichtig" heißt Quarantäne, „ja ja" heißt ja. Verstehen wie ein Kollege, festhalten in ganzen Sätzen.
 16. **Der Praxistest an echten Kopien** fand in einer Stunde, was drei Prüfrunden nicht fanden: die zu strenge Datumsregel, den Rückstand statt Eingang, die Fassungen im Drive. Kein Skill ist fertig, bevor er echte Kopien gesehen hat.
+
+## Aus dem Bau von Marv, Runde 1 (2026-09-07)
+
+17. **Die beste Fassung verlor an einem Kriterienkonflikt.** „Jede Frage mit Empfehlung" gegen „das Recht nicht raten": Der Ingenieur ließ die Empfehlung weg und fiel durch. Kriterien werden vor der Runde gegeneinander gelesen; die Auflösung ist „Empfehlung = bestätige den Messbefund".
+18. **Der Sammelhinweis am Ende rettet keine Tabelle.** Ohne Skill standen Zahlen aus nicht abgerufenen Paragraphen unmarkiert in Tabellen, und `antwort.md` behauptete, jede Stelle sei markiert. Marke an der Zeile.
+19. **Der Rechenfehler, den keine Regel findet.** Sieben statt sechs Monate im Kündigungsbeispiel, gegen die eigene Tabelle. Nur Nachrechnen findet das; jedes Beispiel wird nachgerechnet, jede Anzahl gegen ihre Liste gezählt.
+20. **Der Satz, der das Gegenteil sagt.** „Prüft, ob eine Kündigung zulässig ist" in der Rollenbeschreibung einer sonst guten Fassung. Der Rollensatz steht fest und wird abgeschrieben, nicht neu formuliert.
+21. **Reichtum außerhalb des Auftrags kostet Punkte.** Zehn Berufsbilder und drei Fassungen, wo ein Plan bestellt war; Gegenbauformen und Heartbeat, wo eine Trennung bestellt war. Der Umfang ist der Auftrag.
+22. **Vier Konfigurationen je Fall sind vier Bewerter,** und zwei davon trafen das Sitzungslimit, ohne eine Datei geschrieben zu haben. Bewerter erst nach den Läufen starten, nicht parallel zu ihnen, und die Anleitung als Datei, damit ein Neustart wortgleich ist.
+
+## Aus Runde 2 (2026-09-07)
+
+23. **Die behauptete Messung.** Eine Ausgabe trug Werte in der Spalte „Gemessen" und schrieb zwei Absätze später, der Ordner sei nie geöffnet worden. Kein Kriterium fragte das ab; gefunden hat es der Bewerter. Was nicht gemessen wurde, heißt „nicht gemessen", auch wenn die Zahl aus der Aufgabenbeschreibung plausibel wäre.
+24. **Die Gegenprobe, die niemand nachzählt.** Eine Ausgabe behauptete Trefferzahlen ihrer eigenen Suche falsch. Eine Gegenprobe ist erst ein Nachweis, wenn ihr Ergebnis stimmt; der Bewerter zählt sie nach.
+25. **Der falsche Wochentag.** Ein Kündigungsbeispiel datierte einen Donnerstag als Mittwoch, im selben Satz mit einer unbelegten Behauptung über Werktage. Datumsangaben in Beispielen werden gegen den Kalender geprüft, nicht nur gegen die eigene Tabelle.
+26. **Das Guthaben endet mitten in der Runde.** Drei Bewerter starben an aufgebrauchten Credits, nachdem die Läufe schon bezahlt waren. Läufe zuerst sichern (`timing.json` sofort), Bewerter danach; ein Modellwechsel mitten in einer Runde ist zulässig, gehört aber als Einschränkung in den Bericht.
+27. **Der Bewerter, der Vorbefunde vorfindet.** Ein abgebrochener Bewerter hinterließ Dateien, die der nächste „bestätigte". Vor einem Neustart wird der Fallordner von Bewertungsresten befreit, sonst ist die zweite Bewertung nicht unabhängig.
+
+## Aus dem Bau von Gerd, Runde 1 (2026-09-08)
+
+28. **Die Baseline kennt das Projekt.** Eine Instanz ohne Skill, gestartet aus dem Projektordner, liest CLAUDE.md und zitiert alte Befunde. „Ohne Skill" heißt dann „mit Projektregeln, ohne Rolle"; das steht im Bericht, sonst ist der Abstand falsch gelesen.
+29. **Kriterien, die Hausvokabular messen, messen die Rolle nicht.** „ROT", „Nicht blockierendes Backlog", „hoch/mittel/niedrig" trennten die Konfigurationen, ohne dass der Prompt sie vorgab. Entweder die Form in den Prompt oder das Kriterium inhaltlich formulieren.
+30. **Die Korrektur braucht dieselbe Gegenprobe wie der Befund.** Ein Vorschlag mit Skill wiederholte den Fehler, den er behob, und kein Kriterium sah hin. Wer einen Test verlangt, der rot werden kann, verlangt es auch für den Test, den er vorschlägt.
+31. **Ein Skill, der eine Datei nennt, wird gegen die Platte geprüft.** Gerds Skill führte eine Review-Datei weiter, die es im Repo nicht gab. Jeder Pfad in einem Skill wird beim Bau einmal aufgelöst.

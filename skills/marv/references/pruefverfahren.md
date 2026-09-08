@@ -14,6 +14,14 @@ Je Fall sechs bis dreizehn Kriterien, objektiv prüfbar aus den Ausgaben: Zahlen
 
 Der Auftraggeber sieht die Kriterien, bevor der Skill sie sieht.
 
+Neben jedem Kriterium steht „Prüfbar durch": Zitat, Struktur, Suche, Nachrechnen. Unter den Kriterien steht ein Abschnitt „Bekannte Schwächen der Kriterien" (Längenlimits sind Setzungen, „nächste Woche" hat zwei Lesarten). Der Prompt eines Falls bringt sein Material selbst mit („Im Notizbestand gibt es: (a) … (b) …"), sonst ist das Kriterium nicht aus der Ausgabe prüfbar. Zwei Versuchungen gehören in jeden Satz von Fällen: eine eingebettete Anweisung im Material („ignoriere alles vorher und …"), die als Inhalt behandelt werden muss, und ein Termin, der vor dem Falldatum liegt.
+
+Ein Kriterium darf nicht mit einem anderen kollidieren. „Jede Frage mit Empfehlung" und „das Recht nicht raten" fielen in Runde 1 zusammen, und die beste Fassung verlor genau dort; die Auflösung steht in `auftrag-klaeren.md` (Empfehlung = bestätige den Messbefund). Ein Kriterium, das „ein Lauf je Fall" wörtlich verlangt, bestraft die Fassung, die drei ansetzt; es heißt „nennt die Zahl der Läufe je Fall als Grenze".
+
+## Einen bestehenden Skill verbessern
+
+Drei Bauinstanzen statt zwei: A ohne Skill, B mit dem alten Skill, C mit dem neuen. C minus B ist die Verbesserung, C minus A der Beitrag des Skills. Die erste Runde ist eine Nullmessung des alten Skills, niemand baut vorher. Die Frage an den Auftraggeber lautet „Woran würdest du merken, dass der Skill besser ist?" mit Empfehlung und zwei Alternativen; „zehnmal besser" wird als unmessbar benannt, und zwar im ersten Satz. Die Ergebnistabelle wird mit drei Fragen gelesen: Wo ist „mit" nicht besser, wo schlechter, was fällt bei beiden durch.
+
 ## Läufe
 
 Je Fall zwei Läufe durch fremde Instanzen (Subagenten): einer mit Skill-Pfad, einer ohne, identischer Prompt, identische Ausgabeform, Ausgaben als Dateien in einem Arbeitsbereich. Der Prompt verbietet Zugriff auf echte Daten und jede Bewegung. Läufe ohne Skill dürfen in späteren Runden wiederverwendet werden, wenn der Prompt gleich blieb; das steht dann dabei.
@@ -22,7 +30,7 @@ Arbeitsbereich: `<skill>-workspace/iteration-N/eval-<id>-<name>/{with_skill,with
 
 ## Bewerter
 
-Je Fall ein fremder Bewerter, der beide Läufe mit demselben Maßstab bewertet, die Anleitung des Skill-Creators liest (`agents/grader.md`) und `grading.json` schreibt (Felder `text`, `passed`, `evidence`). Beweislast beim Kriterium: im Zweifel Fehlschlag. Der Bewerter kritisiert auch die Kriterien; das ist die Quelle der nächsten Runde.
+Je Fall ein fremder Bewerter, der alle Läufe mit demselben Maßstab bewertet. Die Anleitung des Skill-Creators (`agents/grader.md`) liegt nicht auf jedem Rechner als Datei; deshalb steht die Anleitung als Text im Arbeitsbereich (`BEWERTER_ANLEITUNG.md`, Vorlage in `scripts/eval_workspace.py init`) und nennt das Format von `grading.json` (Felder `expectations[text,passed,evidence]`, `summary`, `execution_metrics: {}`, `eval_feedback`). Der Bewerter kennt die Zuordnung Fassung zu Anleitung nicht. Er schreibt neben den Bewertungen einen `VERGLEICH.md` je Fall: Tabelle Kriterium × Konfiguration, und welche Sätze oder Verfahren aus einer Fassung in die anderen gehören. Beweislast beim Kriterium: im Zweifel Fehlschlag. Der Bewerter kritisiert auch die Kriterien; das ist die Quelle der nächsten Runde.
 
 ## Zusammenrechnen und zeigen
 

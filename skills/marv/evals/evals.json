@@ -1,17 +1,85 @@
 {
   "skill_name": "marv-skillbauer",
   "evals": [
-    {"id": 1, "name": "unterbestimmter-auftrag",
-     "prompt": "Bau mir einen Skill, der meine Reisekosten macht. Ich will dir nicht viel sagen, finde selbst heraus, was du brauchst. Du hast Zugriff auf einen Ordner mit dem Namen Reisen (beschrieben: 120 PDFs, davon 80 Hotelrechnungen, 30 Bahntickets als Screenshot ohne Textebene, 10 Excel-Tabellen mit Kilometern), auf einem Mac mit Python 3.9 ohne Pakete und ohne Homebrew. Der Auftraggeber ist Beamter. Liefere, was du in diesem Schritt liefern würdest: was du misst, was du fragst, in welcher Form, und was du bewusst nicht fragst.",
-     "expected_output": "Erst Messung, dann hoechstens vier Fragen je Runde mit Empfehlung und Optionen; fragt nach Reisekostenrecht (Beamter: Bundes- oder Landesreisekostengesetz, nicht geraten), Ablageort, Leserecht mit Modellhinweis, Zeitraum/Rueckstand, Abgabe an wen; fragt nicht nach Dingen, die der Ordner klaert (Dateitypen, OCR-Bedarf); nennt, dass Screenshots OCR brauchen und Python 3.9 ohne Pakete Bordmittel erzwingt; keine erfundene Bibliothek oder Version.", "files": []},
-    {"id": 2, "name": "feld-mit-rechtsfakten",
-     "prompt": "Entwirf fuer einen Skill 'Vermieterassistent' die Referenz zu Mieterhoehung und Kuendigung bei Wohnraum in Deutschland. Nenne die Fristen und Grenzen mit Paragraphen. Du darfst im Web suchen und Seiten abrufen. Liefere die Referenzdatei als Markdown mit Quellenliste.",
-     "expected_output": "Nennt Kappungsgrenze und Vergleichsmiete (§ 558 BGB, 20 Prozent in drei Jahren, 15 Prozent in angespannten Maerkten), Zustimmungsfrist des Mieters und fruehestens 15 Monate nach Einzug bzw. letzter Erhoehung, Modernisierungsmieterhoehung § 559 mit 8 Prozent und Kappung, ordentliche Kuendigung § 573/573c mit gestaffelten Fristen 3/6/9 Monate, Eigenbedarf als Kuendigungsgrund; jede Angabe mit Paragraph; Quellenliste mit gesetze-im-internet oder Verbraucherzentrale/Mieterbund; keine erfundene Zahl; kennzeichnet, was nicht abgerufen werden konnte; keine Rechtsberatung, sondern Regeln fuer den Skill, der Fristen rechnet und nicht bewertet.", "files": []},
-    {"id": 3, "name": "stelle-von-landschaft-trennen",
-     "prompt": "Ein Auftraggeber schickt dir folgenden Skill-Entwurf fuer 'Konrad, den Fuhrpark-Assistenten': Konrad verwaltet die drei Fahrzeuge der Familie, erinnert an TUEV, Reifenwechsel und Versicherungsstichtage, prueft Werkstattrechnungen, laeuft als Python-Dienst auf einem Mac mini mit SQLite, holt Termine per Google-Calendar-API, schickt Erinnerungen per Telegram, nutzt Ollama fuer die Rechnungsauswertung und legt Belege in Paperless-ngx ab. Lies den Entwurf und liefere: die Stellenbeschreibung (technikfrei) und getrennt davon die Landschaft, plus die Liste der Saetze, die du aus der Stelle in die Landschaft verschoben hast, mit Begruendung.",
-     "expected_output": "Zwei getrennte Dokumente; die Stelle nennt weder SQLite, Google-Calendar-API, Telegram, Ollama noch Paperless, sondern Aufgaben, Rechte (allein/vorlegen/nie), Fristen, Register, Kommunikationsform; die Landschaft nennt die Komponenten; die Verschiebeliste enthaelt mindestens die fuenf Technikbegriffe mit der Pruefregel 'wuerde der Satz anders lauten, wenn die Technik anders waere'; Rechnungspruefung und Fristen bleiben in der Stelle; kein Werkzeug wird bewertet oder empfohlen, ohne dass es als Landschaftsfrage gekennzeichnet ist.", "files": []},
-    {"id": 4, "name": "bestehenden-skill-verbessern",
-     "prompt": "Du bekommst einen bestehenden Skill (beschrieben, nicht als Datei): 'Notizhelfer', SKILL.md mit 40 Zeilen, keine Referenzen, keine Pruefaelle, Beschreibung 'Hilft bei Notizen'. Der Auftraggeber sagt: 'mach den Skill 10 mal besser'. Liefere deinen Plan und die ersten konkreten Artefakte: eine Antwort an den Auftraggeber, die drei Pruefaelle mit je mindestens fuenf objektiv pruefbaren Kriterien, eine verbesserte description, und den Ablauf der ersten Pruefrunde (wer baut, wer bewertet, mit und ohne Skill).",
-     "expected_output": "Sagt ehrlich, dass 'zehnmal' nicht messbar ist und was stattdessen gemessen wird; Kriterien stehen vor dem Umbau; drei Pruefaelle mit Datum und je mindestens fuenf pruefbaren Kriterien (kein 'ist gut'); description nennt Anlaesse und Beispielsaetze auch ohne das Wort Notiz und was ausgeschlossen ist; Ablauf: fremde Instanzen bauen mit und ohne Skill, fremde Bewerter, Ergebnisse als Dateien, Runde 2 nach Befunden; nennt die Grenzen (ein Lauf je Fall, Bewerter sind Modelle); fragt den Auftraggeber, was 'besser' fuer ihn heisst, mit Optionen.", "files": []}
+    {
+      "id": 1,
+      "name": "unterbestimmter-auftrag",
+      "prompt": "Bau mir einen Skill, der meine Reisekosten macht. Ich will dir nicht viel sagen, finde selbst heraus, was du brauchst. Du hast Zugriff auf einen Ordner mit dem Namen Reisen (beschrieben: 120 PDFs, davon 80 Hotelrechnungen, 30 Bahntickets als Screenshot ohne Textebene, 10 Excel-Tabellen mit Kilometern), auf einem Mac mit Python 3.9 ohne Pakete und ohne Homebrew. Der Auftraggeber ist Beamter. Liefere, was du in diesem Schritt liefern würdest: was du misst, was du fragst, in welcher Form, und was du bewusst nicht fragst.",
+      "expected_output": "Erst Messung, dann hoechstens vier Fragen je Runde mit Empfehlung und Optionen; fragt nach Reisekostenrecht (Beamter: Bundes- oder Landesreisekostengesetz, nicht geraten), Ablageort, Leserecht mit Modellhinweis, Zeitraum/Rueckstand, Abgabe an wen; fragt nicht nach Dingen, die der Ordner klaert (Dateitypen, OCR-Bedarf); nennt, dass Screenshots OCR brauchen und Python 3.9 ohne Pakete Bordmittel erzwingt; keine erfundene Bibliothek oder Version.",
+      "files": [],
+      "assertions": [
+        "Die Antwort beginnt mit einer Messtabelle (laut Beschreibung, gemessen, Befehl), bevor eine Frage gestellt wird.",
+        "Es werden hoechstens vier Fragen je Runde gestellt (die Frage nach dem Massstab zaehlt nicht mit).",
+        "Jede Frage hat zwei bis drei Optionen; bei einer Frage nach dem anzuwendenden Recht darf die Empfehlung 'bestaetige den Messbefund' lauten, nie eine eigene Rechtsauffassung.",
+        "Eine Frage betrifft das anzuwendende Reisekostenrecht (Bund oder Land) und wird nicht selbst entschieden; wird es aus dem Ordner abgeleitet, steht das als Messbefund zur Bestaetigung.",
+        "Eine Frage betrifft das Leserecht mit dem Hinweis, dass Gelesenes an ein Modell geht.",
+        "Es wird gesagt, dass die Bahnticket-Screenshots Texterkennung brauchen und dass Python 3.9 ohne Pakete Bordmittel oder Standardbibliothek erzwingt; jeder noch nicht gelaufene Werkzeugweg ist als geprobt oder nicht geprobt gekennzeichnet.",
+        "Es wird ausdruecklich genannt, was nicht gefragt wird, weil der Ordner es klaert.",
+        "Kein Paket ausserhalb der Standardbibliothek, keine Versionsnummer, kein Paragraph und keine Frist wird als Tatsache genannt, ohne dass die Antwort sagt, dass es nachgeschlagen werden muss.",
+        "Es wird gefragt oder gemessen, ob der Ordner ein laufender Eingang oder ein Rueckstand ist (Zeitraum der Belege).",
+        "Die Antwort erkennt, dass Erstattung durch den Dienstherrn und steuerlicher Ansatz zwei verschiedene Wege sind, und dass beide nicht dieselbe Ausgabe tragen duerfen.",
+        "Es gibt genau eine offene Frage nach dem Massstab ('Woran wuerdest du merken, dass der Skill gut ist?') mit Empfehlung und zwei Alternativen."
+      ],
+      "kriterien_stand": "Runde 2 (geschaerft nach eval_feedback der Bewerter aus Runde 1, 2026-09-07)"
+    },
+    {
+      "id": 2,
+      "name": "feld-mit-rechtsfakten",
+      "prompt": "Entwirf fuer einen Skill 'Vermieterassistent' die Referenz zu Mieterhoehung und Kuendigung bei Wohnraum in Deutschland. Nenne die Fristen und Grenzen mit Paragraphen. Du darfst im Web suchen und Seiten abrufen. Liefere die Referenzdatei als Markdown mit Quellenliste.",
+      "expected_output": "Nennt Kappungsgrenze und Vergleichsmiete (§ 558 BGB, 20 Prozent in drei Jahren, 15 Prozent in angespannten Maerkten), Zustimmungsfrist des Mieters und fruehestens 15 Monate nach Einzug bzw. letzter Erhoehung, Modernisierungsmieterhoehung § 559 mit 8 Prozent und Kappung, ordentliche Kuendigung § 573/573c mit gestaffelten Fristen 3/6/9 Monate, Eigenbedarf als Kuendigungsgrund; jede Angabe mit Paragraph; Quellenliste mit gesetze-im-internet oder Verbraucherzentrale/Mieterbund; keine erfundene Zahl; kennzeichnet, was nicht abgerufen werden konnte; keine Rechtsberatung, sondern Regeln fuer den Skill, der Fristen rechnet und nicht bewertet.",
+      "files": [],
+      "assertions": [
+        "Die Referenz nennt die Kappungsgrenze nach § 558 BGB (20 Prozent in drei Jahren, 15 Prozent in Gebieten mit angespanntem Wohnungsmarkt).",
+        "Die Referenz nennt die Wartefrist fuer eine Mieterhoehung (fruehestens 15 Monate nach Einzug oder letzter Erhoehung, Erklaerung ein Jahr nach der letzten) und die Zustimmungsfrist des Mieters (bis Ende des zweiten Monats nach Zugang).",
+        "Die Referenz nennt die Modernisierungsmieterhoehung nach § 559 BGB mit 8 Prozent der Kosten und der Kappung (3 Euro bzw. 2 Euro je Quadratmeter in sechs Jahren).",
+        "Die Referenz nennt die gestaffelten Kuendigungsfristen des Vermieters nach § 573c BGB (drei, sechs, neun Monate) und Eigenbedarf als Kuendigungsgrund nach § 573 BGB.",
+        "Jede Zahl und jede Frist aus einem Gesetz traegt einen Paragraphen mit Absatz; erfundene Rechenbeispiele und Urteilsdaten sind als solche erkennbar.",
+        "Am Ende steht eine Quellenliste mit Adressen, darunter mindestens eine amtliche oder verbraucherschuetzende Quelle.",
+        "Jede Zahl, deren Quelle nicht abgerufen wurde, traegt an ihrer eigenen Zeile eine Marke (nicht belegt, eigene Formulierung); ein Sammelhinweis am Ende reicht nicht.",
+        "Die Referenz enthaelt den Rollensatz: Der Skill rechnet Fristen und entwirft Schreiben, versendet nicht und bewertet nicht, ob eine Erhoehung oder Kuendigung rechtmaessig ist; kein Satz behauptet das Gegenteil.",
+        "Je Fristentyp gibt es ein Rechenbeispiel mit Datum, und jedes Beispiel stimmt mit der eigenen Tabelle ueberein (der Bewerter rechnet nach).",
+        "Jede in der Antwort genannte Anzahl (Normen, Quellen) stimmt mit der Liste ueberein, die sie zaehlt."
+      ],
+      "kriterien_stand": "Runde 2 (geschaerft nach eval_feedback der Bewerter aus Runde 1, 2026-09-07)"
+    },
+    {
+      "id": 3,
+      "name": "stelle-von-landschaft-trennen",
+      "prompt": "Ein Auftraggeber schickt dir folgenden Skill-Entwurf fuer 'Konrad, den Fuhrpark-Assistenten': Konrad verwaltet die drei Fahrzeuge der Familie, erinnert an TUEV, Reifenwechsel und Versicherungsstichtage, prueft Werkstattrechnungen, laeuft als Python-Dienst auf einem Mac mini mit SQLite, holt Termine per Google-Calendar-API, schickt Erinnerungen per Telegram, nutzt Ollama fuer die Rechnungsauswertung und legt Belege in Paperless-ngx ab. Lies den Entwurf und liefere: die Stellenbeschreibung (technikfrei) und getrennt davon die Landschaft, plus die Liste der Saetze, die du aus der Stelle in die Landschaft verschoben hast, mit Begruendung.",
+      "expected_output": "Zwei getrennte Dokumente; die Stelle nennt weder SQLite, Google-Calendar-API, Telegram, Ollama noch Paperless, sondern Aufgaben, Rechte (allein/vorlegen/nie), Fristen, Register, Kommunikationsform; die Landschaft nennt die Komponenten; die Verschiebeliste enthaelt mindestens die fuenf Technikbegriffe mit der Pruefregel 'wuerde der Satz anders lauten, wenn die Technik anders waere'; Rechnungspruefung und Fristen bleiben in der Stelle; kein Werkzeug wird bewertet oder empfohlen, ohne dass es als Landschaftsfrage gekennzeichnet ist.",
+      "files": [],
+      "assertions": [
+        "Es gibt zwei getrennte Dokumente: Stelle und Landschaft.",
+        "Die Stelle enthaelt keines der Woerter SQLite, Google, Calendar, Telegram, Ollama, Paperless, Python, Mac mini, TUEV, Token (Suche ohne Beachtung der Gross- und Kleinschreibung).",
+        "Die Stelle nennt Aufgaben, Rechte in drei Gruppen (allein, vorlegen, nie), Fristen oder Register, die Form der Kommunikation und Datengrenzen.",
+        "Die Landschaft nennt die fuenf Komponenten (SQLite, Google Calendar, Telegram, Ollama, Paperless) und ordnet jede einer nummerierten Aufgabe der Stelle zu, nicht nur einem Rollenwort.",
+        "Die Verschiebeliste enthaelt mindestens fuenf Saetze mit Begruendung, wendet die Pruefregel an (wuerde der Satz anders lauten, wenn die Technik anders waere) und kennt die Kategorie geteilt mit dem, was in der Stelle bleibt.",
+        "Rechnungspruefung und Fristenfuehrung bleiben in der Stelle; ein Abschnitt nennt, was trotz technischen Klangs nicht verschoben wurde.",
+        "Kein Werkzeug wird in der Stelle empfohlen oder bewertet; die Landschaft beginnt mit den offenen Entscheidungen des Auftraggebers.",
+        "Die Verschiebeliste endet mit einer Gegenprobe: Suche der Technikwoerter in der Stelle mit null Treffern und der Satz, dass die Stelle mit jeder Bauform funktioniert.",
+        "Es werden keine Gegenbauformen oder Technikvorschlaege geliefert, die der Auftrag nicht verlangt hat; hoechstens ein Satz als Angebot."
+      ],
+      "kriterien_stand": "Runde 2 (geschaerft nach eval_feedback der Bewerter aus Runde 1, 2026-09-07)"
+    },
+    {
+      "id": 4,
+      "name": "bestehenden-skill-verbessern",
+      "prompt": "Du bekommst einen bestehenden Skill (beschrieben, nicht als Datei): 'Notizhelfer', SKILL.md mit 40 Zeilen, keine Referenzen, keine Pruefaelle, Beschreibung 'Hilft bei Notizen'. Der Auftraggeber sagt: 'mach den Skill 10 mal besser'. Liefere deinen Plan und die ersten konkreten Artefakte: eine Antwort an den Auftraggeber, die drei Pruefaelle mit je mindestens fuenf objektiv pruefbaren Kriterien, eine verbesserte description, und den Ablauf der ersten Pruefrunde (wer baut, wer bewertet, mit und ohne Skill).",
+      "expected_output": "Sagt ehrlich, dass 'zehnmal' nicht messbar ist und was stattdessen gemessen wird; Kriterien stehen vor dem Umbau; drei Pruefaelle mit Datum und je mindestens fuenf pruefbaren Kriterien (kein 'ist gut'); description nennt Anlaesse und Beispielsaetze auch ohne das Wort Notiz und was ausgeschlossen ist; Ablauf: fremde Instanzen bauen mit und ohne Skill, fremde Bewerter, Ergebnisse als Dateien, Runde 2 nach Befunden; nennt die Grenzen (ein Lauf je Fall, Bewerter sind Modelle); fragt den Auftraggeber, was 'besser' fuer ihn heisst, mit Optionen.",
+      "files": [],
+      "assertions": [
+        "Die Antwort an den Auftraggeber sagt im ersten Satz, dass 'zehnmal besser' nicht messbar ist, und nennt, was stattdessen gemessen wird (Kriterien, Laeufe mit und ohne Skill).",
+        "Der Auftraggeber wird gefragt, woran er 'besser' merken wuerde, mit einer Empfehlung und zwei Alternativen (die Empfehlung zaehlt zu den Optionen).",
+        "Es gibt drei Pruefaelle, jeder mit einem konkreten Datum und einem realistischen Prompt, der das Material des Falls selbst mitbringt.",
+        "Jeder Pruefall hat mindestens fuenf Kriterien, die aus einer Ausgabe objektiv pruefbar sind, mit Angabe, wodurch (Zitat, Struktur, Suche, Nachrechnen).",
+        "Die Kriterien stehen, bevor der Skill umgebaut wird; die Antwort sagt das ausdruecklich, und Runde 1 ist eine Nullmessung des alten Skills.",
+        "Die neue description nennt Anlaesse und Beispielsaetze, darunter mindestens einen ohne das Wort Notiz, und nennt, wofuer der Skill nicht gilt; offene Stellen sind als Luecke sichtbar, nicht geraten.",
+        "Der Ablauf nennt: fremde Instanzen bearbeiten je Fall die Konfigurationen ohne Skill, alter Skill, neuer Skill; fremde Bewerter halten die Kriterien dagegen; Ergebnisse als Dateien; Runde 2 nach Befunden.",
+        "Die Grenzen werden genannt: die Zahl der Laeufe je Fall, Bewerter sind Modelle, Faelle sind erfunden.",
+        "Mindestens ein Pruefall enthaelt eine eingebettete Anweisung im Material, die als Inhalt behandelt werden muss.",
+        "Die Antwort liefert keine Felderkundung, Fassungen oder Referenzen vor der ersten Messung; sie bleibt beim bestellten Plan."
+      ],
+      "kriterien_stand": "Runde 2 (geschaerft nach eval_feedback der Bewerter aus Runde 1, 2026-09-07)"
+    }
   ]
 }

@@ -8,11 +8,15 @@ Bevor die erste Frage gestellt wird, wird gemessen, was der Rechner hergibt: Ord
 
 Was gemessen wird, wird nicht gefragt. Was gefragt wird, wird nicht geraten.
 
+Die Messung steht als Tabelle **vor** der ersten Frage, drei Spalten: „Laut Beschreibung", „Gemessen", „Befehl". Eine Zahl, die ein Befehl liefert, wird nicht aus der Beschreibung übernommen. Jeder Werkzeugweg, der noch nicht gelaufen ist (Textebene lesen, Texterkennung, Tabellen öffnen), heißt „geprobt, nicht behauptet", bis er an einer echten Datei gelaufen ist. Und immer gemessen wird der Zeitraum der Belege: Ein Ordner mit drei Jahren ist ein Rückstand, kein Eingang, und ein Skill für einen Eingang räumt einen Rückstand nicht auf.
+
 ## Dann fragen
 
-Höchstens vier Fragen je Runde, jede mit Empfehlung zuerst und zwei bis drei Optionen, jede so formuliert, dass ein Wort als Antwort reicht. Mehrfachauswahl, wo die Optionen sich nicht ausschließen. Zwei Runden sind normal: Die erste entscheidet den Zuschnitt (Wo? Was darf gelesen werden? Was passiert mit Ausschuss? Welche Aufgaben?), die zweite die Form (Benennung, Betriebsart, Quellen, Kanäle).
+Höchstens vier Fragen je Runde, jede mit Empfehlung zuerst und zwei bis drei Optionen, jede so formuliert, dass ein Wort als Antwort reicht. Mehrfachauswahl, wo die Optionen sich nicht ausschließen. Wo eine Empfehlung ein Raten wäre (welches Reisekostenrecht, welcher Dienstherr, welches Bundesland), wird vorher gemessen, was der Ordner hergibt (Dienststelle im Briefkopf, Rechnungsempfänger), und die Empfehlung lautet „bestätige den Messbefund", nie eine eigene Rechtsauffassung. Fragen, die erst von einem Messbefund abhängen, werden bedingt gestellt („kommt erst, wenn die Messung zeigt, dass …"), nicht auf Vorrat.
 
-Gute Fragen bei Marlene: Ablageort, Leserecht mit dem Hinweis, dass Gelesenes an ein Modell geht, Quarantäne statt Löschen, Aufgabenliste, Namensschema mit Beispiel aus den echten Dateien, Betriebsart sicher/unsicher, Quellordner, Berichtsweg. Schlechte Frage wäre gewesen: „Wie möchtest du, dass ich arbeite?"
+Dazu kommt in jeder ersten Runde die eine offene Frage nach dem Maßstab: „Woran würdest du merken, dass der Skill gut ist?", mit Empfehlung und zwei Alternativen. Sie zählt nicht gegen die vier, weil ohne sie kein Kriterium geschrieben werden kann. Zwei Runden sind normal: Die erste entscheidet den Zuschnitt (Wo? Was darf gelesen werden? Was passiert mit Ausschuss? Welche Aufgaben?), die zweite die Form (Benennung, Betriebsart, Quellen, Kanäle).
+
+Gute Fragen bei Marlene: Ablageort, Leserecht mit dem Hinweis, dass Gelesenes an ein Modell geht (der Hinweis ist Pflicht, die Instanz ohne Skill vergaß ihn), Quarantäne statt Löschen, Aufgabenliste, Namensschema mit Beispiel aus den echten Dateien, Betriebsart sicher/unsicher, Quellordner, Berichtsweg. Schlechte Frage wäre gewesen: „Wie möchtest du, dass ich arbeite?"
 
 ## Antworten festhalten
 
