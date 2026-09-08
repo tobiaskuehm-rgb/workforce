@@ -101,6 +101,18 @@ class DeployTest(ScriptHarness):
         self.assertNotEqual(0, run.returncode)
         self.assertNotIn("RESULT: deployed", run.stdout)
 
+    def test_the_archive_is_the_committed_tree_without_secrets_or_state(self):
+        clone = self.clone("claude")
+        (clone / "workforce/leak.txt").write_text("uncommitted")          # working tree only
+        run = self.deploy(clone)
+        self.assertEqual(0, run.returncode, run.stderr)
+        self.assertIn("leak.txt", run.stderr)                              # named, not shipped
+        archive = self.tmp / "a.tgz"; archive.write_bytes(self.calls()[0][1])
+        names = tarfile.open(archive).getnames()
+        self.assertTrue(any(n.endswith("workforce/app.py") for n in names))
+        for forbidden in ("secrets/", "config.json", "config.nas.json", ".db", "leak.txt"):
+            self.assertFalse(any(forbidden in n for n in names), (forbidden, names))
+
 
 class ComposeTest(unittest.TestCase):
     def test_the_base_mounts_only_the_bot_token_and_the_overlay_only_the_model_key(self):
@@ -114,6 +126,53 @@ class ComposeTest(unittest.TestCase):
         deploy = (REPO / "workforce/deploy_nas.sh").read_text()
         self.assertIn("compose.claude.yaml", deploy)
         self.assertIn('provider")=="claude"', deploy)
+
+
+class BackupPullTest(ScriptHarness):
+    def make_db(self, *, tamper=False) -> pathlib.Path:
+        live = self.tmp / "live.db"
+        store = Store(str(live), clock=lambda: 1_700_000_000.0)
+        for i in range(3):
+            store.audit("test", f"T-{i}", "NOTE", f"k{i}", {"i": i})
+        copy = self.tmp / "copy.db"
+        store.backup(str(copy)); store.close()
+        if tamper:
+            db = sqlite3.connect(str(copy)); db.execute("UPDATE audit SET payload = '{}' WHERE seq = 2"); db.commit(); db.close()
+        return copy
+
+    def pull(self, source):
+        env = dict(self.env, HOME=str(self.tmp / "home"), FAKE_SSH_STDOUT=str(source))
+        return subprocess.run(["sh", "workforce/backup_pull.sh"], cwd=REPO, env=env, capture_output=True, text=True)
+
+    def target(self):
+        return self.tmp / "home/Library/CloudStorage/GoogleDrive-Tobias.kuehm@icloud.com/Meine Ablage/09_Sicherung/workforce"
+
+    def test_a_good_copy_lands_with_mode_600_and_passes(self):
+        run = self.pull(self.make_db())
+        self.assertEqual(0, run.returncode, run.stderr)
+        self.assertIn("RESULT: PASS", run.stdout)
+        files = list(self.target().glob("workforce_*.db"))
+        self.assertEqual(1, len(files))
+        self.assertEqual(0o600, stat.S_IMODE(files[0].stat().st_mode))
+        self.assertIn("compose exec -T workforce", self.calls()[0][0][-1])
+
+    def test_a_tampered_copy_fails_loudly(self):
+        run = self.pull(self.make_db(tamper=True))
+        self.assertNotEqual(0, run.returncode)
+        self.assertNotIn("RESULT: PASS", run.stdout)
+        self.assertIn("BESCHAEDIGT", run.stdout)
+
+    def test_rotation_keeps_the_newest_fourteen(self):
+        self.target().mkdir(parents=True)
+        for i in range(20):
+            old = self.target() / f"workforce_2000-01-{i + 1:02d}_0000.db"
+            old.write_bytes(b"x"); os.utime(old, (1_000_000 + i, 1_000_000 + i))
+        run = self.pull(self.make_db())
+        self.assertEqual(0, run.returncode, run.stderr)
+        kept = sorted(p.name for p in self.target().glob("workforce_*.db"))
+        self.assertEqual(14, len(kept))
+        self.assertNotIn("workforce_2000-01-01_0000.db", kept)   # the oldest went
+        self.assertTrue(any(not k.startswith("workforce_2000") for k in kept))  # the new one stayed
 
 
 if __name__ == "__main__":
