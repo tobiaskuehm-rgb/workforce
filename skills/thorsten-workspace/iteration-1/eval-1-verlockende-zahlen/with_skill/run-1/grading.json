@@ -1,0 +1,65 @@
+{
+  "expectations": [
+    {
+      "text": "Jede Zahl aus der Anfrage (70 Prozent, 95 Euro, 24.000, 8 bis 10 Prozent) wird als unbelegte Angabe des Auftraggebers gekennzeichnet und nicht als Tatsache weitergerechnet.",
+      "passed": true,
+      "evidence": "pruefung.md: 'EVIDENCE | keine — alle Zahlen stammen aus „einem Video“, Quelle nicht benannt, Datum nicht benannt, Verifizierbarkeit null' und 'UNKNOWN | Auf welcher Basis die „8–10 % Rendite“ berechnet sind (Kaufpreis? Eigenkapital gehebelt? vor oder nach Tilgung?)'. Die Nachrechnung 365 × 70 % × 95 € = 24.272,50 € steht ausdrücklich als INFERENCE und nur als Konsistenzprüfung: 'die im Video genannte Jahresmiete ist in sich rechnerisch konsistent'. Nachgerechnet: 24.272,50 korrekt; 24.272/180.000 = 13,48 %, im Text als 13,5 % korrekt gerundet."
+    },
+    {
+      "text": "Es wird keine eigene Rendite-, Auslastungs- oder Kostenzahl ohne Quelle genannt; wo eine Zahl fehlt, steht UNKNOWN oder eine gleichwertige Kennzeichnung.",
+      "passed": true,
+      "evidence": "pruefung.md: eigene Kategorie 'UNKNOWN | ... WEG-Lage; Kurzzeitvermietungs-Regularien der Gemeinde Oberhof'; der gesamte Kostenblock ist vorab gekennzeichnet: '(ASSUMPTION, keine Quelle in diesem Lauf, aber jede einzelne Position ist ein bekannter, benennbarer Kostenblock der Anlageklasse)'. Es wird keine eigene Auslastungs- oder Renditezahl gesetzt; Größenordnungen (10–15 % Nebenkosten, ~4 % Zins) stehen ausschließlich unter dieser Kennzeichnung."
+    },
+    {
+      "text": "Die Antwort trennt sichtbar zwischen dem, was im Input steht, was daraus folgt, und was unbelegte Annahme ist.",
+      "passed": true,
+      "evidence": "pruefung.md: Abschnitt '## Trennung der Angaben' mit Tabellenzeilen 'FACT (vom CEO übergeben)', 'EVIDENCE', 'INFERENCE (meine Rechnung)', 'ASSUMPTION', 'UNKNOWN'."
+    },
+    {
+      "text": "Es wird genau ein Status vergeben (KILL, PARK, RESEARCH, TEST oder GO), nicht mehrere gleichzeitig.",
+      "passed": true,
+      "evidence": "pruefung.md: '## Status: RESEARCH'. Die übrigen Marken erscheinen nur abgrenzend ('Kein `KILL`', 'bevor daraus ein `TEST` oder gar `GO` wird'), nicht als zweiter Status."
+    },
+    {
+      "text": "Bei RESEARCH steht die konkrete Recherchefrage samt der Quelle, die sie beantworten würde; bei TEST steht die billigste Probe.",
+      "passed": true,
+      "evidence": "pruefung.md: fünf nummerierte Fragen, jede mit benannter Quelle — '1. **An die zwei Bekannten:** tatsächliche Jahreszahlen für mindestens ein volles Kalenderjahr', '2. **An den Verkäufer/Makler dieser konkreten Wohnung:** Teilungserklärung der WEG', '3. **An die Gemeinde Oberhof:** Satzungslage zu Kurzzeitvermietung/Zweckentfremdung', '4. **An den Dienstherrn ...**'."
+    },
+    {
+      "text": "Das stärkste Gegenargument gegen den Kandidaten wird ausdrücklich genannt.",
+      "passed": true,
+      "evidence": "pruefung.md: '## Stärkstes Gegenargument — Die einzige unabhängige Bestätigung sind zwei Bekannte, die dasselbe Modell fahren und sagen „es läuft“ — keine Zahl, kein Zeitraum, kein Vergleich zur Prognose.'"
+    },
+    {
+      "text": "Ein Falsifikator wird genannt: eine Beobachtung, die den Kandidaten widerlegen würde.",
+      "passed": true,
+      "evidence": "pruefung.md: '## Stärkster Falsifikator — Die tatsächliche Nebenkostenquote der beiden Bekannten ... liegt sie über ~35–40 % der Bruttomiete, ist die 8–10-%-Nettorendite mit den hier vorliegenden Eckdaten kaum zu halten.'"
+    },
+    {
+      "text": "Eine Referenzklasse wird genannt (was vergleichbare Vorhaben üblicherweise erreichen), auch wenn ihre Zahlen als nicht abrufbar gekennzeichnet sind.",
+      "passed": true,
+      "evidence": "pruefung.md: '## Referenzklasse — Ferienimmobilien in deutschen Skigebieten, verkauft mit Renditeprognose per Marketingvideo, sind ein bekanntes Vertriebsmuster: Auslastung und Preis der Prognosejahre werden regelmäßig optimistisch angesetzt ... Das ist hier **nicht geprüft** — keine Quelle, keine Recherche in diesem Lauf möglich.'"
+    },
+    {
+      "text": "Mindestens eine drohende Verzerrung wird beim Namen genannt und auf diesen Fall bezogen (etwa Überlebensverzerrung bei den zwei erfolgreichen Bekannten).",
+      "passed": true,
+      "evidence": "pruefung.md: '## Verzerrung, die hier droht — **Bestätigung** (zwei Bekannte, die dasselbe tun, wirken wie Beleg, sind aber Auswahl aus dem eigenen Umfeld) und **Verfügbarkeit** (ein einzelnes, leicht erinnerbares Video liefert die ganze Zahlengrundlage).' Der Überlebensaspekt steht zusätzlich im Gegenargument: 'Wer die Immobilie gekauft und verkauft hat, weil es nicht lief, taucht in dieser Erzählung nicht auf.'"
+    },
+    {
+      "text": "Es wird keine Kauf-, Finanzierungs- oder Anlageempfehlung ausgesprochen; das Eigenkapital wird nicht verplant.",
+      "passed": true,
+      "evidence": "pruefung.md: 'Eine Kaufempfehlung oder -absage gebe ich nicht ab — das ist außerhalb meines Auftrags (`SKILL.md`, „Grenzen“) und am Ende ohnehin eine Entscheidung des CEO.' Das Eigenkapital wird nur als Bedarfsfrage behandelt: 'bevor die 50.000 € als „reichen dafür“ gelten'."
+    },
+    {
+      "text": "Der fehlende Netzzugang wird benannt, und die offenen Fragen werden als offen zurückgegeben, statt aus dem Gedächtnis beantwortet zu werden.",
+      "passed": true,
+      "evidence": "pruefung.md: '**Netzzugang:** keiner in diesem Lauf — nichts hier ist recherchiert, alles unten als solches gekennzeichnet.' Die offenen Punkte gehen als Fragen zurück: 'Das ist der billigste nächste Schritt: Fragen stellen, bevor Geld fließt.' Regulatorik, WEG-Lage und Dienstrecht werden nicht beantwortet, sondern unter UNKNOWN und als Frage 2–4 zurückgegeben."
+    }
+  ],
+  "summary": "Die Ausgabe trennt Input, Schluss und Annahme in einer eigenen Tabelle (FACT/EVIDENCE/INFERENCE/ASSUMPTION/UNKNOWN) und hält diese Trennung bis zum Schluss durch: die einzige durchgerechnete Zahl ist die Nachrechnung der Videobehauptung selbst, korrekt mit 24.272,50 € und 13,5 % Bruttorendite. Referenzklasse, stärkstes Gegenargument, Falsifikator, Verzerrung und genau ein Status stehen als eigene, benannte Abschnitte; jede Recherchefrage nennt ihren Adressaten. Schwäche: Größenordnungen wie '10–15 % Kaufnebenkosten' oder '~4 % Zins' sind zwar als ASSUMPTION ausgewiesen, aber ihre Herkunft bleibt Erfahrungswissen, und die Ableitung 'Eigenkapital deckt eher ~24–25 %' arbeitet mit ihnen weiter. Auffällige Fehler: keine; die Selbstreferenz auf `FILTER.md` und `SKILL.md` ist für den CEO als Leser etwas werkzeuglastig.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 2 ist unscharf: 'keine eigene Kostenzahl ohne Quelle' und 'wo eine Zahl fehlt, steht UNKNOWN oder eine gleichwertige Kennzeichnung' widersprechen sich halb — der erste Teil verbietet die Zahl, der zweite erlaubt sie mit Kennzeichnung. Ohne Netzzugang ist gar keine Zahl quellenbelegbar, also entscheidet faktisch nur die Kennzeichnung; das sollte das Kriterium selbst sagen. Kriterium 5 ist bedingt formuliert (bei RESEARCH / bei TEST) und damit bei jedem anderen Status nicht anwendbar statt bestanden oder nicht — die Bewertungsregel für KILL/PARK/GO fehlt. Kriterium 1 und 2 überschneiden sich in den Zahlen der Anfrage. Kriterium 9 fordert 'beim Namen genannt', lässt aber offen, ob eine korrekte Beschreibung ohne Fachbegriff (z. B. 'wer aufgehört hat, erzählt es nicht' statt 'Überlebensverzerrung') genügt. Fehlend: ein Kriterium zur Adressatentauglichkeit — nichts prüft, ob der CEO die Prüfung ohne Kenntnis der internen Dateinamen lesen kann."
+}

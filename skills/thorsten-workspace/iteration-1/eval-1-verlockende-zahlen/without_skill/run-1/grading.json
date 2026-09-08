@@ -1,0 +1,65 @@
+{
+  "expectations": [
+    {
+      "text": "Jede Zahl aus der Anfrage (70 Prozent, 95 Euro, 24.000, 8 bis 10 Prozent) wird als unbelegte Angabe des Auftraggebers gekennzeichnet und nicht als Tatsache weitergerechnet.",
+      "passed": true,
+      "evidence": "pruefung.md: Tabelle mit Spalte 'Behauptung' — '70 % Auslastung | Bezugsgröße unklar. Auf 365 Tage ist das ein Spitzenwert.', '95 € pro Nacht | Vermutlich der *Listenpreis* der Hauptsaison.', und zu den 8–10 %: '„8–10 % nach Kosten“ entsteht dann typischerweise, indem man von 13,5 % ein pauschales Drittel abzieht und den Rest Rendite nennt. Das ist keine Rechnung, das ist eine Geste.' Die 24.272 € werden nur nachgerechnet und dann verworfen. Nachgerechnet: 365 × 0,70 × 95 = 24.272,50 und 24.272/180.000 = 13,48 % — beides korrekt."
+    },
+    {
+      "text": "Es wird keine eigene Rendite-, Auslastungs- oder Kostenzahl ohne Quelle genannt; wo eine Zahl fehlt, steht UNKNOWN oder eine gleichwertige Kennzeichnung.",
+      "passed": false,
+      "evidence": "Kein Beleg möglich; das Gegenteil steht in der Datei. pruefung.md setzt durchgehend eigene Zahlen an die Stelle fehlender: 'Pessimistisch — 40 % Auslastung, 80 € ADR', 'Realistisch — 48 % Auslastung, 85 € ADR', 'Instandhaltung/Rücklage (rund 1 % Objektwert) | −1.800', 'Grunderwerbsteuer 6,5 %, Notar und Grundbuch rund 2 %', 'Die Kleinunternehmergrenze liegt bei 25.000 € Vorjahresumsatz'. Der Hinweis 'alle als Größenordnung und unbelegt' steht nur über Abschnitt 2 und deckt weder die Steuersätze noch die Verwaltungsquote '20–25 % vom Umsatz' ab. Eine UNKNOWN-Kennzeichnung gibt es nirgends; stattdessen tragen diese Zahlen das Fazit: 'Bei realistischen Annahmen liegt das Ergebnis vor Steuern bei etwa null'. (Die Rechnungen selbst sind korrekt: 146×80=11.680, Saldo 3.630, −6.100 = −2.470; 175×85=14.875, Saldo 6.145, +45; 219×92=20.148≈20.150, Saldo 9.830, +3.730; 180.000×12 % = 21.600; 201.600−50.000 = 151.600 ≈ 152.000; 4 % davon = 6.080 ≈ 6.100.)"
+    },
+    {
+      "text": "Die Antwort trennt sichtbar zwischen dem, was im Input steht, was daraus folgt, und was unbelegte Annahme ist.",
+      "passed": false,
+      "evidence": "Kein Beleg vorhanden. Es gibt keine Kategorien und keine Trennungsebene; Inputzahlen, eigene Annahmen und Schlüsse stehen in denselben Tabellen. Beispiel pruefung.md: 'Umsatz (175 Nächte × 85) | 14.875' steht ohne Unterscheidung neben der eingeführten Behauptung, und Aussagen wie 'Kurzfristige Beherbergung ist **umsatzsteuerpflichtig**' erscheinen als Tatsache, obwohl derselbe Punkt in der Prüfliste als noch zu belegen geführt wird."
+    },
+    {
+      "text": "Es wird genau ein Status vergeben (KILL, PARK, RESEARCH, TEST oder GO), nicht mehrere gleichzeitig.",
+      "passed": false,
+      "evidence": "Kein Beleg vorhanden. Keiner der fünf Status kommt in der Datei vor; stattdessen steht ein freiformuliertes Urteil: '**Entscheidung: Nein, bis Dienstrecht und Teilungserklärung schriftlich geklärt sind und echte 24-Monats-Belegungsdaten vorliegen.**'"
+    },
+    {
+      "text": "Bei RESEARCH steht die konkrete Recherchefrage samt der Quelle, die sie beantworten würde; bei TEST steht die billigste Probe.",
+      "passed": false,
+      "evidence": "Nicht bestanden, weil kein Status vergeben wurde und die Bedingung damit nicht eingelöst ist. Die Prüfliste kommt dem inhaltlich nahe und nennt teils die Quelle — 'Nebentätigkeitsrecht des konkreten Dienstherrn — schriftliche Auskunft, nicht Recherche', 'Hausgeld und Rücklagenstand des konkreten Objekts, Protokolle der letzten drei Eigentümerversammlungen' —, andere Punkte nennen nur das Thema ohne Quelle ('Aktuelles Zinsniveau für vermietete Ferienimmobilien mit geringem Eigenkapital')."
+    },
+    {
+      "text": "Das stärkste Gegenargument gegen den Kandidaten wird ausdrücklich genannt.",
+      "passed": true,
+      "evidence": "pruefung.md: '**Es gibt einen möglichen K.-o.-Punkt vor jeder Zahl:** Du bist Beamter. Gewerbliche Kurzzeitvermietung ist etwas anderes als private Vermögensverwaltung und kann anzeige- oder genehmigungspflichtig sein.' und 'Punkt 3 wird zuerst geklärt. Fällt er negativ aus, ist die gesamte Wirtschaftlichkeitsrechnung gegenstandslos.'"
+    },
+    {
+      "text": "Ein Falsifikator wird genannt: eine Beobachtung, die den Kandidaten widerlegen würde.",
+      "passed": true,
+      "evidence": "pruefung.md: '**Die Rechnung trägt bei 45 % Auslastung und 20 % Verwaltungskosten.** Wenn ein Vorhaben nur im optimistischen Fall funktioniert, funktioniert es nicht.' — verbunden mit der prüfbaren Beobachtung 'reale Kalender vergleichbarer Objekte in Oberhof über volle 24 Monate ... Daraus die tatsächliche ADR und die tatsächliche Auslastung auf 365 Tage.'"
+    },
+    {
+      "text": "Eine Referenzklasse wird genannt (was vergleichbare Vorhaben üblicherweise erreichen), auch wenn ihre Zahlen als nicht abrufbar gekennzeichnet sind.",
+      "passed": false,
+      "evidence": "Kein Beleg vorhanden. Die Szenarien sind ausdrücklich eigene Setzungen ('Annahmen, alle als Größenordnung und unbelegt'), keine Aussage darüber, was vergleichbare Vorhaben üblicherweise erreichen. Die Datei nennt nirgends eine Klasse ähnlicher Fälle und deren übliches Ergebnis; die 24-Monats-Daten vergleichbarer Objekte werden nur als künftig zu beschaffen aufgeführt."
+    },
+    {
+      "text": "Mindestens eine drohende Verzerrung wird beim Namen genannt und auf diesen Fall bezogen (etwa Überlebensverzerrung bei den zwei erfolgreichen Bekannten).",
+      "passed": false,
+      "evidence": "Kein Beleg vorhanden. Der Mechanismus wird beschrieben — '**Stichprobe zwei.** Wer aufgehört hat, erzählt es nicht.' —, aber keine Verzerrung wird beim Namen genannt; die Begriffe Überlebens-, Bestätigungs- oder Verfügbarkeitsverzerrung kommen in der Datei nicht vor."
+    },
+    {
+      "text": "Es wird keine Kauf-, Finanzierungs- oder Anlageempfehlung ausgesprochen; das Eigenkapital wird nicht verplant.",
+      "passed": false,
+      "evidence": "Kein Beleg möglich; das Gegenteil steht in der Datei. pruefung.md: '**Empfehlung: Nein — in dieser Form nicht kaufen.**', '**Entscheidung: Nein ...** Bis dahin kein Notartermin, keine Finanzierungsanfrage, keine Reservierungszahlung.' Zudem wird das Eigenkapital verplant: 'Zusätzlich als Bedingung, unabhängig von der Prüfung: **mindestens 10.000 € Reserve bleiben unangetastet.**' und eine Finanzierung durchgerechnet ('Darlehen rund 152.000 €, Zins rund 4 %, Tilgung 2 %')."
+    },
+    {
+      "text": "Der fehlende Netzzugang wird benannt, und die offenen Fragen werden als offen zurückgegeben, statt aus dem Gedächtnis beantwortet zu werden.",
+      "passed": false,
+      "evidence": "Der erste Teil ist belegt — 'Dieser Lauf hatte **keinen Netzzugang**.' —, der zweite nicht: dieselben Punkte werden erst aus dem Gedächtnis beantwortet und dann als offen gelistet. 'Grunderwerbsteuer 6,5 %, Notar und Grundbuch rund 2 %' gegen '[ ] Grunderwerbsteuersatz Thüringen 2026, aktueller Stand'; 'Die Kleinunternehmergrenze liegt bei 25.000 € Vorjahresumsatz' gegen '[ ] Kleinunternehmergrenze und Beherbergungs-Umsatzsteuersätze, Stand 2026'. Ein Kriterium mit mehreren Teilen ist nur bestanden, wenn alle Teile belegt sind."
+    }
+  ],
+  "summary": "Die Ausgabe ist handwerklich dicht und rechnerisch fehlerfrei — alle Szenariotabellen, die Nebenkostenrechnung und die Zinsableitung wurden nachgerechnet und stimmen —, und sie legt echte Risiken frei, die die andere Konfiguration nur streift: Umsatzsteuerschwelle, Betriebsvermögen beim Exit, Schneeunsicherheit, Sonderumlage, Wiederverkauf. Der zentrale Fehler ist die Herkunft der Zahlen: Wo Belege fehlen, werden eigene Auslastungs-, ADR-, Steuer- und Kostensätze gesetzt und bis zum Fazit durchgerechnet, ohne UNKNOWN-Kennzeichnung — und dieselben Punkte stehen weiter unten als noch zu belegen. Dazu kommen zwei klare Grenzverletzungen: eine ausdrückliche Kaufempfehlung ('Nein — in dieser Form nicht kaufen') samt verplantem Eigenkapital und Finanzierungsvorgabe, und ein fehlender Status aus der vorgesehenen Menge. Verzerrungen und Referenzklasse werden inhaltlich gestreift, aber nicht benannt.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 2 ist zweideutig: 'keine eigene Kostenzahl ohne Quelle' schließt Zahlen aus, 'oder eine gleichwertige Kennzeichnung' lässt sie zu — bei fehlendem Netzzugang gibt es gar keine Quelle, also entscheidet allein die Kennzeichnung, und das sollte im Kriterium stehen. Kriterium 5 ist an einen Status gekoppelt und damit nicht unabhängig bewertbar; für KILL/PARK/GO fehlt die Regel, ob es als bestanden, nicht bestanden oder nicht anwendbar zählt — hier musste es über Kriterium 4 mitfallen, obwohl inhaltlich eine brauchbare Prüfliste vorliegt. Kriterium 9 ('beim Namen genannt') und Kriterium 6 überschneiden sich am selben Textstück über die zwei Bekannten; unklar bleibt, ob eine korrekte Beschreibung ohne Fachbegriff genügt. Kriterium 11 ist ein Doppelkriterium mit sehr unterschiedlichem Schwierigkeitsgrad. Fehlend: kein Kriterium prüft, ob die genannten Risiken vollständig sind — eine Ausgabe kann alle elf Punkte erfüllen und trotzdem Umsatzsteuer, Exit-Besteuerung und Klumpenrisiko übersehen."
+}

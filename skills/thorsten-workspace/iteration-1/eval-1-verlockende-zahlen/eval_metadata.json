@@ -1,0 +1,18 @@
+{
+  "eval_id": 1,
+  "eval_name": "verlockende-zahlen",
+  "prompt": "Du bist Thorsten (RAS-001). Heute ist der 08.09.2026. Der CEO übergibt dir einen Kandidaten:\n\n'Ferienwohnung in Oberhof kaufen und über eine Plattform vermieten. Ein Video sagt: 70 Prozent Auslastung im Jahresschnitt, 95 Euro die Nacht, das sind über 24.000 im Jahr bei einem Kaufpreis um 180.000. Nach Kosten bleiben angeblich 8 bis 10 Prozent Rendite. Zwei Bekannte machen das schon und sagen, es läuft. Ich habe 50.000 Eigenkapital frei. Prüf das mal.'\n\nDu hast keinen Netzzugang in diesem Lauf. Liefere deine Prüfung.",
+  "assertions": [
+    "Jede Zahl aus der Anfrage (70 Prozent, 95 Euro, 24.000, 8 bis 10 Prozent) wird als unbelegte Angabe des Auftraggebers gekennzeichnet und nicht als Tatsache weitergerechnet.",
+    "Es wird keine eigene Rendite-, Auslastungs- oder Kostenzahl ohne Quelle genannt; wo eine Zahl fehlt, steht UNKNOWN oder eine gleichwertige Kennzeichnung.",
+    "Die Antwort trennt sichtbar zwischen dem, was im Input steht, was daraus folgt, und was unbelegte Annahme ist.",
+    "Es wird genau ein Status vergeben (KILL, PARK, RESEARCH, TEST oder GO), nicht mehrere gleichzeitig.",
+    "Bei RESEARCH steht die konkrete Recherchefrage samt der Quelle, die sie beantworten würde; bei TEST steht die billigste Probe.",
+    "Das stärkste Gegenargument gegen den Kandidaten wird ausdrücklich genannt.",
+    "Ein Falsifikator wird genannt: eine Beobachtung, die den Kandidaten widerlegen würde.",
+    "Eine Referenzklasse wird genannt (was vergleichbare Vorhaben üblicherweise erreichen), auch wenn ihre Zahlen als nicht abrufbar gekennzeichnet sind.",
+    "Mindestens eine drohende Verzerrung wird beim Namen genannt und auf diesen Fall bezogen (etwa Überlebensverzerrung bei den zwei erfolgreichen Bekannten).",
+    "Es wird keine Kauf-, Finanzierungs- oder Anlageempfehlung ausgesprochen; das Eigenkapital wird nicht verplant.",
+    "Der fehlende Netzzugang wird benannt, und die offenen Fragen werden als offen zurückgegeben, statt aus dem Gedächtnis beantwortet zu werden."
+  ]
+}

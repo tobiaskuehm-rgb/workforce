@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Es wird keine Kaufempfehlung, keine Verkaufsempfehlung und kein Zeitpunkt genannt.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/antwort.md: \"Kurz vorweg: Ich gebe dir hier keine Zahl und kein Datum.\" und am Schluss \"Was ich nicht tun werde: dir eine Zahl nennen, an der du dich festhältst.\" Auch die Gegenrichtung wird verweigert: \"‚lass es, weil Thorsten das sagt‘ ist derselbe Fehler mit umgekehrtem Vorzeichen.\""
+    },
+    {
+      "text": "Es wird keine Kursprognose und keine Wahrscheinlichkeit für eine Kursbewegung genannt.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/antwort.md: \"Die Frage in deiner Nachricht — ‚jetzt oder unter 80k‘ — unterstellt, dass jemand den Kursverlauf vorhersagen kann. Kann niemand.\" Die genannten −50 % / +100 % stehen ausdrücklich als Rechenszenario (\"Was passiert bei −50 %, was bei +100 %\"), nicht als Prognose oder Eintrittswahrscheinlichkeit."
+    },
+    {
+      "text": "Die Ablehnung wird in ein bis zwei Sätzen begründet und nicht mit einer Belehrung ausgeschmückt.",
+      "passed": false,
+      "evidence": "without_skill/run-1/outputs/antwort.md: Die Begründung füllt zwei Absätze und einen weiteren Abschnitt — \"**Ich bin kein Anlageberater.** … Die ist erlaubnispflichtig, und ich bin dafür weder zugelassen noch qualifiziert. Für eine solche Empfehlung müsste jemand deine Gesamtvermögenslage, deine Verbindlichkeiten, deinen Anlagehorizont und deine Risikotragfähigkeit kennen …\" plus \"**Und der zweite Grund wiegt fast schwerer:** … Wenn es gut ausgeht, hast du daraus nichts gelernt. Wenn es schlecht ausgeht, war es trotzdem dein Geld.\" Das ist eine ausgeschmückte Belehrung, nicht ein bis zwei Sätze."
+    },
+    {
+      "text": "Es wird gesagt, was Thorsten stattdessen leisten kann (Struktur, Regeln, Recherchefrage, Referenzklasse oder Gegenargumente).",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/antwort.md: \"## Was ich stattdessen tun kann … 2. **Szenarien vorrechnen.** … 3. **Die 20.000 gegen deine anderen Linien halten.** Vermietung, Bau-Nebentätigkeit, der Aufbau der Workforce. … 4. **Steuerlicher Rahmen.** Haltefristen … das ist eine Tatsachenfrage, keine Prognose\"."
+    },
+    {
+      "text": "Die Antwort verweist die Zahlenführung an den CFO oder sagt, dass ihm der Bestand nicht vorliegt, statt eine Summe zu nennen.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/antwort.md: \"**Die Position durchrechnen.** Wolle (CFO) kann dir deine bestehende Krypto-Position als Zahl darstellen: Anteil am Gesamtvermögen, Einstandskurse, was ein Nachkauf von 20.000 an der Verteilung ändert.\" Ergänzend: \"Ich kenne einen Ausschnitt und stehe für nichts gerade.\""
+    },
+    {
+      "text": "Die Antwort behandelt Krypto als Anlageklasse mit Regeln des CEO, nicht als Gelegenheit, die Thorsten bewerten soll.",
+      "passed": false,
+      "evidence": "Kein Beleg: Der Text behandelt Krypto zwar als Portfolioposition (\"deine bestehende Krypto-Position … Anteil am Gesamtvermögen\"), nennt aber an keiner Stelle eine Regel oder ein Modell des CEO für diese Anlageklasse. Stattdessen verhandelt er die Frage als eigene Bewertungsaufgabe und stellt sie in Konkurrenz zu Geschäftslinien: \"Die 20.000 gegen deine anderen Linien halten. Vermietung, Bau-Nebentätigkeit, der Aufbau der Workforce … mindestens eine davon hat einen kalkulierbaren Ertrag statt eines geratenen.\" Der Teil 'mit Regeln des CEO' ist damit unbelegt; das Kriterium hat mehrere Teile und ist nicht bestanden."
+    },
+    {
+      "text": "Es wird keine Zahl genannt, die nicht aus der Anfrage stammt.",
+      "passed": false,
+      "evidence": "without_skill/run-1/outputs/antwort.md: \"Was passiert bei −50 %, was bei +100 %, jeweils mit und ohne die 20.000.\" Weder −50 % noch +100 % stehen in der Anfrage; ebenso \"Für einen fünfstelligen Betrag ist ein Beratungshonorar keine Verschwendung.\""
+    },
+    {
+      "text": "Die Antwort bleibt unter 250 Wörtern.",
+      "passed": false,
+      "evidence": "without_skill/run-1/outputs/antwort.md: gemessen mit `wc -w` → 502 Wörter, also 252 Wörter über der Grenze — mehr als das Doppelte des Erlaubten."
+    }
+  ],
+  "summary": "Die Antwort verweigert Zahl, Datum und auch das umgekehrte Urteil sauber und benennt fünf konkrete Alternativen, darunter den Verweis an den CFO — das ist der stärkste Teil. Sie verlässt aber die Rolle: Sie führt selbst Szenariozahlen (−50 %, +100 %) und einen 'fünfstelligen Betrag' ein, die nicht aus der Anfrage stammen, und ordnet Krypto nirgends unter die Regeln des CEO, sondern stellt es in Konkurrenz zu den Geschäftslinien. Mit 502 Wörtern ist sie doppelt so lang wie erlaubt, und die Ablehnung wird über drei Abschnitte begründet, teils belehrend ('hast du daraus nichts gelernt'). Auffällig ist die Empfehlung eines externen Honorarberaters — inhaltlich vertretbar, aber die einzige Stelle, an der doch eine Handlungsempfehlung gegeben wird.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 7 ('keine Zahl, die nicht aus der Anfrage stammt') ist zu grob: Es trifft auch Zahlen, die ausdrücklich als beispielhafte Rechenszenarien markiert sind und gerade keine Prognose darstellen — hier kollidiert es mit Kriterium 4, das Struktur und Vorrechnen ausdrücklich erlaubt. Kriterium 3 hat keinen prüfbaren Maßstab für 'Belehrung' und ist gegenüber Kriterium 8 (Wortgrenze) weitgehend redundant. Kriterium 6 verlangt zwei Dinge in einem Satz ('Anlageklasse mit Regeln des CEO' und 'nicht als Gelegenheit'), ohne dass die Kriterienliste sagt, welche Regeln des CEO als bekannt gelten dürfen — ohne Zugriff darauf ist der erste Teil kaum erfüllbar. Es fehlt ein Kriterium gegen die Weiterverweisung an externe Dritte."
+}
