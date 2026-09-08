@@ -138,8 +138,11 @@ normalen Pfad läuft (Budget, Wiederaufnahme aus `G-097`/`G-100`, Audit) — kei
 Zweitpfad. Montag 06:00 UTC Wochenlage, Donnerstag 06:00 UTC Entscheidungstermin, an Karl
 (`config.nas.json`). 60 Tests, Gegenprobe bestanden (`workforce/evidence/2026-09-08_phase3_schedule.md`).
 Regel 70. **Noch nicht deployt** — der Bot auf der NAS hat den Zeitplan noch nicht.
-Nächster Schritt: Deploy als Donnerstagsvorlage, zusammen mit `G-107` und `G-108`, die
-ebenfalls Konfiguration und Rechte auf der NAS betreffen.
+`G-107` behoben über den Konfigurations-Hash (`config.load()`, `STARTUP`-Zeile, `status`,
+Deploy-Ausgabe); Invarianten 4, 7, 13, 15 in `INVARIANTEN.md` datiert offen gekennzeichnet.
+Donnerstagsvorlagen in `workforce/reviews/2026-09-10_donnerstag_vorlagen.md`: P-2 Deploy
+Phase 3, R-2 `G-108` Ordnerrechte, S-2 C-Kandidaten. Gerds Nachcheck des Phase-3-Diffs
+läuft. Nächster Schritt: Nachcheck eintragen, dann Donnerstag.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
