@@ -13,6 +13,7 @@ Was Karl weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Eine sp
 | 2026-09-08 | **Klasse Rechte:** Marlene bleibt bis Phase 4 auf dem Kopienweg. | Chat 2026-09-08 |
 | 2026-09-08 | **3-Loop angenommen:** Vorschlag A (Firma mit COO) mit den drei Auflagen aus B, C, D: Entscheidungstermin statt Chat-Freigaben unter der Woche, Phase 3 vor Phase 4, eingefroren, was keine Arbeit hat. Takt nach Wahl des COO „im Sinne der Wirtschaftlichkeit": **Montag Lage, Donnerstag Entscheidungen, Freitag bis Sonntag Wochenendbetrieb.** Organigramm gilt (`skills/ORGANIGRAMM.md`). | Chat 2026-09-08 („kannste alles so umsetzen", `PENDING-DEC`) |
 | 2026-09-08 | Phase 3 gebaut: `Config.schedule`, `App.check_schedule()`, Montag/Donnerstag konfiguriert. 60 Tests, Gegenprobe bestanden. Deploy steht aus, Donnerstagsvorlage. | `workforce/evidence/2026-09-08_phase3_schedule.md` |
+| 2026-09-08 | **Modell-Loop entschieden:** Schaltwort für Denken ist `!` am Anfang; die ChatGPT-Assistentin ist keine Mitarbeiterin, Export dann Archiv; Gerd legt seinen LLM-Server aus Codex ins Repo. Auflage 1 (Gedächtnis für alle sieben) umgesetzt; Auflage 2 (zwei Modelle je Identität) Meilenstein nach dem Phase-3-Deploy; Ollama wartet. | Chat 2026-09-08 („! / Export / Gerd legt ihn ins Repo") |
 | 2026-09-07 | Der nächtliche Tagesprozess aus Codex mit Berichten bis 01:45 ist Archiv. Ein fehlender Claude-Bericht dort ist kein Auftrag mehr; integriert wird auf Anfrage und ~~freitags~~ montags und donnerstags (seit 2026-09-08). | bis heute in `karl/SKILL.md`, Abschnitt „Was du weißt" |
 
 ## Tatsachen zur Lage
@@ -28,7 +29,7 @@ Was Karl weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Eine sp
 
 | Seit | Vorgang | Stand |
 |---|---|---|
-| 2026-09-07 | Import der ChatGPT-Verläufe mit Karl in dieses Gedächtnis | wartet auf Export durch den CEO |
+| 2026-09-07 | Import der ChatGPT-Verläufe mit Karl in dieses Gedächtnis | wartet auf Export durch den CEO; am 2026-09-08 erneut zugesagt |
 | 2026-09-08 | 3-Loop über das gesamte Projekt und Organigramm-Vorschlag, vom CEO verlangt | angenommen und umgesetzt; offen: Phase 3 als nächster Meilenstein, `G-107`/`G-108` als Donnerstagsvorlagen, Marv misst Karl nach der Skilländerung nach |
 | 2026-09-08 | Gesamtreview über alle sechs Identitäten, angeordnet vom CEO im Chat 00:01 (`CEO-CHAT-2026-09-08/PENDING-DEC`), ausgeführt 04:00 | geschrieben nach `workforce/reviews/2026-09-08_gesamtreview_karl.md`; Prozess ITERATE, Fortschritt PASS; STOP Deploy bis `G-092`–`G-095` committet (Gerd `G-096`); fünf Vorlagen offen (S, P, B, PE, R); Kontrolle beim nächsten Kontakt: `git status` leer, `G-097` bestätigt, C-Kandidaten und Krypto-Bestand da, DEC-Nummern |
 

@@ -176,3 +176,7 @@ Sonnet mit Gedächtnis nicht. Auflage 1 prüft das, bevor Auflage 2 Geld kostet.
 Kontrolle: Am Donnerstag sehe ich nach, ob die drei Fragen beantwortet sind und ob der Export vorliegt.
 
 Nächster Schritt: Der CEO beantwortet die drei Fragen am 2026-09-10 und liefert den ChatGPT-Export; Owner Tobias.
+
+## Nachtrag 2026-09-08: Antworten des CEO
+
+„!", „Export", „Gerd legt ihn ins Repo". Damit: Schaltwort `!`; die ChatGPT-Assistentin wird exportiert und ist dann Archiv, der Verlauf geht an Marlene; Gerd bringt den LLM-Server ins Repo, bis dahin zählt er nicht. Auflage 1 umgesetzt: Gedächtnis für Marlene und Marv, Verweis in beiden Skills, Wächter in `test_identitaeten.py`. Der Export selbst steht noch aus.

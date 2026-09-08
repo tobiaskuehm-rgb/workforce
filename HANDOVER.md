@@ -143,7 +143,14 @@ Deploy-Ausgabe); Invarianten 4, 7, 13, 15 in `INVARIANTEN.md` datiert offen geke
 Donnerstagsvorlagen in `workforce/reviews/2026-09-10_donnerstag_vorlagen.md`: P-2 Deploy
 Phase 3, R-2 `G-108` Ordnerrechte, S-2 C-Kandidaten. Gerds Nachcheck des Phase-3-Diffs: deploybar; `G-110`
 (Uhrensprung zurück) und `G-111` (verpasster Termin stumm) behoben über `schedule_seen_<id>`,
-63 Tests. Nächster Schritt: Donnerstag 2026-09-10, P-2 und R-2 entscheiden; nach dem Deploy
+63 Tests. **Modell-Loop entschieden (CEO, 2026-09-08):** `workforce/reviews/2026-09-08_3loop_modelle_und_ort_karl.md`.
+Schaltwort `!`, ChatGPT-Assistentin Export dann Archiv, Gedächtnis jetzt für alle sieben
+(`skills/gedaechtnis/marlene.md`, `marv.md`, Wächter in `skills/test_identitaeten.py`).
+**Für Gerd:** Der CEO will deinen LLM-Server aus Codex im Repo; bis er dort liegt, zählt er
+nicht. **Für Marv:** Marlenes und Marvs Skill haben je einen Gedächtnisverweis bekommen,
+Marlene ist damit nach der Messung geändert. Meilenstein nach dem Phase-3-Deploy: zwei
+Modelle je Identität (`model`, `model_deep`), `!` wählt Denken, Modell nie aus der Modellausgabe.
+Nächster Schritt: Donnerstag 2026-09-10, P-2 und R-2 entscheiden; nach dem Deploy
 Gerds Review nach dem Lauf, danach Nachcheck `G-110`/`G-111`.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
