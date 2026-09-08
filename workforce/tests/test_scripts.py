@@ -82,6 +82,8 @@ class DeployTest(ScriptHarness):
         final = calls[-1][0][-1]
         self.assertIn("-f compose.yaml -f compose.claude.yaml up -d --force-recreate", final)
         self.assertIn("chgrp 10001", final)
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=clone, capture_output=True, text=True).stdout.strip()
+        self.assertIn(f"--build-arg WORKFORCE_COMMIT={head}", final)   # G-105: the image knows its commit
 
     def test_an_echo_config_ships_no_model_key_and_no_overlay(self):
         clone = self.clone("echo")

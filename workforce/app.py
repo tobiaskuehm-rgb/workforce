@@ -9,6 +9,8 @@ is re-sent once, visibly marked as a possible repeat, never silently dropped.
 from __future__ import annotations
 
 import hashlib
+import json
+import os
 import time
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
@@ -45,8 +47,10 @@ def today(clock: Callable[[], float]) -> str:
 
 class App:
     def __init__(self, config: Config, store: Store, telegram: Any, providers: Dict[str, Any],
-                 *, clock: Callable[[], float] = time.time, log: Callable[[str], None] = print) -> None:
+                 *, clock: Callable[[], float] = time.time, log: Callable[[str], None] = print,
+                 commit: str = "unknown") -> None:
         self.config = config
+        self.commit = commit
         self.store = store
         self.telegram = telegram
         self.providers = providers
@@ -81,8 +85,17 @@ class App:
             self.process(row["message_id"], int(row["update_id"]), pass_no=pass_no)
         return len(rows)
 
+    def startup(self) -> None:
+        """A start is an effect and leaves a row (G-105): from the database alone it must be
+        possible to say which code has been answering since when."""
+        self.store.audit(ACTOR, f"STARTUP-{self.commit[:12]}-{int(self.clock())}", "STARTUP", "process",
+                         {"commit": self.commit, "channel": self.store.channel(),
+                          "default_identity": self.config.default_identity})
+        self.log(f"workforce: Stand {self.commit[:12]}, Kanal {self.store.channel()}, "
+                 f"Standardidentitaet {self.config.default_identity}")
+
     def run_forever(self) -> None:
-        self.log(f"workforce: Kanal {self.store.channel()}, Standardidentitaet {self.config.default_identity}")
+        self.startup()
         while True:
             try:
                 self.poll_once()
@@ -142,7 +155,9 @@ class App:
     def status_text(self) -> str:
         b = self.store.budget(today(self.clock))
         ok, bad = self.store.verify_audit()
-        return (f"Kanal: {self.store.channel()}\nHeute: {b['calls']} Aufrufe, {b['usd']:.4f} USD von "
+        start = self.store.last_audit("STARTUP")
+        stand = "unbekannt" if start is None else f"{json.loads(start['payload'])['commit'][:12]} seit {today(lambda: start['ts'])}"
+        return (f"Stand: {stand}\nKanal: {self.store.channel()}\nHeute: {b['calls']} Aufrufe, {b['usd']:.4f} USD von "
                 f"{self.config.max_usd_per_day:.2f}\nOffen: {len(self.store.pending_outbound())} Ausgaenge\n"
                 f"Audit: {'intakt' if ok else 'BESCHAEDIGT ab ' + str(bad)}")
 
@@ -288,4 +303,5 @@ def build_app(config: Config, *, store: Optional[Store] = None, log: Callable[[s
                                          workspace_id=config.anthropic_workspace_id)
     token = read_secret(config.secrets_dir, "telegram_bot_token")
     telegram = TelegramClient(token, base_url=config.telegram_base_url)
-    return App(config, store or Store(config.db_path), telegram, providers, log=log)
+    return App(config, store or Store(config.db_path), telegram, providers, log=log,
+               commit=os.environ.get("WORKFORCE_COMMIT", "unknown"))

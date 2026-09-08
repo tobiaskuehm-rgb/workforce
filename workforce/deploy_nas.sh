@@ -49,6 +49,7 @@ for s in $secrets; do
 done
 ssh -o BatchMode=yes "$host" "cd '$root' \
   && $docker run --rm -v '$root/secrets:/s' alpine sh -c 'chgrp 10001 /s/* && chmod 640 /s/*' \
-  && $docker compose $compose build -q && $docker compose $compose up -d --force-recreate && $docker compose $compose ps" < /dev/null
+  && $docker compose $compose build -q --build-arg WORKFORCE_COMMIT=$(git rev-parse HEAD) \
+  && $docker compose $compose up -d --force-recreate && $docker compose $compose ps" < /dev/null
 rm -f "$archiv"
 echo "RESULT: deployed $(git rev-parse --short HEAD)"

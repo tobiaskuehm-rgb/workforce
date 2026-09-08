@@ -207,6 +207,21 @@ class BudgetTest(Harness):
         self.assertEqual("DONE", self.store.message(second)["status"])
         self.assertEqual(1, len(self.store.audit_rows("TG-2-R1-RESUME")))
 
+    def test_a_start_leaves_an_audit_row_with_the_commit(self):
+        # G-105: from the database alone, which code has been answering since when.
+        self.make(); self.app.commit = "abc123def4567890"
+        self.app.startup()
+        row = self.store.last_audit("STARTUP")
+        self.assertEqual("abc123def456", row["request_id"].split("-")[1])
+        self.assertEqual({"commit": "abc123def4567890", "channel": "DISABLED", "default_identity": "A"},
+                         json.loads(row["payload"]))
+        self.assertIn("Stand: abc123def456 seit", self.app.status_text())
+        self.assertTrue(self.store.verify_audit()[0])
+
+    def test_status_without_a_start_says_so(self):
+        self.make()
+        self.assertIn("Stand: unbekannt", self.app.status_text())
+
     def test_a_message_the_budget_never_covers_is_abandoned_visibly(self):
         # G-100: one notice per day, and an end after max_attempts days.
         self.make(FakeProvider(paid=True), max_usd_per_day=1e-7, max_attempts=3); self.activate()
