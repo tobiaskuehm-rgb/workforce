@@ -423,6 +423,8 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 68. **Der erste Betriebsbefehl in einem README ist der, der im Notfall getippt wird** (`G-104`). Nach der Trennung in Basis und Overlay führte die alte Zeile `docker compose up -d --build` in den Ausfall, fail-closed, aber ein Ausfall. Wer eine Aufrufform ändert, sucht jede Abschrift davon (`G-052`), und das README nennt das Skript, nicht den Befehl, den das Skript zusammensetzt.
 
+69. **Ein Start ist eine Wirkung und hinterlässt eine Auditzeile mit dem Codestand** (`G-105`). Nach dem ersten Deploy des Neubaus ließ sich aus der Datenbank allein nicht sagen, welcher Commit seit wann antwortet; das Manifest kannte den Code, die Zustandsdatei kannte ihn nicht. Der Commit wird beim Bau ins Image geschrieben und beim Start auditiert, nicht beim Deploy notiert: „rekonstruierbar allein aus der Datenbank" (Invariante 6) gilt auch für die Frage, welches Programm die Zeilen geschrieben hat.
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.
