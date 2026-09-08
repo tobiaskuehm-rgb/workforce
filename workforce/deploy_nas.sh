@@ -24,11 +24,18 @@ ssh -o BatchMode=yes "$host" "cd '$root' && tar xzf -" < "$archiv"
 # scp needs the SFTP subsystem, which this NAS does not offer ("Connection closed"); a file
 # over ssh stdin does not. umask 027 so a secret is never world-readable, not even briefly.
 ssh -o BatchMode=yes "$host" "umask 027 && cat > '$root/config.json'" < workforce/config.nas.json
-for s in telegram_bot_token anthropic_api_key; do
+# A container gets only the secret it uses (G-098): the model key travels, and the overlay that
+# mounts it loads, only when the shipped config names a `claude` identity. Read from the config,
+# never guessed from what lies in secrets/.
+secrets="telegram_bot_token"; compose="-f compose.yaml"
+if python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); sys.exit(0 if any(i.get("provider")=="claude" for i in c["identities"].values()) else 1)' workforce/config.nas.json; then
+  secrets="$secrets anthropic_api_key"; compose="$compose -f compose.claude.yaml"
+fi
+for s in $secrets; do
   ssh -o BatchMode=yes "$host" "umask 027 && cat > '$root/secrets/$s'" < "workforce/secrets/$s"
 done
 ssh -o BatchMode=yes "$host" "cd '$root' \
   && $docker run --rm -v '$root/secrets:/s' alpine sh -c 'chgrp 10001 /s/* && chmod 640 /s/*' \
-  && $docker compose build -q && $docker compose up -d --force-recreate && $docker compose ps" < /dev/null
+  && $docker compose $compose build -q && $docker compose $compose up -d --force-recreate && $docker compose $compose ps" < /dev/null
 rm -f "$archiv"
 echo "RESULT: deployed $(git rev-parse --short HEAD)"

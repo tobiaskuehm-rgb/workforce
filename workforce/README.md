@@ -39,7 +39,7 @@ spricht eine andere konfigurierte Identität an.
 
 ## Auf der NAS
 
-`compose.yaml` ist der ganze Betrieb: `docker compose up -d --build`. Secrets liegen als
+`compose.yaml` ist der ganze Betrieb: `docker compose up -d --build`. Nutzt eine Identität `claude`, kommt das Overlay dazu, das den Modellschlüssel einhängt: `docker compose -f compose.yaml -f compose.claude.yaml up -d --build`; ein Echo- oder Ollama-Betrieb lädt es nie (Invariante 12). `deploy_nas.sh` liest das aus `config.nas.json`. Secrets liegen als
 Dateien in `secrets/` mit `chgrp 10001` und `chmod 640`; `config.json` daneben. Ein
 Bot-Token verträgt genau einen Abfrager — der Connector des Prototyps darf nicht
 gleichzeitig laufen.

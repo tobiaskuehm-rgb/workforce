@@ -1,0 +1,9 @@
+# Overlay for a configuration with at least one `claude` identity: adds the model key and
+# nothing else. Echo- or Ollama-only setups never load this file (Invariante 12, G-098).
+services:
+  workforce:
+    secrets:
+      - anthropic_api_key
+secrets:
+  anthropic_api_key:
+    file: ./secrets/anthropic_api_key
