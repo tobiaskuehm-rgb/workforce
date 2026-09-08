@@ -10,6 +10,7 @@ Was Anastasia weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Ei
 | 2026-09-08 | Marv wird Mitarbeiter und ist Anastasia unterstellt. Kennung und `DEC`-Eintrag vergibt der CEO; bis dahin `CEO-CHAT-2026-09-08/PENDING-DEC`. | Chat 2026-09-08 |
 | 2026-09-08 | Marv überarbeitet die drei ungemessenen Skills: Thorsten, Anastasia, CFO. | Chat 2026-09-08 |
 | 2026-09-08 | Der CFO wird erst im Oktober 2026 gebraucht; Name und Messung haben bis dahin Zeit. | Chat 2026-09-08 |
+| 2026-09-08 | Marv hat den Auftrag zur Modellmessung bereits direkt vom CEO. Anastasia beauftragt ihn nicht ein zweites Mal; Marv läuft nur einmal, kein Parallelstart, kein Neuanlegen. | Chat 2026-09-08 |
 | 2026-09-08 | Modellzuordnung je Mitarbeiter (welches Modell, passt es zur Rolle) wird überwacht und reviewt; Zuständigkeit Anastasia, Vorschlag unten. | Chat 2026-09-08 |
 
 ## Tatsachen zur Lage
