@@ -85,3 +85,35 @@ Freigabe Gerd: `226f0b9` deploybar, sobald P-1 entschieden ist, ausschließlich 
 Compose-Aufrufe von Hand, Ollama-Anbindung, NAS-Zustand.
 
 **Letzte vergebene Befundnummer: `G-104`.**
+
+## 2026-09-08 — Review nach dem Deploy `ca1bd20` (Gerd via Claude Code, NAS nur lesend)
+
+Der ausgerollte Baum ist byte-identisch mit `ca1bd20`: 307 Dateien unter `workforce/` und
+`skills/`, `sha256` je Datei gegen `git archive ca1bd20`, kein Unterschied, keine überzählige
+Datei. Image `workforce:v1` gebaut 08:32:46, Container gestartet 08:33:11, kein Restart-Loop.
+`docker inspect`: `User 10001:10001`, `ReadonlyRootfs true`, `CapDrop [ALL]`,
+`no-new-privileges`, beide Secrets als `rw=false`-Binds, kein Secret in `Env`.
+
+Je Invariante: 1 belegt aus dem Code — `Store.channel()` liest mit Vorgabe `DISABLED`, nur
+`set_channel()` schreibt, und nur aus `/start`|`/stop` mit Auditzeile; `ACTIVE` nach Neustart
+ist persistierter, früher auditierter Zustand, **kein Fail-closed-Verstoß**. 6 und 16 belegt:
+`verify` PASS, Exit 0. 12 belegt für die Dateien (`-rw-r----- 1026:workforce`, Prozess
+`10001`). 9 teilweise (`status`: 0 Aufrufe, 0.0000 von 2.00). 2, 3, 4, 5, 7, 8, 10, 13, 14, 15
+nicht anwendbar, der Lauf hat keine Nachricht verarbeitet.
+
+| ID | Schwere | Befund | Korrektur/Nachweis |
+|---|---:|---|---|
+| `G-105` | mittel | Ein Deploy und ein Neustart hinterlassen keine Auditzeile. Aus der Datenbank allein ist nicht zu sagen, welcher Codestand seit wann antwortet (Invarianten 6, 13). | offen. Vorschlag Gerd: `STARTUP`-Zeile mit Commit-Hash beim Start. |
+| `G-106` | niedrig | Der im Nachweis berichtete Befehl `exec -T workforce python -m workforce verify` läuft ohne `--config` nicht (Exit 2 `CONFIG_FILE_MISSING`); die Zahlen stimmen mit `--config`, der Nachweis war nicht wortgleich reproduzierbar. | Behoben: Nachweis nennt den vollständigen Befehl. |
+| `G-107` | mittel | `config.nas.json` ist gitignoriert. „deployed ca1bd20" nennt den Code, nicht die laufende Konfiguration; Budgetdecke, `allowed_chat_id`, Modellwahl liegen nur auf Mac und NAS. | offen. Optionen: versionieren (kein Geheimnis darin) oder Konfigurations-Hash in Deployausgabe und `status`. Entscheidung CEO, Klasse Rechte, weil die Chat-Id darin steht. |
+| `G-108` | mittel | `/volume1/docker/workforce` und `secrets/` sind `drwxrwxrwx`, `config.json` und `deploy_nas.sh` `-rwxrwxrwx`. `640` auf der Secretdatei ist in einem 777-Ordner ersetzbar, ohne dass `verify` etwas merkt. | offen. Korrektur ändert Rechte auf der NAS, braucht CEO-Freigabe im Chat. |
+
+Geprüft und nicht bestätigt: Auditzeilen des Neustarts (keine vorhanden), Zustellabgleich
+unter Last, Wiederherstellung aus `backup_pull.sh`, Telegram- und Anthropic-Aufruf, `/stop`,
+`workforce.db-wal` von 1,1 MB ohne Checkpoint.
+
+Freigabe Gerd: `ca1bd20` als laufender Stand auf der NAS im Claude-Betrieb, Budget 2.00, Kanal
+`ACTIVE`. Nicht freigegeben: `G-105` bis `G-108`, `config.nas.json` als Konfigurationsquelle,
+ein erster echter Modelllauf ohne beobachtete Runde.
+
+**Letzte vergebene Befundnummer: `G-108`.**

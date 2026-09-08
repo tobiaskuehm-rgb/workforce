@@ -123,8 +123,11 @@ Kanal `ACTIVE`, Decke 2,00 USD; Nachweis `workforce/evidence/2026-09-08_deploy_c
 CEO-Entscheidungen desselben Chats: `FILTER.md` ist das Instrument für C, kein
 Nebentätigkeitsantrag jetzt, Decke 2,0 USD/100 Aufrufe, CFO heißt **Wolle**, Marlene bleibt in
 Probezeit, Marv ist Mitarbeiter, Marlene bis Phase 4 auf Kopien, **Karl ist COO auf Probe**.
-Nächster Schritt: Gerds Review nach dem Lauf, dann 3-Loop über das Projekt
-(`workforce/reviews/2026-09-08_3loop_projekt_karl.md`).
+Gerds Review nach dem Lauf: Stand freigegeben, `G-105` bis `G-108` offen (Startup-Auditzeile,
+Konfiguration nicht versioniert, 777-Rechte auf der NAS; `G-106` behoben). 3-Loop über das
+Projekt und Organigramm: `workforce/reviews/2026-09-08_3loop_projekt_karl.md`, drei Fragen an
+den CEO bis 2026-09-12. Nächster Schritt: `G-105` beheben (Code, ohne NAS); `G-107` und `G-108`
+brauchen eine CEO-Entscheidung, weil sie Konfiguration und Rechte auf der NAS betreffen.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
