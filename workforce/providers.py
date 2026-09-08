@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import socket
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
@@ -78,6 +79,22 @@ class OllamaProvider:
     is_paid = False
 
     def __init__(self, model: models.Model, *, base_url: str, timeout: float = 300.0) -> None:
+        try:
+            parsed = urllib.parse.urlsplit(base_url)
+            port = parsed.port
+        except ValueError as exc:
+            raise ProviderError("PROVIDER_OLLAMA_ENDPOINT_DENIED") from exc
+        if not (
+            parsed.scheme == "http"
+            and parsed.hostname in ("127.0.0.1", "localhost", "::1", "host.docker.internal")
+            and parsed.username is None
+            and parsed.password is None
+            and parsed.path in ("", "/")
+            and not parsed.query
+            and not parsed.fragment
+            and (port is None or 1 <= port <= 65535)
+        ):
+            raise ProviderError("PROVIDER_OLLAMA_ENDPOINT_DENIED")
         self.model = model
         self._url = base_url.rstrip("/") + "/api/chat"
         self._timeout = timeout

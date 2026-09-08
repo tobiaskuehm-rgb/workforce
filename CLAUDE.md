@@ -399,6 +399,14 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 56. **Eine Vorlage ist die Konfiguration, die kopiert wird; ein Ziel ist eine Konstante; und ein Container bekommt nur das Geheimnis, das er benutzt — auch im Trockenlauf** (`G-089`, `G-090`, `G-091`). Die Agenten-Vorlage startete unverändert kopiert nicht (`AGENT_MODEL_PROVIDER_MISMATCH`), weil sie ein Claude-Modell neben den Echo-Provider stellte; jede `.env.example` läuft jetzt durch `build_provider()`. `compose.agent.yaml` verlangte und mountete den bezahlten Schlüssel auch für Echo, während sein Kopf das Gegenteil sagte — Echo und Modell haben jetzt getrennte Dateien mit getrenntem Secret-Mount. Und der Deploy-Helfer las Host und Pfad aus der Umgebung und setzte sie in einen Remote-Shellstring: Ein Zielsystem ist eine Konstante, und eine gesetzte Überschreibung ist ein Abbruch vor `tar` und `ssh`, keine Steuerung. Dazu zwei Leitplanke-7-Fälle derselben Runde (`G-087`, `G-088`): eine Bestätigungsnotiz, die bei Antwort und Ablehnung dasselbe sagte, und ein Berichtspfad, dessen Kommentar „überschreibt sich nie" behauptete, während der Pfad je Lauf derselbe war.
 
+57. **Ein als lokal deklarierter Provider akzeptiert nur exakt erlaubte Ursprünge; Schema, Host, Zugangsdaten und versteckte Pfade werden unabhängig in Konfiguration und Provider geprüft** (`G-092`).
+
+58. **Zeit-, Retry- und Aufrufgrenzen sind beim Start typfest, positiv und nach oben begrenzt; String, Bool und negative Werte sind keine Zahlenkonfiguration** (`G-093`).
+
+59. **„Feste Secret-Rechte“ bedeutet exakt `0600` oder `0640`, nicht nur „kein Zugriff für alle“; übergroße Dateien werden abgelehnt statt abgeschnitten interpretiert** (`G-094`).
+
+60. **Ein sicherheitsrelevanter Zustandswechsel und seine Auditzeile sind eine Transaktion; fällt der Nachweis aus, bleibt auch die Wirkung aus** (`G-095`).
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.

@@ -98,6 +98,13 @@ NAS seit 11:53 UTC (Stand `de8818b`). Deploy rollt seitdem den committeten Baum 
 Neubaus nach dem Lauf gegen `INVARIANTEN.md`, Stand `39a3bc5`, Befunde ab `G-092` in
 `REVIEW_GERD.md` im Wurzelverzeichnis. `HO-027` (Anmeldung unten) ruht.
 
+**Gerd abgeschlossen, 2026-09-08:** eng begrenzter Nachcheck und Korrektur ausschließlich
+in `workforce/config.py`, `workforce/providers.py`, `workforce/store.py` und den zugehörigen
+Tests. Vier reproduzierte Befunde `G-092` bis `G-095` stehen in `REVIEW_GERD.md`; Regeln
+57–60 sind hier im Repo ergänzt. Lokaler Nachweis: 30/30 Tests und `git diff --check` PASS.
+Keine Skill-, Marlene-, NAS- oder Produktivänderung. Ollama auf dem Mac mini ist ausdrücklich
+noch **nicht** angebunden: Dafür fehlen gemessene Zieladresse und freigegebener Netzweg.
+
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
 Edit war am inzwischen veränderten Kopf gescheitert, die Befehlskette lief

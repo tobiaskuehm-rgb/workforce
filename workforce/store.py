@@ -92,23 +92,34 @@ class Store:
     def set_channel(self, value: str, *, actor: str, request_id: str) -> None:
         if value not in ("DISABLED", "ACTIVE"):
             raise ValueError("CHANNEL_STATE_UNKNOWN")
-        self.set_setting("channel", value)
-        self.audit(actor, request_id, "CHANNEL", value, {})
+        # The switch and its evidence are one fact. A crash or failed audit may
+        # leave both old, never an unaudited active channel.
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            self._db.execute(
+                "INSERT INTO settings (key, value) VALUES ('channel', ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (value,))
+            self._append_audit(actor, request_id, "CHANNEL", value, {})
 
     # -- audit hash chain ------------------------------------------------------
     def audit(self, actor: str, request_id: str, kind: str, record_key: str, payload: Dict[str, Any]) -> str:
         with self._db:
             self._db.execute("BEGIN IMMEDIATE")
-            last = self._db.execute("SELECT hash FROM audit ORDER BY seq DESC LIMIT 1").fetchone()
-            prev = GENESIS if last is None else str(last["hash"])
-            ts = self.clock()
-            row = {"ts": ts, "actor": actor, "request_id": request_id, "kind": kind,
-                   "record_key": record_key, "payload": payload, "prev_hash": prev}
-            digest = hashlib.sha256(_canonical(row).encode("utf-8")).hexdigest()
-            self._db.execute(
-                "INSERT INTO audit (ts, actor, request_id, kind, record_key, payload, prev_hash, hash) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (ts, actor, request_id, kind, record_key, _canonical(payload), prev, digest))
+            return self._append_audit(actor, request_id, kind, record_key, payload)
+
+    def _append_audit(self, actor: str, request_id: str, kind: str, record_key: str,
+                      payload: Dict[str, Any]) -> str:
+        """Append inside the caller's transaction; caller owns BEGIN/COMMIT."""
+        last = self._db.execute("SELECT hash FROM audit ORDER BY seq DESC LIMIT 1").fetchone()
+        prev = GENESIS if last is None else str(last["hash"])
+        ts = self.clock()
+        row = {"ts": ts, "actor": actor, "request_id": request_id, "kind": kind,
+               "record_key": record_key, "payload": payload, "prev_hash": prev}
+        digest = hashlib.sha256(_canonical(row).encode("utf-8")).hexdigest()
+        self._db.execute(
+            "INSERT INTO audit (ts, actor, request_id, kind, record_key, payload, prev_hash, hash) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (ts, actor, request_id, kind, record_key, _canonical(payload), prev, digest))
         return digest
 
     def verify_audit(self) -> Tuple[bool, Optional[int]]:

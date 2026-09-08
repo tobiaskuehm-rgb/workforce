@@ -13,6 +13,7 @@ import pathlib
 import stat
 from dataclasses import dataclass
 from typing import Any, Dict, Tuple
+from urllib.parse import urlsplit
 
 POLICIES = ("METADATA_ONLY", "BODY", "FULL")
 PROVIDERS = ("echo", "ollama", "claude")
@@ -127,12 +128,22 @@ def parse(values: Dict[str, Any], *, base_dir: str = ".") -> Config:
     poll = int(values.get("poll_timeout_seconds", 25))
     if not 1 <= poll <= 50:
         raise ConfigError("CONFIG_POLL_TIMEOUT_RANGE")
+    lease = _bounded_int(values, "lease_seconds", default=300, minimum=1, maximum=3600)
+    attempts = _bounded_int(values, "max_attempts", default=3, minimum=1, maximum=10)
+    calls = _bounded_int(values, "max_calls_per_day", minimum=1, maximum=10_000)
     max_usd = _require(values, "max_usd_per_day", float)
     if max_usd < 0:
         raise ConfigError("CONFIG_BUDGET_NEGATIVE")
     base = str(values.get("telegram_base_url", "https://api.telegram.org"))
-    if not base.startswith("https://"):
+    if not _exact_base_url(base, scheme="https", hosts=("api.telegram.org",)):
         raise ConfigError("CONFIG_TELEGRAM_NOT_HTTPS")
+    ollama = str(values.get("ollama_url", "http://127.0.0.1:11434"))
+    if not _exact_base_url(
+        ollama,
+        scheme="http",
+        hosts=("127.0.0.1", "localhost", "::1", "host.docker.internal"),
+    ):
+        raise ConfigError("CONFIG_OLLAMA_NOT_LOCAL")
 
     return Config(
         db_path=_require(values, "db_path", str),
@@ -141,14 +152,43 @@ def parse(values: Dict[str, Any], *, base_dir: str = ".") -> Config:
         default_identity=default,
         identities=identities,
         routes=tuple(routes),
-        max_calls_per_day=_require(values, "max_calls_per_day", int),
+        max_calls_per_day=calls,
         max_usd_per_day=max_usd,
-        ollama_url=str(values.get("ollama_url", "http://127.0.0.1:11434")),
+        ollama_url=ollama,
         poll_timeout_seconds=poll,
-        lease_seconds=int(values.get("lease_seconds", 300)),
-        max_attempts=int(values.get("max_attempts", 3)),
+        lease_seconds=lease,
+        max_attempts=attempts,
         telegram_base_url=base,
         anthropic_workspace_id=str(values.get("anthropic_workspace_id", "")).strip(),
+    )
+
+
+def _bounded_int(values: Dict[str, Any], key: str, *, minimum: int, maximum: int,
+                 default: Any = None) -> int:
+    value = values.get(key, default)
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ConfigError(f"CONFIG_TYPE:{key}")
+    if not minimum <= value <= maximum:
+        raise ConfigError(f"CONFIG_RANGE:{key}")
+    return value
+
+
+def _exact_base_url(value: str, *, scheme: str, hosts: Tuple[str, ...]) -> bool:
+    """Accept one origin, not prefix lookalikes, credentials or hidden paths."""
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        return False
+    return (
+        parsed.scheme == scheme
+        and parsed.hostname in hosts
+        and parsed.username is None
+        and parsed.password is None
+        and parsed.path in ("", "/")
+        and not parsed.query
+        and not parsed.fragment
+        and (port is None or 1 <= port <= 65535)
     )
 
 
@@ -179,10 +219,13 @@ def read_secret(secrets_dir: str, name: str) -> str:
         raise ConfigError(f"SECRET_MISSING:{name}") from exc
     if not stat.S_ISREG(info.st_mode):
         raise ConfigError(f"SECRET_NOT_A_FILE:{name}")
-    if info.st_mode & 0o007:
+    mode = stat.S_IMODE(info.st_mode)
+    if mode not in (0o600, 0o640):
         raise ConfigError(f"SECRET_MODE_TOO_OPEN:{name}")
     with open(path, "rb") as handle:
-        raw = handle.read(4096)
+        raw = handle.read(4097)
+    if len(raw) > 4096:
+        raise ConfigError(f"SECRET_TOO_LARGE:{name}")
     if raw.startswith(b"{\\rtf") or b"\x00" in raw:
         raise ConfigError(f"SECRET_NOT_PLAIN_TEXT:{name}")
     value = raw.decode("utf-8", errors="strict").strip()

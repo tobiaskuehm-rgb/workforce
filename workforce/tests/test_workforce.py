@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import sqlite3
 import tempfile
 import unittest
 
@@ -273,6 +274,15 @@ class StoreTest(Harness):
         self.assertEqual((True, None), copy.verify_audit())
         self.assertEqual("DONE", copy.message(derived_id("IN", "tg", CHAT, 1))["status"])
 
+    def test_channel_change_and_audit_are_atomic(self):
+        self.make()
+        self.store._db.execute(
+            "CREATE TRIGGER reject_audit BEFORE INSERT ON audit "
+            "BEGIN SELECT RAISE(ABORT, 'injected audit failure'); END")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.store.set_channel("ACTIVE", actor="test", request_id="TEST-CHANNEL")
+        self.assertEqual("DISABLED", self.store.channel())
+
 
 class ConfigTest(unittest.TestCase):
     def test_the_example_loads(self):
@@ -291,6 +301,30 @@ class ConfigTest(unittest.TestCase):
             with self.assertRaises(config.ConfigError):
                 config.parse(values)
 
+    def test_runtime_ranges_refuse_unsafe_values(self):
+        for key, value in (("lease_seconds", -1), ("lease_seconds", "300"),
+                           ("max_attempts", 0), ("max_calls_per_day", True)):
+            values = json.loads(json.dumps(BASE))
+            values[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(config.ConfigError):
+                config.parse(values)
+
+    def test_ollama_is_local_only_and_telegram_host_is_exact(self):
+        for key, value in (
+            ("ollama_url", "http://example.com:11434"),
+            ("ollama_url", "https://127.0.0.1:11434"),
+            ("telegram_base_url", "https://api.telegram.org.evil.example"),
+            ("telegram_base_url", "https://user:pass@api.telegram.org"),
+        ):
+            values = json.loads(json.dumps(BASE))
+            values[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(config.ConfigError):
+                config.parse(values)
+
+        values = json.loads(json.dumps(BASE))
+        values["ollama_url"] = "http://host.docker.internal:11434"
+        self.assertEqual("http://host.docker.internal:11434", config.parse(values).ollama_url)
+
     def test_secrets_are_files_with_fixed_rights_and_plain_text(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = pathlib.Path(tmp) / "telegram_bot_token"
@@ -301,6 +335,10 @@ class ConfigTest(unittest.TestCase):
             self.assertIn("SECRET_MODE_TOO_OPEN", str(ctx.exception))
             path.chmod(0o600)
             self.assertEqual("123:abc", config.read_secret(tmp, "telegram_bot_token"))
+            path.chmod(0o660)
+            with self.assertRaises(config.ConfigError):
+                config.read_secret(tmp, "telegram_bot_token")
+            path.chmod(0o600)
             path.write_text("{\\rtf1 123:abc}", encoding="utf-8")
             with self.assertRaises(config.ConfigError):
                 config.read_secret(tmp, "telegram_bot_token")
@@ -347,6 +385,12 @@ class ConfigTest(unittest.TestCase):
         with self.assertRaises(models.ModelNotAllowed):
             models.resolve("claude-opus-5", provider="ollama")
         self.assertFalse(models.resolve("irgendwas:3b", provider="ollama").is_paid)
+
+    def test_ollama_provider_defends_its_endpoint_without_config_loader(self):
+        from workforce.providers import OllamaProvider
+        model = models.resolve("local-test", provider="ollama")
+        with self.assertRaisesRegex(ProviderError, "PROVIDER_OLLAMA_ENDPOINT_DENIED"):
+            OllamaProvider(model, base_url="http://example.com:11434")
 
 
 if __name__ == "__main__":

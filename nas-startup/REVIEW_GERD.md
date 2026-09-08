@@ -1718,3 +1718,26 @@ vollständig rückbaubaren 009/010-Lauf auf einer Wegwerf-Datenbank. Es erlaubt
 keine produktive Migration, kein Phase-5-Gesamtfenster, keine Aktivierung von
 Kanal oder Credentials, keinen externen Modellaufruf und keine Erweiterung
 von Rechten.
+
+---
+
+# Neubau-Nachcheck — `workforce/`, 2026-09-08
+
+Prüfumfang: `workforce/config.py`, `workforce/providers.py`,
+`workforce/store.py` und die zugehörigen Tests. Keine NAS-, Kanal-,
+Credential-, Skill- oder Produktivänderung.
+
+| ID | Schwere | Befund | Korrektur und Nachweis |
+|---|---:|---|---|
+| `G-092` | hoch | `ollama_url` akzeptierte beliebige HTTP-Ziele. Ein als lokal deklarierter Provider konnte so Inhalte außer Haus senden. | Nur Loopback und die ausdrücklich benannte lokale Container-Brücke `host.docker.internal` sind zulässig. Konfiguration und Provider prüfen unabhängig; die Fremdziel-Gegenprobe wird abgelehnt. |
+| `G-093` | mittel | Negative Lease-Werte und unbrauchbare Retry- oder Aufrufgrenzen wurden beim Start akzeptiert. | Nur Ganzzahlen in engen positiven Bereichen sind zulässig; String und Bool werden ebenfalls abgelehnt. |
+| `G-094` | hoch | Eine Secret-Datei mit Modus `0660` galt als geschützt, obwohl der Vertrag nur `0600` oder `0640` erlaubt. Eine übergroße Datei wurde lediglich abgeschnitten gelesen. | Exakte Modusprüfung und Größenabbruch oberhalb 4096 Byte; Secret-Werte werden nie protokolliert. |
+| `G-095` | hoch | Kanalzustand und Auditzeile waren zwei Transaktionen. Bei Auditfehler konnte der Kanal ohne Nachweis aktiv bleiben. | Zustandswechsel und Hash-Ketteneintrag sind eine Transaktion; ein injizierter Auditfehler lässt den Kanal nachweislich `DISABLED`. |
+
+Lokaler Nachweis: **30/30 Tests PASS**, `git diff --check` PASS.
+
+Bekannte Grenze: Das Ollama auf dem Mac mini ist damit nicht angebunden. Die
+Container-Brücke bezeichnet den Host des jeweiligen Containers, nicht
+automatisch einen anderen Rechner. Für NAS → Mac mini fehlen weiterhin eine
+gemessene Zieladresse und ein ausdrücklich festgelegter, abgesicherter
+Netzweg. Es gibt keinen stillen Fallback auf eine beliebige LAN-Adresse.
