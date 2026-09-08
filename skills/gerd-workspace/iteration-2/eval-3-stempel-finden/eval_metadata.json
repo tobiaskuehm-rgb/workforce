@@ -1,0 +1,17 @@
+{
+  "eval_id": 3,
+  "eval_name": "stempel-finden",
+  "prompt": "Du bist Gerd, Prüfer des Workforce-Systems. Heute ist der 07.09.2026. Die letzte vergebene Befundnummer ist G-092. Claude Code hat drei Tests eingereicht und bittet um Freigabe. Du kannst nichts ausführen. Beurteile für jeden Test: Gibt es einen Zustand, in dem er rot wird? Wenn nein, ist er ein Stempel.\n\nTest A (workforce/tests/test_workforce.py):\n    def test_boundary_covers_all_outbound(self):\n        offenders = boundary_scan(GOOD_FIXTURE)\n        self.assertEqual([], offenders)\n\nTest B (SQL-Abnahmetest, erfunden):\n    SELECT count(*) = 0 AS ok FROM aclexplode((SELECT nspacl FROM pg_namespace WHERE nspname='public')) a\n      JOIN pg_roles r ON r.oid = a.grantee\n      WHERE a.grantee = 0;\n    -- Zusicherung: die Pseudorolle PUBLIC ist ausgeblendet\n\nTest C:\n    def test_claim_release_returns_attempt(self):\n        store = make_store(); store.record_inbound(message_id='M1', ...)\n        self.assertEqual('CLAIMED', store.claim('M1', lease_seconds=60, max_attempts=3))\n        self.assertTrue(store.release_untouched('M1'))\n        self.assertEqual(0, store.message('M1')['attempts'])\n        self.assertFalse(store.release_untouched('M1'))\n\nSchreibe deinen Review in der Form für REVIEW_GERD.md: Befunde je Stempel, Gegenprobe (welcher Zustand ihn rot machen würde), kleinste sichere Korrektur, Gate.",
+  "assertions": [
+    "Test A wird als Stempel erkannt mit der Begründung, dass nur der Gutfall geprüft wird und ein Scanner, der nichts prüft, denselben leeren Rückgabewert liefert.",
+    "Zu Test A wird als Gegenprobe ein Fixture mit mindestens einem Verstoß verlangt, das genau einen Fund erwartet.",
+    "Test B wird als Stempel erkannt mit der Begründung, dass der Join auf pg_roles die Zeile mit grantee 0 entfernt, die Bedingung sich also selbst ausschließt und das Ergebnis immer 'ok' ist.",
+    "Zu Test B wird die Korrektur mit zwei Abfragen genannt: eine ohne den Join (die Vorgabe existiert überhaupt) und eine mit ihm (sie wird ausgeblendet), oder eine gleichwertige Trennung.",
+    "Test C wird nicht als Stempel geführt; der Review benennt, dass er Positiv- und Negativfall hat (zweites release_untouched liefert False).",
+    "Die Befunde tragen fortlaufende Nummern ab G-093, mit Laufzeit und Schwere.",
+    "Der Review sagt, dass nichts ausgeführt wurde und die Urteile aus dem Lesen stammen, nicht aus einer Messung.",
+    "Die Freigabe ist exakt: entweder Gate ROT für die Einreichung, oder Freigabe nur für Test C mit ausdrücklicher Nennung, dass A und B nicht dazugehören.",
+    "Es wird keine Zahl (Testanzahl, Laufzeit) als Dauerwahrheit genannt.",
+    "Jede vorgeschlagene Korrektur besteht selbst die Gegenprobe: Der Review nennt für den neuen Test den Zustand, in dem er rot wird, und keine Korrektur wiederholt den Fehler, den sie behebt (etwa ein Filter hinter demselben Join)."
+  ]
+}

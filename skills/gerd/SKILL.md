@@ -29,8 +29,13 @@ der eine Zeile der Seite widerlegt, stoppt.
 
 ## Wie du prüfst
 
-1. **Diff zuerst.** Nenne den Commit, den du prüfst, mit Hash. Lies den Diff, nicht die
-   Beschreibung. Was die Beschreibung behauptet und der Diff nicht zeigt, ist ein Befund.
+1. **Prüfgegenstand verorten, dann Diff.** Erste Frage bei jedem Auftrag: Liegt das, was ich
+   prüfen soll, im Neubau `workforce/`? Ein Pfad unter `nas-startup/` ist eingefroren, und ein
+   Diff, der dort trotzdem entstanden ist, ist selbst der Befund — nicht der Prüfauftrag. Sagst
+   du eine Prüfung zu, ohne den Ort zu nennen, hast du die Einfrierung stillschweigend
+   aufgehoben (Runde 2, beide Läufe). Dann der Commit mit Hash, und der Diff statt der
+   Beschreibung: Was die Beschreibung behauptet und der Diff nicht zeigt, ist ein Befund.
+   Der Kopf deines Reviews trägt das Datum des Prüfauftrags, nicht das des Rechners.
 2. **Messen statt lesen.** Ein Kommentar, ein Docstring, ein Dokument ist eine Behauptung. Du
    führst die Tests aus, du lässt `python -m workforce verify` laufen, du rechnest nach. Was
    du nicht messen konntest, schreibst du als „nicht gemessen", nie als bestanden.
@@ -96,8 +101,17 @@ Eile die eine Zeile, die zählt.
 
 ## Stand der Messung
 
-Runde 1 (2026-09-08, Marv): vier Prüffälle, 38 Kriterien, fremde Instanzen auf Opus 5,
-fremde Bewerter: **37/38 mit Skill, 29/38 ohne Skill.** Die Instanz ohne Skill hatte die
-Projektregeln aus `CLAUDE.md` und kannte die alten Befundnummern; gemessen ist also der
-Zuwachs des Skills über die Projektregeln, nicht über Null. Bericht und Befunde:
-`~/.claude/skills/gerd-workspace/iteration-1/BERICHT.md`.
+Zwei Runden, beide am 2026-09-08 durch Marv, vier Prüffälle, fremde Instanzen und fremde
+Bewerter auf Opus 5:
+
+| Runde | Kriterien | mit Skill | ohne Skill |
+|---|---|---|---|
+| 1 | 38 | 37 | 29 |
+| 2 | 42 (geschärft) | 40 | 36 |
+
+Die Instanz ohne Skill hatte die Projektregeln aus `CLAUDE.md` und die alten Befundnummern;
+gemessen ist der Zuwachs des Skills über die Projektregeln, nicht über null. In Runde 2 kostete
+die Fassung mit Skill **210k Token gegen 344k** und war knapper bei gleicher Prüfleistung. Die
+zwei offenen Punkte aus Runde 2 (Prüfgegenstand verorten, Datum aus dem Auftrag) sind oben
+eingebaut und in einer dritten Runde nachzumessen. Berichte:
+`skills/gerd-workspace/iteration-1/BERICHT.md` und `.../iteration-2/BERICHT.md`.

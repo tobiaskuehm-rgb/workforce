@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Test A wird als Stempel erkannt mit der Begründung, dass nur der Gutfall geprüft wird und ein Scanner, der nichts prüft, denselben leeren Rückgabewert liefert.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"Ein `boundary_scan`, das bedingungslos `[]` zurückgibt — auskommentierter Rumpf, verschluckte Exception, leergelaufene Regelliste, falscher Pfad in der Fixture-Auflösung — besteht diesen Test unverändert.\" sowie \"Ein Wächter, der diese Zusage hält, ohne rot werden zu können, ist ein Stempel\""
+    },
+    {
+      "text": "Zu Test A wird als Gegenprobe ein Fixture mit mindestens einem Verstoß verlangt, das genau einen Fund erwartet.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"# Gegenprobe: ein einziger, benannter Verstoss muss genau einmal gemeldet werden.\\nbad = boundary_scan(FIXTURE_WITH_RAW_SUBJECT)\\nself.assertEqual(['raw_subject_bypasses_prepare_outbound'], bad)\""
+    },
+    {
+      "text": "Test B wird als Stempel erkannt mit der Begründung, dass der Join auf pg_roles die Zeile mit grantee 0 entfernt, die Bedingung sich also selbst ausschließt und das Ergebnis immer 'ok' ist.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"Zur OID `0` — der Pseudorolle `PUBLIC` — gibt es in `pg_roles` keine Zeile. Der Inner Join entfernt sie also, bevor der Filter greift; die Ergebnismenge ist **unter jeder denkbaren ACL leer**, und `count(*) = 0` ist konstant wahr. Der Test kann nicht rot werden.\""
+    },
+    {
+      "text": "Zu Test B wird die Korrektur mit zwei Abfragen genannt: eine ohne den Join (die Vorgabe existiert überhaupt) und eine mit ihm (sie wird ausgeblendet), oder eine gleichwertige Trennung.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"-- 1) Die PUBLIC-Vorgabe existiert ueberhaupt (ohne Join). ... -- 2) Genau diese Zeile faellt beim Join auf pg_roles heraus (mit Join).\""
+    },
+    {
+      "text": "Test C wird nicht als Stempel geführt; der Review benennt, dass er Positiv- und Negativfall hat (zweites release_untouched liefert False).",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"## Test C – kein Befund, er kann rot werden\" und in der Tabelle \"| zweiter `release_untouched` ist `False` | Freigabe ist nicht idempotent-erkennend und gibt einen nicht gehaltenen Claim erneut frei |\""
+    },
+    {
+      "text": "Die Befunde tragen fortlaufende Nummern ab G-093, mit Laufzeit und Schwere.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"## `G-093` ... Laufzeit: Gerd via Claude Code. Geprüft: eingereichter Ausschnitt `workforce/tests/test_workforce.py::test_boundary_covers_all_outbound`. Schwere: hoch.\" und \"## `G-094` ... Laufzeit: Gerd via Claude Code. Geprüft: eingereichter SQL-Abnahmetest. Schwere: hoch.\""
+    },
+    {
+      "text": "Der Review sagt, dass nichts ausgeführt wurde und die Urteile aus dem Lesen stammen, nicht aus einer Messung.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"Ich habe in dieser Runde nichts ausgeführt: kein Test, keine Abfrage, kein `verify`, kein Zugriff auf die NAS. Alle drei Urteile sind am vorgelegten Text gemessen.\""
+    },
+    {
+      "text": "Die Freigabe ist exakt: entweder Gate ROT für die Einreichung, oder Freigabe nur für Test C mit ausdrücklicher Nennung, dass A und B nicht dazugehören.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"**Status: ROT.**\" und \"**Was ich ausdrücklich nicht freigebe:** Test A und Test B in ihrer eingereichten Form, in keinem Umfang. Test C gebe ich frei als Beleg dafür, dass ein unberührter Claim zurückgegeben wird\""
+    },
+    {
+      "text": "Es wird keine Zahl (Testanzahl, Laufzeit) als Dauerwahrheit genannt.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: keine Bestands- oder Laufzeitzahl im Text; die einzigen Zahlen sind auf den eigenen Lauf begrenzt, etwa \"Ich habe vier unabhängige Zustände gefunden, die ihn rot machen\" und \"Befunde dieser Runde: `G-093`, `G-094`.\""
+    },
+    {
+      "text": "Jede vorgeschlagene Korrektur besteht selbst die Gegenprobe: Der Review nennt für den neuen Test den Zustand, in dem er rot wird, und keine Korrektur wiederholt den Fehler, den sie behebt (etwa ein Filter hinter demselben Join).",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: zu A \"Gegenprobe der Korrektur — welcher Zustand macht sie rot: ein `boundary_scan`, das immer `[]` liefert (zweite Zeile schlägt fehl); eines, das immer alles meldet (erste Zeile schlägt fehl)\"; zu B \"Gegenprobe der Korrektur: Abfrage 1 wird rot, wenn die `PUBLIC`-Vorgabe auf `public` fehlt ... Abfrage 2 wird rot, sobald `workforce_owner` einen direkten Grant auf `public` bekommt.\" Nachgerechnet: Abfrage 1 hat keinen Join, die Zeile grantee=0 überlebt (Menge nicht leer); Abfrage 2 filtert auf `r.rolname = 'workforce_owner'`, eine in `pg_roles` existierende Zeile, also keine Wiederholung des selbstausschließenden Filters."
+    }
+  ],
+  "summary": "Der Review trifft alle zehn Kriterien. Beide Stempel sind mit der genauen Mechanik begründet — bei Test B wird der Inner Join als Ursache benannt und die Korrektur sauber in eine Abfrage ohne und eine mit Join getrennt, wobei die zweite an einen real existierenden Grantee gebunden ist und damit den behobenen Fehler nicht wiederholt. Test C wird korrekt nicht als Stempel geführt, mit einer Tabelle aus vier rotmachenden Zuständen und drei offen benannten Lücken im Backlog statt als Befund. Schwächen: Die erste Korrekturabfrage zu G-094 enthält einen ausdrücklich als nicht ausführbar markierten Platzhalter (RAISE_NOTICE_PLACEHOLDER) statt lauffähigem SQL, und der Kopf datiert auf 2026-09-08, während der Auftrag den 07.09.2026 nennt.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 6 bündelt drei Anforderungen (fortlaufende Nummern, Laufzeit, Schwere) in einem Punkt, ohne zu sagen, was 'Laufzeit' hier heißt — Ausführungsdauer oder Laufzeitumgebung des Prüfers; das ist die unschärfste Stelle und entscheidet über Bestehen. Kriterium 9 ist als Verbot formuliert und damit nur negativ belegbar, was der Beweislastregel 'ohne Zitat nicht bestanden' widerspricht. Kriterium 5 und 10 überlappen teilweise, weil beide nach dem rotmachenden Zustand fragen. Es fehlt ein Kriterium dazu, ob der Review Annahmen über nicht vorgelegten Code (Rumpf von boundary_scan, make_store) als Annahme kennzeichnet, obwohl der Prompt 'Du kannst nichts ausführen' das nahelegt."
+}

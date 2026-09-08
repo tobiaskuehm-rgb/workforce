@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Test A wird als Stempel erkannt mit der Begründung, dass nur der Gutfall geprüft wird und ein Scanner, der nichts prüft, denselben leeren Rückgabewert liefert.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"| A — `test_boundary_covers_all_outbound` | Stempel | `G-093` |\" und \"Ein `boundary_scan`, der stumpf `return []` schreibt, ein Scanner, dessen Glob ins Leere geht, ein Scanner, der nach `G-084` die falsche Feldmenge kennt — alle drei bestehen ihn.\""
+    },
+    {
+      "text": "Zu Test A wird als Gegenprobe ein Fixture mit mindestens einem Verstoß verlangt, das genau einen Fund erwartet.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"einen Negativtest danebenstellen, der eine `BAD_FIXTURE` mit genau einem eingebauten Verstoß prüft und **genau einen** Fund verlangt, gebunden an Pfad und Kennung — nicht `assertNotEqual([], …)`\""
+    },
+    {
+      "text": "Test B wird als Stempel erkannt mit der Begründung, dass der Join auf pg_roles die Zeile mit grantee 0 entfernt, die Bedingung sich also selbst ausschließt und das Ergebnis immer 'ok' ist.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"Zur OID `0` gibt es in `pg_roles` keine Zeile ... Der Join entfernt jede Zeile mit `grantee = 0`, bevor das `WHERE` überhaupt etwas zu tun hat. `count(*)` ist damit **immer** 0 und `ok` **immer** wahr\""
+    },
+    {
+      "text": "Zu Test B wird die Korrektur mit zwei Abfragen genannt: eine ohne den Join (die Vorgabe existiert überhaupt) und eine mit ihm (sie wird ausgeblendet), oder eine gleichwertige Trennung.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"-- (1) die Vorgabe existiert: PUBLIC hat USAGE auf public ... -- (2) genau dieser Eintrag faellt beim Join auf pg_roles heraus ... (1) ohne Join, (2) mit Join und an einen **benannten** Grantee gebunden.\""
+    },
+    {
+      "text": "Test C wird nicht als Stempel geführt; der Review benennt, dass er Positiv- und Negativfall hat (zweites release_untouched liefert False).",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"## G-095 — Test C ist kein Stempel; er hat eine benannte Lücke\" und \"Ein zweites `release_untouched()` gibt `True` zurück → rot. Damit ist die Rückgabe als einmalige, atomare Handlung gebunden\""
+    },
+    {
+      "text": "Die Befunde tragen fortlaufende Nummern ab G-093, mit Laufzeit und Schwere.",
+      "passed": false,
+      "evidence": "without_skill/run-1/outputs/review.md: Die Nummerierung stimmt (\"## G-093\", \"## G-094\", \"## G-095\"), aber kein Befundkopf nennt eine Laufzeit; die Kopfzeile lautet nur \"**Zustand:** Test A ruft `boundary_scan(GOOD_FIXTURE)`\". Eine Schwere ist nur einmal indirekt angedeutet (\"`G-095` (klein)\"), für G-093 und G-094 steht statt einer Schwere nur \"**Gate:** rot\". Damit fehlen zwei der drei geforderten Teile."
+    },
+    {
+      "text": "Der Review sagt, dass nichts ausgeführt wurde und die Urteile aus dem Lesen stammen, nicht aus einer Messung.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"Nichts ausgeführt, nichts gelesen außer dem Zitat — Aussagen über den umgebenden Code sind entsprechend als Annahme gekennzeichnet.\""
+    },
+    {
+      "text": "Die Freigabe ist exakt: entweder Gate ROT für die Einreichung, oder Freigabe nur für Test C mit ausdrücklicher Nennung, dass A und B nicht dazugehören.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"**Freigabe nicht erteilt.** Zwei der drei eingereichten Tests sind Stempel\", je Befund \"**Gate:** rot\" für A und B, plus drei benannte Bedingungen für die Freigabe."
+    },
+    {
+      "text": "Es wird keine Zahl (Testanzahl, Laufzeit) als Dauerwahrheit genannt.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: keine Bestands- oder Laufzeitzahl; die Zahlen sind auf den eigenen Befund begrenzt, etwa \"Test C kann rot werden, und zwar an vier unabhängigen Stellen\" und \"Nächste freie Nummer nach diesem Review: `G-096`.\""
+    },
+    {
+      "text": "Jede vorgeschlagene Korrektur besteht selbst die Gegenprobe: Der Review nennt für den neuen Test den Zustand, in dem er rot wird, und keine Korrektur wiederholt den Fehler, den sie behebt (etwa ein Filter hinter demselben Join).",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: je Befund ein Abschnitt \"**Gegenprobe (welcher Zustand müsste ihn rot machen):**\", zu B etwa \"Ein **direkter** Grant auf `workforce_owner` auf `public` → muss rot werden\" und \"Fehlt das Schema, ist (1) falsch und der Test rot\". Nachgerechnet: Abfrage (1) `EXISTS (... WHERE a.grantee = 0)` läuft ohne Join, die PUBLIC-Zeile überlebt, die Menge ist also nicht bauartbedingt leer; Abfrage (2) filtert mit Join auf `r.rolname='workforce_owner'`, eine in `pg_roles` vorhandene Zeile, wiederholt den selbstausschließenden Filter also nicht. Zusätzlich \"keine Bedingung, die ihre eigene Zeilenmenge leert\" als Freigabebedingung."
+    }
+  ],
+  "summary": "Analytisch stark und in derselben Sache treffsicher: Beide Stempel sind korrekt diagnostiziert, die SQL-Korrektur ist sauber in zwei Abfragen getrennt und wiederholt den Fehler nachweislich nicht — die Abfrage ohne Join liefert eine nichtleere Menge, die mit Join bindet an einen existierenden Grantee. Test C ist korrekt als kein Stempel eingestuft, mit vier rotmachenden Zuständen und drei benannten Lücken. Schwäche: Die Befunde haben keine Laufzeitangabe und für G-093/G-094 keine Schwere, weshalb Kriterium 6 nicht belegt ist. Formal auffällig ist außerdem, dass die Lücke in Test C eine eigene Befundnummer G-095 bekommt, obwohl der Test freigabefähig genannt wird — Gate 'gelb' neben 'Freigabe nicht erteilt' ist erklärungsbedürftig.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 6 bündelt drei Anforderungen in einem Punkt und definiert 'Laufzeit' nicht; genau daran scheitert diese Ausgabe, obwohl ihre inhaltliche Prüfleistung vollständig ist — ein Formatpunkt wiegt damit so viel wie die zentrale Stempeldiagnose. Kriterium 9 ist negativ formuliert und lässt sich nicht durch ein Zitat belegen, was der Beweislastregel der Anleitung widerspricht. Kriterium 8 lässt offen, wie ein differenziertes Gate (rot für die Einreichung, gelb für einen einzelnen Test) zu werten ist. Es fehlt ein Kriterium dazu, ob der Review Befundnummern angemessen vergibt — hier bekommt eine ausdrücklich nicht blockierende Lücke eine eigene Nummer, was in der anderen Konfiguration als Backlog geführt wird."
+}

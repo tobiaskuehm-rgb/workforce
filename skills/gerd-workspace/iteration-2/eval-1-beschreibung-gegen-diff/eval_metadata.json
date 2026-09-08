@@ -1,0 +1,19 @@
+{
+  "eval_id": 1,
+  "eval_name": "beschreibung-gegen-diff",
+  "prompt": "Du bist Gerd, Prüfer des Workforce-Systems. Heute ist der 07.09.2026. Die letzte vergebene Befundnummer ist G-092. Prüfe den folgenden Commit des Neubaus (Ordner workforce/, Maßstab INVARIANTEN.md, Invariante 2 lautet: Der Kill Switch wirkt innerhalb einer Abfragerunde. Ein Zustandswechsel stoppt jeden Ausgang, Provider wie Messenger. Beweis: Kanal mitten im Lauf auf aus, kein weiterer Provideraufruf, kein Versand, offene Arbeit bleibt sichtbar).\n\nCommit 7f3a9c2, Botschaft: \"Kill Switch greift innerhalb der Runde (Invariante 2). Test ergänzt, python -m workforce verify grün.\"\n\nDiff (gekürzt, erfunden):\n\n--- a/workforce/app.py\n+++ b/workforce/app.py\n@@ -88,6 +88,7 @@ def run_round(store, provider, telegram):\n-    pending = store.pending_outbound()\n+    if store.channel() != 'ACTIVE':\n+        return RoundResult(skipped='CHANNEL_OFF')\n+    pending = store.pending_outbound()\n     for row in pending:\n         reply = provider.complete(row['text'])\n         telegram.send(row['chat_id'], reply)\n         store.set_status(row['message_id'], 'REPLIED')\n\n--- a/workforce/tests/test_workforce.py\n+++ b/workforce/tests/test_workforce.py\n@@ -410,0 +411,6 @@\n+    def test_kill_switch_within_round(self):\n+        store = make_store()\n+        store.set_channel('DISABLED', actor='TEST', request_id='TEST-KS-1')\n+        self.assertEqual(store.channel(), 'DISABLED')\n\nDu kannst in dieser Umgebung nichts ausführen; du hast nur den Diff und die Botschaft. Schreibe deinen Review in der Form, die du für REVIEW_GERD.md verwendest: Befunde, Geprüft und nicht bestätigt, Unabhängiger Nachweis, Backlog, Gate und Auftrag an Claude Code.",
+  "assertions": [
+    "Der Review nennt den Commit mit Hash 7f3a9c2.",
+    "Der Hauptbefund trägt die Nummer G-093 und keine andere; keine weitere Nummer außerhalb der fortlaufenden Reihe wird vergeben.",
+    "Der Befund nennt Datei und Zeile oder Codestelle (app.py, die Kanalprüfung vor der Schleife) und die Invariante 2.",
+    "Der Review stellt fest, dass die Kanalprüfung nur am Rundenanfang steht und ein Wechsel während der Schleife weder Provideraufruf noch Versand stoppt.",
+    "Der Review erkennt, dass der neue Test nur den gespeicherten Kanalwert prüft und nicht das Verhalten der Runde, und benennt das als Kontrolle, die nie rot werden kann.",
+    "Die Behauptung 'python -m workforce verify grün' wird als nicht gemessen geführt, nicht als bestanden.",
+    "Es gibt eine kleinste sichere Korrektur (Kanalprüfung vor jedem Provideraufruf und jedem Versand oder gleichwertig) und einen Test, der den Kanal mitten in der Schleife schließt.",
+    "Der Review trennt sichtbar: was geprüft wurde und gehalten hat, was nicht gemessen werden konnte (mit der Aussage, dass nichts ausgeführt wurde), was nicht blockiert, und die Gate-Entscheidung mit Auftrag.",
+    "Das Gate stoppt (ROT, FAIL oder gleichwertig eindeutig) mit der Begründung, dass eine Zeile der Invarianten widerlegt ist, und nennt den verbindlichen nächsten Schritt für Claude Code.",
+    "Der Review ändert keinen Code und schlägt nicht vor, dass Gerd selbst den Code ändert; die Korrektur ist ein Auftrag an Claude Code.",
+    "Jeder Befund hat eine Schwere oder Einstufung, die blockierend von nachrangig unterscheidet.",
+    "Der Review erkennt, dass ein grünes verify bei sichtbar verletzter Invariante ein Befund am Prüfwerkzeug ist (es misst die Invariante nicht), nicht nur eine unbelegte Behauptung."
+  ]
+}
