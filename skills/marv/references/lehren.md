@@ -42,3 +42,11 @@ Jede Zeile hier war ein Fehler oder eine Beinahe. Lies sie vor dem nächsten Ski
 29. **Kriterien, die Hausvokabular messen, messen die Rolle nicht.** „ROT", „Nicht blockierendes Backlog", „hoch/mittel/niedrig" trennten die Konfigurationen, ohne dass der Prompt sie vorgab. Entweder die Form in den Prompt oder das Kriterium inhaltlich formulieren.
 30. **Die Korrektur braucht dieselbe Gegenprobe wie der Befund.** Ein Vorschlag mit Skill wiederholte den Fehler, den er behob, und kein Kriterium sah hin. Wer einen Test verlangt, der rot werden kann, verlangt es auch für den Test, den er vorschlägt.
 31. **Ein Skill, der eine Datei nennt, wird gegen die Platte geprüft.** Gerds Skill führte eine Review-Datei weiter, die es im Repo nicht gab. Jeder Pfad in einem Skill wird beim Bau einmal aufgelöst.
+
+## Aus Gerd Runde 2 und Anastasia Runde 1 (2026-09-08)
+
+32. **Ein Skill wird kürzer, nicht länger.** Gerds Fassung mit Skill brauchte 210k Token gegen 344k ohne, bei gleicher Prüfleistung. Wer eine Regel hat, sucht nicht mehr; das ist neben der Genauigkeit der zweite Ertrag und gehört in den Bericht.
+33. **Eine Regel am Ende der Datei wird zuletzt gelesen.** Gerds Einfrierungsregel stand unter „Regeln, die nicht verhandelbar sind" und wurde in beiden Läufen übergangen. Was am Anfang jedes Auftrags gilt, gehört in den ersten Schritt des Verfahrens, nicht in die Liste am Schluss.
+34. **Der Kopf trägt das Datum des Auftrags.** Drei Läufe datierten ihr Ergebnis auf den Rechner statt auf den Prüftag. Kein Kriterium fragte danach; zwei Bewerter fanden es nebenbei. Wo ein Prüffall ein Datum setzt, gehört ein Kriterium dazu.
+35. **Ein Kriterium, das nicht mehr trennt, ist verbraucht.** Fall 1 bei Gerd stand nach der zweiten Runde 12/12 gegen 12/12. Das heißt nicht, dass der Fall gut ist, sondern dass er seine Arbeit getan hat; er wird für die nächste Runde ersetzt oder verschärft.
+36. **Die Baseline in Alltagssprache ist die ehrlichere.** Bei Anastasia bekam der Lauf ohne Skill dieselbe Aufgabe ohne Rollenvokabular. Er fand dasselbe wie der Skill, wo gesunder Menschenverstand reicht, und brach genau dort ein, wo Verfahren zählt (3/9 statt 9/9). Ein Abstand, der nur aus Hausvokabular besteht, misst nichts.
