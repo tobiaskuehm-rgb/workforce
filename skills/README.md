@@ -32,7 +32,7 @@ gibt es deshalb nur als Agent oder im Bot, nie als Skill.
 |---|---|---|---|---|
 | Karl `SAO-001`, Standard, **COO auf Probe** seit 2026-09-08 (Chat, `PENDING-DEC`) | `karl/` | Sonnet | Opus | v2 nach Marv, 2026-09-07: Feld erkundet (FwDV 100, Chief of Staff, ISO 19011, Scrum, GGO), drei Fassungen, fünf Prüfrunden, Endfassung 43/43 gegen 26/43; Arbeitsbereich `karl-workspace/` |
 | Marlene `POA-001` | `marlene/` | Sonnet | Sonnet | eingesammelt aus `~/.claude/skills`, Verweis zurückgelegt |
-| Thorsten `RAS-001` | `thorsten/` | Sonnet | Opus | aus Opportunity-Filter v0.2 des Quellensatzes und `FILTER.md`, 2026-09-06 |
+| Thorsten `RAS-001` | `thorsten/` | Sonnet | Opus | aus Opportunity-Filter v0.2 des Quellensatzes und `FILTER.md`, 2026-09-06; Runde 1 durch Marv am 2026-09-08: 34/36 gegen 15/36, größter gemessener Abstand; Arbeitsbereich `thorsten-workspace/` |
 | Anastasia `PEO-001` | `anastasia/` | Sonnet | Sonnet | aus Company State, Regel 4 und ihrer Organisationsbestandsaufnahme, 2026-09-06; Runde 1 durch Marv am 2026-09-08: 34/35 gegen 24/35, vier Prüffälle, fremde Bewerter; Arbeitsbereich `anastasia-workspace/` |
 | Wolle, CFO, Kennung offen | `cfo/` | Sonnet | Sonnet | neu, 2026-09-06; Name Wolle vom CEO 2026-09-08 (Chat, `PENDING-DEC`), Kennung und `DEC`-Eintrag offen; Bedarf erst Oktober 2026 (Chat 2026-09-08) |
 | Marv Skillbauer, Kennung offen (Vorschlag `AI-SKI-001`), unterstellt Anastasia | `marv/` | Opus | — | hat sich selbst gebaut, 2026-09-06; bewusst kein Bot-Skill; Mitarbeiter seit 2026-09-08 (Chat, `PENDING-DEC`), zwei Runden 40/40 gegen 17/40; Auftrag: Skills von Thorsten, Anastasia, Wolle überarbeiten und messen |
@@ -47,6 +47,14 @@ Form steht im Skill und trägt sie.
 Als Agent und im Bot darf dieselbe Identität verschieden laufen. Der Agent zahlt aus dem Abo,
 das sich an vielen Läufen erschöpft; der Bot rechnet je Aufruf ab und deckelt bei
 `max_usd_per_day`. Karl steht deshalb hier auf Sonnet und dort auf Opus.
+
+Diese Zuordnung war bis 2026-09-08 Einschätzung, keine Messung. Anastasia hat an diesem Tag
+freigegeben, dass Marv sie für Karl misst (Sonnet gegen Opus, dessen sechs Prüffälle aus
+`karl/evals/evals.json`, Kriterium: passt heißt gleiche Trefferquote beim billigeren Modell) —
+begrenzt auf Karl, wegen des schmelzenden Kontingents des CEO. Für die übrigen Identitäten
+bleibt es vorerst bei der Einschätzung; eine Ausweitung braucht eine erneute Freigabe. Details
+und Begründung in `skills/gedaechtnis/anastasia.md`, Abschnitt Modellzuordnung. Ergebnis folgt
+hier mit Datum, sobald Marv liefert.
 
 Der Bot deckelt bei `max_usd_per_day`; die Reservierung vor dem Aufruf wird danach gegen den
 tatsächlichen Verbrauch zurückgebucht (`reconcile`), Opus ist deshalb keine Handvoll Aufrufe.
