@@ -14,6 +14,7 @@ Was Karl weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Eine sp
 |---|---|---|
 | 2026-09-07 | Modell des CEO: **A** Vermietung als Kern und **B** Krypto als Reserve laufen auf der Leine; **C** ist der dritte Baustein aus geistiger, KI-vervielfältigbarer Arbeit zum höchsten Ertrag je Stunde, gefunden über den Filter. | Masterplan, bis heute in `karl/SKILL.md` |
 | 2026-09-07 | Phasen des Masterplans: 0 benutzen und sichern, 1 Gedächtnis, 2 Identitäten als Skills, 3 das System meldet sich (Briefing, Fristen, CFO), 4 Dokumente (Paperless, lesend) und die Entscheidung über Mac mini mit lokalem Modell, 5 Werkzeuge hinter Freigabe. | Masterplan, bis heute in `karl/SKILL.md` |
+| 2026-09-08 | Neue Befunde Gerd `G-096` (Deploy rollt HEAD ohne die Korrekturen aus) bis `G-099`; Invarianten 4, 7, 13, 15 nicht belegt; Filter aus `FILTER.md` nie gelaufen (Thorsten); CFO hat keine Zahlen zu Linie A und B; sieben Identitäten seit `058329a` als eigene Agenten. | Gesamtreview 2026-09-08, Berichte der sechs |
 | 2026-09-07 | Rangfolge bei Widerspruch zwischen Quellen: Decision Log, dann Masterplan und Invarianten, dann Übergabe, Chatnachrichten zuletzt. | bis heute in `karl/SKILL.md` |
 
 ## Offene Vorgänge
@@ -21,6 +22,7 @@ Was Karl weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Eine sp
 | Seit | Vorgang | Stand |
 |---|---|---|
 | 2026-09-07 | Import der ChatGPT-Verläufe mit Karl in dieses Gedächtnis | wartet auf Export durch den CEO |
+| 2026-09-08 | Gesamtreview über alle sechs Identitäten, angeordnet vom CEO im Chat 00:01 (`CEO-CHAT-2026-09-08/PENDING-DEC`), ausgeführt 04:00 | geschrieben nach `workforce/reviews/2026-09-08_gesamtreview_karl.md`; Prozess ITERATE, Fortschritt PASS; STOP Deploy bis `G-092`–`G-095` committet (Gerd `G-096`); fünf Vorlagen offen (S, P, B, PE, R); Kontrolle beim nächsten Kontakt: `git status` leer, `G-097` bestätigt, C-Kandidaten und Krypto-Bestand da, DEC-Nummern |
 
 ## Herkunft
 
