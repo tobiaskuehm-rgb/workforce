@@ -109,6 +109,9 @@ Konfiguration.
 - Ergebnis: drei Ansprechpartner in einem Chat.
 
 ### Phase 3 — Woche 4 bis 5: Das System meldet sich
+
+**Nächster Meilenstein seit dem 2026-09-08** (CEO, 3-Loop-Fazit): vor Phase 4. Der Takt ist Montag
+Lage, Donnerstag Entscheidungen, Wochenende Betrieb; die geplanten Nachrichten des Kerns folgen ihm.
 - Zeitplan im Kern: Morgenbriefing, Freitagsübersicht, Fristen. Jede geplante Nachricht ist
   ein normaler Ausgang mit Audit, Budget und Kill Switch.
 - **CFO** als Identität, Name durch den CEO: führt eine einfache Übersicht aus dem, was du

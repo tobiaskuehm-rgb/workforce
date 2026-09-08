@@ -144,3 +144,7 @@ flowchart TD
 Kontrolle: Beim Freitag am 2026-09-11 sehe ich nach, ob der CEO die drei Fragen beantwortet hat und ob das Organigramm im Register angekommen ist.
 
 Nächster Schritt: Der CEO beantwortet die drei Fragen bis zum 2026-09-12; Owner Tobias.
+
+## Nachtrag 2026-09-08: Entscheidung des CEO
+
+„Kannste alles so umsetzen", mit der Freiheit, zwei Termine einzurichten (Montag und Donnerstag, Wochenendbetrieb Freitag bis Sonntag), „immer im Sinne der Wirtschaftlichkeit". Gewählt: Montag Lage ohne Entscheidung, Donnerstag Entscheidungen mit Log-Nummern am selben Tag, Wochenende Betrieb ohne CEO. Zwei kurze Termine statt einem langen, weil eine Vorlage so höchstens vier Tage wartet und der Montag die Kontrolle trägt, die der Kreis verlangt. Umgesetzt: `skills/ORGANIGRAMM.md` mit Wächter `skills/test_organigramm.py`, Takt in Karls Skill, Phase 3 als nächster Meilenstein im Masterplan, Einfrieren im Organigramm. Die drei offenen Fragen sind damit beantwortet: Gate ja (Donnerstag), Phase 3 zuerst, COO-Probezeit an drei Maßen bis 2026-10-02.
