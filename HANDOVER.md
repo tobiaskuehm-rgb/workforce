@@ -118,8 +118,13 @@ geschlossen, `G-102` bis `G-104` (niedrig) gestellt und behoben, Regeln 66–68,
 offen. **Gerds Freigabe: `226f0b9` ist deploybar, sobald der CEO P-1 entscheidet**, nur über
 `deploy_nas.sh` aus sauberem Baum. Die
 vier ungecommitteten Skillbündel sind in fünf Commits gesichert. **Kein Deploy, nichts auf
-der NAS.** Nächster Schritt: CEO-Freigabe P-1 für den Deploy; danach `deploy_nas.sh`, dann `verify`
-im Container, dann Gerds Review nach dem Lauf.
+der NAS.** **Deploy `ca1bd20` ausgeführt, 2026-09-08 vormittags** (CEO-Freigabe im Chat): `verify` PASS,
+Kanal `ACTIVE`, Decke 2,00 USD; Nachweis `workforce/evidence/2026-09-08_deploy_ca1bd20.md`.
+CEO-Entscheidungen desselben Chats: `FILTER.md` ist das Instrument für C, kein
+Nebentätigkeitsantrag jetzt, Decke 2,0 USD/100 Aufrufe, CFO heißt **Wolle**, Marlene bleibt in
+Probezeit, Marv ist Mitarbeiter, Marlene bis Phase 4 auf Kopien, **Karl ist COO auf Probe**.
+Nächster Schritt: Gerds Review nach dem Lauf, dann 3-Loop über das Projekt
+(`workforce/reviews/2026-09-08_3loop_projekt_karl.md`).
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
