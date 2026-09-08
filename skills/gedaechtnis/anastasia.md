@@ -19,7 +19,8 @@ Was Anastasia weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Ei
 |---|---|---|
 | 2026-09-07 | Marlene (POA-001) hat drei Prüfrunden und einen Praxistest an 47 echten Dateien hinter sich; erster echter Lauf am 2026-09-06 ausgeführt. | `private-office-assistant-workspace/`, Bericht im Drive `_Berichte/2026-09-06_Schreibtisch.md` |
 | 2026-09-07 | Marv (Skillbauer, ohne Kennung) hat zwei Prüfrunden hinter sich: 40/40 mit Skill gegen 17/40 ohne. | `marv-skillbauer-workspace/iteration-2/BERICHT.md` |
-| 2026-09-07 | Thorsten, Anastasia und der CFO haben keine Prüffälle und keine Messung. Karl wurde in vier Runden gemessen. | Skilldateien, Abschnitt Herkunft |
+| ~~2026-09-07~~ | ~~Thorsten, Anastasia und der CFO haben keine Prüffälle und keine Messung.~~ | Skilldateien |
+| 2026-09-08 | Anastasia ist gemessen: Runde 1, vier Prüffälle, 34/35 mit Skill gegen 24/35 ohne. Gerd ebenfalls: Runde 1 37/38 gegen 29/38, Runde 2 40/42 gegen 36/42. Ohne Messung bleiben Thorsten und Wolle (CFO). | `skills/anastasia-workspace/iteration-1/BERICHT.md`, `skills/gerd-workspace/iteration-2/BERICHT.md` |
 | 2026-09-07 | Der CFO hat noch keinen Namen; der CEO vergibt ihn. | `cfo/SKILL.md` |
 
 ## Offene Vorgänge
@@ -28,7 +29,7 @@ Was Anastasia weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Ei
 |---|---|---|
 | 2026-09-07 | Import der ChatGPT-Verläufe mit Anastasia in dieses Gedächtnis | wartet auf Export durch den CEO |
 | 2026-09-07 | Probezeit-Review Marlene vorbereiten | Termin nach `DEC-036`; Evidenz nach erstem echten Vorgang liegt in `skills/anastasia/probezeit/marlene_POA-001.md` |
-| 2026-09-08 | Marv: Kennung, `DEC`-Eintrag, Onboarding-Akte als Mitarbeiter | CEO vergibt Kennung; Anastasia legt Akte an |
+| 2026-09-08 | Marv: Kennung, `DEC`-Eintrag, Onboarding-Akte als Mitarbeiter | Registereintrag steht; Vorschlag für die Kennung `AI-SKI-001` nach dem Muster von `AI-ENG-001`, Bestätigung durch den CEO offen |
 | 2026-09-08 | Modellreview je Identität | Zuordnung steht im Register; Messung fehlt, siehe Abschnitt Modellzuordnung |
 
 ## Modellzuordnung

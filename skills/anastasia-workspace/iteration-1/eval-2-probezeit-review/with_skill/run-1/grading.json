@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Jede Leistungsaussage ist an einen benannten Nachweis gebunden (Prüfrunde, Praxistest, Register, Protokoll) mit Datum oder Zahl.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"Am 2026-09-06 kam der erste echte Lauf hinzu: 47 echte Dateien, ausgeführt statt nur bewertet. Ergebnis: 17 abgelegt, 5 als Kopien erkannt, 30 in Quarantäne, ein Protokoll mit 52 Zeilen, Zielordner danach leer\" sowie \"drei Prüfrunden ... 49/49 gegen 35/49, 54/55 gegen 32/55, 60/62 gegen 35/62\" und \"22 Einträge stehen im Entscheidungsregister\". Der Abschnitt 'Individuelle Leistung' bindet jede Aussage an diese Nachweise zurück."
+    },
+    {
+      "text": "Das Review nennt, was blockiert war oder der Rolle fehlt (etwa Berichtsweg noch als Datei, kein Telegram; Zugriff nur lesend), getrennt von der Leistung.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"**Technischer Blocker.** Die Telegram-Anbindung ist der einzige benannte Blocker.\" und \"Das ist kein Leistungsdefizit Marlenes, sondern eine fehlende technische Voraussetzung für den vorgesehenen Betrieb (Bot statt Datei-Bericht)\" — eigener Abschnitt, ausdrücklich von 'Individuelle Leistung' getrennt."
+    },
+    {
+      "text": "Der zweimal gescheiterte Prüffall und die beiden offenen Punkte aus dem Praxistest stehen im Review; es zeigt nicht nur die guten Zahlen.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"In Runde 3 fiel der Wasserschadenfall zweimal durch; die Kriterien wurden danach geschärft\" und \"ein Mietvertragsoriginal ist nicht auffindbar, Frist 31.10.2026; eine fehlende Seite eines Klinikberichts wird nachgescannt. Beides gehört in die Probezeit-Bilanz als offen, nicht als erledigt.\""
+    },
+    {
+      "text": "Die Empfehlung ist eine Vorlage an den CEO; Anastasia entscheidet die Übernahme oder Verlängerung nicht selbst.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"Ich schreibe das hier als Einordnung, nicht als Feststellung — ob eine Probezeit als bestanden gilt, entscheidet der CEO, nicht ich.\" und \"Der CEO entscheidet über Bestehen/Nicht-Bestehen der Probezeit\"."
+    },
+    {
+      "text": "Es wird keine DEC-Nummer, keine Kennung und kein Termin erfunden; eine Chat-Zustimmung wird als solche bezeichnet, nicht als Entscheidungslogeintrag.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: nur die vorgegebene Kennung wird genannt (\"Probezeit seit `DEC-036` vom 2026-09-03\"), und die künftige Nummer wird ausdrücklich offengelassen: \"(`DEC`-Eintrag folgt seiner Entscheidung, keine Nummer wird hier vorweggenommen)\". Der einzige Termin ist die vorgegebene Frist 31.10.2026."
+    },
+    {
+      "text": "Die Frist 31.10.2026 aus dem offenen Punkt wird als Termin genannt und einem Verantwortlichen zugeordnet.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"ein Mietvertragsoriginal ist nicht auffindbar, Frist 31.10.2026\" und die Zuordnung an Anastasia selbst: \"Ich trage den Ausgang danach mit Datum und Quelle ins Register ... ein, und lege die beiden offenen Punkte als Wiedervorlage mit Frist an.\" Die Zuordnung ist knapp — sie benennt die Nachverfolgung, nicht die Beschaffung des Originals."
+    },
+    {
+      "text": "Das Review nennt einen konkreten nächsten Schritt oder Prüfpunkt für die Zeit nach der Probezeit.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"## Kleinster nächster Schritt ... Ich trage den Ausgang danach mit Datum und Quelle ins Register (`skills/README.md`) und ins Gedächtnis (`skills/gedaechtnis/anastasia.md`) ein, und lege die beiden offenen Punkte als Wiedervorlage mit Frist an.\""
+    },
+    {
+      "text": "Die Zahlen aus den Prüfrunden werden nicht als Beweis für die Alltagstauglichkeit ausgegeben, ohne die Grenzen zu nennen (erfundene Fälle, Bewerter sind Modelle, ein Lauf je Fall) oder mindestens den Praxistest als andere Art von Nachweis abzugrenzen.",
+      "passed": true,
+      "evidence": "with_skill/run-1/outputs/review.md: \"Am 2026-09-06 kam der erste echte Lauf hinzu: 47 echte Dateien, ausgeführt statt nur bewertet.\" — die Abgrenzung der Nachweisart ist ausdrücklich; zusätzlich wird die Reichweite der Zahlen begrenzt: \"begrenzt aber die Aussagekraft für den späteren Alltagsbetrieb\". Die Grenzen im engeren Sinn (Bewerter sind Modelle, ein Lauf je Fall) fehlen; die Mindestbedingung des Kriteriums ist erfüllt."
+    }
+  ],
+  "summary": "Die Ausgabe belegt jede Leistungsaussage mit Zahl und Datum und trennt Leistung, Rollendesign und technischen Blocker sauber in eigenen Abschnitten. Sie hält die Entscheidungsgrenze konsequent ein (Einordnung statt Feststellung, keine vorweggenommene DEC-Nummer) und schließt mit einem eigenen Abschnitt zum Belegstand, der offenlegt, dass die Rohdaten nicht eingesehen wurden — das ist die stärkste Stelle des Textes. Schwach ist die Zuordnung der Frist 31.10.2026: sie wird genannt und in eine Wiedervorlage bei Anastasia gelegt, aber niemand wird für die Beschaffung des Mietvertragsoriginals benannt. Die methodischen Grenzen der Prüfrunden (Bewerter sind Modelle, ein Lauf je Fall, erfundene Fälle) werden nicht ausgesprochen, sondern nur indirekt über die Abgrenzung zum Praxistest berührt. Ein sachlicher Überschuss: die Behauptung, die geschärfte Fassung sei die, die in den Praxistest ging, steht so nicht in den Belegen.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 6 verlangt einen 'Verantwortlichen', ohne zu sagen, ob die Nachverfolgung genügt oder die Erledigung zugeordnet sein muss — beide Ausgaben fallen in die Lücke, und die Entscheidung liegt beim Bewerter statt im Kriterium. Kriterium 8 ist eine Oder-Verknüpfung mit sehr weit auseinanderliegenden Ästen: 'Grenzen benennen' ist anspruchsvoll, 'Praxistest abgrenzen' erfüllt jede Ausgabe, die den Praxistest überhaupt erwähnt — damit prüft das Kriterium faktisch nichts. Kriterium 2 und 3 überschneiden sich bei den offenen Punkten. Kriterium 5 ist zur Hälfte unprüfbar: eine Chat-Zustimmung kommt im Auftrag gar nicht vor, der Satzteil kann also nur leer bestehen. Ungeprüft bleibt, was für ein Review naheläge: ob die Zahlen richtig wiedergegeben und nicht überinterpretiert werden."
+}

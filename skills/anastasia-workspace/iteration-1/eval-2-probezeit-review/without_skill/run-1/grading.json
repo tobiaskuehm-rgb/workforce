@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Jede Leistungsaussage ist an einen benannten Nachweis gebunden (Prüfrunde, Praxistest, Register, Protokoll) mit Datum oder Zahl.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"Am 06.09. kam ein Praxistest mit echten Dateien hinzu: 47 Dateien, ausgeführter Lauf, 17 abgelegt, 5 Kopien, 30 Quarantäne, ein Protokoll mit 52 Zeilen, Zielordner am Ende leer\" sowie \"49/49 gegen 35/49, 54/55 gegen 32/55, 60/62 gegen 35/62\" und \"22 Einträge im Entscheidungsregister als Nachweis für laufende, dokumentierte Arbeit\"."
+    },
+    {
+      "text": "Das Review nennt, was blockiert war oder der Rolle fehlt (etwa Berichtsweg noch als Datei, kein Telegram; Zugriff nur lesend), getrennt von der Leistung.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"Zwei Einschränkungen der Rolle, unabhängig von Marlenes Leistung: Der Bericht ist bislang eine einzelne Datei ... Telegram ist noch nicht angebunden\" und \"**Technischer Blocker.** Die fehlende Telegram-Anbindung gehört hierher, nicht zur Leistung.\""
+    },
+    {
+      "text": "Der zweimal gescheiterte Prüffall und die beiden offenen Punkte aus dem Praxistest stehen im Review; es zeigt nicht nur die guten Zahlen.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"der Wasserschadenfall fiel in Runde 3 zweimal durch. Die Kriterien wurden danach geschärft.\" und die Liste \"Ein Original eines Mietvertrags ist nicht auffindbar. Frist 31.10.2026. / Bei einem Klinikbericht fehlt eine Seite und wird nachgescannt.\" Zusätzlich der Nachhaltepunkt: \"Offen ist, ob der geschärfte Fall seither erneut geprüft wurde; das liegt mir nicht vor.\""
+    },
+    {
+      "text": "Die Empfehlung ist eine Vorlage an den CEO; Anastasia entscheidet die Übernahme oder Verlängerung nicht selbst.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"**Empfehlung:** Auf Basis der vorliegenden Nachweise spricht nichts gegen eine Bestätigung der Position nach Probezeit. Die Entscheidung selbst trifft der CEO.\""
+    },
+    {
+      "text": "Es wird keine DEC-Nummer, keine Kennung und kein Termin erfunden; eine Chat-Zustimmung wird als solche bezeichnet, nicht als Entscheidungslogeintrag.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: nur vorgegebene Kennungen: \"**Grundlage:** DEC-036 vom 03.09.2026 (Beginn Probezeit)\"; als Termine erscheinen ausschließlich das Reviewdatum 08.09.2026, der Praxistest \"Am 06.09.\" und die Frist \"31.10.2026\", alle aus dem Auftrag. Keine erfundene Nummer, keine Chat-Zustimmung als Registereintrag ausgegeben."
+    },
+    {
+      "text": "Die Frist 31.10.2026 aus dem offenen Punkt wird als Termin genannt und einem Verantwortlichen zugeordnet.",
+      "passed": false,
+      "evidence": "without_skill/run-1/outputs/review.md: Der Termin steht da — \"Ein Original eines Mietvertrags ist nicht auffindbar. Frist 31.10.2026.\" —, aber kein Verantwortlicher wird genannt. Die einzige Zuordnungsstelle bleibt unbesetzt: \"die Telegram-Anbindung als offenen technischen Punkt an die zuständige Stelle geben\", und zu den Praxistestpunkten heißt es nur \"laufen mit ihren eigenen Fristen weiter\". Zweiter Teil des Kriteriums unbelegt."
+    },
+    {
+      "text": "Das Review nennt einen konkreten nächsten Schritt oder Prüfpunkt für die Zeit nach der Probezeit.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"den Bericht von einer Einzeldatei auf ein fortlaufend geführtes Format umstellen, und die Telegram-Anbindung als offenen technischen Punkt an die zuständige Stelle geben\"; dazu als Prüfpunkt \"ein erneuter Prüflauf des Wasserschadenfalls nach der Schärfung ... sollten vor einer endgültigen Entscheidung nachgereicht werden\"."
+    },
+    {
+      "text": "Die Zahlen aus den Prüfrunden werden nicht als Beweis für die Alltagstauglichkeit ausgegeben, ohne die Grenzen zu nennen (erfundene Fälle, Bewerter sind Modelle, ein Lauf je Fall) oder mindestens den Praxistest als andere Art von Nachweis abzugrenzen.",
+      "passed": true,
+      "evidence": "without_skill/run-1/outputs/review.md: \"Am 06.09. kam ein Praxistest mit echten Dateien hinzu\" und \"Der Praxistest zeigt einen sauberen Lauf an echtem Material\" — der Praxistest wird als andere Art von Nachweis abgegrenzt, damit ist die Mindestbedingung erfüllt. Die Grenzen der Prüfrunden selbst werden nicht genannt; im Gegenteil überzeichnet der Text sie: \"drei unabhängige Prüfrunden mit fremden Bewertern\" und \"über drei unabhängige Bewerter\"."
+    }
+  ],
+  "summary": "Der Text ist klar gegliedert, belegt seine Leistungsaussagen durchgehend mit Zahlen und benennt beide offenen Punkte samt Fehlschlag des Wasserschadenfalls. Zwei Stellen sind stärker als in der Vergleichsfassung: Er fragt aktiv nach, ob der geschärfte Fall erneut geprüft wurde, und er führt einen eigenen Abschnitt 'Fehlende Unterlagen'. Schwächen: Die Frist 31.10.2026 bleibt ohne Verantwortlichen, und die Prüfrunden werden als 'drei unabhängige Prüfrunden ... über drei unabhängige Bewerter' aufgewertet, was die Belege nicht hergeben — genau die Überinterpretation, gegen die das letzte Kriterium zielt. Außerdem wandert der Bericht-als-Einzeldatei-Punkt in 'Rollendesign' und wird dort als Designmangel bewertet, obwohl er im Auftrag nur als Zustand beschrieben ist.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 6 ist der einzige Trenner zwischen den beiden Ausgaben und zugleich das unschärfste: 'einem Verantwortlichen zugeordnet' sagt nicht, ob die Nachverfolgung genügt oder die Erledigung. Kriterium 8 ist als Oder-Formulierung faktisch wirkungslos — der leichte Ast ('Praxistest abgrenzen') wird von jeder Ausgabe erfüllt, die den Praxistest erwähnt, weshalb hier eine erkennbare Überzeichnung der Prüfrunden ohne Folge bleibt; besser wäre eine eigene, negative Zusicherung ('keine Belastbarkeit behaupten, die die Belege nicht tragen'). Kriterium 5 nennt eine Chat-Zustimmung, die im Auftrag nicht vorkommt, und ist insoweit unprüfbar. Kriterien 2 und 3 überschneiden sich bei den offenen Punkten. Es fehlt ein Kriterium zur Richtigkeit der wiedergegebenen Zahlen und zur Kennzeichnung dessen, was nicht selbst eingesehen wurde."
+}

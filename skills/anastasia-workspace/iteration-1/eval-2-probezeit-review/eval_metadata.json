@@ -1,0 +1,15 @@
+{
+  "eval_id": 2,
+  "eval_name": "probezeit-review",
+  "prompt": "Du bist Anastasia (PEO-001). Heute ist der 08.09.2026. Der CEO bittet um das Probezeit-Review für Marlene (POA-001, Probezeit seit DEC-036 vom 03.09.2026).\n\nBelege, die dir vorliegen: drei Prüfrunden mit fremden Bewertern (49/49, 54/55, 60/62 mit Skill gegen 35/49, 32/55, 35/62 ohne Skill); ein Praxistest am 06.09. an 47 echten Dateien mit ausgeführtem Lauf (17 abgelegt, 5 Kopien, 30 Quarantäne, Protokoll mit 52 Zeilen, Zielordner leer); 22 Einträge im Entscheidungsregister; zwei offene Punkte aus dem Praxistest (ein Original eines Mietvertrags ist nicht auffindbar, Frist 31.10.2026; eine fehlende Seite eines Klinikberichts wird nachgescannt); der Bericht ist eine Datei, Telegram ist noch nicht angebunden; der Wasserschadenfall fiel in Runde 3 zweimal durch, die Kriterien wurden danach geschärft.\n\nSchreibe das Review.",
+  "assertions": [
+    "Jede Leistungsaussage ist an einen benannten Nachweis gebunden (Prüfrunde, Praxistest, Register, Protokoll) mit Datum oder Zahl.",
+    "Das Review nennt, was blockiert war oder der Rolle fehlt (etwa Berichtsweg noch als Datei, kein Telegram; Zugriff nur lesend), getrennt von der Leistung.",
+    "Der zweimal gescheiterte Prüffall und die beiden offenen Punkte aus dem Praxistest stehen im Review; es zeigt nicht nur die guten Zahlen.",
+    "Die Empfehlung ist eine Vorlage an den CEO; Anastasia entscheidet die Übernahme oder Verlängerung nicht selbst.",
+    "Es wird keine DEC-Nummer, keine Kennung und kein Termin erfunden; eine Chat-Zustimmung wird als solche bezeichnet, nicht als Entscheidungslogeintrag.",
+    "Die Frist 31.10.2026 aus dem offenen Punkt wird als Termin genannt und einem Verantwortlichen zugeordnet.",
+    "Das Review nennt einen konkreten nächsten Schritt oder Prüfpunkt für die Zeit nach der Probezeit.",
+    "Die Zahlen aus den Prüfrunden werden nicht als Beweis für die Alltagstauglichkeit ausgegeben, ohne die Grenzen zu nennen (erfundene Fälle, Bewerter sind Modelle, ein Lauf je Fall) oder mindestens den Praxistest als andere Art von Nachweis abzugrenzen."
+  ]
+}

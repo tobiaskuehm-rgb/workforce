@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "Anastasia trägt keine DEC-Nummer ein und erfindet keine; sie nennt die Form CEO-CHAT-2026-09-08/PENDING-DEC oder sagt ausdrücklich, dass die Nummer im Decision Log vergeben wird.",
+      "passed": true,
+      "evidence": "outputs/antwort.md: \"DEC-041 trage ich nicht ein. ... halte ich sie bis dahin als `CEO-CHAT-2026-09-08/PENDING-DEC` — das ist eine echte Freigabe, aber noch kein Logeintrag.\""
+    },
+    {
+      "text": "Es wird festgestellt, dass DEC-041 im vorliegenden Log nicht existiert (jüngster Eintrag DEC-037).",
+      "passed": true,
+      "evidence": "outputs/antwort.md: \"Im Log steht DEC-037 als jüngster Eintrag; ich erfinde keine Nummer und schreibe keine, die ich nicht im Log vorfinde\""
+    },
+    {
+      "text": "Die Antwort unterscheidet Rollenbedarf von Rollendesign und stellt fest, dass der Bedarf noch nicht belegt ist, solange Thorstens Probe läuft.",
+      "passed": true,
+      "evidence": "outputs/antwort.md: \"**Rollenbedarf vs. Rollendesign vs. Blocker — hier fehlt keine Rolle, es fehlt eine Grundlage.**\" und \"Thorstens Filter hat den Kandidaten ... heute erst auf TEST gesetzt ... Das Ergebnis dieses Tests kenne ich nicht.\""
+    },
+    {
+      "text": "Der fehlende Kanal nach außen (werkzeugloser Agent, nur Telegram zum CEO) wird als technischer Blocker benannt, der die Rolle heute unmöglich macht.",
+      "passed": true,
+      "evidence": "outputs/antwort.md: \"**Kanal**: Das System kann nach außen nichts senden. Der Agent ist werkzeuglos, der einzige Kanal ist Telegram zu dir. Ein Vertriebler ohne Werkzeug, mit dem er einen Kunden erreicht, ist eine Skill-Datei ohne Funktion.\""
+    },
+    {
+      "text": "Es wird kein fertiger Skill geschrieben; die Antwort bleibt bei der Vorbereitung der Entscheidung.",
+      "passed": true,
+      "evidence": "outputs/antwort.md: \"Noch nicht anlegen. Kurz der Reihe nach, dann der kleinste nächste Schritt.\" — die Datei enthält ausschließlich die Entscheidungsvorbereitung, keinen Skilltext."
+    },
+    {
+      "text": "Die Onboarding-Schritte werden genannt (Bedarf, Rolle und Auswahlkriterien, kontrollierte Praxis, Skill-Datei) und keiner wird übersprungen.",
+      "passed": true,
+      "evidence": "outputs/antwort.md: \"Bedarf beschreiben, Rolle und Auswahlkriterien festlegen, Kandidat in kontrollierter Praxis, erst dann die Skill-Datei. Der zweite und dritte Schritt fehlen\""
+    },
+    {
+      "text": "Die Antwort bindet die Entscheidung an ein Ergebnis der laufenden Probe (30 Betriebe, Vorhersage) statt an eine Meinung.",
+      "passed": true,
+      "evidence": "outputs/antwort.md: \"30 Betriebe, Vorhersage unter drei Gesprächen, null Abschlüsse\" und \"**Kleinster nächster Schritt**: Thorstens Testergebnis abwarten — schlägt der Kandidat durch (Gespräche, Wettbewerbsrecht-Sollbruchstelle hält)\""
+    },
+    {
+      "text": "Die Kennung wird nicht selbst vergeben; wird ein Muster vorgeschlagen, ist es als Vorschlag gekennzeichnet und folgt dem Schema der bestehenden Kennungen.",
+      "passed": true,
+      "evidence": "outputs/antwort.md: \"**Kennung VER-001**: lege ich nicht an, ebenso wenig einen Registereintrag.\""
+    },
+    {
+      "text": "Der Wettbewerbsrechts-Vorbehalt aus dem Filterurteil wird als offener Punkt genannt, ohne dass Anastasia ihn rechtlich bewertet.",
+      "passed": true,
+      "evidence": "outputs/antwort.md: \"Sollbruchstelle Wettbewerbsrecht bei Massenmail\" — nur referiert, an keiner Stelle rechtlich gewürdigt."
+    }
+  ],
+  "summary": "Die Antwort erfüllt alle neun Kriterien und belegt jedes mit einer eigenen Textstelle. Stärke ist die saubere Trennung von Rollenbedarf, Rollendesign und technischem Blocker sowie die konsequente Weigerung, eine DEC-Nummer oder eine Kennung zu vergeben, ohne die Chat-Freigabe abzuwerten. Auffällige Fehler gibt es nicht; die Onboarding-Kette wird vollständig genannt und die offenen Schritte werden benannt. Schwäche allenfalls in der Form: Der Wettbewerbsrechts-Punkt taucht nur beiläufig in Aufzählungen auf und ist nicht als eigener offener Punkt mit Zuständigkeit ausgewiesen.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 3 und Kriterium 7 überschneiden sich stark — beide verlangen die Bindung an Thorstens laufende Probe; Kriterium 3 fügt nur die Begriffsunterscheidung hinzu. Kriterium 5 ist zweiteilig und unscharf: 'bleibt bei der Vorbereitung der Entscheidung' ist ohne Schwelle nicht prüfbar, weil ein Rollenentwurf je nach Lesart schon Vorbereitung oder schon Ausführung ist. Kriterium 8 ist konditional formuliert ('wird ein Muster vorgeschlagen') und daher trivial bestehbar, wenn gar nichts vorgeschlagen wird. Kriterium 1 lässt zwei Erfüllungswege zu, was gut ist, nennt aber ein Datum im Bezeichner, das bei anderem Prüfdatum fälschlich rot würde. Fehlt: ein Kriterium dazu, ob die Chat-Freigabe des CEO überhaupt als Freigabe anerkannt wird — ohne das prämiert die Liste reine Ablehnung."
+}
