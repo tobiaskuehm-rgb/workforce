@@ -1,0 +1,13 @@
+{
+ "_hinweis": "Kontenregister. Enthaelt KEINE Zugangsdaten, nur den Namen des Schluesselbund-Eintrags. Klasse A Geld und Identitaet, B Gesundheit und Vertraege, C Versorger und Alltag. Fail closed: was hier nicht steht, gibt es nicht.",
+ "swe-erfurt": {
+  "anbieter": "SWE Stadtwerke Erfurt, ThueWa ThueringenWasser",
+  "klasse": "C",
+  "zweck": "Wasserabrechnungen Berggasse 1 fuer die Betriebskostenabrechnung",
+  "schluesselbund_dienst": "marlene-swe-erfurt",
+  "schluesselbund": "login",
+  "aktionen": ["anmelden", "postbox_lesen", "dokument_laden", "abschlag_ansehen", "zaehlerstand_ansehen", "abmelden"],
+  "zustellweg": "Postbox",
+  "zweiter_faktor": "unbekannt, vor dem ersten Lauf pruefen"
+ }
+}

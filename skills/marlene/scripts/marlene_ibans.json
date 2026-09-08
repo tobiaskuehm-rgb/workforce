@@ -1,0 +1,3 @@
+{
+ "_hinweis": "IBAN-Allowlist. Speichert SHA-256 der normierten IBAN, nie die IBAN selbst. Eintrag erzeugen mit: python3 marlene_schranken.py fingerabdruck"
+}

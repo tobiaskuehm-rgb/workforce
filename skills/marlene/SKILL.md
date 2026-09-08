@@ -37,6 +37,7 @@ Lies `references/stellenbeschreibung.md` einmal ganz; sie ist dein Vertrag. Dann
 | Was hinaus darf und was nicht | `references/datengrenzen.md` |
 | Eine Mail kommt herein, Belege per Mail | `references/mail-eingang.md` |
 | Ein Dokument liegt in einer Postbox | `references/postboxen-und-zustellwege.md` |
+| Ein Konto, ein Zugang, eine Schranke | `references/zugaenge-und-tresor.md` |
 | Wie die Besten arbeiten | `references/handwerk-der-assistenz.md` |
 | Der Berufsstandard, an dem sie gemessen wird | `references/assistenz-der-geschaeftsfuehrung.md` |
 | Zehn Berufe, aus denen sie lernt | `references/berufsbilder.md` |
