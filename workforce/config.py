@@ -12,7 +12,7 @@ import os
 import pathlib
 import stat
 from dataclasses import dataclass
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 from urllib.parse import urlsplit
 
 POLICIES = ("METADATA_ONLY", "BODY", "FULL")
@@ -34,6 +34,18 @@ class Identity:
 
 
 @dataclass(frozen=True)
+class ScheduleItem:
+    """A message the core sends itself, weekly (Phase 3 - the system speaks up). `weekday`
+    is ISO (1 Monday .. 7 Sunday), `hour` is UTC - the same UTC the rest of the core already
+    uses for `today()` and the budget day, so no second time source is introduced."""
+    id: str
+    weekday: int
+    hour: int
+    identity: str
+    prompt: str
+
+
+@dataclass(frozen=True)
 class Config:
     db_path: str
     secrets_dir: str
@@ -49,6 +61,7 @@ class Config:
     max_attempts: int
     telegram_base_url: str
     anthropic_workspace_id: str = ""
+    schedule: Tuple[ScheduleItem, ...] = ()
 
     def route_allowed(self, sender: str, recipient: str) -> bool:
         return (sender, recipient) in self.routes
@@ -125,6 +138,8 @@ def parse(values: Dict[str, Any], *, base_dir: str = ".") -> Config:
             raise ConfigError("CONFIG_ROUTE_SELF")
         routes.append((pair[0], pair[1]))
 
+    schedule = _parse_schedule(values.get("schedule", []), identities=identities, routes=routes)
+
     poll = int(values.get("poll_timeout_seconds", 25))
     if not 1 <= poll <= 50:
         raise ConfigError("CONFIG_POLL_TIMEOUT_RANGE")
@@ -160,7 +175,43 @@ def parse(values: Dict[str, Any], *, base_dir: str = ".") -> Config:
         max_attempts=attempts,
         telegram_base_url=base,
         anthropic_workspace_id=str(values.get("anthropic_workspace_id", "")).strip(),
+        schedule=schedule,
     )
+
+
+def _parse_schedule(raw: Any, *, identities: Dict[str, "Identity"],
+                    routes: List[Tuple[str, str]]) -> Tuple["ScheduleItem", ...]:
+    if not isinstance(raw, list):
+        raise ConfigError("CONFIG_SCHEDULE_FORM")
+    items = []
+    seen_ids = set()
+    for entry in raw:
+        if not isinstance(entry, dict):
+            raise ConfigError("CONFIG_SCHEDULE_FORM")
+        item_id = _require(entry, "id", str)
+        if not item_id:
+            raise ConfigError("CONFIG_SCHEDULE_ID_EMPTY")
+        if item_id in seen_ids:
+            raise ConfigError(f"CONFIG_SCHEDULE_DUPLICATE_ID:{item_id}")
+        seen_ids.add(item_id)
+        weekday = entry.get("weekday")
+        if not isinstance(weekday, int) or isinstance(weekday, bool) or not 1 <= weekday <= 7:
+            raise ConfigError(f"CONFIG_SCHEDULE_WEEKDAY:{item_id}")
+        hour = entry.get("hour")
+        if not isinstance(hour, int) or isinstance(hour, bool) or not 0 <= hour <= 23:
+            raise ConfigError(f"CONFIG_SCHEDULE_HOUR:{item_id}")
+        identity = _require(entry, "identity", str)
+        if identity not in identities:
+            raise ConfigError(f"CONFIG_SCHEDULE_IDENTITY_UNKNOWN:{item_id}")
+        prompt = _require(entry, "prompt", str)
+        if not prompt.strip():
+            raise ConfigError(f"CONFIG_SCHEDULE_PROMPT_EMPTY:{item_id}")
+        # Even a scheduled message is CEO-to-identity traffic (invariant 3): the route must
+        # already be an explicit allow, never created implicitly by the schedule entry.
+        if (HUMAN, identity) not in routes:
+            raise ConfigError(f"CONFIG_SCHEDULE_ROUTE_MISSING:{item_id}")
+        items.append(ScheduleItem(id=item_id, weekday=weekday, hour=hour, identity=identity, prompt=prompt))
+    return tuple(items)
 
 
 def _bounded_int(values: Dict[str, Any], key: str, *, minimum: int, maximum: int,

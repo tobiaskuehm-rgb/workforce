@@ -59,6 +59,7 @@ class App:
 
     # -- polling ----------------------------------------------------------------
     def poll_once(self) -> int:
+        self.check_schedule()
         self.resume()
         offset = int(self.store.setting("telegram_offset", "0"))
         updates = self.telegram.get_updates(offset, self.config.poll_timeout_seconds)
@@ -67,6 +68,32 @@ class App:
             self.store.set_setting("telegram_offset", str(int(update["update_id"]) + 1))
         self.flush_outbound()
         return len(updates)
+
+    def check_schedule(self) -> int:
+        """The system speaks up (Phase 3, G-109): a weekly message the core sends itself, as
+        if the CEO had asked the identity the configured prompt. Fires once per calendar day
+        (UTC, the same day boundary as the budget) at or after the configured hour; after that
+        the message is an ordinary inbound one and everything downstream - budget, retries on
+        an exhausted day (G-100), the audit trail - is the same path a real message takes."""
+        if self.store.channel() != "ACTIVE":
+            return 0
+        now = self.clock()
+        day = today(lambda: now)
+        moment = datetime.fromtimestamp(now, tz=timezone.utc)
+        fired = 0
+        for item in self.config.schedule:
+            if item.weekday != moment.isoweekday() or moment.hour < item.hour:
+                continue
+            message_id = derived_id("SCHED", item.id, day)
+            if self.store.message(message_id) is not None:
+                continue  # already created today; resume()/claim() carry it from here
+            self.store.record_inbound(message_id=message_id, update_id=None, chat_id=self.config.allowed_chat_id,
+                                      sender=HUMAN, recipient=item.identity, text=item.prompt)
+            self.store.audit(ACTOR, f"{message_id}-SCHEDULED", "SCHEDULED", message_id,
+                             {"schedule_id": item.id, "day": day})
+            self.process(message_id)
+            fired += 1
+        return fired
 
     def resume(self) -> int:
         """Pick up work that only the database knows about (G-097): a claim given back under an
@@ -77,12 +104,15 @@ class App:
         rows = self.store.resumable_inbound(lease_seconds=self.config.lease_seconds,
                                             day_of=lambda ts: today(lambda: ts))
         for row in rows:
-            # Each pass over a message has its own request-id suffix (G-101, invariant 11): the audit
-            # of the first attempt and of the resumed one must not share a request-id.
+            # A schedule fire (G-109) has no Telegram update_id; it names itself the same way
+            # process() does. Each pass over a message has its own request-id suffix (G-101,
+            # invariant 11): the audit of the first attempt and of the resumed one must not share one.
+            update_id = None if row["update_id"] is None else int(row["update_id"])
+            base = f"TG-{update_id}" if update_id is not None else row["message_id"]
             pass_no = self.store.audit_count("RESUME", row["message_id"]) + 1
-            self.store.audit(ACTOR, f"TG-{row['update_id']}-R{pass_no}-RESUME", "RESUME", row["message_id"],
+            self.store.audit(ACTOR, f"{base}-R{pass_no}-RESUME", "RESUME", row["message_id"],
                              {"from": row["status"], "attempts": row["attempts"]})
-            self.process(row["message_id"], int(row["update_id"]), pass_no=pass_no)
+            self.process(row["message_id"], update_id, pass_no=pass_no)
         return len(rows)
 
     def startup(self) -> None:
@@ -162,8 +192,10 @@ class App:
                 f"Audit: {'intakt' if ok else 'BESCHAEDIGT ab ' + str(bad)}")
 
     # -- the work ------------------------------------------------------------------
-    def process(self, message_id: str, update_id: int, *, pass_no: int = 0) -> None:
-        rid = f"TG-{update_id}" + (f"-R{pass_no}" if pass_no else "")
+    def process(self, message_id: str, update_id: Optional[int] = None, *, pass_no: int = 0) -> None:
+        # A schedule fire (G-109) has no Telegram update, so it names itself: message_id is
+        # already derived from the schedule id and the day, deterministic and unique.
+        rid = (f"TG-{update_id}" if update_id is not None else message_id) + (f"-R{pass_no}" if pass_no else "")
         row = self.store.message(message_id)
         claim = self.store.claim(message_id, lease_seconds=self.config.lease_seconds,
                                  max_attempts=self.config.max_attempts)

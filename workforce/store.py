@@ -149,8 +149,10 @@ class Store:
                                      (request_prefix + "%",)))
 
     # -- inbound messages and claims -------------------------------------------
-    def record_inbound(self, *, message_id: str, update_id: int, chat_id: int, sender: str,
+    def record_inbound(self, *, message_id: str, update_id: Optional[int], chat_id: int, sender: str,
                        recipient: str, text: str, status: str = "RECEIVED") -> bool:
+        # update_id is None for a message the core creates itself (a schedule fire, G-109):
+        # the column is UNIQUE but SQLite treats every NULL as distinct, so many can coexist.
         now = self.clock()
         cursor = self._db.execute(
             "INSERT OR IGNORE INTO messages (message_id, direction, kind, update_id, chat_id, sender, "

@@ -26,6 +26,15 @@ Der Kanal ist nach dem ersten Start **aus**. `/start` im Telegram-Chat schaltet 
 `/stop` aus, `/status` zeigt Kanal, Tagesbudget, offene Ausgänge und Audit. `@NAME text`
 spricht eine andere konfigurierte Identität an.
 
+## Der Kern meldet sich (Phase 3)
+
+`config.json` kann einen `schedule` tragen: eine Liste von Terminen, jeder mit `id`, `weekday`
+(1 Montag bis 7 Sonntag), `hour` (0–23, UTC — dieselbe Zeitbasis wie der Budgettag, keine
+zweite Uhr), `identity` (muss eine Route von `CEO` haben) und `prompt`. Fällig ist ein Termin ab
+seiner Stunde am richtigen Tag, einmal je Kalendertag; die Nachricht läuft danach wie jede
+echte — Budget, Wiederaufnahme bei erschöpftem Tag (`G-100`), Audit. Beispiel in
+`config.example.json`, `config.nas.json`: Montag Wochenlage, Donnerstag Entscheidungstermin.
+
 ## Befehle
 
 | | |

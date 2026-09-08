@@ -291,6 +291,76 @@ class BudgetTest(Harness):
         self.assertEqual(1, len(self.provider.calls))
 
 
+class ScheduleTest(Harness):
+    def with_item(self, **overrides):
+        item = {"id": "MONTAG", "weekday": 1, "hour": 6, "identity": "A", "prompt": "Wochenlage."}
+        item.update(overrides)
+        self.make(schedule=[item])
+        self.activate()
+
+    def test_a_due_item_fires_exactly_once_that_day(self):
+        # 2023-11-06 is a Monday. self.now sits mid-week by default; move it there.
+        self.with_item()
+        self.now = 1_699_250_400.0  # Mon 2023-11-06 06:00:00 UTC
+        n = self.app.check_schedule()
+        self.assertEqual(1, n)
+        self.assertEqual(1, len(self.provider.calls))
+        self.assertIn("Wochenlage.", self.provider.calls[0])
+        self.assertEqual(0, self.app.check_schedule())  # same poll round again: nothing new
+        self.now += 3_600
+        self.assertEqual(0, self.app.check_schedule())  # later the same day: still nothing
+        self.assertEqual(1, len(self.provider.calls))
+
+    def test_it_does_not_fire_before_its_hour_or_on_the_wrong_day(self):
+        self.with_item()
+        self.now = 1_699_246_800.0  # Mon 2023-11-06 05:00:00 UTC - too early
+        self.assertEqual(0, self.app.check_schedule())
+        self.now = 1_699_218_000.0  # Sun 2023-11-05 21:00:00 UTC - wrong day
+        self.assertEqual(0, self.app.check_schedule())
+
+    def test_it_fires_again_the_next_matching_week(self):
+        self.with_item()
+        self.now = 1_699_250_400.0  # Mon 2023-11-06 06:00
+        self.app.check_schedule()
+        self.now += 7 * 86_400  # next Monday, same hour
+        self.assertEqual(1, self.app.check_schedule())
+        self.assertEqual(2, len(self.provider.calls))
+
+    def test_a_disabled_channel_fires_nothing(self):
+        self.with_item()
+        self.store.set_channel("DISABLED", actor="test", request_id="TEST-OFF")
+        self.now = 1_699_250_400.0
+        self.assertEqual(0, self.app.check_schedule())
+        self.assertEqual([], self.provider.calls)
+
+    def test_the_answer_goes_to_the_configured_identity_and_the_ceo_chat(self):
+        item = {"id": "MONTAG", "weekday": 1, "hour": 6, "identity": "B", "prompt": "Wochenlage."}
+        self.make(schedule=[item], routes=[["CEO", "A"], ["CEO", "B"]]); self.activate()
+        self.now = 1_699_250_400.0
+        self.app.check_schedule()
+        mid = derived_id("SCHED", "MONTAG", app_module.today(lambda: self.now))
+        row = self.store.message(mid)
+        self.assertEqual(("CEO", "B", CHAT, None), (row["sender"], row["recipient"], row["chat_id"], row["update_id"]))
+        out = self.store.message(derived_id("OUT", mid))
+        self.assertEqual(("REPLY", CHAT), (out["kind"], out["chat_id"]))
+
+    def test_an_exhausted_budget_is_resumed_the_next_day_like_any_message(self):
+        # G-100/G-109 together: a schedule fire follows the ordinary budget-wait path.
+        item = {"id": "MONTAG", "weekday": 1, "hour": 6, "identity": "A", "prompt": "Wochenlage."}
+        self.make(max_calls_per_day=1, schedule=[item]); self.activate()
+        self.now = 1_699_250_400.0  # Mon 2023-11-06 06:00
+        day = app_module.today(lambda: self.now)
+        self.store.reserve(day, max_calls=1, max_usd=1.0, worst_usd=0.0)  # the day's one call, spent by something else
+        self.app.check_schedule()
+        mid = derived_id("SCHED", "MONTAG", day)
+        self.assertEqual("RECEIVED", self.store.message(mid)["status"])
+        self.assertEqual([], self.provider.calls)
+        self.now += 86_400  # a new budget day
+        self.app.poll_once()  # resume(), not check_schedule() (wrong weekday now) - the general path picks it up
+        self.assertEqual("DONE", self.store.message(mid)["status"])
+        self.assertEqual(1, len(self.provider.calls))
+
+
 class DeliveryTest(Harness):
     def test_a_crash_between_send_and_mark_repeats_visibly_once(self):
         self.make(); self.activate()
@@ -370,6 +440,60 @@ class StoreTest(Harness):
         with self.assertRaises(sqlite3.IntegrityError):
             self.store.set_channel("ACTIVE", actor="test", request_id="TEST-CHANNEL")
         self.assertEqual("DISABLED", self.store.channel())
+
+
+class ScheduleConfigTest(unittest.TestCase):
+    def with_schedule(self, *entries):
+        values = json.loads(json.dumps(BASE))
+        values["schedule"] = list(entries)
+        return values
+
+    def test_a_valid_entry_parses(self):
+        cfg = config.parse(self.with_schedule({"id": "MONTAG", "weekday": 1, "hour": 6,
+                                                "identity": "A", "prompt": "Wochenlage."}))
+        self.assertEqual(1, len(cfg.schedule))
+        self.assertEqual(("MONTAG", 1, 6, "A", "Wochenlage."),
+                         (cfg.schedule[0].id, cfg.schedule[0].weekday, cfg.schedule[0].hour,
+                          cfg.schedule[0].identity, cfg.schedule[0].prompt))
+
+    def test_no_schedule_is_the_default_and_valid(self):
+        values = json.loads(json.dumps(BASE))
+        self.assertEqual((), config.parse(values).schedule)
+
+    def test_weekday_and_hour_are_typefast_and_bounded(self):
+        for field, value in (("weekday", 0), ("weekday", 8), ("weekday", "1"), ("weekday", True),
+                             ("hour", -1), ("hour", 24), ("hour", "6"), ("hour", False)):
+            entry = {"id": "X", "weekday": 1, "hour": 6, "identity": "A", "prompt": "p"}
+            entry[field] = value
+            with self.subTest(field=field, value=value), self.assertRaises(config.ConfigError):
+                config.parse(self.with_schedule(entry))
+
+    def test_an_unknown_identity_refuses(self):
+        with self.assertRaises(config.ConfigError) as ctx:
+            config.parse(self.with_schedule({"id": "X", "weekday": 1, "hour": 6,
+                                             "identity": "GHOST", "prompt": "p"}))
+        self.assertIn("CONFIG_SCHEDULE_IDENTITY_UNKNOWN", str(ctx.exception))
+
+    def test_an_empty_prompt_refuses(self):
+        with self.assertRaises(config.ConfigError):
+            config.parse(self.with_schedule({"id": "X", "weekday": 1, "hour": 6,
+                                             "identity": "A", "prompt": "   "}))
+
+    def test_a_duplicate_id_refuses(self):
+        entry = {"id": "X", "weekday": 1, "hour": 6, "identity": "A", "prompt": "p"}
+        with self.assertRaises(config.ConfigError) as ctx:
+            config.parse(self.with_schedule(entry, dict(entry)))
+        self.assertIn("CONFIG_SCHEDULE_DUPLICATE_ID", str(ctx.exception))
+
+    def test_the_route_must_already_be_allowed(self):
+        # Invariant 3: the recipient always comes from an explicit allowlist, even for a
+        # message the core writes to itself - a schedule entry must not create a route.
+        values = self.with_schedule({"id": "X", "weekday": 1, "hour": 6, "identity": "B", "prompt": "p"})
+        with self.assertRaises(config.ConfigError) as ctx:
+            config.parse(values)  # BASE only routes CEO -> A, not -> B
+        self.assertIn("CONFIG_SCHEDULE_ROUTE_MISSING", str(ctx.exception))
+        values["routes"].append(["CEO", "B"])
+        self.assertEqual(1, len(config.parse(values).schedule))
 
 
 class ConfigTest(unittest.TestCase):

@@ -11,11 +11,32 @@
       "system_prompt": "Du bist die Assistenz des CEO. Beantworte Fragen knapp, schlage bei Aufgaben den naechsten Schritt vor."
     }
   },
-  "routes": [["CEO", "ASSISTENZ"]],
+  "routes": [
+    [
+      "CEO",
+      "ASSISTENZ"
+    ]
+  ],
   "max_calls_per_day": 100,
   "max_usd_per_day": 2.0,
   "ollama_url": "http://host.docker.internal:11434",
   "poll_timeout_seconds": 25,
   "lease_seconds": 300,
-  "max_attempts": 3
+  "max_attempts": 3,
+  "schedule": [
+    {
+      "id": "MONTAG_LAGE",
+      "weekday": 1,
+      "hour": 6,
+      "identity": "ASSISTENZ",
+      "prompt": "Montag, Wochenlage: Fasse zusammen, was seit Donnerstag passiert ist, was ansteht, und ob offene Punkte noch halten."
+    },
+    {
+      "id": "DONNERSTAG_ENTSCHEIDUNGEN",
+      "weekday": 4,
+      "hour": 6,
+      "identity": "ASSISTENZ",
+      "prompt": "Donnerstag, Entscheidungstermin: Liste jede offene Vorlage mit Empfehlung, damit heute entschieden werden kann."
+    }
+  ]
 }
