@@ -46,6 +46,20 @@ Liegt ein Dokument in der Drive-Ablage in anderer Fassung (gleicher Name, andere
 
 Eine Dublette ist byteweise gleich; gleicher Name allein reicht nicht. Bei Dubletten bleibt die Fassung, die schon am richtigen Ort liegt, oder sonst die älteste; die anderen gehen mit Verweis in die Quarantäne. Webseiten-Ausdrucke erkennt man an Adresse und Druckdatum in Kopf- oder Fußzeile und am Namen, der ein Seitentitel ist; Bildschirmfotos an ihrem Namen. Beides ist Quarantäne mit Grund, kein Löschen.
 
+## Eine Datei, die da ist, muss noch lange nicht da sein
+
+Google Drive und iCloud halten Dateien als **Platzhalter**: Der Eintrag im Ordner sieht vollständig aus, `ls` zeigt die volle Größe, der Inhalt liegt aber in der Cloud. Erst ein Lesezugriff lädt ihn nach, und bei einem großen Scan dauert das Minuten oder hängt.
+
+Am 2026-09-08 gemessen: **649 von 880 Dateien** der Drive-Ablage sind Platzhalter, also drei Viertel. Der ganze Ordner mit den Krankenversicherungsunterlagen, zwölf Dateien, war es vollständig. Die Texterkennung lieferte darauf leere Seiten statt einer Fehlermeldung, und der Lauf sah aus wie ein Dokument ohne Text.
+
+Daraus folgen drei Regeln:
+
+- **Vor dem Lesen wird geprüft, ob die Datei lokal liegt.** `marlene_lokal.py pruefen <pfad>` unterscheidet lokal, Platzhalter und fehlt; die Prüfung kostet nichts, weil sie nur die belegten Blöcke ansieht und die Datei nicht anfasst.
+- **Ein Platzhalter wird gemeldet, nicht stillschweigend übersprungen.** Ein leeres Leseergebnis heißt „nicht lesbar, Platzhalter", nie „Dokument ohne Text". Ein Werkzeug, das nichts findet und nichts meldet, liest sich sonst wie ein bestandener Test.
+- **Eine Aussage über Dubletten gilt nur für Dateien, die wirklich gelesen wurden.** „Bytegleich mit der Drive-Fassung" setzt voraus, dass beide Seiten vorlagen.
+
+Für die Ablage selbst ist das ein Argument: Wer eine Cloud als Ablage nutzt, schaltet die vollständige lokale Kopie ein. Bei Google Drive heißt das „offline verfügbar machen", bei iCloud „Mac-Speicher optimieren" ausschalten. Bei 130 MB Gesamtgröße kostet das nichts und macht den Unterschied zwischen einer Ablage, die man durchsuchen kann, und einer, die man nur ansehen kann.
+
 ## Der Notfallordner als stehende Prüfung
 
 Verbraucherschutz und Vorsorgeberatung empfehlen einen Notfallordner, der drei Fragen beantwortet: Was besitze ich? Was ist mir wichtig? Wer soll im Ernstfall handeln? Zwölf Rubriken: persönliche Dokumente, medizinische Informationen, Vorsorgedokumente (Vorsorgevollmacht, Patientenverfügung, Betreuungsverfügung, Testament), Finanzen und Konten, Versicherungen, Immobilien, Fahrzeuge, Beruf, digitaler Nachlass, Haustiere, Notfallkontakte, persönliche Wünsche. Zweimal im Jahr aktualisieren. Für Marlene: Ein Bericht im Frühjahr und einer im Herbst prüfen, ob `07_Urkunden Familie` und die Versicherungsordner diese Rubriken abdecken, und nennen, was fehlt. Anlegen tut sie nichts davon; das ist Tobias' Entscheidung.
