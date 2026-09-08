@@ -362,6 +362,29 @@ class ScheduleTest(Harness):
         out = self.store.message(derived_id("OUT", mid))
         self.assertEqual(("REPLY", CHAT), (out["kind"], out["chat_id"]))
 
+    def test_a_clock_that_jumps_back_does_not_fire_again(self):
+        # G-110: `seen` only moves forward.
+        self.with_item()
+        self.now = 1_699_250_400.0 + 7 * 86_400  # Mon 2023-11-13 06:00
+        self.assertEqual(1, self.app.check_schedule())
+        self.now -= 7 * 86_400                    # RTC reset: Mon 2023-11-06 06:00 again
+        self.assertEqual(0, self.app.check_schedule())
+        self.assertEqual(1, len(self.provider.calls))
+
+    def test_a_missed_day_leaves_a_row_and_the_first_run_does_not(self):
+        # G-111: a due day the process slept through is audited, once; the very first run
+        # establishes a baseline instead of reporting last week as missed.
+        self.with_item()
+        self.now = 1_699_250_400.0 - 86_400        # Sun 2023-11-05: first run, nothing due
+        self.app.check_schedule()
+        self.assertEqual(0, self.store.audit_count("SCHEDULE_MISSED", "MONTAG"))
+        self.now = 1_699_250_400.0 + 86_400        # Tue 2023-11-07: Monday was slept through
+        self.assertEqual(0, self.app.check_schedule())
+        self.assertEqual(1, self.store.audit_count("SCHEDULE_MISSED", "MONTAG"))
+        self.app.check_schedule()                  # noted once, not every round
+        self.assertEqual(1, self.store.audit_count("SCHEDULE_MISSED", "MONTAG"))
+        self.assertEqual([], self.provider.calls)
+
     def test_an_exhausted_budget_is_resumed_the_next_day_like_any_message(self):
         # G-100/G-109 together: a schedule fire follows the ordinary budget-wait path.
         item = {"id": "MONTAG", "weekday": 1, "hour": 6, "identity": "A", "prompt": "Wochenlage."}

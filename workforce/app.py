@@ -12,7 +12,7 @@ import hashlib
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Optional
 
 from . import boundary, models
@@ -39,6 +39,12 @@ REJECTED_BEFORE_RUN = ("PROVIDER_AUTH_FAILED", "PROVIDER_REQUEST_INVALID", "PROV
 def derived_id(prefix: str, *parts: Any) -> str:
     raw = ":".join(str(p) for p in parts)
     return f"{prefix}-{hashlib.sha256(raw.encode('utf-8')).hexdigest()[:24].upper()}"
+
+
+def _last_due_before(day: "date", weekday: int) -> "date":
+    """The most recent date strictly before `day` that falls on ISO `weekday`."""
+    back = (day.isoweekday() - weekday) % 7 or 7
+    return day - timedelta(days=back)
 
 
 def today(clock: Callable[[], float]) -> str:
@@ -82,11 +88,23 @@ class App:
         moment = datetime.fromtimestamp(now, tz=timezone.utc)
         fired = 0
         for item in self.config.schedule:
-            if item.weekday != moment.isoweekday() or moment.hour < item.hour:
+            # `seen` is the latest due date this item has accounted for - fired or noted as
+            # missed. It only moves forward, so a clock that jumps back cannot fire a second
+            # time (G-110), and a due day the process slept through leaves a row (G-111).
+            key = f"schedule_seen_{item.id}"
+            seen = self.store.setting(key, "")
+            due_today = item.weekday == moment.isoweekday() and moment.hour >= item.hour
+            last_due = _last_due_before(moment.date(), item.weekday).isoformat()
+            if not seen:
+                self.store.set_setting(key, last_due)  # first run: a baseline, not a miss
+            elif last_due > seen:
+                self.store.audit(ACTOR, f"SCHED-{item.id}-{last_due}-MISSED", "SCHEDULE_MISSED", item.id,
+                                 {"schedule_id": item.id, "day": last_due, "seen": seen})
+                self.store.set_setting(key, last_due)
+            if not due_today or self.store.setting(key, "") >= day:
                 continue
             message_id = derived_id("SCHED", item.id, day)
-            if self.store.message(message_id) is not None:
-                continue  # already created today; resume()/claim() carry it from here
+            self.store.set_setting(key, day)
             self.store.record_inbound(message_id=message_id, update_id=None, chat_id=self.config.allowed_chat_id,
                                       sender=HUMAN, recipient=item.identity, text=item.prompt)
             self.store.audit(ACTOR, f"{message_id}-SCHEDULED", "SCHEDULED", message_id,
