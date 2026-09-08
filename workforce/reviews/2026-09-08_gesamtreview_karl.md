@@ -87,3 +87,7 @@ Beim nächsten Kontakt sehe ich nach: ist `git status` in `workforce/` und `skil
 ## Nächster Schritt
 
 Gerds Korrekturen `G-092` bis `G-095` und `REVIEW_GERD.md` committen, je Befund ein Commit, kein Deploy davor; Owner Claude Code, Gate: Gerds Nachcheck des Diffs.
+
+## Nachtrag 2026-09-08, 07:30
+
+Task 1 wurde um 05:50 durch `4392ab7` erledigt, in einem Commit statt je Befund; `G-096` ist damit geschlossen. Task 2 ist in fünf Commits gesichert (`d86c3a3` bis `c22ca8d`). Task 3, `G-097`, ist behoben und getestet, Gerds Nachcheck steht aus. Der STOP für den Deploy bleibt, bis der Nachcheck vorliegt und der CEO P-1 entscheidet.

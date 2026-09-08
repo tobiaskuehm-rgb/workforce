@@ -192,6 +192,21 @@ class Store:
     def messages_with_status(self, status: str) -> List[sqlite3.Row]:
         return list(self._db.execute("SELECT * FROM messages WHERE status = ? ORDER BY created_at", (status,)))
 
+    def resumable_inbound(self, *, lease_seconds: int, day_of: Callable[[float], str]) -> List[sqlite3.Row]:
+        """Inbound work that no Telegram update will bring back (G-097).
+
+        A claim given back under an exhausted budget waits, as the notice promised, until the
+        day changes; resuming it every round would repeat the notice each poll. A claim whose
+        lease expired belongs to a crashed run and is resumed at once - claim() charges the
+        attempt (G-002).
+        """
+        now = self.clock()
+        rows = self._db.execute("SELECT * FROM messages WHERE direction = 'IN' AND status IN ('RECEIVED', 'IN_PROGRESS') "
+                                "ORDER BY created_at").fetchall()
+        return [r for r in rows
+                if (r["status"] == "RECEIVED" and day_of(r["updated_at"]) != day_of(now))
+                or (r["status"] == "IN_PROGRESS" and now - r["claimed_at"] >= lease_seconds)]
+
     # -- outbound -----------------------------------------------------------------
     def create_outbound(self, *, message_id: str, kind: str, chat_id: int, sender: str, recipient: str,
                         text: str, reply_to: Optional[str]) -> bool:

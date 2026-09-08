@@ -407,6 +407,8 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 60. **Ein sicherheitsrelevanter Zustandswechsel und seine Auditzeile sind eine Transaktion; fällt der Nachweis aus, bleibt auch die Wirkung aus** (`G-095`).
 
+61. **Was der Eingang nicht noch einmal bringt, holt der Prozess sich selbst aus der Datenbank** (`G-097`). Ein zurückgegebener Claim (`G-082`) ist erst dann eine Wiederaufnahme, wenn eine Runde ihn auch wieder aufnimmt: Der Telegram-Offset war vorgerückt, `poll_once()` sah nur neue Updates, und `messages_with_status()` rief niemand — die Nachricht stand für immer auf `RECEIVED`, mit einem Hinweis an den CEO, der das Gegenteil versprach. Dieselbe Klasse wie `G-053`: Eine Zusage über den Fehlerpfad, die kein Code einlöst. Jeder Zustand, in den ein Fehlerpfad eine Nachricht versetzt, braucht einen Rundenbeginn, der ihn abfragt, und einen Test, der nach dem Fehlerpfad eine zweite Runde fährt. Und die Wiederaufnahme hat ihren eigenen Takt: Ein Budgetwarter kommt am Folgetag zurück, nicht jede Runde, sonst wiederholt sich der Hinweis so oft wie die Abfrage.
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.

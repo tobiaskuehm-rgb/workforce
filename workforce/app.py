@@ -55,6 +55,7 @@ class App:
 
     # -- polling ----------------------------------------------------------------
     def poll_once(self) -> int:
+        self.resume()
         offset = int(self.store.setting("telegram_offset", "0"))
         updates = self.telegram.get_updates(offset, self.config.poll_timeout_seconds)
         for update in updates:
@@ -62,6 +63,20 @@ class App:
             self.store.set_setting("telegram_offset", str(int(update["update_id"]) + 1))
         self.flush_outbound()
         return len(updates)
+
+    def resume(self) -> int:
+        """Pick up work that only the database knows about (G-097): a claim given back under an
+        exhausted budget once the day has changed, or a lease that expired in a crashed run.
+        The Telegram offset has moved past these updates; nothing else brings them back."""
+        if self.store.channel() != "ACTIVE":
+            return 0
+        rows = self.store.resumable_inbound(lease_seconds=self.config.lease_seconds,
+                                            day_of=lambda ts: today(lambda: ts))
+        for row in rows:
+            self.store.audit(ACTOR, f"TG-{row['update_id']}-RESUME", "RESUME", row["message_id"],
+                             {"from": row["status"], "attempts": row["attempts"]})
+            self.process(row["message_id"], int(row["update_id"]))
+        return len(rows)
 
     def run_forever(self) -> None:
         self.log(f"workforce: Kanal {self.store.channel()}, Standardidentitaet {self.config.default_identity}")

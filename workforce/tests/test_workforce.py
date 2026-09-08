@@ -189,6 +189,45 @@ class BudgetTest(Harness):
         self.assertEqual(("RECEIVED", 0), (inbound["status"], inbound["attempts"]))  # claim given back
         self.assertTrue(any("Tagesbudget" in t for _, t in self.telegram.sent))
 
+    def test_a_released_claim_is_resumed_on_the_next_day_exactly_once(self):
+        # G-097: the Telegram offset has moved past the update; only the database knows.
+        self.make(max_calls_per_day=1); self.activate()
+        self.telegram.queue.extend([update(1, "eins"), update(2, "zwei")])
+        self.app.poll_once()
+        second = derived_id("IN", "tg", CHAT, 2)
+        self.assertEqual(("RECEIVED", 0), (self.store.message(second)["status"], self.store.message(second)["attempts"]))
+        self.assertEqual(1, len(self.provider.calls))
+        self.app.poll_once()                                   # same day: waits, no second notice
+        self.assertEqual(1, len(self.provider.calls))
+        self.assertEqual(1, sum("Tagesbudget" in t for _, t in self.telegram.sent))
+        self.now += 86_400
+        self.app.poll_once(); self.app.poll_once()             # next day: once, and once only
+        self.assertEqual(2, len(self.provider.calls))
+        self.assertIn("body: zwei", self.provider.calls[1])
+        self.assertEqual("DONE", self.store.message(second)["status"])
+        self.assertEqual(1, len(self.store.audit_rows("TG-2-RESUME")))
+
+    def test_an_expired_lease_is_resumed_without_a_new_update(self):
+        self.make(); self.activate()
+        mid = derived_id("IN", "tg", CHAT, 7)
+        self.store.record_inbound(message_id=mid, update_id=7, chat_id=CHAT, sender="CEO", recipient="A", text="t")
+        self.store.claim(mid, lease_seconds=300, max_attempts=3)  # a run that died after the claim
+        self.app.poll_once()
+        self.assertEqual([], self.provider.calls)              # live lease: left alone
+        self.now += 301
+        self.app.poll_once()
+        self.assertEqual(1, len(self.provider.calls))
+        self.assertEqual(("DONE", 2), (self.store.message(mid)["status"], self.store.message(mid)["attempts"]))
+
+    def test_resume_does_nothing_while_the_channel_is_off(self):
+        self.make(max_calls_per_day=1); self.activate()
+        self.telegram.queue.extend([update(1, "eins"), update(2, "zwei")])
+        self.app.poll_once()
+        self.store.set_channel("DISABLED", actor="test", request_id="TEST-OFF")
+        self.now += 86_400
+        self.app.poll_once()
+        self.assertEqual(1, len(self.provider.calls))
+
     def test_an_unpaid_provider_counts_calls_but_no_money(self):
         self.make(FakeProvider(paid=False), max_usd_per_day=0); self.activate()
         self.telegram.queue.append(update(1, "hallo"))

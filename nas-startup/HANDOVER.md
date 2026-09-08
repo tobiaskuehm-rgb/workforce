@@ -1,6 +1,6 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-03, abends — von Claude Code.
+**Zuletzt aktualisiert:** 2026-09-08, morgens — von Claude Code (Karl).
 
 **Offenes Entscheidungsgate: Neubau oder Weiterführung.** Der CEO hat dem
 Neubau am 2026-09-03 im Chat zugestimmt; Gerd hat am selben Abend festgehalten,
@@ -104,6 +104,16 @@ Tests. Vier reproduzierte Befunde `G-092` bis `G-095` stehen in `REVIEW_GERD.md`
 57–60 sind hier im Repo ergänzt. Lokaler Nachweis: 30/30 Tests und `git diff --check` PASS.
 Keine Skill-, Marlene-, NAS- oder Produktivänderung. Ollama auf dem Mac mini ist ausdrücklich
 noch **nicht** angebunden: Dafür fehlen gemessene Zieladresse und freigegebener Netzweg.
+
+**Gesamtreview und Wiederaufnahme, 2026-09-08 (Karl, Claude Code):** Der CEO hat im Chat ein
+Review über alle Identitäten angeordnet (`CEO-CHAT-2026-09-08/PENDING-DEC`); sechs Berichte,
+Ergebnis in `workforce/reviews/2026-09-08_gesamtreview_karl.md`, Prozess ITERATE, Fortschritt
+PASS. Gerds Befunde daraus `G-096` bis `G-099` stehen in `REVIEW_GERD.md`. `G-096` (Deploy aus
+`HEAD` ohne die Korrekturen) ist durch `4392ab7` behoben, `G-097` (Budgetwarter ging still
+verloren) durch `App.resume()` mit Regel 61 und drei Tests; `G-098` und `G-099` sind offen. Die
+vier ungecommitteten Skillbündel sind in fünf Commits gesichert. **Kein Deploy, nichts auf
+der NAS.** Nächster Schritt: Gerds Nachcheck des Diffs seit `4392ab7`, dann `G-098`/`G-099`,
+dann die CEO-Freigabe für den Deploy (Vorlage P-1 im Review).
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
