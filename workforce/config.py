@@ -7,6 +7,8 @@ policies, budgets, paths. Secrets are *not* in it - they live as files in
 
 from __future__ import annotations
 
+import dataclasses
+import hashlib
 import json
 import os
 import pathlib
@@ -62,6 +64,7 @@ class Config:
     telegram_base_url: str
     anthropic_workspace_id: str = ""
     schedule: Tuple[ScheduleItem, ...] = ()
+    digest: str = ""  # sha256 of the file as loaded (G-107); "" when parsed from a dict
 
     def route_allowed(self, sender: str, recipient: str) -> bool:
         return (sender, recipient) in self.routes
@@ -244,16 +247,20 @@ def _exact_base_url(value: str, *, scheme: str, hosts: Tuple[str, ...]) -> bool:
 
 
 def load(path: str) -> Config:
+    """The running configuration is not versioned (it carries the chat id), so the process
+    names it by digest (G-107): the same digest the deploy printed, in the audit at start."""
     try:
-        with open(path, encoding="utf-8") as handle:
-            values = json.load(handle)
+        with open(path, "rb") as handle:
+            raw = handle.read()
+        values = json.loads(raw.decode("utf-8"))
     except FileNotFoundError as exc:
         raise ConfigError(f"CONFIG_FILE_MISSING:{path}") from exc
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise ConfigError("CONFIG_NOT_JSON") from exc
     if not isinstance(values, dict):
         raise ConfigError("CONFIG_NOT_OBJECT")
-    return parse(values, base_dir=os.path.dirname(os.path.abspath(path)))
+    cfg = parse(values, base_dir=os.path.dirname(os.path.abspath(path)))
+    return dataclasses.replace(cfg, digest=hashlib.sha256(raw).hexdigest())
 
 
 def read_secret(secrets_dir: str, name: str) -> str:

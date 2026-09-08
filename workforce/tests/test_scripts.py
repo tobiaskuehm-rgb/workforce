@@ -75,6 +75,9 @@ class DeployTest(ScriptHarness):
         run = self.deploy(clone)
         self.assertEqual(0, run.returncode, run.stderr)
         self.assertIn("RESULT: deployed", run.stdout)
+        import hashlib
+        digest = hashlib.sha256((clone / "workforce/config.nas.json").read_bytes()).hexdigest()[:12]
+        self.assertIn(f"config {digest}", run.stdout)                  # G-107: the config travels under its digest
         calls = self.calls()
         streamed = {a[-1].split("/")[-1].rstrip("'"): s for a, s in calls if "cat > " in a[-1]}
         self.assertEqual(b"tg-token\n", streamed["telegram_bot_token"])

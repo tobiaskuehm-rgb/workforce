@@ -52,4 +52,6 @@ ssh -o BatchMode=yes "$host" "cd '$root' \
   && $docker compose $compose build -q --build-arg WORKFORCE_COMMIT=$(git rev-parse HEAD) \
   && $docker compose $compose up -d --force-recreate && $docker compose $compose ps" < /dev/null
 rm -f "$archiv"
-echo "RESULT: deployed $(git rev-parse --short HEAD)"
+# The config is not versioned (G-107); its digest is the name it travels under - the same
+# digest the container writes into its STARTUP audit row.
+echo "RESULT: deployed $(git rev-parse --short HEAD) config $(shasum -a 256 workforce/config.nas.json | cut -c1-12)"

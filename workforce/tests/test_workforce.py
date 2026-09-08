@@ -213,10 +213,28 @@ class BudgetTest(Harness):
         self.app.startup()
         row = self.store.last_audit("STARTUP")
         self.assertEqual("abc123def456", row["request_id"].split("-")[1])
-        self.assertEqual({"commit": "abc123def4567890", "channel": "DISABLED", "default_identity": "A"},
+        self.assertEqual({"commit": "abc123def4567890", "config_sha256": "", "channel": "DISABLED", "default_identity": "A"},
                          json.loads(row["payload"]))
         self.assertIn("Stand: abc123def456 seit", self.app.status_text())
         self.assertTrue(self.store.verify_audit()[0])
+
+    def test_a_loaded_config_carries_its_digest_into_the_start_row(self):
+        # G-107: the running configuration is not versioned; the digest names it.
+        import hashlib
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "config.json"
+            values = json.loads(json.dumps(BASE)); values["db_path"] = os.path.join(tmp, "w.db")
+            path.write_text(json.dumps(values), encoding="utf-8")
+            cfg = config.load(str(path))
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), cfg.digest)
+            self.assertEqual("", config.parse(values).digest)
+            store = Store(cfg.db_path, clock=lambda: self.now)
+            app = App(cfg, store, FakeTelegram(), {"A": FakeProvider(), "B": FakeProvider()},
+                      clock=lambda: self.now, log=lambda s: None, commit="c0ffee")
+            app.startup()
+            self.assertEqual(cfg.digest, json.loads(store.last_audit("STARTUP")["payload"])["config_sha256"])
+            self.assertIn(f"Konfiguration {cfg.digest[:12]}", app.status_text())
+            store.close()
 
     def test_status_without_a_start_says_so(self):
         self.make()

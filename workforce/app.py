@@ -119,10 +119,10 @@ class App:
         """A start is an effect and leaves a row (G-105): from the database alone it must be
         possible to say which code has been answering since when."""
         self.store.audit(ACTOR, f"STARTUP-{self.commit[:12]}-{int(self.clock())}", "STARTUP", "process",
-                         {"commit": self.commit, "channel": self.store.channel(),
+                         {"commit": self.commit, "config_sha256": self.config.digest, "channel": self.store.channel(),
                           "default_identity": self.config.default_identity})
-        self.log(f"workforce: Stand {self.commit[:12]}, Kanal {self.store.channel()}, "
-                 f"Standardidentitaet {self.config.default_identity}")
+        self.log(f"workforce: Stand {self.commit[:12]}, Konfiguration {self.config.digest[:12] or 'ohne Datei'}, "
+                 f"Kanal {self.store.channel()}, Standardidentitaet {self.config.default_identity}")
 
     def run_forever(self) -> None:
         self.startup()
@@ -186,7 +186,11 @@ class App:
         b = self.store.budget(today(self.clock))
         ok, bad = self.store.verify_audit()
         start = self.store.last_audit("STARTUP")
-        stand = "unbekannt" if start is None else f"{json.loads(start['payload'])['commit'][:12]} seit {today(lambda: start['ts'])}"
+        if start is None:
+            stand = "unbekannt"
+        else:
+            p = json.loads(start["payload"])
+            stand = f"{p['commit'][:12]} seit {today(lambda: start['ts'])}, Konfiguration {p.get('config_sha256', '')[:12] or 'unbekannt'}"
         return (f"Stand: {stand}\nKanal: {self.store.channel()}\nHeute: {b['calls']} Aufrufe, {b['usd']:.4f} USD von "
                 f"{self.config.max_usd_per_day:.2f}\nOffen: {len(self.store.pending_outbound())} Ausgaenge\n"
                 f"Audit: {'intakt' if ok else 'BESCHAEDIGT ab ' + str(bad)}")
