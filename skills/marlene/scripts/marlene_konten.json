@@ -6,7 +6,15 @@
   "zweck": "Wasserabrechnungen Berggasse 1 fuer die Betriebskostenabrechnung",
   "schluesselbund_dienst": "marlene-swe-erfurt",
   "schluesselbund": "login",
-  "aktionen": ["anmelden", "postbox_lesen", "dokument_laden", "abschlag_ansehen", "zaehlerstand_ansehen", "abmelden"],
+  "aktionen": [
+   "anmelden",
+   "postbox_lesen",
+   "dokument_laden",
+   "abschlag_ansehen",
+   "zaehlerstand_ansehen",
+   "zaehlerstand_melden",
+   "abmelden"
+  ],
   "zustellweg": "Postbox",
   "zweiter_faktor": "unbekannt, vor dem ersten Lauf pruefen"
  }
