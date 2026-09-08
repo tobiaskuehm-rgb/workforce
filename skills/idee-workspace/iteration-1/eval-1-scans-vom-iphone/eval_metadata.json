@@ -1,0 +1,19 @@
+{
+  "eval_id": 1,
+  "eval_name": "scans-vom-iphone",
+  "prompt": "Tobias schreibt: '/idee: Alle Scans mache ich künftig mit dem iPhone und die landen direkt in einem Ordner Eingang in iCloud, Marlene holt sie sich von da. Den Scanner am Mac schaffe ich ab.' Bekannte Lage: Zwei Scanner liefern heute in zwei Ordner, einer davon auf der NAS, auf den Marlene nur lesend zugreift (Entscheidung 07.09.2026). Marlene liest lokal auf dem Mac und braucht jede Datei vollständig. Das Ablagekonzept vom 07.09.2026 sieht iCloud als Eingang bereits vor, die Entscheidung dazu ist offen. Heute ist der 08.09.2026. Führe den Ideen-Vergleich durch.",
+  "assertions": [
+    "Die Frage hinter der Idee steht in einem Satz, getrennt von der Idee selbst.",
+    "Die Idee von Tobias wird wörtlich oder sinngetreu wiedergegeben und vor der Bewertung nicht verändert oder verbessert.",
+    "Es gibt genau einen Gegenvorschlag zur selben Frage, nicht mehrere und keinen Kompromiss mit der Idee.",
+    "Der Gegenvorschlag ist nicht länger als die Idee plus dreißig Prozent (Wörter zählen).",
+    "Die zehn Vergleichspunkte stehen im Text, bevor der Gegenvorschlag ausformuliert ist.",
+    "Für alle zehn Punkte und beide Vorschläge gibt es ein Urteil (Note, ja/nein oder Wahl) mit einem Grund; keine Zelle ist leer.",
+    "Es steht ausdrücklich da, wer bewertet hat: eine fremde Instanz ohne Kenntnis der Herkunft, oder Selbstbewertung als solche bezeichnet.",
+    "Der Bezug zum offenen Ablagekonzept vom 07.09.2026 und zur lesenden NAS-Regel vom 07.09.2026 wird genannt.",
+    "Das Fazit nennt, was aus dem unterlegenen Vorschlag in den anderen übernommen werden sollte.",
+    "Es wird keine Entscheidung getroffen; der Text sagt, dass Tobias entscheidet.",
+    "Mindestens eine Angabe ist als gemessen oder als geschätzt gekennzeichnet; keine Kosten- oder Zeitzahl steht ohne Kennzeichnung.",
+    "Die eine Sache, die am ehesten noch falsch ist, wird genannt."
+  ]
+}

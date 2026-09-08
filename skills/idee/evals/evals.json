@@ -1,0 +1,65 @@
+{
+  "skill_name": "idee",
+  "kriterien_stand": "Runde 1, 2026-09-08, Marv. Drei Fassungen (gericht, sparring, synthese) gegen drei Faelle, plus ohne Skill.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "scans-vom-iphone",
+      "prompt": "Tobias schreibt: '/idee: Alle Scans mache ich künftig mit dem iPhone und die landen direkt in einem Ordner Eingang in iCloud, Marlene holt sie sich von da. Den Scanner am Mac schaffe ich ab.' Bekannte Lage: Zwei Scanner liefern heute in zwei Ordner, einer davon auf der NAS, auf den Marlene nur lesend zugreift (Entscheidung 07.09.2026). Marlene liest lokal auf dem Mac und braucht jede Datei vollständig. Das Ablagekonzept vom 07.09.2026 sieht iCloud als Eingang bereits vor, die Entscheidung dazu ist offen. Heute ist der 08.09.2026. Führe den Ideen-Vergleich durch.",
+      "expected_output": "Frage in einem Satz; Idee woertlich; zehn Punkte vor dem Gegenvorschlag; Gegenvorschlag gleich lang (etwa: Scanner behalten, aber beide Ziele auf einen lokalen Eingang legen, iPhone nur unterwegs); Bewertung blind durch fremde Instanz oder als Selbstbewertung gekennzeichnet; alle Zellen mit Grund; Fazit mit Aufloesung, Uebernahmen, offener Frage; Hinweis auf die offene Entscheidung zum Ablagekonzept; keine Entscheidung getroffen.",
+      "assertions": [
+        "Die Frage hinter der Idee steht in einem Satz, getrennt von der Idee selbst.",
+        "Die Idee von Tobias wird wörtlich oder sinngetreu wiedergegeben und vor der Bewertung nicht verändert oder verbessert.",
+        "Es gibt genau einen Gegenvorschlag zur selben Frage, nicht mehrere und keinen Kompromiss mit der Idee.",
+        "Der Gegenvorschlag ist nicht länger als die Idee plus dreißig Prozent (Wörter zählen).",
+        "Die zehn Vergleichspunkte stehen im Text, bevor der Gegenvorschlag ausformuliert ist.",
+        "Für alle zehn Punkte und beide Vorschläge gibt es ein Urteil (Note, ja/nein oder Wahl) mit einem Grund; keine Zelle ist leer.",
+        "Es steht ausdrücklich da, wer bewertet hat: eine fremde Instanz ohne Kenntnis der Herkunft, oder Selbstbewertung als solche bezeichnet.",
+        "Der Bezug zum offenen Ablagekonzept vom 07.09.2026 und zur lesenden NAS-Regel vom 07.09.2026 wird genannt.",
+        "Das Fazit nennt, was aus dem unterlegenen Vorschlag in den anderen übernommen werden sollte.",
+        "Es wird keine Entscheidung getroffen; der Text sagt, dass Tobias entscheidet.",
+        "Mindestens eine Angabe ist als gemessen oder als geschätzt gekennzeichnet; keine Kosten- oder Zeitzahl steht ohne Kennzeichnung.",
+        "Die eine Sache, die am ehesten noch falsch ist, wird genannt."
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "morgenbericht-per-telegram",
+      "prompt": "Tobias schreibt: '/idee: Marlene schickt mir jeden Morgen um 7 Uhr per Telegram einen Bericht, was fällig ist und was sie gestern gemacht hat. Dann muss ich nicht mehr in den Ordner gucken.' Bekannte Lage: Am 04.09.2026 wurde entschieden, dass der Bericht vorerst als Datei in _Berichte liegt und Telegram später kommt. Der Bot deckelt bei 2 USD und 100 Aufrufen am Tag (Entscheidung 08.09.2026). Marlene läuft im Bot auf Sonnet. Ein Zeitplan lässt sich im Skill nicht einrichten, nur außerhalb. Heute ist der 08.09.2026. Führe den Ideen-Vergleich durch.",
+      "expected_output": "Nennt im ersten Absatz den Widerspruch zur Entscheidung vom 04.09.; zehn Punkte vorher; Gegenvorschlag (etwa: Bericht nur bei Faelligkeit oder Aenderung statt taeglich, oder Wochenbericht Montag) gleich lang; Bewertung mit Urheber; Kosten gegen die Tagesdecke geschaetzt und so gekennzeichnet; Fazit mit Uebernahmen; Zeitplan als Landschaftsfrage benannt; keine Entscheidung.",
+      "assertions": [
+        "Der Widerspruch zur Entscheidung vom 04.09.2026 (Bericht als Datei, Telegram später) steht im ersten Absatz oder direkt bei der Idee.",
+        "Die Frage hinter der Idee steht in einem Satz.",
+        "Die zehn Punkte stehen vor dem Gegenvorschlag.",
+        "Es gibt genau einen Gegenvorschlag, nicht länger als die Idee plus dreißig Prozent.",
+        "Die Tagesdecke von 2 USD und 100 Aufrufen wird bei Kosten oder Abhängigkeiten berücksichtigt, und die genannten Zahlen sind als geschätzt oder aus der Aufgabe gekennzeichnet.",
+        "Dass ein Zeitplan nicht im Skill, sondern außerhalb eingerichtet wird, wird als Abhängigkeit genannt.",
+        "Für alle zehn Punkte und beide Vorschläge gibt es ein Urteil mit Grund.",
+        "Der Bewerter ist benannt (fremde Instanz blind oder Selbstbewertung).",
+        "Das Fazit nennt Übernahmen aus dem unterlegenen Vorschlag und trifft keine Entscheidung.",
+        "Es wird nichts eingerichtet, kein Zeitplan angelegt und keine Datei außerhalb der Ausgabe geändert."
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "befundnummern-per-sperrdatei",
+      "prompt": "Tobias schreibt: '/idee: Gerd soll seine Befundnummern nicht mehr aus der Datei ablesen, sondern es gibt eine kleine Sperrdatei NAECHSTE_NUMMER.txt im Repo. Wer eine Nummer braucht, liest sie, erhöht sie, committet sofort. Dann gibt es keine Doppelvergabe zwischen Codex und Claude mehr.' Bekannte Lage: Gerds Skill (Stand 08.09.2026) reserviert eine Nummer, indem die Kopfzeile in REVIEW_GERD.md zuerst geschrieben wird; bei Kollision behält der frühere Commit die Nummer. Codex und Claude Code arbeiten abwechselnd im selben Repo mit Git-Remote auf der NAS. Heute ist der 08.09.2026. Führe den Ideen-Vergleich durch; das ist ein Code- und Verfahrensfall.",
+      "expected_output": "Idee woertlich; Gegenvorschlag (etwa: Nummer aus dem Git-Log ableiten, oder Praefix je Laufzeit G-C-/G-X-, oder die bestehende Kopfzeilenregel behalten und mit einem Test absichern) gleich lang; zehn Punkte vorher; Risiko der Sperrdatei benannt (dieselbe Race zwischen Lesen und Commit, Merge-Konflikt bei paralleler Aenderung); Bewertung mit Urheber; Fazit nennt den Test, der die Entscheidung haelt; keine Entscheidung.",
+      "assertions": [
+        "Die Frage hinter der Idee steht in einem Satz (Doppelvergabe von Befundnummern zwischen zwei Schreibern verhindern).",
+        "Die zehn Punkte stehen vor dem Gegenvorschlag.",
+        "Es gibt genau einen Gegenvorschlag, nicht länger als die Idee plus dreißig Prozent, und er ist kein Kompromiss.",
+        "Beim Risiko wird benannt, dass die Sperrdatei die Race zwischen Lesen und Commit nicht beseitigt und bei parallelen Änderungen einen Merge-Konflikt erzeugt.",
+        "Die bestehende Regel aus Gerds Skill (Kopfzeile zuerst, früherer Commit behält) wird als Randbedingung oder als einer der Vorschläge genannt, nicht ignoriert.",
+        "Für alle zehn Punkte und beide Vorschläge gibt es ein Urteil mit Grund.",
+        "Der Bewerter ist benannt (fremde Instanz blind oder Selbstbewertung).",
+        "Das Fazit nennt einen Test oder eine Prüfung, die die gewählte Regel hält (etwa: zwei Schreiber vergeben gleichzeitig, der Test verlangt genau eine Nummer je Befund).",
+        "Es wird keine Datei im Repo angelegt oder geändert; die Ausgabe bleibt eine Vorlage.",
+        "Es wird keine Entscheidung getroffen; Tobias entscheidet."
+      ],
+      "files": []
+    }
+  ]
+}

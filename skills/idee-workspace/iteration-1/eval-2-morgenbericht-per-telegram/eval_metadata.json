@@ -1,0 +1,17 @@
+{
+  "eval_id": 2,
+  "eval_name": "morgenbericht-per-telegram",
+  "prompt": "Tobias schreibt: '/idee: Marlene schickt mir jeden Morgen um 7 Uhr per Telegram einen Bericht, was fällig ist und was sie gestern gemacht hat. Dann muss ich nicht mehr in den Ordner gucken.' Bekannte Lage: Am 04.09.2026 wurde entschieden, dass der Bericht vorerst als Datei in _Berichte liegt und Telegram später kommt. Der Bot deckelt bei 2 USD und 100 Aufrufen am Tag (Entscheidung 08.09.2026). Marlene läuft im Bot auf Sonnet. Ein Zeitplan lässt sich im Skill nicht einrichten, nur außerhalb. Heute ist der 08.09.2026. Führe den Ideen-Vergleich durch.",
+  "assertions": [
+    "Der Widerspruch zur Entscheidung vom 04.09.2026 (Bericht als Datei, Telegram später) steht im ersten Absatz oder direkt bei der Idee.",
+    "Die Frage hinter der Idee steht in einem Satz.",
+    "Die zehn Punkte stehen vor dem Gegenvorschlag.",
+    "Es gibt genau einen Gegenvorschlag, nicht länger als die Idee plus dreißig Prozent.",
+    "Die Tagesdecke von 2 USD und 100 Aufrufen wird bei Kosten oder Abhängigkeiten berücksichtigt, und die genannten Zahlen sind als geschätzt oder aus der Aufgabe gekennzeichnet.",
+    "Dass ein Zeitplan nicht im Skill, sondern außerhalb eingerichtet wird, wird als Abhängigkeit genannt.",
+    "Für alle zehn Punkte und beide Vorschläge gibt es ein Urteil mit Grund.",
+    "Der Bewerter ist benannt (fremde Instanz blind oder Selbstbewertung).",
+    "Das Fazit nennt Übernahmen aus dem unterlegenen Vorschlag und trifft keine Entscheidung.",
+    "Es wird nichts eingerichtet, kein Zeitplan angelegt und keine Datei außerhalb der Ausgabe geändert."
+  ]
+}
