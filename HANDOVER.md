@@ -110,10 +110,14 @@ Review über alle Identitäten angeordnet (`CEO-CHAT-2026-09-08/PENDING-DEC`); s
 Ergebnis in `workforce/reviews/2026-09-08_gesamtreview_karl.md`, Prozess ITERATE, Fortschritt
 PASS. Gerds Befunde daraus `G-096` bis `G-099` stehen in `REVIEW_GERD.md`. `G-096` (Deploy aus
 `HEAD` ohne die Korrekturen) ist durch `4392ab7` behoben, `G-097` (Budgetwarter ging still
-verloren) durch `App.resume()` mit Regel 61 und drei Tests; `G-098` und `G-099` sind offen. Die
+verloren) durch `App.resume()` mit Regel 61 und drei Tests; `G-098` (`158e061`) und `G-099`
+(`46022eb`) sind behoben. Gerds Nachcheck hat `G-096`/`G-097` freigegeben und `G-100`
+(Budgetwarter ohne Ende und ohne zweite Meldung) und `G-101` (Request-Ids der Wiederaufnahme
+doppelt) gestellt; beide behoben, Regeln 62–65. Nachcheck für `G-098` bis `G-101` offen. Die
 vier ungecommitteten Skillbündel sind in fünf Commits gesichert. **Kein Deploy, nichts auf
-der NAS.** Nächster Schritt: Gerds Nachcheck des Diffs seit `4392ab7`, dann `G-098`/`G-099`,
-dann die CEO-Freigabe für den Deploy (Vorlage P-1 im Review).
+der NAS.** Nächster Schritt: Gerds Nachcheck des Diffs seit `9767ccb`, dann die CEO-Freigabe für den
+Deploy (Vorlage P-1 im Review); der Deploy braucht jetzt `-f compose.yaml -f compose.claude.yaml`,
+`deploy_nas.sh` tut das selbst.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein

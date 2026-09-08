@@ -91,3 +91,7 @@ Gerds Korrekturen `G-092` bis `G-095` und `REVIEW_GERD.md` committen, je Befund 
 ## Nachtrag 2026-09-08, 07:30
 
 Task 1 wurde um 05:50 durch `4392ab7` erledigt, in einem Commit statt je Befund; `G-096` ist damit geschlossen. Task 2 ist in fünf Commits gesichert (`d86c3a3` bis `c22ca8d`). Task 3, `G-097`, ist behoben und getestet, Gerds Nachcheck steht aus. Der STOP für den Deploy bleibt, bis der Nachcheck vorliegt und der CEO P-1 entscheidet.
+
+## Nachtrag 2026-09-08, 08:30
+
+Gerds Nachcheck hat `G-096` und `G-097` freigegeben und `G-100`, `G-101` gestellt. Task 4 ist erledigt (`G-098` in `158e061`, `G-099` in `46022eb`), `G-100` und `G-101` sind behoben. Offen aus der Roadmap: Task 5 (Invarianten 4, 7, 13, 15 kennzeichnen), Task 6 (Deploy, braucht P-1 und Gerds Nachcheck), Task 7 bis 12 wie beschrieben. Der STOP für den Deploy bleibt.
