@@ -30,18 +30,23 @@ gibt es deshalb nur als Agent oder im Bot, nie als Skill.
 
 | Identität | Ordner | Agent | Bot | Stand |
 |---|---|---|---|---|
-| Karl `SAO-001`, Standard | `karl/` | Opus | Opus | v2 nach Marv, 2026-09-07: Feld erkundet (FwDV 100, Chief of Staff, ISO 19011, Scrum, GGO), drei Fassungen, fünf Prüfrunden, Endfassung 43/43 gegen 26/43; Arbeitsbereich `karl-workspace/` |
+| Karl `SAO-001`, Standard | `karl/` | Sonnet | Opus | v2 nach Marv, 2026-09-07: Feld erkundet (FwDV 100, Chief of Staff, ISO 19011, Scrum, GGO), drei Fassungen, fünf Prüfrunden, Endfassung 43/43 gegen 26/43; Arbeitsbereich `karl-workspace/` |
 | Marlene `POA-001` | `marlene/` | Sonnet | Sonnet | eingesammelt aus `~/.claude/skills`, Verweis zurückgelegt |
-| Thorsten `RAS-001` | `thorsten/` | Opus | Opus | aus Opportunity-Filter v0.2 des Quellensatzes und `FILTER.md`, 2026-09-06 |
+| Thorsten `RAS-001` | `thorsten/` | Sonnet | Opus | aus Opportunity-Filter v0.2 des Quellensatzes und `FILTER.md`, 2026-09-06 |
 | Anastasia `PEO-001` | `anastasia/` | Sonnet | Sonnet | aus Company State, Regel 4 und ihrer Organisationsbestandsaufnahme, 2026-09-06 |
 | CFO, Name offen | `cfo/` | Sonnet | Sonnet | neu, 2026-09-06; Name und `DEC`-Eintrag durch den CEO |
 | Marv Skillbauer, Kennung offen | `marv/` | Opus | — | hat sich selbst gebaut, 2026-09-06; Werkzeugrolle, bewusst kein Bot-Skill |
 | Gerd `AI-ENG-001` | `gerd/` | Opus | — | aus seinen Prüfrunden, 2026-09-06; lebt in Claude Code und Codex, bewusst kein Bot-Skill |
 
-Die Modellwahl folgt einer Linie: **Urteilsarbeit teuer, strukturierte Arbeit günstiger.** Karl
-integriert und widerspricht, Thorsten zerlegt Annahmen, Gerd prüft, Marv baut und misst — dort
-ist ein schwächeres Modell eine schlechtere Antwort, nicht nur eine langsamere. Anastasia, CFO
-und Marlene arbeiten gegen eine Form, die im Skill steht; dort trägt Sonnet.
+Die Modellwahl folgt zwei Fragen, und sie ziehen in verschiedene Richtungen: **Wie oft wird
+er gerufen?** und **wie teuer ist eine schlechtere Antwort?** Gerd prüft und Marv baut — selten,
+tief, und ein schwächeres Modell wäre dort nicht langsamer, sondern schlechter; sie bleiben auf
+Opus. Alle übrigen laufen auf Sonnet, Karl als meistgerufene Identität ausdrücklich auch: Seine
+Form steht im Skill und trägt sie.
+
+Als Agent und im Bot darf dieselbe Identität verschieden laufen. Der Agent zahlt aus dem Abo,
+das sich an vielen Läufen erschöpft; der Bot rechnet je Aufruf ab und deckelt bei
+`max_usd_per_day`. Karl steht deshalb hier auf Sonnet und dort auf Opus.
 
 Der Bot deckelt bei `max_usd_per_day`; die Reservierung vor dem Aufruf wird danach gegen den
 tatsächlichen Verbrauch zurückgebucht (`reconcile`), Opus ist deshalb keine Handvoll Aufrufe.

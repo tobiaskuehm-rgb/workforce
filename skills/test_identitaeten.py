@@ -227,6 +227,31 @@ class BotTest(unittest.TestCase):
                          botmodelle(self.lade("config.nas.json")))
 
 
+def fehlt_im_kommando(text, agenten):
+    # Der Ueberblick nennt jeden Mitarbeiter fett; ein achter Agent, den niemand
+    # eintraegt, fehlt sonst still in genau der Liste, die den Ueberblick geben soll.
+    return sorted(n for n in agenten if ("**%s**" % n.capitalize()) not in text
+                  and ("**%s**" % n.upper()) not in text)
+
+
+class KommandoTest(unittest.TestCase):
+    def kommando(self):
+        return (WURZEL / ".claude" / "commands" / "mitarbeiter.md").read_text()
+
+    def test_jeder_agent_steht_im_ueberblick(self):
+        self.assertEqual([], fehlt_im_kommando(self.kommando(), agentendateien()))
+
+    def test_ein_fehlender_mitarbeiter_faellt_auf(self):
+        self.assertEqual(["neu"], fehlt_im_kommando("| **Karl** |", ["karl", "neu"]))
+
+    def test_das_kommando_liest_die_modelle_statt_sie_zu_nennen(self):
+        # Eine abgeschriebene Modellspalte waere beim naechsten Umstufen falsch.
+        text = self.kommando()
+        self.assertIn("grep", text)
+        for veraltbar in ("| opus |", "| sonnet |", "| haiku |"):
+            self.assertNotIn(veraltbar, text)
+
+
 class RegisterTest(unittest.TestCase):
     def test_jede_identitaet_steht_im_register(self):
         register = (SKILLS / "README.md").read_text()
