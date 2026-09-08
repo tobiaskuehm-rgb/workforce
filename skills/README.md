@@ -34,8 +34,8 @@ gibt es deshalb nur als Agent oder im Bot, nie als Skill.
 | Marlene `POA-001` | `marlene/` | Sonnet | Sonnet | eingesammelt aus `~/.claude/skills`, Verweis zurückgelegt |
 | Thorsten `RAS-001` | `thorsten/` | Sonnet | Opus | aus Opportunity-Filter v0.2 des Quellensatzes und `FILTER.md`, 2026-09-06 |
 | Anastasia `PEO-001` | `anastasia/` | Sonnet | Sonnet | aus Company State, Regel 4 und ihrer Organisationsbestandsaufnahme, 2026-09-06 |
-| CFO, Name offen | `cfo/` | Sonnet | Sonnet | neu, 2026-09-06; Name und `DEC`-Eintrag durch den CEO |
-| Marv Skillbauer, Kennung offen | `marv/` | Opus | — | hat sich selbst gebaut, 2026-09-06; Werkzeugrolle, bewusst kein Bot-Skill |
+| CFO, Name offen | `cfo/` | Sonnet | Sonnet | neu, 2026-09-06; Name und `DEC`-Eintrag durch den CEO; Bedarf erst Oktober 2026 (Chat 2026-09-08) |
+| Marv Skillbauer, Kennung offen, unterstellt Anastasia | `marv/` | Opus | — | hat sich selbst gebaut, 2026-09-06; bewusst kein Bot-Skill; Mitarbeiter seit 2026-09-08 (Chat, `PENDING-DEC`), Auftrag: Skills von Thorsten, Anastasia, CFO überarbeiten und messen |
 | Gerd `AI-ENG-001` | `gerd/` | Opus | — | aus seinen Prüfrunden, 2026-09-06; lebt in Claude Code und Codex, bewusst kein Bot-Skill |
 
 Die Modellwahl folgt zwei Fragen, und sie ziehen in verschiedene Richtungen: **Wie oft wird
