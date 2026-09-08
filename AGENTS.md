@@ -425,6 +425,8 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 69. **Ein Start ist eine Wirkung und hinterlässt eine Auditzeile mit dem Codestand** (`G-105`). Nach dem ersten Deploy des Neubaus ließ sich aus der Datenbank allein nicht sagen, welcher Commit seit wann antwortet; das Manifest kannte den Code, die Zustandsdatei kannte ihn nicht. Der Commit wird beim Bau ins Image geschrieben und beim Start auditiert, nicht beim Deploy notiert: „rekonstruierbar allein aus der Datenbank" (Invariante 6) gilt auch für die Frage, welches Programm die Zeilen geschrieben hat.
 
+70. **Eine Nachricht ohne Absender braucht trotzdem eine Identität, die die Regeln kennt** (`G-109`). Der erste Weg, den der Kern selbst geht — ein geplanter Termin ohne Telegram-`update_id` —, wäre an zwei Stellen abgestürzt, die nur je numerische Ids kannten: `resume()` bei `int(None)`, die Request-Id bei `f"TG-{None}"`. Beide sind jetzt tolerant, weil `process()` seine Request-Id ohnehin schon aus sich selbst ableiten kann (`G-101`), wenn kein `update_id` da ist. Wer einen neuen Ursprung für eine Nachricht baut, prüft jede Stelle, die bisher nur den einen Ursprung kannte, nicht nur die naheliegende.
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.

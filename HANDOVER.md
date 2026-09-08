@@ -132,9 +132,14 @@ in Karls Skill; Phase 3 nächster Meilenstein; `G-105` behoben (Startzeile mit C
 wirkt ab dem nächsten Deploy. **Für Anastasia:** Register um Verweis auf `ORGANIGRAMM.md` oder
 Spalte Vorgesetzter ergänzen; deine Datei war offen, ich habe sie nicht angefasst.
 **Für Marv:** Karl nach der Skilländerung (Takt) gegen seine sechs Prüffälle nachmessen.
-Nächster Schritt: Phase 3 als Meilenstein planen (Zeitplan im Kern, Montags- und
-Donnerstagsnachricht); `G-107` und `G-108` als Donnerstagsvorlagen, weil sie Konfiguration
-und Rechte auf der NAS betreffen.
+**Phase 3 gebaut, 2026-09-08:** `Config.schedule` (`weekday`, `hour` in UTC, `identity`, `prompt`, Route muss vorher
+erlaubt sein), `App.check_schedule()` legt an fälligen Tagen eine Nachricht an, die danach den
+normalen Pfad läuft (Budget, Wiederaufnahme aus `G-097`/`G-100`, Audit) — kein eigener
+Zweitpfad. Montag 06:00 UTC Wochenlage, Donnerstag 06:00 UTC Entscheidungstermin, an Karl
+(`config.nas.json`). 60 Tests, Gegenprobe bestanden (`workforce/evidence/2026-09-08_phase3_schedule.md`).
+Regel 70. **Noch nicht deployt** — der Bot auf der NAS hat den Zeitplan noch nicht.
+Nächster Schritt: Deploy als Donnerstagsvorlage, zusammen mit `G-107` und `G-108`, die
+ebenfalls Konfiguration und Rechte auf der NAS betreffen.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein

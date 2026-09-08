@@ -148,3 +148,7 @@ Nächster Schritt: Der CEO beantwortet die drei Fragen bis zum 2026-09-12; Owner
 ## Nachtrag 2026-09-08: Entscheidung des CEO
 
 „Kannste alles so umsetzen", mit der Freiheit, zwei Termine einzurichten (Montag und Donnerstag, Wochenendbetrieb Freitag bis Sonntag), „immer im Sinne der Wirtschaftlichkeit". Gewählt: Montag Lage ohne Entscheidung, Donnerstag Entscheidungen mit Log-Nummern am selben Tag, Wochenende Betrieb ohne CEO. Zwei kurze Termine statt einem langen, weil eine Vorlage so höchstens vier Tage wartet und der Montag die Kontrolle trägt, die der Kreis verlangt. Umgesetzt: `skills/ORGANIGRAMM.md` mit Wächter `skills/test_organigramm.py`, Takt in Karls Skill, Phase 3 als nächster Meilenstein im Masterplan, Einfrieren im Organigramm. Die drei offenen Fragen sind damit beantwortet: Gate ja (Donnerstag), Phase 3 zuerst, COO-Probezeit an drei Maßen bis 2026-10-02.
+
+## Nachtrag 2026-09-08, weiter im Text
+
+Phase 3 ist gebaut, nicht nur geplant: `Config.schedule`, `App.check_schedule()`, Montag/Donnerstag konfiguriert an Karl. Nachweis `workforce/evidence/2026-09-08_phase3_schedule.md`. Der Deploy dazu ist eine Donnerstagsvorlage, zusammen mit `G-107` und `G-108`.
