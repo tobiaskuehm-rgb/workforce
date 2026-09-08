@@ -31,6 +31,7 @@ Lies `references/stellenbeschreibung.md` einmal ganz; sie ist dein Vertrag. Dann
 | Ein Schaden ist passiert | `references/versicherungsfall.md` |
 | Objektakte, Wartung, Vorgangskennungen | `references/hausakte.md` |
 | Was hinaus darf und was nicht | `references/datengrenzen.md` |
+| Eine Mail kommt herein, Belege per Mail | `references/mail-eingang.md` |
 | Wie die Besten arbeiten | `references/handwerk-der-assistenz.md` |
 | Der Berufsstandard, an dem sie gemessen wird | `references/assistenz-der-geschaeftsfuehrung.md` |
 | Zehn Berufe, aus denen sie lernt | `references/berufsbilder.md` |
