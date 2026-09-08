@@ -101,6 +101,15 @@ class DeployTest(ScriptHarness):
         self.assertNotEqual(0, run.returncode)
         self.assertNotIn("RESULT: deployed", run.stdout)
 
+    def test_an_unreadable_config_aborts_instead_of_meaning_no_claude(self):
+        # G-103: "no" and "could not tell" must not look alike.
+        clone = self.clone("claude")
+        (clone / "workforce/config.nas.json").write_text("{not json")
+        run = self.deploy(clone)
+        self.assertNotEqual(0, run.returncode)
+        self.assertIn("nicht lesbar", run.stderr)
+        self.assertEqual([], self.calls())                     # nothing reached the NAS
+
     def test_the_archive_is_the_committed_tree_without_secrets_or_state(self):
         clone = self.clone("claude")
         (clone / "workforce/leak.txt").write_text("uncommitted")          # working tree only
@@ -125,7 +134,7 @@ class ComposeTest(unittest.TestCase):
         # The deploy script must be the one choosing, from the config it ships.
         deploy = (REPO / "workforce/deploy_nas.sh").read_text()
         self.assertIn("compose.claude.yaml", deploy)
-        self.assertIn('provider")=="claude"', deploy)
+        self.assertIn('== "claude"', deploy)
 
 
 class BackupPullTest(ScriptHarness):
