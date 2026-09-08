@@ -207,6 +207,19 @@ class BudgetTest(Harness):
         self.assertEqual("DONE", self.store.message(second)["status"])
         self.assertEqual(1, len(self.store.audit_rows("TG-2-RESUME")))
 
+    def test_a_message_the_budget_never_covers_is_abandoned_visibly(self):
+        # G-100: one notice per day, and an end after max_attempts days.
+        self.make(FakeProvider(paid=True), max_usd_per_day=1e-7, max_attempts=3); self.activate()
+        self.telegram.queue.append(update(1, "teuer"))
+        mid = derived_id("IN", "tg", CHAT, 1)
+        for day in range(4):
+            self.app.poll_once(); self.now += 86_400
+        self.assertEqual([], self.provider.calls)
+        self.assertEqual(2, sum("Tagesbudget" in t for _, t in self.telegram.sent))
+        self.assertEqual(1, sum("aufgegeben" in t for _, t in self.telegram.sent))
+        self.assertEqual(("ABANDONED", 0), (self.store.message(mid)["status"], self.store.message(mid)["attempts"]))
+        self.assertEqual(3, self.store.audit_count("BUDGET_EXHAUSTED", mid))
+
     def test_an_expired_lease_is_resumed_without_a_new_update(self):
         self.make(); self.activate()
         mid = derived_id("IN", "tg", CHAT, 7)

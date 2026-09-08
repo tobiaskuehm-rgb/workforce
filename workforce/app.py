@@ -179,9 +179,19 @@ class App:
                                       worst_usd=worst if provider.is_paid else 0.0)
         if not reserved:
             # Nothing durable happened: the claim goes back, no attempt is charged (G-082).
+            # But waiting has an end (G-100): a message the budget never covers is abandoned after
+            # max_attempts days, visibly. The notice names the day, so the CEO hears it each day -
+            # notice() deduplicates on its text, and a constant text spoke exactly once.
+            waited = self.store.audit_count("BUDGET_EXHAUSTED", message_id) + 1
             self.store.release_untouched(message_id)
-            self.store.audit(ACTOR, f"{rid}-BUDGET", "BUDGET_EXHAUSTED", message_id, {"day": day})
-            self.notice(row, "Tagesbudget erschoepft. Die Nachricht wartet bis zum naechsten Tag.")
+            self.store.audit(ACTOR, f"{rid}-BUDGET", "BUDGET_EXHAUSTED", message_id, {"day": day, "waited": waited})
+            if waited >= self.config.max_attempts:
+                self.store.set_status(message_id, "ABANDONED")
+                self.store.audit(ACTOR, f"{rid}-ABANDONED", "ABANDONED", message_id,
+                                 {"code": "BUDGET_NEVER_SUFFICIENT", "days": waited})
+                self.notice(row, f"Nachricht {message_id} nach {waited} Tagen ohne Budget aufgegeben.")
+                return
+            self.notice(row, f"Tagesbudget erschoepft ({day}). Die Nachricht wartet bis zum naechsten Tag.")
             return
         self.store.audit(ACTOR, f"{rid}-RESERVED", "RESERVED", message_id,
                          {"worst_usd": round(worst, 6), "model": provider.model.name})
