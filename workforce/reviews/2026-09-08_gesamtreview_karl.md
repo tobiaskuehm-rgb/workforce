@@ -99,3 +99,7 @@ Gerds Nachcheck hat `G-096` und `G-097` freigegeben und `G-100`, `G-101` gestell
 ## Nachtrag 2026-09-08, 09:15
 
 Gerds zweiter Nachcheck: `G-098` bis `G-101` geschlossen, `226f0b9` deploybar, sobald P-1 entschieden ist. Drei niedrige Befunde `G-102` bis `G-104` sind behoben. Task 6 wartet allein auf den CEO.
+
+## Nachtrag 2026-09-08, vormittags: Entscheidungen des CEO
+
+Alle fünf Vorlagen sind entschieden. P-1 ja, ausgeführt (`workforce/evidence/2026-09-08_deploy_ca1bd20.md`). S: Filter ja, Kandidaten laut CEO schon benannt (nicht im Repo, nachzureichen), Antrag nein. B: ja. PE: CFO heißt Wolle, Marlene weiter, Marv Mitarbeiter statt Werkzeugrolle. R: ja. Dazu: Karl wird COO auf Probe. Die Zeitangabe „09:15" im vorigen Nachtrag war eine Schätzung; gemessen war es 08:20.

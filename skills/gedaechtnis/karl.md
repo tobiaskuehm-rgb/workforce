@@ -6,6 +6,11 @@ Was Karl weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Eine sp
 
 | Datum | Entscheidung | Quelle |
 |---|---|---|
+| 2026-09-08 | **Klasse Produktives:** Deploy `ca1bd20` über `deploy_nas.sh` freigegeben; danach `verify` und Gerds Review nach dem Lauf. Ausgeführt, Nachweis `workforce/evidence/2026-09-08_deploy_ca1bd20.md`. | Chat 2026-09-08 (`CEO-CHAT-2026-09-08/PENDING-DEC`) |
+| 2026-09-08 | **Klasse Strategie:** `FILTER.md` ist das Instrument für Baustein C. Kandidaten: laut CEO „hab ich schon erklärt" — im Repo liegt keine Liste; Lesart: er hat sie mündlich oder in ChatGPT genannt, nachzureichen. **Nebentätigkeitsantrag: nein**, wird jetzt nicht gestellt. | Chat 2026-09-08 |
+| 2026-09-08 | **Klasse Budget:** Tagesdecke 2,0 USD und 100 Aufrufe bestätigt; eine Messung Thorstens freigegeben. | Chat 2026-09-08 |
+| 2026-09-08 | **Klasse Personal:** Der CFO heißt **Wolle**. Marlenes Probezeit wird fortgeführt. Marv ist **Mitarbeiter**, nicht Werkzeugrolle (unter Anastasia, von ihr eingetragen `911be4b`). **Karl wird COO auf Probe.** | Chat 2026-09-08 |
+| 2026-09-08 | **Klasse Rechte:** Marlene bleibt bis Phase 4 auf dem Kopienweg. | Chat 2026-09-08 |
 | 2026-09-07 | Der nächtliche Tagesprozess aus Codex mit Berichten bis 01:45 ist Archiv. Ein fehlender Claude-Bericht dort ist kein Auftrag mehr; integriert wird auf Anfrage und freitags. | bis heute in `karl/SKILL.md`, Abschnitt „Was du weißt" |
 
 ## Tatsachen zur Lage
@@ -22,6 +27,7 @@ Was Karl weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Eine sp
 | Seit | Vorgang | Stand |
 |---|---|---|
 | 2026-09-07 | Import der ChatGPT-Verläufe mit Karl in dieses Gedächtnis | wartet auf Export durch den CEO |
+| 2026-09-08 | 3-Loop über das gesamte Projekt und Organigramm-Vorschlag, vom CEO verlangt | geschrieben nach `workforce/reviews/2026-09-08_3loop_projekt_karl.md` |
 | 2026-09-08 | Gesamtreview über alle sechs Identitäten, angeordnet vom CEO im Chat 00:01 (`CEO-CHAT-2026-09-08/PENDING-DEC`), ausgeführt 04:00 | geschrieben nach `workforce/reviews/2026-09-08_gesamtreview_karl.md`; Prozess ITERATE, Fortschritt PASS; STOP Deploy bis `G-092`–`G-095` committet (Gerd `G-096`); fünf Vorlagen offen (S, P, B, PE, R); Kontrolle beim nächsten Kontakt: `git status` leer, `G-097` bestätigt, C-Kandidaten und Krypto-Bestand da, DEC-Nummern |
 
 ## Herkunft
