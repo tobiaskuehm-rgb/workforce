@@ -34,6 +34,20 @@ Jede Zeile: was gilt, welcher Befund sie erzwungen hat, welcher Test sie beweist
 | 15 | **Endgültig gescheiterte Zustellung erreicht den CEO sichtbar.** Sind die Telegram-Versuche für eine Nachricht erschöpft, entsteht eine aktive Meldung an den CEO — über einen anderen Weg oder beim nächsten Kontakt — samt Auditzeile; ein Logeintrag allein ist keine Meldung. | Gerd, Backlog aus `e022862`, Punkt 2; `G-083` | Drei gescheiterte Versuche: genau eine CEO-Meldung, auditiert; die Nachricht steht als aufgegeben mit Grund, nicht als erledigt. |
 | 16 | **Externe Zustellung ist abgleichbar.** Jeder Versand an Telegram speichert die externe Nachrichten-Id am Bus-Datensatz; eine Abgleichabfrage beweist, dass jede Antwort genau eine Zustellung oder einen verbuchten Fehlschlag hat — nicht nur, dass lokal nichts doppelt gesendet wurde. | Gerd 2026-09-03; `G-053`, `G-056` | Nach einem Lauf: je `REPLIED` genau ein Zustellsatz mit externer Id. Zustellsatz gelöscht: Abgleich meldet die Lücke. Zustellsatz doppelt: Abgleich meldet die Dublette. |
 
+## Stand der Belege im Neubau (2026-09-08, Gerds Systemscreening)
+
+Belegt mit Test: 1, 2, 3, 5 (teilweise), 6, 8, 9, 10, 12, 14, 16. **Offen, je mit dem
+Meilenstein, der sie bringt:**
+
+| # | Warum offen | Bis wann |
+|---|---|---|
+| 4 | Es gibt keine Agent-zu-Agent-Route, also keine Schleife, die enden müsste; ein Hop-Zähler ohne Route wäre ein Test ohne Gegenstand. | mit der ersten Route zwischen zwei Identitäten, dann Pflicht vor dem Lauf |
+| 7 | Ablehnungen sind Auditzeilen, kein eigener Datensatztyp; „Audit kaputt bleibt Ablehnung" ist nicht geprüft. | Meilenstein nach Phase 3 |
+| 13 | Sicherung und Kette sind getestet; Wiederherstellung in einen leeren Container und Wiederanlauf nach Absturz nicht. | vor Phase 4, weil Paperless den Zustand vergrößert |
+| 15 | Die CEO-Meldung bei endgültig gescheiterter Zustellung läuft über denselben Kanal, der gerade gescheitert ist. | Meilenstein nach Phase 3, braucht einen zweiten Weg (E-Mail oder Log-Wächter) |
+
+Eine Zeile ohne Beleg gilt weiter als Maßstab; sie ist nicht gestrichen, sondern datiert offen.
+
 ## Fünf Bauform-Zusagen
 
 Keine Eigenschaften des Produkts, sondern Bedingungen dafür, dass die sechzehn oben prüfbar
