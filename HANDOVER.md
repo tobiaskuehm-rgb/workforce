@@ -113,11 +113,13 @@ PASS. Gerds Befunde daraus `G-096` bis `G-099` stehen in `REVIEW_GERD.md`. `G-09
 verloren) durch `App.resume()` mit Regel 61 und drei Tests; `G-098` (`158e061`) und `G-099`
 (`46022eb`) sind behoben. Gerds Nachcheck hat `G-096`/`G-097` freigegeben und `G-100`
 (Budgetwarter ohne Ende und ohne zweite Meldung) und `G-101` (Request-Ids der Wiederaufnahme
-doppelt) gestellt; beide behoben, Regeln 62–65. Nachcheck für `G-098` bis `G-101` offen. Die
+doppelt) gestellt; beide behoben, Regeln 62–65. Zweiter Nachcheck: `G-098` bis `G-101`
+geschlossen, `G-102` bis `G-104` (niedrig) gestellt und behoben, Regeln 66–68, Nachcheck dafür
+offen. **Gerds Freigabe: `226f0b9` ist deploybar, sobald der CEO P-1 entscheidet**, nur über
+`deploy_nas.sh` aus sauberem Baum. Die
 vier ungecommitteten Skillbündel sind in fünf Commits gesichert. **Kein Deploy, nichts auf
-der NAS.** Nächster Schritt: Gerds Nachcheck des Diffs seit `9767ccb`, dann die CEO-Freigabe für den
-Deploy (Vorlage P-1 im Review); der Deploy braucht jetzt `-f compose.yaml -f compose.claude.yaml`,
-`deploy_nas.sh` tut das selbst.
+der NAS.** Nächster Schritt: CEO-Freigabe P-1 für den Deploy; danach `deploy_nas.sh`, dann `verify`
+im Container, dann Gerds Review nach dem Lauf.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein

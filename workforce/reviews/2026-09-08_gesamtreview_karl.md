@@ -95,3 +95,7 @@ Task 1 wurde um 05:50 durch `4392ab7` erledigt, in einem Commit statt je Befund;
 ## Nachtrag 2026-09-08, 08:30
 
 Gerds Nachcheck hat `G-096` und `G-097` freigegeben und `G-100`, `G-101` gestellt. Task 4 ist erledigt (`G-098` in `158e061`, `G-099` in `46022eb`), `G-100` und `G-101` sind behoben. Offen aus der Roadmap: Task 5 (Invarianten 4, 7, 13, 15 kennzeichnen), Task 6 (Deploy, braucht P-1 und Gerds Nachcheck), Task 7 bis 12 wie beschrieben. Der STOP für den Deploy bleibt.
+
+## Nachtrag 2026-09-08, 09:15
+
+Gerds zweiter Nachcheck: `G-098` bis `G-101` geschlossen, `226f0b9` deploybar, sobald P-1 entschieden ist. Drei niedrige Befunde `G-102` bis `G-104` sind behoben. Task 6 wartet allein auf den CEO.

@@ -417,6 +417,12 @@ Diese gelten ohne Rückfrage und ohne Ausnahme:
 
 65. **Jeder Durchlauf über dieselbe Nachricht trägt sein eigenes Request-Id-Suffix** (`G-101`). Die Wiederaufnahme aus `G-097` schrieb `TG-2-CLAIM` ein zweites Mal; die Auditspur konnte den ersten Versuch nicht vom zweiten trennen (Invariante 11). Ein Suffix nur auf der Zeile, die den Durchlauf ankündigt, reicht nicht — es gehört auf jede Zeile, die er schreibt.
 
+66. **Ein Tageszähler zählt Tage, nicht Ereignisse** (`G-102`). Die Aufgabe nach `G-100` versprach „nach N Tagen" und zählte Fehlschläge; zwei Fehlschläge an einem Tag, über Absturz und Lease, gaben einen Tag zu früh auf. Wer eine Zeitspanne verspricht, zählt die Zeit, die in der Auditzeile schon steht.
+
+67. **Ein Exitcode, der eine Antwort ist, unterscheidet „Nein" von „konnte nicht antworten"** (`G-103`). `deploy_nas.sh` las jeden Nicht-Null-Exit als „kein Claude", und ein unbehandelter Python-Fehler endet mit genau der 1, die „Nein" bedeutet. Dieselbe Klasse wie `G-014`: Ein Fehlschlag ist erst dann die erwartete Antwort, wenn der Code stimmt. Und die Entscheidung fällt, **bevor** etwas den Rechner verlässt — der erste Testlauf brach ab, nachdem Archiv und Konfiguration schon auf der NAS lagen.
+
+68. **Der erste Betriebsbefehl in einem README ist der, der im Notfall getippt wird** (`G-104`). Nach der Trennung in Basis und Overlay führte die alte Zeile `docker compose up -d --build` in den Ausfall, fail-closed, aber ein Ausfall. Wer eine Aufrufform ändert, sucht jede Abschrift davon (`G-052`), und das README nennt das Skript, nicht den Befehl, den das Skript zusammensetzt.
+
 ## Wie diese Datei wächst
 
 **Jeder bestätigte Prüfbefund hinterlässt hier eine Regel.** Nicht nur eine Korrektur im Code — die Regel dahinter, damit sie beim nächsten Mal **vor** dem Schreiben bekannt ist statt erst im Review. Das ist der ganze Zweck: Der Review findet dann neue Fehler statt derselben noch einmal.
