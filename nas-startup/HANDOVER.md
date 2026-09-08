@@ -141,8 +141,10 @@ Regel 70. **Noch nicht deployt** — der Bot auf der NAS hat den Zeitplan noch n
 `G-107` behoben über den Konfigurations-Hash (`config.load()`, `STARTUP`-Zeile, `status`,
 Deploy-Ausgabe); Invarianten 4, 7, 13, 15 in `INVARIANTEN.md` datiert offen gekennzeichnet.
 Donnerstagsvorlagen in `workforce/reviews/2026-09-10_donnerstag_vorlagen.md`: P-2 Deploy
-Phase 3, R-2 `G-108` Ordnerrechte, S-2 C-Kandidaten. Gerds Nachcheck des Phase-3-Diffs
-läuft. Nächster Schritt: Nachcheck eintragen, dann Donnerstag.
+Phase 3, R-2 `G-108` Ordnerrechte, S-2 C-Kandidaten. Gerds Nachcheck des Phase-3-Diffs: deploybar; `G-110`
+(Uhrensprung zurück) und `G-111` (verpasster Termin stumm) behoben über `schedule_seen_<id>`,
+63 Tests. Nächster Schritt: Donnerstag 2026-09-10, P-2 und R-2 entscheiden; nach dem Deploy
+Gerds Review nach dem Lauf, danach Nachcheck `G-110`/`G-111`.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein

@@ -117,3 +117,27 @@ Freigabe Gerd: `ca1bd20` als laufender Stand auf der NAS im Claude-Betrieb, Budg
 ein erster echter Modelllauf ohne beobachtete Runde.
 
 **Letzte vergebene Befundnummer: `G-108`.**
+
+## 2026-09-08 — Nachcheck Phase 3, `8d59d10..a15a129` (Gerd via Claude Code, Auftrag Karl)
+
+60/60 Tests gegen `a15a129`, Gegenprobe in Kopie: 20 rot ohne die Änderung. Je Invariante
+gemessen: 1 (Kanal aus, null Feuerungen), 3 (Route muss vorher erlaubt sein, kein Termin legt
+eine an), 5 (zweiter Aufruf, eine Stunde später, Neustart mitten am Tag, Rückwärtssprung im
+Tag: je null; erschöpftes Budget: `resume()` am Folgetag, ein Aufruf), 8 (Kette
+`SCHEDULED, CLAIM, BOUNDARY, RESERVED, REPLIED`, der Prompt läuft durch `prepare_outbound`),
+9 (Reserve vor dem Aufruf), 11 (`SCHED-<hash>-…`, keine Kollision mit `TG-<int>`). 06:00 UTC ist
+08:00 CEST und 07:00 CET; die Umstellung fällt auf einen Sonntag, die Termine auf Mo/Do.
+
+| ID | Schwere | Befund | Korrektur/Nachweis |
+|---|---:|---|---|
+| `G-110` | niedrig | Springt die Uhr um eine Woche oder mehr zurück, feuert derselbe Termin erneut: gemessen zwei Provideraufrufe. | Behoben: je Termin hält der Store `schedule_seen_<id>`, das letzte berücksichtigte Fälligkeitsdatum; es bewegt sich nur vorwärts, gefeuert wird nur bei `seen < heute`. Test: Rückwärtssprung um sieben Tage, ein Aufruf. Nachcheck offen. |
+| `G-111` | niedrig | Ein Termin, an dessen Tag das System nicht läuft, entfällt stumm: Dienstag nach ausgefallenem Montag null Feuerungen, keine Auditzeile, keine Meldung. | Behoben: liegt die letzte Fälligkeit vor heute hinter `seen`, entsteht einmal `SCHEDULE_MISSED` mit Tag; der allererste Lauf setzt nur die Basis, damit die Vorwoche nicht als verpasst gilt. Test: Sonntag Basis, Dienstag eine Zeile, zweite Runde keine zweite. Nachcheck offen. |
+
+Geprüft und nicht bestätigt: echter NAS-Lauf über eine Woche, `flush_outbound` bei
+Kanalwechsel in der Runde, Exception in `process()` innerhalb `check_schedule()`.
+
+Freigabe Gerd: `a15a129` deploybar für den Zeitplanbetrieb Mo/Do 06:00 UTC an eine Identität
+mit erlaubter Route. Nicht freigegeben zum Zeitpunkt des Nachchecks: der damals ungesicherte
+`G-107`-Baum (seit `2bea5c6` committet), `G-110`/`G-111` (seither behoben), `G-108`.
+
+**Letzte vergebene Befundnummer: `G-111`.**

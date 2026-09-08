@@ -9,7 +9,7 @@ von Budget und Invarianten entschieden und steht in der Montagsübersicht.
 **Sachverhalt.** Seit `ca1bd20` liegen im Repo: Phase 3 (der Kern meldet sich, Montag und
 Donnerstag an Karl), `G-105` (Startzeile mit Commit), `G-107` (Konfigurations-Hash),
 `G-102`–`G-104`. Die NAS läuft weiter auf `ca1bd20`; der Zeitplan greift erst nach dem Deploy.
-Gerds Nachcheck des Phase-3-Diffs: ⟨Ergebnis wird hier vor Donnerstag ergänzt⟩.
+Gerds Nachcheck des Phase-3-Diffs (2026-09-08): `a15a129` deploybar für den Zeitplanbetrieb; seine zwei niedrigen Nachbefunde `G-110`, `G-111` sind behoben, `G-107` ist committet. Damit ist Option (b) erfüllt und (a) kann am Donnerstag laufen.
 
 **Optionen.** (a) Deploy über `deploy_nas.sh` aus sauberem Baum, danach `verify` und Gerds
 Review nach dem Lauf; Nutzen: erste Montagsnachricht am 2026-09-14, Risiko: ein Neustart des
@@ -18,7 +18,7 @@ kein ungeprüfter Stand produktiv, Risiko: Montag ohne Nachricht, Aufwand: keine
 deployen, Phase 3 erst mit Phase 4 zusammen; Nutzen: ein Fenster statt zwei, Risiko: das
 System meldet sich weitere Wochen nicht, Aufwand: keiner.
 
-**Empfehlung:** (b), und (a) sobald Gerd freigibt.
+**Empfehlung:** (a) am Donnerstag; die Bedingung aus (b) ist seit dem 2026-09-08 erfüllt.
 
 **Satz fürs Log:** Klasse Produktives: Der CEO gibt den Deploy des Standes mit Phase 3 auf
 die NAS frei, sobald Gerd den Diff nachgeprüft hat.
