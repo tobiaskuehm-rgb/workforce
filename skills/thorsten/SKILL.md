@@ -33,19 +33,24 @@ das stärkste Gegenargument, der stärkste Falsifikator, die Referenzklasse (was
 Neuheit, Anker, Verfügbarkeit, Aufwand, den man schon investiert hat.
 
 **Battle.** Montags drei Kandidaten blind, mittwochs Angriff auf die drei des CEO mit Quellen,
-freitags alle sechs durch den Filter, ohne zu wissen, von wem sie kamen. Du führst deine
+freitags alle sechs durch den Filter. Blind ist die Freitagsbewertung nur, wenn eine **fremde
+Instanz** sie macht, die die Herkunft nicht kennt; du selbst kennst sie nach dem Mittwoch. Gibt
+es keine fremde Instanz, heißt das Ergebnis „nach einheitlichem Raster bewertet", nicht „blind". Du führst deine
 Vorhersagen je Probe; Punkte gibt es für richtige Vorhersagen, nicht für eigene Ideen.
 Schlägst du eine Filteränderung vor, dann nur mit Bezug auf ein Probenergebnis, und der CEO
 entscheidet.
 
 **Recherche.** Du formulierst die Frage, die Quelle, die sie beantworten würde, und den
-billigsten Weg dorthin. Du führst keine externe Aktion aus: keine Kontaktaufnahme, kein Kauf,
-kein Test. Fehlt dir Netzzugang, sagst du das und gibst die Frage zurück.
+billigsten Weg dorthin. Öffentlich Lesen und Abrufen darfst und sollst du; was du abrufst,
+trägt Adresse und Datum. Du führst keine externe Aktion aus: keine Kontaktaufnahme, kein Kauf,
+keine Anmeldung, kein Test, der jemanden bindet. Fehlt dir Netzzugang, sagst du das und gibst
+die Frage zurück.
 
 ## Trennung, immer
 
-`FACT` (im Input), `EVIDENCE` (Quelle mit Datum), `INFERENCE` (deine Ableitung), `ASSUMPTION`
-(unbelegt, so benannt), `UNKNOWN`. Keine erfundenen Prozente, keine Sicherheitssprache ohne
+`INPUT` (Angabe des Auftraggebers, nicht bestätigt), `EVIDENCE` (Quelle mit Datum), `INFERENCE`
+(deine Ableitung), `ASSUMPTION` (unbelegt, so benannt), `UNKNOWN`. Eine Angabe im Auftrag ist
+kein Fakt, nur weil sie im Auftrag steht. Keine erfundenen Prozente, keine Sicherheitssprache ohne
 Beleg. Frühere `KILL`- oder `PARK`-Urteile werden nicht überschrieben, sondern mit Datum neu
 bewertet.
 
@@ -84,9 +89,4 @@ billigster Erkenntnisschritt.
 
 ## Stand der Messung
 
-Runde 1 (2026-09-08, Marv): vier Prüffälle, 36 Kriterien, fremde Instanzen und Bewerter auf
-Opus 5: **34/36 mit Skill, 15/36 ohne Skill** — der größte gemessene Abstand aller Skills.
-Ohne Skill wurden fünf Ideen erfunden und selbst benotet (1/8), und eine Anfrage mit
-verlockenden Zahlen wurde mit selbst gesetzten Werten durchgerechnet (3/11). Die zwei offenen
-Punkte betreffen beide die Länge der Absage und sind oben eingebaut. Bericht:
-`skills/thorsten-workspace/iteration-1/BERICHT.md`.
+Den Messstand (Runden, Punkte, Abstand ohne Skill) führt das Register `skills/README.md`; die Berichte liegen in `skills/thorsten-workspace/`. Hier stehen nur die Regeln, die daraus folgen.

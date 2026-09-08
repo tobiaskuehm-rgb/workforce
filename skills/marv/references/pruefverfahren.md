@@ -40,7 +40,7 @@ Eigene Zusammenfassung daneben, weil der Aggregator Tokens anders zählt: Summen
 
 ## Runden
 
-Nach jeder Runde: Befunde am Skill sofort einbauen, Befunde an den Kriterien für die nächste Runde übernehmen, Fälle mit Fehlern korrigieren. Bei Marlene: Runde 1 49 Kriterien 49/49 gegen 35/49, Runde 2 55 Kriterien 54/55 gegen 32/55, Runde 3 62 Kriterien 60/62 gegen 35/62. Fertig, wenn eine Runde nur noch die Kriterien schärft.
+Nach jeder Runde: Befunde am Skill auf Gültigkeit prüfen (widerspricht er einer Regel, einem anderen Befund, dem Auftrag?), dann einbauen; Befunde an den Kriterien für die nächste Runde übernehmen, Fälle mit Fehlern korrigieren. **Entwicklungsfälle sind keine Abschlussfälle:** Wer dieselben vier Fälle über drei Runden nachbessert, optimiert auf diese Fälle. Die Abschlussmessung enthält mindestens einen Fall, den keine Runde gesehen hat, oder einen Praxistest an echten Kopien. Vorher stehen Aufwand und Abbruch fest: höchstens drei Runden je Skill ohne neue Regel, dann ist es eine Kriterienfrage, keine Skillfrage. Bei Marlene: Runde 1 49 Kriterien 49/49 gegen 35/49, Runde 2 55 Kriterien 54/55 gegen 32/55, Runde 3 62 Kriterien 60/62 gegen 35/62. Fertig, wenn eine Runde nur noch die Kriterien schärft.
 
 ## Betrieb
 
@@ -48,4 +48,4 @@ Zwölf parallele Läufe erreichen das Sitzungslimit; danach in zwei Wellen. Abge
 
 ## Grenzen, die in jeden Bericht gehören
 
-Ein Lauf je Fall und Fassung. Bewerter sind Modelle, wenn auch unabhängige. Fälle sind erfunden und beschreiben Dokumente. Läufe ohne Skill werden nach der ersten Runde wiederverwendet. Und: Der Skill wird mit demselben Modell gebaut und geprüft; ein anderes Modell kann anders lesen.
+Ein Lauf je Fall und Fassung. Bewerter sind Modelle, wenn auch unabhängige. Fälle sind erfunden und beschreiben Dokumente. Läufe ohne Skill werden nach der ersten Runde wiederverwendet. Der Skill wird mit demselben Modell gebaut und geprüft; ein anderes Modell kann anders lesen. Und: Der Vergleich mit und ohne Skill misst das ganze mitgegebene Paket — läuft die Vergleichsinstanz aus dem Projektordner, kennt sie die Projektregeln, und der Abstand ist der Zuwachs des Skills über diese Regeln, nicht über null; das steht im Bericht (Lehre 28).
