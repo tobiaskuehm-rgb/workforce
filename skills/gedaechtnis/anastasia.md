@@ -38,7 +38,7 @@ Was Anastasia weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Ei
 | 2026-09-07 | Import der ChatGPT-Verläufe mit Anastasia in dieses Gedächtnis | wartet auf Export durch den CEO |
 | 2026-09-07 | Probezeit-Review Marlene vorbereiten | Termin nach `DEC-036`; Evidenz nach erstem echten Vorgang liegt in `skills/anastasia/probezeit/marlene_POA-001.md` |
 | 2026-09-08 | Marv: Kennung, `DEC`-Eintrag, Onboarding-Akte als Mitarbeiter | Registereintrag steht; Vorschlag für die Kennung `AI-SKI-001` nach dem Muster von `AI-ENG-001`, Bestätigung durch den CEO offen |
-| 2026-09-08 | Rollenüberschreitung: Wer überwacht Anastasia? Selbstprüfung durch dieselbe Rolle ist ein Wächter, der schwer rot wird. Vorschlag zur Entscheidung offen. | Anastasia 2026-09-08 |
+| 2026-09-08 | Wer überwacht Anastasia: der CEO selbst, entschieden im Chat. Damit ist die offene Stelle geschlossen. Bedingung dafür ist, dass eine Überschreitung sichtbar gemeldet wird und er sie nicht suchen muss. | Chat 2026-09-08 |
 | 2026-09-08 | IBAN-Schranke als Kontrolle in Code, nicht als Satz im Skill. Ausgehend: keine Nachricht mit einer IBAN ohne Freigabe. Eingehend: eine abweichende IBAN wird nie übernommen, sondern gemeldet. Bindung an das Prüfzeichen der IBAN, nicht an Wörter wie „Änderung". | CEO-Vorschlag Chat 2026-09-08, Umsetzung Gerd, Aufnahme in den Skill Marv |
 | 2026-09-08 | Verfallsdatum für Tatsachen: Verfahren, mit dem eine Identität eine veraltete Angabe erkennt, statt sie sicher zu wiederholen | Vorschlag an Marv, gehört in die Skillüberarbeitung |
 | 2026-09-08 | Marlene braucht Zugang zu den neuen Allianz-Unterlagen oder eine Dokumentenzufuhr; sonst arbeitet sie dauerhaft auf dem Stand des Vorversicherers | CEO entscheidet den Weg |
