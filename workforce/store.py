@@ -137,6 +137,10 @@ class Store:
         return int(self._db.execute("SELECT count(*) FROM audit WHERE kind = ? AND record_key = ?",
                                     (kind, record_key)).fetchone()[0])
 
+    def audit_payloads(self, kind: str, record_key: str) -> List[Dict[str, Any]]:
+        return [json.loads(r["payload"]) for r in self._db.execute(
+            "SELECT payload FROM audit WHERE kind = ? AND record_key = ? ORDER BY seq", (kind, record_key))]
+
     def audit_rows(self, request_prefix: str) -> List[sqlite3.Row]:
         return list(self._db.execute("SELECT * FROM audit WHERE request_id LIKE ? ORDER BY seq",
                                      (request_prefix + "%",)))

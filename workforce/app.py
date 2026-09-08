@@ -185,7 +185,10 @@ class App:
             # But waiting has an end (G-100): a message the budget never covers is abandoned after
             # max_attempts days, visibly. The notice names the day, so the CEO hears it each day -
             # notice() deduplicates on its text, and a constant text spoke exactly once.
-            waited = self.store.audit_count("BUDGET_EXHAUSTED", message_id) + 1
+            # Days are counted, not failures (G-102): a crash after the claim and the lease
+            # resumption can fail the budget twice on one day, and that is still one day waited.
+            days = {p.get("day") for p in self.store.audit_payloads("BUDGET_EXHAUSTED", message_id)} | {day}
+            waited = len(days)
             self.store.release_untouched(message_id)
             self.store.audit(ACTOR, f"{rid}-BUDGET", "BUDGET_EXHAUSTED", message_id, {"day": day, "waited": waited})
             if waited >= self.config.max_attempts:
