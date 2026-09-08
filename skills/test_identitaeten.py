@@ -100,6 +100,17 @@ def botmodell_nicht_erlaubt(zuordnung, allowlist):
     return sorted("%s=%s" % (i, m) for i, m in zuordnung.items() if m not in allowlist)
 
 
+def ohne_gedaechtnis(register_ordner, vorhanden):
+    """Eine Identitaet des Registers hat keine Gedaechtnisdatei. Was dort nicht steht, weiss
+    sie nicht, egal wo sie laeuft (3-Loop Modell, Ort, Gedaechtnis, 2026-09-08)."""
+    return sorted(name for name in register_ordner if name + ".md" not in vorhanden)
+
+
+def ordner_im_register(text):
+    kopf = text.index("## Register")
+    return sorted(set(re.findall(r"^\| [^|]+ \| `([\w-]+)/` \|", text[kopf:], re.MULTILINE)))
+
+
 def fehlt_im_register(register, identitaeten):
     return sorted(name for name in identitaeten
                   if not re.search(r"`%s/`" % re.escape(name), register))
@@ -127,6 +138,15 @@ class GedaechtnisTest(unittest.TestCase):
     def test_ein_fehlendes_gedaechtnis_faellt_auf(self):
         luecke = gedaechtnis_ohne_datei([("karl", "karl.md"), ("x", "fehlt.md")], {"karl.md"})
         self.assertEqual(["x -> fehlt.md"], luecke)
+
+    def test_jede_registeridentitaet_hat_ein_gedaechtnis(self):
+        register = ordner_im_register((SKILLS / "README.md").read_text())
+        vorhanden = {p.name for p in GEDAECHTNIS.glob("*.md")}
+        self.assertGreaterEqual(len(register), 5)
+        self.assertEqual([], ohne_gedaechtnis(register, vorhanden))
+
+    def test_eine_identitaet_ohne_gedaechtnis_faellt_auf(self):
+        self.assertEqual(["marlene"], ohne_gedaechtnis(["karl", "marlene"], {"karl.md"}))
 
     def test_der_relative_pfad_loest_wirklich_auf(self):
         for skill, ziel in self.verweise():
