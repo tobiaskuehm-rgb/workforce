@@ -73,9 +73,12 @@ class App:
         rows = self.store.resumable_inbound(lease_seconds=self.config.lease_seconds,
                                             day_of=lambda ts: today(lambda: ts))
         for row in rows:
-            self.store.audit(ACTOR, f"TG-{row['update_id']}-RESUME", "RESUME", row["message_id"],
+            # Each pass over a message has its own request-id suffix (G-101, invariant 11): the audit
+            # of the first attempt and of the resumed one must not share a request-id.
+            pass_no = self.store.audit_count("RESUME", row["message_id"]) + 1
+            self.store.audit(ACTOR, f"TG-{row['update_id']}-R{pass_no}-RESUME", "RESUME", row["message_id"],
                              {"from": row["status"], "attempts": row["attempts"]})
-            self.process(row["message_id"], int(row["update_id"]))
+            self.process(row["message_id"], int(row["update_id"]), pass_no=pass_no)
         return len(rows)
 
     def run_forever(self) -> None:
@@ -144,8 +147,8 @@ class App:
                 f"Audit: {'intakt' if ok else 'BESCHAEDIGT ab ' + str(bad)}")
 
     # -- the work ------------------------------------------------------------------
-    def process(self, message_id: str, update_id: int) -> None:
-        rid = f"TG-{update_id}"
+    def process(self, message_id: str, update_id: int, *, pass_no: int = 0) -> None:
+        rid = f"TG-{update_id}" + (f"-R{pass_no}" if pass_no else "")
         row = self.store.message(message_id)
         claim = self.store.claim(message_id, lease_seconds=self.config.lease_seconds,
                                  max_attempts=self.config.max_attempts)
