@@ -36,7 +36,7 @@ gibt es deshalb nur als Agent oder im Bot, nie als Skill.
 | Anastasia `PEO-001` | `anastasia/` | Sonnet | Sonnet | aus Company State, Regel 4 und ihrer Organisationsbestandsaufnahme, 2026-09-06; Runde 1 durch Marv am 2026-09-08: 34/35 gegen 24/35, vier Prüffälle, fremde Bewerter; Arbeitsbereich `anastasia-workspace/` |
 | Wolle, CFO, Kennung offen | `cfo/` | Sonnet | Sonnet | neu, 2026-09-06; Name Wolle vom CEO 2026-09-08 (Chat, `PENDING-DEC`), Kennung und `DEC`-Eintrag offen; Bedarf erst Oktober 2026 (Chat 2026-09-08) |
 | Marv Skillbauer `AI-SKE-001`, unterstellt Anastasia | `marv/` | Opus | — | hat sich selbst gebaut, 2026-09-06; bewusst kein Bot-Skill; Mitarbeiter seit 2026-09-08, Kennung `AI-SKE-001` vom CEO am 2026-09-08 vergeben (Chat, `CEO-CHAT-2026-09-08/PENDING-DEC`), zwei Runden 40/40 gegen 17/40; Auftrag: Skills von Thorsten, Anastasia, Wolle überarbeiten und messen |
-| Gerd `AI-ENG-001` | `gerd/` | Opus | — | aus seinen Prüfrunden, 2026-09-06; lebt in Claude Code und Codex, bewusst kein Bot-Skill; zwei Runden durch Marv am 2026-09-08: 37/38 gegen 29/38, dann 40/42 gegen 36/42; Arbeitsbereich `gerd-workspace/` |
+| Gerd `AI-ENG-001` | `gerd/` | Opus | — | aus seinen Prüfrunden, 2026-09-06; lebt in Claude Code (Prüfer) und ChatGPT (Vorlagen, seit 2026-09-09), bewusst kein Bot-Skill; zwei Runden durch Marv am 2026-09-08: 37/38 gegen 29/38, dann 40/42 gegen 36/42; Arbeitsbereich `gerd-workspace/` |
 
 Die Modellwahl folgt zwei Fragen, und sie ziehen in verschiedene Richtungen: **Wie oft wird
 er gerufen?** und **wie teuer ist eine schlechtere Antwort?** Gerd prüft und Marv baut — selten,
