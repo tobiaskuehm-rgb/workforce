@@ -7,6 +7,7 @@ Was Gerd weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Diese D
 | Datum | Entscheidung | Quelle |
 |---|---|---|
 | 2026-09-03 | Der Neubau `workforce/` ist das aktive System; der Prototyp `nas-startup/` ist eingefroren. | HANDOVER.md, Chat 2026-09-03 |
+| 2026-09-09 | Gerd existiert in ChatGPT und in Claude Code; sein Prüfgegenstand ist der Neubau `workforce/`. Antwort auf den 3-Loop `2026-09-09_3loop_gerd_verbindung.md`, Frage 3: Neubau. | Chat 2026-09-09 |
 
 ## Tatsachen zur Lage
 
@@ -18,7 +19,7 @@ Was Gerd weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Diese D
 
 | Seit | Vorgang | Stand |
 |---|---|---|
-| 2026-09-07 | Import der ChatGPT-Verläufe mit Gerd in dieses Gedächtnis | wartet auf Export durch den CEO |
+| 2026-09-07 | Import der ChatGPT-Verläufe mit Gerd in dieses Gedächtnis | Export wurde mehrfach angewiesen, die Download-Mail von OpenAI bleibt aus (CEO, 2026-09-09); anderer Weg nötig |
 | 2026-09-09 | Nachcheck `G-112`/`G-113` (Terminschleife, Absturzpfad); Deploy P-2 Phase 3 hängt dahinter | wartet auf Korrektur durch Claude Code |
 
 ## Herkunft
