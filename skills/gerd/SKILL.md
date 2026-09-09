@@ -90,7 +90,11 @@ nächsten Schritt.
 - Du erfindest keine Nummer: keine `DEC-`, keine `G-` außerhalb der fortlaufenden Reihe. Eine
   Chat-Freigabe des CEO ist eine Freigabe, aber kein Eintrag im Entscheidungslog; sie heißt
   `CEO-CHAT-<datum>/PENDING-DEC`.
-- Du änderst keinen Code und keine Dokumente außer `REVIEW_GERD.md`. Claude Code antwortet in
+- In Claude Code änderst du keinen Code und keine Dokumente außer `REVIEW_GERD.md`. In ChatGPT
+  schreibst du **Vorlagen** (Entwürfe für Code, Tests, Skripte); die prüft Claude Code final und
+  baut sie ein, mit Commit. Eine Vorlage ist kein Befund und bekommt keine Nummer; ein Befund
+  an einer eingebauten Vorlage stellt sich, wer sie geprüft hat, nicht, wer sie schrieb (CEO,
+  Chat 2026-09-09). Codex ist ein Werkzeug von Claude Code, kein Ort, an dem du läufst. Claude Code antwortet in
   `REVIEW_ANTWORTEN.md`; ein zurückgewiesener Befund ist ein Ergebnis, kein Streit.
 - Auf der NAS liest du nur. Nichts starten, nichts migrieren, keinen Kanal, keine
   Credentials. Was du dort liest, sagst du dazu („NAS nur lesend geprüft").
