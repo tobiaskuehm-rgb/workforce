@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Zaehlt je Identitaet die Commits seit ihrem letzten Review und meldet, wer faellig ist.
+
+Aufruf:
+    python3 skills/anastasia/reviews/review_faellig.py            # Tabelle, Exitcode 1 wenn jemand faellig ist
+    python3 skills/anastasia/reviews/review_faellig.py --kurz     # nur die Faelligen, eine Zeile je Identitaet
+    python3 skills/anastasia/reviews/review_faellig.py --gemacht <name> [<sha>]
+
+Ein Commit "betrifft" eine Identitaet, wenn er ihren Skillordner beruehrt oder ihren
+Anzeigenamen im Betreff traegt. Beides zusammen, weil Arbeit an einer Identitaet und Arbeit
+durch eine Identitaet verschiedene Spuren hinterlassen.
+"""
+import json
+import pathlib
+import subprocess
+import sys
+from typing import List, Optional, Set
+
+HIER = pathlib.Path(__file__).resolve().parent
+STAND = HIER / "stand.json"
+WURZEL = HIER.parents[2]
+
+
+def git(*args: str) -> str:
+    fertig = subprocess.run(
+        ["git", "-C", str(WURZEL), *args],
+        capture_output=True, text=True, check=False,
+    )
+    if fertig.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)}: {fertig.stderr.strip()}")
+    return fertig.stdout
+
+
+def lade() -> dict:
+    return json.loads(STAND.read_text(encoding="utf-8"))
+
+
+def schwelle(stand: dict, eintrag: dict) -> int:
+    # Eigene Schwelle schlaegt den Zustandswert; Probezeit wird enger geprueft als Regelbetrieb.
+    if eintrag.get("schwelle") is not None:
+        return int(eintrag["schwelle"])
+    if eintrag.get("zustand") == "probezeit":
+        return int(stand["schwelle_probezeit"])
+    return int(stand["schwelle_standard"])
+
+
+def commits_seit(name, anzeige, seit):
+    """Kurzhashes der Commits, die diese Identitaet betreffen, seit dem letzten Review.
+
+    Rueckgabe: List[str]. Ohne Typannotation in der Signatur, weil der Mac dieses
+    Projekts Python 3.9 fahrt und `str | None` dort ein TypeError ist (Regel G-011).
+    """
+    spanne = [f"{seit}..HEAD"] if seit else []
+    treffer = set()  # type: Set[str]
+
+    # Weg 1: Commits, die ihren Ordner beruehren.
+    for zeile in git("log", "--format=%h", *spanne, "--", f"skills/{name}").splitlines():
+        if zeile.strip():
+            treffer.add(zeile.strip())
+
+    # Weg 2: Commits, deren Betreff mit ihrem Namen beginnt ("Marlene: ...").
+    rufname = anzeige.split(" (")[0]
+    for zeile in git("log", "--format=%h\t%s", *spanne).splitlines():
+        if "\t" not in zeile:
+            continue
+        kurz, betreff = zeile.split("\t", 1)
+        if betreff.lower().startswith(rufname.lower()):
+            treffer.add(kurz)
+
+    return sorted(treffer)
+
+
+def bericht(nur_faellige=False):
+    stand = lade()
+    zeilen = []  # type: List[tuple]
+    faellig = []  # type: List[tuple]
+    for name, eintrag in stand["identitaeten"].items():
+        if eintrag.get("zustand") == "ruht":
+            zeilen.append((eintrag["anzeige"], "ruht", "", ""))
+            continue
+        gezaehlt = commits_seit(name, eintrag["anzeige"], eintrag.get("letztes_review"))
+        grenze = schwelle(stand, eintrag)
+        ist_faellig = len(gezaehlt) >= grenze
+        if ist_faellig:
+            faellig.append((name, eintrag["anzeige"], len(gezaehlt), grenze))
+        zeilen.append((
+            eintrag["anzeige"],
+            eintrag.get("zustand", ""),
+            f"{len(gezaehlt)}/{grenze}",
+            "FAELLIG" if ist_faellig else "",
+        ))
+
+    if nur_faellige:
+        for name, anzeige, anzahl, grenze in faellig:
+            print(f"Review faellig: {anzeige} — {anzahl} Commits seit dem letzten Review (Schwelle {grenze})")
+    else:
+        breite = max(len(z[0]) for z in zeilen)
+        print(f"{'Identitaet'.ljust(breite)}  Zustand      Commits  ")
+        for anzeige, zustand, zaehler, marke in zeilen:
+            print(f"{anzeige.ljust(breite)}  {zustand.ljust(11)}  {zaehler.ljust(7)}  {marke}")
+        print()
+        print(f"{len(faellig)} von {len(stand['identitaeten'])} faellig." if faellig else "Niemand faellig.")
+
+    # Exitcode 1 heisst: es liegt etwas an. Damit taugt der Aufruf als Gate.
+    return 1 if faellig else 0
+
+
+def gemacht(name, sha):
+    stand = lade()
+    if name not in stand["identitaeten"]:
+        print(f"Unbekannte Identitaet: {name}", file=sys.stderr)
+        return 2
+    voll = git("rev-parse", sha or "HEAD").strip()
+    stand["identitaeten"][name]["letztes_review"] = voll
+    STAND.write_text(json.dumps(stand, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"{stand['identitaeten'][name]['anzeige']}: Review vermerkt auf {voll[:8]}.")
+    return 0
+
+
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    if args and args[0] == "--gemacht":
+        sys.exit(gemacht(args[1], args[2] if len(args) > 2 else None))
+    sys.exit(bericht(nur_faellige=bool(args and args[0] == "--kurz")))
