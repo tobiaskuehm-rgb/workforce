@@ -17,5 +17,23 @@
   ],
   "zustellweg": "Postbox",
   "zweiter_faktor": "unbekannt, vor dem ersten Lauf pruefen"
+ },
+ "marlene-postfach": {
+  "anbieter": "GMX, tobias.kuehm@gmx.de (Marlenes eigenes Postfach)",
+  "klasse": "C",
+  "zweck": "Post empfangen und nach Freigabe senden; Poststelle",
+  "schluesselbund_dienst": "marlene-postfach",
+  "schluesselbund": "login",
+  "aktionen": [
+   "imap_lesen",
+   "imap_markieren",
+   "imap_gesendet_ablegen",
+   "smtp_senden"
+  ],
+  "zustellweg": "Mail mit Anhang",
+  "zweiter_faktor": "bei Tobias; App-Passwort fuer die Poststelle",
+  "imap": "imap.gmx.net:993",
+  "smtp": "mail.gmx.net:587",
+  "benutzer": "tobias.kuehm@gmx.de"
  }
 }
