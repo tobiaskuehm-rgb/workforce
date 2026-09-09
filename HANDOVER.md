@@ -146,8 +146,10 @@ Phase 3, R-2 `G-108` Ordnerrechte, S-2 C-Kandidaten. Gerds Nachcheck des Phase-3
 63 Tests. **Modell-Loop entschieden (CEO, 2026-09-08):** `workforce/reviews/2026-09-08_3loop_modelle_und_ort_karl.md`.
 Schaltwort `!`, ChatGPT-Assistentin Export dann Archiv, Gedächtnis jetzt für alle sieben
 (`skills/gedaechtnis/marlene.md`, `marv.md`, Wächter in `skills/test_identitaeten.py`).
-**Für Gerd:** Der CEO will deinen LLM-Server aus Codex im Repo; bis er dort liegt, zählt er
-nicht. **Für Marv:** Marlenes und Marvs Skill haben je einen Gedächtnisverweis bekommen,
+**Für Gerd:** erledigt, der CEO hat auf `workforce/providers.py` gezeigt: dein LLM-Server ist
+der `OllamaProvider`, seit dem Neubau im Repo und mit `G-092` gehärtet. Was für einen Lauf
+fehlt: Ollama auf dem Mac mini, der Netzweg mit deiner Abnahme, und ein lokales Modell in der
+Allowlist `models.py`. **Für Marv:** Marlenes und Marvs Skill haben je einen Gedächtnisverweis bekommen,
 Marlene ist damit nach der Messung geändert. Meilenstein nach dem Phase-3-Deploy: zwei
 Modelle je Identität (`model`, `model_deep`), `!` wählt Denken, Modell nie aus der Modellausgabe.
 Nächster Schritt: Donnerstag 2026-09-10, P-2 und R-2 entscheiden; nach dem Deploy
