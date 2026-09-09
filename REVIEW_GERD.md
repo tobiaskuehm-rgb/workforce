@@ -141,3 +141,71 @@ mit erlaubter Route. Nicht freigegeben zum Zeitpunkt des Nachchecks: der damals 
 `G-107`-Baum (seit `2bea5c6` committet), `G-110`/`G-111` (seither behoben), `G-108`.
 
 **Letzte vergebene Befundnummer: `G-111`.**
+
+## 2026-09-09 — Nachcheck `G-110`/`G-111`, Diff `7858fa2`, Stand `3ce525d` (Gerd via Claude Code, Auftrag: Vorlage P-2 vom 2026-09-08)
+
+Prüfauftrag 2026-09-08 („sobald Gerd den Diff nachgeprüft hat"), Prüftag 2026-09-09. Der
+Gegenstand liegt im Neubau: `workforce/app.py` und `workforce/tests/test_workforce.py`; seit
+`6b70971` hat sich unter `workforce/` nur `reviews/` geändert. 63/63 Tests unter Python 3.9.6
+(`python3 -m unittest discover -s workforce/tests -t . -q`, 2026-09-09). Gegenprobe: `app.py`
+aus `7858fa2^` in einer Kopie, genau die zwei neuen Tests rot, die übrigen sechs der Klasse grün.
+
+`G-110` und `G-111` sind geschlossen: Rückwärtssprung um sieben Tage ein Aufruf; verschlafener
+Montag eine Zeile, zweite Runde keine zweite. Zusätzlich gemessen: zwei verschlafene Wochen
+ergeben **eine** Zeile mit `day=2023-11-20, seen=2023-11-06`; der Montag dazwischen ist aus
+der Zeile rekonstruierbar, nicht als eigene Zeile. Reicht.
+
+Die Korrektur hat aber den Boden unter einer anderen Kontrolle verschoben (Klasse `G-014`).
+Vor `7858fa2` war der **Datensatz** die Sperre für den Tag (`store.message(message_id) is not
+None`): Wer ihn nicht geschrieben hatte, hatte nicht gefeuert. Jetzt ist es eine Einstellung,
+die **vor** dem Datensatz geschrieben wird — und der Store läuft im Autocommit
+(`isolation_level=None`), `set_setting` ohne eigene Transaktion. Beides gemessen mit einer
+Sonde, die den Prozess zwischen zwei Anweisungen sterben lässt.
+
+| ID | Schwere | Befund | Korrektur/Nachweis |
+|---|---:|---|---|
+| `G-112` | mittel | `app.py`, `check_schedule()`: `set_setting(key, day)` steht vor `record_inbound()`, jede Anweisung ihr eigener Commit. Stirbt der Prozess dazwischen, gilt der Tag als erledigt — ohne Nachricht, ohne `SCHEDULED`, ohne `SCHEDULE_MISSED`. Gemessen: nächste Runde 0 Feuerungen, 0 Provideraufrufe; eine Woche später 0 `MISSED`-Zeilen. Eine Marke ohne dauerhafte Wirkung, die nicht zurückgegeben wird — Invariante 5 in der Klausel aus `G-082`; aus der Datenbank allein nicht erklärbar (6). Das ist der Ausgang von `G-111` über den Absturzpfad. | offen. Kleinste Korrektur: Reihenfolge tauschen — erst `record_inbound` (ist `INSERT OR IGNORE`, also wiederholbar), `SCHEDULED` nur bei `created`, **dann** `set_setting`, dann `process()` (der Claim ist idempotent). Test: `record_inbound` genau einmal werfen lassen, zweite Runde derselbe Tag: genau eine Nachricht, eine `SCHEDULED`-Zeile, ein Provideraufruf. Gegenprobe: gegen `3ce525d` ist dieser Test rot, gemessen. |
+| `G-113` | niedrig | Der `SCHEDULE_MISSED`-Zweig schreibt die Auditzeile in einer Transaktion und die Einstellung in einer zweiten. Absturz dazwischen: die nächste Runde schreibt dieselbe Request-Id `SCHED-MONTAG-2023-11-06-MISSED` erneut — gemessen zwei Zeilen mit identischer Request-Id (Invariante 11, Klasse `G-101`). | offen. Kleinste Korrektur: beides unter demselben `BEGIN IMMEDIATE` — eine Store-Methode, die `_append_audit` und das `INSERT … ON CONFLICT` in einer Transaktion ausführt. Die umgekehrte Reihenfolge wäre die falsche Korrektur: dann ginge die Zeile verloren statt doppelt. Test: `set_setting` innerhalb der Transaktion werfen lassen — danach null Zeilen; zweite Runde genau eine. |
+
+## Geprüft und nicht bestätigt
+
+Rücksprung der Uhr innerhalb desselben Tages; Kanal `DISABLED` am Fälligkeitstag, `ACTIVE`
+am Folgetag → `MISSED`-Zeile (aus dem Code abgeleitet, nicht gemessen); Exception in
+`process()` innerhalb der Terminschleife (weiter offen seit 2026-09-08); NAS nicht angefasst,
+sie läuft nach Aktenlage auf `ca1bd20` ohne Zeitplan.
+
+## Unabhängiger Nachweis
+
+`git diff --stat 6b70971..HEAD -- workforce/`: nur `reviews/`. Testlauf 63/63. Gegenprobe
+ohne Fix: 2 rot. Sonde `G-112`: `seen=2023-11-06`, `message exists: False`, `fired in next
+round: 0`, `MISSED rows a week later: 0`. Sonde `G-113`: `rows with identical request_id: 2`.
+Sonde zwei Wochen: eine Zeile, Nutzlast `{day: 2023-11-20, seen: 2023-11-06}`, ein Aufruf.
+`deploy_nas.sh` prüft den Baum nur mit Hinweis und rollt `git archive HEAD` aus — kein
+Befund, weil der Arbeitsbaum die NAS nicht erreichen kann.
+
+Ohne Nummer, weil Dokument und nicht Code: Vorlage P-2 sagt im Sachverhalt „`G-110`, `G-111`
+sind behoben … Damit ist Option (b) erfüllt", geschrieben **vor** diesem Nachcheck. Der Satz
+fürs Log ist richtig, der Sachverhalt lief der Messung voraus. `INVARIANTEN.md`, „Stand der
+Belege" (`6c5903b`), gibt mein Screening vom 2026-09-08 korrekt wieder: **abgenommen**; 7 und
+15 tragen einen Meilenstein statt eines Datums, das reicht, solange „nach Phase 3" der
+nächste ist. Der Arbeitsbaum ist heute nicht sauber (`skills/marlene/…`,
+`skills/gedaechtnis/thorsten.md`): vor dem Fenster committen oder bewusst stehen lassen.
+
+## Nicht blockierendes Backlog nach dem Lauf
+
+`G-113`. Die beiden Sonden gehören als Tests in `ScheduleTest`, nicht in mein Scratch.
+Exception in `process()` innerhalb der Schleife: ein Test, der den zweiten Termin nach einem
+werfenden ersten noch feuern sieht — oder die Entscheidung, dass er es nicht soll.
+
+## Gate und Auftrag an Claude Code
+
+**ROT** für P-2 auf Stand `3ce525d`. `G-112` widerlegt Invariante 5 in der Klausel, die
+`G-082` hineingeschrieben hat, und zwar gemessen, nicht gelesen; das Fenster ist zwei
+Anweisungen breit, aber die Reihenfolge ist die verkehrte, und der Eingriff ist eine
+Umstellung von drei Zeilen plus Test. Auftrag: `G-112` und `G-113` beheben, je ein Commit,
+Antwort in der Spalte Korrektur/Nachweis wie bisher. Nach dem Nachcheck (Gegenprobe rot ohne
+Fix, Sonden grün) ist der Stand für den Zeitplanbetrieb Mo/Do 06:00 UTC freigegeben; dann
+kann P-2 laufen, und ich prüfe nach dem Lauf gegen `INVARIANTEN.md`. Nicht freigegeben:
+`G-108` (unverändert, braucht das NAS-Fenster), ein Deploy vor der Korrektur.
+
+**Letzte vergebene Befundnummer: `G-113`.**

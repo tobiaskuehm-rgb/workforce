@@ -19,6 +19,7 @@ Was Gerd weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Diese D
 | Seit | Vorgang | Stand |
 |---|---|---|
 | 2026-09-07 | Import der ChatGPT-Verläufe mit Gerd in dieses Gedächtnis | wartet auf Export durch den CEO |
+| 2026-09-09 | Nachcheck `G-112`/`G-113` (Terminschleife, Absturzpfad); Deploy P-2 Phase 3 hängt dahinter | wartet auf Korrektur durch Claude Code |
 
 ## Herkunft
 
