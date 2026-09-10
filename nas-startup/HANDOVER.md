@@ -171,8 +171,13 @@ Donnerstagstermin hat sofort gefeuert und ist zugestellt; R-2 Rechte `750`/`640`
 vom 2026-09-09 (`G-112`/`G-113`, von Karl nicht gelesen, `G-114`, Regel 71), dazu `G-115`/`G-116`.
 Alle vier behoben (Regeln 72, 73), 67 Tests, Gegenproben rot. Vorlage P-3 für den zweiten Deploy
 vor Montag: `workforce/reviews/2026-09-10_vorlage_p3_zweiter_deploy.md`. Gerds Nachcheck: `6cda0c5` freigegeben, `G-117`/`G-118` neu, ohne Sperre.
-Nächster Schritt: P-3 durch den CEO, dann Deploy von `6cda0c5` (oder dem dann aktuellen
-Stand, wenn er nur Doku enthält), dann Gerds Review nach dem Lauf.
+**P-3 ausgeführt, 2026-09-10 nachmittags:** `0ef72cb` läuft (erster Versuch fail-closed an
+Busybox-`sha256sum --quiet` abgebrochen, Option entfernt, Nummer vergibt Gerd). `verify` PASS,
+Startzeile mit Commit und Hash, kein erneutes Feuern, Rechte 750/640 Gruppe 10001 vom Skript
+gesetzt und zurückgelesen. Nachweis `workforce/evidence/2026-09-10_deploy2_g112.md`.
+**Betriebsmodus seit heute:** alles über Karl, eine Vorlage zur Zeit, Marlene direkt beim CEO.
+Nächster Schritt: Gerds Review nach dem Lauf eintragen; Montag 2026-09-14 08:00 Wochenlage prüfen;
+dann `G-117`/`G-118`.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein
