@@ -32,6 +32,7 @@ case "$*" in
 750 10001 /w/secrets
 640 10001 /w/config.json
 640 10001 /w/secrets/telegram_bot_token}"; exit 0 ;;
+  *"sha256sum -c"*) exit "${FAKE_SHA_EXIT:-0}" ;;
 esac
 [ -n "${FAKE_SSH_STDOUT:-}" ] && cat "$FAKE_SSH_STDOUT"
 exit 0
@@ -135,6 +136,22 @@ class DeployTest(ScriptHarness):
         self.assertNotEqual(0, run.returncode)
         self.assertIn("Rechte auf der NAS", run.stderr)
         self.assertFalse(any("up -d --force-recreate" in a[-1] for a, _ in self.calls()[len(cmds):]))
+
+    def test_shipped_files_are_checksummed_and_a_mismatch_aborts(self):
+        # G-116: what landed is measured against the committed tree.
+        clone = self.clone("claude")
+        run = self.deploy(clone)
+        self.assertEqual(0, run.returncode, run.stderr)
+        manifests = [s for a, s in self.calls() if "sha256sum -c" in a[-1]]
+        self.assertEqual(1, len(manifests))
+        lines = manifests[0].decode().splitlines()
+        self.assertTrue(any(l.endswith("  app.py") for l in lines), lines[:3])
+        self.assertTrue(all(len(l.split()[0]) == 64 for l in lines))
+        self.assertFalse(any("secrets/" in l or "config.json" in l for l in lines))
+        self.env["FAKE_SHA_EXIT"] = "1"
+        run = self.deploy(clone)
+        self.assertNotEqual(0, run.returncode)
+        self.assertIn("weichen von", run.stderr)
 
     def test_the_archive_is_the_committed_tree_without_secrets_or_state(self):
         clone = self.clone("claude")

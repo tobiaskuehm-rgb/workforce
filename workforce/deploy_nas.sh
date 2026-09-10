@@ -47,6 +47,14 @@ ssh -o BatchMode=yes "$host" "umask 027 && cat > '$root/config.json'" < workforc
 for s in $secrets; do
   ssh -o BatchMode=yes "$host" "umask 027 && cat > '$root/secrets/$s'" < "workforce/secrets/$s"
 done
+# What landed is measured, not assumed (G-116): every shipped file's sha256 against the
+# committed tree, checked on the NAS inside a throwaway container. Any deviation aborts.
+manifest="$(mktemp)"; unpack="$(mktemp -d)"
+git archive --format=tar HEAD workforce | tar -xf - -C "$unpack"
+(cd "$unpack/workforce" && find . -type f | sed 's|^\./||' | sort | while read -r f; do shasum -a 256 "$f"; done) > "$manifest"
+ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -i -v '$root:/w' -w /w alpine sha256sum -c --quiet -" < "$manifest" \
+  || { echo "FAIL: ausgerollte Dateien weichen von $(git rev-parse --short HEAD) ab" >&2; rm -rf "$unpack" "$manifest" "$archiv"; exit 1; }
+rm -rf "$unpack" "$manifest"
 # Rights are set by the script, not by hand (G-115, G-108): directories 750, files 640, the
 # script 750, group 10001 so the container user reads by number (G-044). Then read back.
 ssh -o BatchMode=yes "$host" "cd '$root' \
