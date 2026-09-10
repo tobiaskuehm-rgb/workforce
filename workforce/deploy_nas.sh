@@ -52,7 +52,7 @@ done
 manifest="$(mktemp)"; unpack="$(mktemp -d)"
 git archive --format=tar HEAD workforce | tar -xf - -C "$unpack"
 (cd "$unpack/workforce" && find . -type f | sed 's|^\./||' | sort | while read -r f; do shasum -a 256 "$f"; done) > "$manifest"
-ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -i -v '$root:/w' -w /w alpine sha256sum -c --quiet -" < "$manifest" \
+ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -i -v '$root:/w' -w /w alpine sha256sum -c -" < "$manifest" \
   || { echo "FAIL: ausgerollte Dateien weichen von $(git rev-parse --short HEAD) ab" >&2; rm -rf "$unpack" "$manifest" "$archiv"; exit 1; }
 rm -rf "$unpack" "$manifest"
 # Rights are set by the script, not by hand (G-115, G-108): directories 750, files 640, the
