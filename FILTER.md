@@ -20,7 +20,7 @@ Filter ist hart beim Ausschließen, ehrlich beim Ordnen, und er entscheidet nich
 
 | Kriterium | Gewicht | Was gemessen wird | Quelle |
 |---|---|---|---|
-| Ertrag je Stunde | ×3 | Honorar je Stunde deiner Zeit vor Ort, nach Kosten | echte Preise aus Angeboten, Portalen, Gesprächen; nie geschätzt ohne Quelle |
+| Ertrag je Stunde | ×3 | Honorar je Stunde deiner Zeit vor Ort, nach Kosten. Gemeint ist der **erzielbare** Preis, nicht der Marktpreis: wo Bestandsanbieter mit Marke den Preis setzen, ist deren Untergrenze der Maßstab | echte Preise aus Angeboten, Portalen, Gesprächen; nie geschätzt ohne Quelle |
 | Systemanteil | ×3 | Anteil der Arbeit, den Marlene, Thorsten und CFO tragen: Vorbereitung, Verwaltung, Recherche, Schreiben, Abrechnung | Aufgabenliste je Geschäft, Zeile für Zeile: Mensch oder System |
 | Recht | ×2 | Genehmigung sicher (5), üblich (4), offen (3), fraglich (2) | Gesetzestext des Landes, Antwort des Dienstherrn |
 | Wiederkehr | ×2 | Kommt der Kunde von allein wieder (5) oder ist jeder Auftrag neu zu gewinnen (1) | Art des Geschäfts; Pflichten wie Wiederholungsschulungen zählen hoch |
