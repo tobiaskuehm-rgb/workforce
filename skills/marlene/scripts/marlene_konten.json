@@ -42,8 +42,26 @@
   "zweck": "FinTS-Produktregistrierung für lesenden ING-Zugang; noch kein Kontozugang beantragt",
   "schluesselbund_dienst": "marlene-ing-fints",
   "schluesselbund": "login",
-  "aktionen": [],
+  "aktionen": [
+   "produkt_id_lesen"
+  ],
   "zustellweg": "Mail mit Anhang",
   "zweiter_faktor": "bei Tobias; ING-Kontofreischaltung steht noch aus"
+ },
+ "marlene-ing-login": {
+  "anbieter": "ING, FinTS (Girokonto), BLZ 50010517, fints.ing.de",
+  "klasse": "A",
+  "zweck": "Kontostand und Umsätze lesen, ausschließlich lesend",
+  "schluesselbund_dienst": "marlene-ing-login",
+  "schluesselbund": "login",
+  "aktionen": [
+   "anmelden",
+   "kontostand_ansehen",
+   "umsaetze_ansehen",
+   "abmelden"
+  ],
+  "zustellweg": "kein Postfach, nur Kontodaten",
+  "zweiter_faktor": "pushTAN in der ING App, bei Tobias",
+  "benutzer": "Tobiaskuehm"
  }
 }
