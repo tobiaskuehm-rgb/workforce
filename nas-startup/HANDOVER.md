@@ -166,8 +166,12 @@ Modelle je Identität (`model`, `model_deep`), `!` wählt Denken, Modell nie aus
 **Donnerstag 2026-09-10, ausgeführt:** Deploy `35e7ae3` mit Phase 3 und `G-105`/`G-107`/`G-110`/`G-111`;
 Donnerstagstermin hat sofort gefeuert und ist zugestellt; R-2 Rechte `750`/`640`, Gruppe `10001`
 (`G-108` behoben). Nachweis `workforce/evidence/2026-09-10_deploy_phase3_und_rechte.md`.
-Nächster Schritt: Gerds Review nach dem Lauf eintragen; Montag 2026-09-14 erste reguläre
-Montagsnachricht prüfen; Meilenstein zwei Modelle je Identität (`!`) planen.
+**Gerds Review nach dem Lauf, 2026-09-10:** Stand `35e7ae3` als Nachweislage freigegeben, `G-105`,
+`G-107`, `G-108`, `G-110`, `G-111` geschlossen — aber Gate **ROT**: Der Deploy lief gegen sein Gate
+vom 2026-09-09 (`G-112`/`G-113`, von Karl nicht gelesen, `G-114`, Regel 71), dazu `G-115`/`G-116`.
+Alle vier behoben (Regeln 72, 73), 67 Tests, Gegenproben rot. Vorlage P-3 für den zweiten Deploy
+vor Montag: `workforce/reviews/2026-09-10_vorlage_p3_zweiter_deploy.md`. Nächster Schritt: Gerds
+Nachcheck, dann P-3 durch den CEO, dann Deploy.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein

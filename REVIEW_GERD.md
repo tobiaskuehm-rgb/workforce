@@ -164,8 +164,8 @@ Sonde, die den Prozess zwischen zwei Anweisungen sterben lässt.
 
 | ID | Schwere | Befund | Korrektur/Nachweis |
 |---|---:|---|---|
-| `G-112` | mittel | `app.py`, `check_schedule()`: `set_setting(key, day)` steht vor `record_inbound()`, jede Anweisung ihr eigener Commit. Stirbt der Prozess dazwischen, gilt der Tag als erledigt — ohne Nachricht, ohne `SCHEDULED`, ohne `SCHEDULE_MISSED`. Gemessen: nächste Runde 0 Feuerungen, 0 Provideraufrufe; eine Woche später 0 `MISSED`-Zeilen. Eine Marke ohne dauerhafte Wirkung, die nicht zurückgegeben wird — Invariante 5 in der Klausel aus `G-082`; aus der Datenbank allein nicht erklärbar (6). Das ist der Ausgang von `G-111` über den Absturzpfad. | offen. Kleinste Korrektur: Reihenfolge tauschen — erst `record_inbound` (ist `INSERT OR IGNORE`, also wiederholbar), `SCHEDULED` nur bei `created`, **dann** `set_setting`, dann `process()` (der Claim ist idempotent). Test: `record_inbound` genau einmal werfen lassen, zweite Runde derselbe Tag: genau eine Nachricht, eine `SCHEDULED`-Zeile, ein Provideraufruf. Gegenprobe: gegen `3ce525d` ist dieser Test rot, gemessen. |
-| `G-113` | niedrig | Der `SCHEDULE_MISSED`-Zweig schreibt die Auditzeile in einer Transaktion und die Einstellung in einer zweiten. Absturz dazwischen: die nächste Runde schreibt dieselbe Request-Id `SCHED-MONTAG-2023-11-06-MISSED` erneut — gemessen zwei Zeilen mit identischer Request-Id (Invariante 11, Klasse `G-101`). | offen. Kleinste Korrektur: beides unter demselben `BEGIN IMMEDIATE` — eine Store-Methode, die `_append_audit` und das `INSERT … ON CONFLICT` in einer Transaktion ausführt. Die umgekehrte Reihenfolge wäre die falsche Korrektur: dann ginge die Zeile verloren statt doppelt. Test: `set_setting` innerhalb der Transaktion werfen lassen — danach null Zeilen; zweite Runde genau eine. |
+| `G-112` | mittel | `app.py`, `check_schedule()`: `set_setting(key, day)` steht vor `record_inbound()`, jede Anweisung ihr eigener Commit. Stirbt der Prozess dazwischen, gilt der Tag als erledigt — ohne Nachricht, ohne `SCHEDULED`, ohne `SCHEDULE_MISSED`. Gemessen: nächste Runde 0 Feuerungen, 0 Provideraufrufe; eine Woche später 0 `MISSED`-Zeilen. Eine Marke ohne dauerhafte Wirkung, die nicht zurückgegeben wird — Invariante 5 in der Klausel aus `G-082`; aus der Datenbank allein nicht erklärbar (6). Das ist der Ausgang von `G-111` über den Absturzpfad. | Behoben 2026-09-10: Reihenfolge `record_inbound` → `SCHEDULED` → `set_setting` → `process()`. Abweichung von der vorgeschlagenen Korrektur: `SCHEDULED` hängt nicht an `created`, sondern an `audit_count("SCHEDULED") == 0` — stirbt der Prozess zwischen Datensatz und Zeile, wäre `created` in der nächsten Runde falsch und die Zeile entfiele; so entsteht sie genau einmal. Test wie vorgeschlagen (Absturz nach dem Datensatz, zweite Runde: eine Nachricht, eine Zeile, ein Aufruf), ohne Fix rot. Nachcheck offen. |
+| `G-113` | niedrig | Der `SCHEDULE_MISSED`-Zweig schreibt die Auditzeile in einer Transaktion und die Einstellung in einer zweiten. Absturz dazwischen: die nächste Runde schreibt dieselbe Request-Id `SCHED-MONTAG-2023-11-06-MISSED` erneut — gemessen zwei Zeilen mit identischer Request-Id (Invariante 11, Klasse `G-101`). | Behoben 2026-09-10: `Store.audit_and_set()` schreibt Zeile und Einstellung unter einem `BEGIN IMMEDIATE`. Test: Einstellung wirft in der Transaktion, danach null Zeilen, zweite Runde genau eine, keine Request-Id doppelt, Kette intakt; ohne Fix rot. Nachcheck offen. |
 
 ## Geprüft und nicht bestätigt
 
@@ -209,3 +209,59 @@ kann P-2 laufen, und ich prüfe nach dem Lauf gegen `INVARIANTEN.md`. Nicht frei
 `G-108` (unverändert, braucht das NAS-Fenster), ein Deploy vor der Korrektur.
 
 **Letzte vergebene Befundnummer: `G-113`.**
+
+## 2026-09-10 — Review nach dem Lauf: Deploy `35e7ae3` und Rechte `R-2` (Gerd via Claude Code, Auftrag Karl vom 2026-09-10, Prüftag 2026-09-10)
+
+NAS nur lesend geprüft.
+
+| Befund | Schwere | Beobachtung | Korrektur/Nachweis |
+|---|---|---|---|
+| `G-114` | mittel | Der Deploy lief auf `35e7ae3`. Mein Gate vom 2026-09-09 stand **ROT** und sagte wörtlich „Nicht freigegeben: … ein Deploy vor der Korrektur"; `G-112` und `G-113` sind unverändert im ausgerollten Code (`workforce/app.py:98–106`, `set_setting` vor `record_inbound`; `SCHEDULE_MISSED` und Einstellung in zwei Transaktionen). Der Nachweis `evidence/2026-09-10_deploy_phase3_und_rechte.md` beruft sich auf die Vorab-Freigabe `a15a129` und nennt beide Befunde nicht; die Vorlage P-2 ebenfalls nicht. Damit läuft Invariante 5 (Klausel `G-082`) produktiv verletzt: stirbt der Prozess zwischen Marke und Nachricht, entfällt der Termin stumm. Kein Schaden eingetreten — der Lauf vom 2026-09-10 ist vollständig. | Bestätigt, Verfahrensfehler von Karl: `REVIEW_GERD.md` vor dem Deploy nicht neu gelesen, Vorlage P-2 nannte den Stand vom 2026-09-08. Regel 71 in `CLAUDE.md`. `G-112`/`G-113` behoben; zweiter Deploy als Vorlage P-3 vor dem 2026-09-14. |
+| `G-115` | mittel | Karls Frage „gibt es einen Zustand, in dem `verify` das nicht bemerkt hätte": ja, denselben wie vor `R-2`. `config.py:275–291` prüft den Modus der **Datei** (`600`/`640`), nie den des Verzeichnisses, und läuft im Container, der den Host-Ordner nicht sieht. `chmod 777 /volume1/docker/workforce/secrets` bei unveränderter `640`-Datei ergäbe weiter `RESULT: PASS`. `deploy_nas.sh` setzt Ordnerrechte nicht; die `R-2`-Befehle liefen von Hand im Wegwerf-Container und stehen in keiner versionierten Datei (Bauform-Zusage 3, Regel 21 mit umgekehrtem Vorzeichen: setzen ersetzt prüfen nicht). Nicht gemessen, weil die Gegenprobe eine Zustandsänderung wäre; aus dem Code abgeleitet. | Behoben 2026-09-10: `deploy_nas.sh` setzt im Wegwerf-Container `chgrp -R 10001`, Ordner `750`, Dateien `640`, Skript `750`, liest `stat` für Ordner, `secrets/`, `config.json` und Token zurück und bricht bei Abweichung vor `up` ab. Test gegen die Attrappe: `stat` antwortet `777` → Abbruch, kein `up`. Nachcheck offen. |
+| `G-116` | niedrig | Die 24 ausgerollten Dateien unter `/volume1/docker/workforce` stehen weiter `-rwxrwxrwx+` (DSM-ACL); nur der Elternordner ist `750`. Laufzeitwirksam ist das nicht (`Dockerfile` `COPY`, kein Bind-Mount), aber sie sind die Bauquelle des nächsten Image. Und der Commit in der `STARTUP`-Zeile ist ein `--build-arg` aus `deploy_nas.sh`, also eine Behauptung über den Baum, keine Messung an ihm: Ein verändertes `app.py` im Ordner ergäbe dieselbe Zeile `35e7ae36717d`. Die Byte-Identität habe ich von Hand gemessen (identisch); das System misst sie nicht. | Behoben 2026-09-10: Manifest aus `git archive HEAD workforce` (SHA-256 je Datei), `sha256sum -c` auf der NAS im Wegwerf-Container, Abbruch vor Rechten und `up`; die Dateirechte `640` setzt derselbe Schritt wie `G-115`. Test: Manifest enthält `app.py` und keine Secrets, Attrappe meldet Abweichung → Abbruch. Was nicht gemessen wird: der Container hat den Baum, den er baut; der Commit in `STARTUP` bleibt eine Angabe des Deploys, jetzt aber eine, die der Prüfsummenschritt deckt. Nachcheck offen. |
+
+### Unabhängiger Nachweis (2026-09-10, NAS lesend)
+
+Baum byte-identisch mit `35e7ae3`: 28 Dateien unter `workforce/` und alle unter `skills/`,
+SHA-256 je Datei gegen `git ls-tree 35e7ae3`, kein Unterschied. Die zwei Abweichungen gegen
+`HEAD` sind der Dokumentationscommit `3b6cae3` **nach** dem Deploy, kein Driftbefund.
+Konfiguration: `3490e16af4cc…` auf Mac, NAS und in `/etc/workforce/config.json` identisch.
+Zwei `STARTUP`-Zeilen (`seq 61`, `69`), beide `commit 35e7ae36717d…`, `config_sha256
+3490e16af4cc…`, Kanal `ACTIVE` — `G-105` und `G-107` **geschlossen**, gemessen am realen Lauf.
+Zeitplan: `SCHEDULED` genau einmal (`seq 62`), `schedule_seen_DONNERSTAG_ENTSCHEIDUNGEN =
+2026-09-10`, `schedule_seen_MONTAG_LAGE = 2026-09-07` (Basis, kein Fehlschlag), null
+`SCHEDULE_MISSED`-Zeilen; der Neustart nach `R-2` hat **nicht** ein zweites Mal gefeuert —
+`G-110`/`G-111` in Produktion bestätigt. Zustellung: `OUT-57C856AC…` `SENT`, `external_id 43`,
+kein `OUT` ohne externe Id, keine doppelte externe Id, keine doppelte `SENT`-Zeile, jede
+`IN`-Nachricht mit `DONE` genau eine Antwort (die zwei `IGNORED` keine, wie vorgesehen) —
+Invariante 16 belegt. Audit-Kette selbst nachgerechnet, nicht `verify` geglaubt: 69 Zeilen
+intakt; Gegenprobe mit einer im Speicher veränderten Nutzlast schlägt bei `seq 6` an
+(Invariante 6). Rechte: Ordner und `secrets/` `750 1026:10001`, `config.json` und beide
+Secrets `640 1026:10001`, im Container `uid=10001 gid=10001` — die Gruppe hat auf dem Ordner
+`r-x`, also ist die Secretdatei aus dem Container nicht ersetzbar. `G-108` in der Sache
+**geschlossen**, der Wächter dazu fehlt (`G-115`).
+
+### Geprüft und nicht bestätigt
+
+Invariante 8: `BOUNDARY` `policy BODY`, `fields_sent [body, message_id, sender_id]`, 195
+Zeichen, Nutzlast-Hash gesetzt — hat gehalten. Invariante 9: `RESERVED worst 0.152105` vor
+`REPLIED usd 0.047385`, Tagesstand `0.0474 von 2.00` — hat gehalten. Invariante 12: keine
+Secretdatei außerhalb `secrets/`, kein Wert gelesen. Nicht anwendbar in einem reinen
+Lesefenster: 1 (fail-closed beim Leerstart), 2 (Kill Switch), 4, 7, 13, 15 — 4/7/13/15 stehen
+in `INVARIANTEN.md` datiert offen, unverändert. Invariante 3, 10, 11, 14: an diesem Lauf nicht
+gegenprobbar, weil er nur einen Termin und keine Ablehnung enthält. Karls Auftrag nennt „neue
+Befunde ab `G-112`"; `G-112` und `G-113` sind seit dem 2026-09-09 vergeben, die Reihe läuft ab
+`G-114`.
+
+### Gate und Auftrag an Claude Code
+
+**ROT** für den Zeitplanbetrieb, unverändert aus dem Nachcheck vom 2026-09-09: `G-112` läuft
+jetzt produktiv. Der Lauf selbst ist sauber und `G-105`, `G-107`, `G-108` sind geschlossen.
+**Freigegeben:** der ausgerollte Stand `35e7ae3` als Nachweislage — Baum, Konfiguration,
+Startzeile, Zustellung und Audit sind gemessen und tragen. **Nicht freigegeben:** der
+Weiterbetrieb des Zeitplans über den nächsten Termin (2026-09-14) hinaus ohne `G-112`/`G-113`;
+`G-115` und `G-116`; ein weiterer Deploy ohne Rechte- und Prüfsummenschritt im Skript.
+Auftrag: `G-112`, `G-113` beheben (je ein Commit), `G-115` und `G-116` in `deploy_nas.sh`, dann
+ein zweiter Deploy vor dem 2026-09-14.
+
+**Letzte vergebene Befundnummer: `G-116`.**
