@@ -47,8 +47,14 @@ ssh -o BatchMode=yes "$host" "umask 027 && cat > '$root/config.json'" < workforc
 for s in $secrets; do
   ssh -o BatchMode=yes "$host" "umask 027 && cat > '$root/secrets/$s'" < "workforce/secrets/$s"
 done
+# Rights are set by the script, not by hand (G-115, G-108): directories 750, files 640, the
+# script 750, group 10001 so the container user reads by number (G-044). Then read back.
 ssh -o BatchMode=yes "$host" "cd '$root' \
-  && $docker run --rm -v '$root/secrets:/s' alpine sh -c 'chgrp 10001 /s/* && chmod 640 /s/*' \
+  && $docker run --rm -v '$root:/w' alpine sh -c 'chgrp -R 10001 /w && find /w -type d -exec chmod 750 {} + && find /w -type f -exec chmod 640 {} + && chmod 750 /w/deploy_nas.sh'" < /dev/null
+rechte="$(ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -v '$root:/w' alpine stat -c '%a %g %n' /w /w/secrets /w/config.json /w/secrets/telegram_bot_token" < /dev/null | sed 's|/w||' | tr '\n' ' ')"
+erwartet="750 10001  750 10001 /secrets 640 10001 /config.json 640 10001 /secrets/telegram_bot_token "
+[ "$rechte" = "$erwartet" ] || { echo "FAIL: Rechte auf der NAS: $rechte" >&2; rm -f "$archiv"; exit 1; }
+ssh -o BatchMode=yes "$host" "cd '$root' \
   && $docker compose $compose build -q --build-arg WORKFORCE_COMMIT=$(git rev-parse HEAD) \
   && $docker compose $compose up -d --force-recreate && $docker compose $compose ps" < /dev/null
 rm -f "$archiv"

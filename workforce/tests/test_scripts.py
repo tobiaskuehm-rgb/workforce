@@ -27,6 +27,12 @@ FAKE_SSH = r'''#!/bin/sh
 n=$(cat "$FAKE_SSH_LOG/count" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$FAKE_SSH_LOG/count"
 printf '%s\n' "$@" > "$FAKE_SSH_LOG/$n.args"
 cat > "$FAKE_SSH_LOG/$n.stdin"
+case "$*" in
+  *"stat -c"*) printf '%s\n' "${FAKE_STAT:-750 10001 /w
+750 10001 /w/secrets
+640 10001 /w/config.json
+640 10001 /w/secrets/telegram_bot_token}"; exit 0 ;;
+esac
 [ -n "${FAKE_SSH_STDOUT:-}" ] && cat "$FAKE_SSH_STDOUT"
 exit 0
 '''
@@ -57,7 +63,8 @@ class ScriptHarness(unittest.TestCase):
 class DeployTest(ScriptHarness):
     def clone(self, provider: str, *, model_key=True) -> pathlib.Path:
         clone = self.tmp / "clone"
-        subprocess.run(["git", "clone", "-q", "--shared", str(REPO), str(clone)], check=True)
+        r = subprocess.run(["git", "clone", "-q", "--shared", str(REPO), str(clone)], capture_output=True, text=True)
+        self.assertEqual(0, r.returncode, r.stderr)
         secrets = clone / "workforce/secrets"; secrets.mkdir()
         (secrets / "telegram_bot_token").write_text("tg-token\n")
         if model_key:
@@ -84,7 +91,7 @@ class DeployTest(ScriptHarness):
         self.assertEqual(b"sk-key\n", streamed["anthropic_api_key"])
         final = calls[-1][0][-1]
         self.assertIn("-f compose.yaml -f compose.claude.yaml up -d --force-recreate", final)
-        self.assertIn("chgrp 10001", final)
+        self.assertTrue(any("chgrp -R 10001" in a[-1] for a, _ in calls))   # the rights step precedes `up`
         head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=clone, capture_output=True, text=True).stdout.strip()
         self.assertIn(f"--build-arg WORKFORCE_COMMIT={head}", final)   # G-105: the image knows its commit
 
@@ -114,6 +121,20 @@ class DeployTest(ScriptHarness):
         self.assertNotEqual(0, run.returncode)
         self.assertIn("nicht lesbar", run.stderr)
         self.assertEqual([], self.calls())                     # nothing reached the NAS
+
+    def test_rights_are_set_by_the_script_and_read_back(self):
+        # G-115: the rights step lives in the script, and a wrong read-back aborts before `up`.
+        clone = self.clone("claude")
+        run = self.deploy(clone)
+        self.assertEqual(0, run.returncode, run.stderr)
+        cmds = [a[-1] for a, _ in self.calls()]
+        self.assertTrue(any("chmod 750" in c and "chgrp -R 10001" in c for c in cmds), cmds)
+        self.assertTrue(any("stat -c" in c for c in cmds))
+        self.env["FAKE_STAT"] = "777 100 /w\n750 10001 /w/secrets\n640 10001 /w/config.json\n640 10001 /w/secrets/telegram_bot_token"
+        run = self.deploy(clone)
+        self.assertNotEqual(0, run.returncode)
+        self.assertIn("Rechte auf der NAS", run.stderr)
+        self.assertFalse(any("up -d --force-recreate" in a[-1] for a, _ in self.calls()[len(cmds):]))
 
     def test_the_archive_is_the_committed_tree_without_secrets_or_state(self):
         clone = self.clone("claude")
