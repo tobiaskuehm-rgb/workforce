@@ -163,8 +163,11 @@ fehlt: Ollama auf dem Mac mini, der Netzweg mit deiner Abnahme, und ein lokales 
 Allowlist `models.py`. **Für Marv:** Marlenes und Marvs Skill haben je einen Gedächtnisverweis bekommen,
 Marlene ist damit nach der Messung geändert. Meilenstein nach dem Phase-3-Deploy: zwei
 Modelle je Identität (`model`, `model_deep`), `!` wählt Denken, Modell nie aus der Modellausgabe.
-Nächster Schritt: Donnerstag 2026-09-10, P-2 und R-2 entscheiden; nach dem Deploy
-Gerds Review nach dem Lauf, danach Nachcheck `G-110`/`G-111`.
+**Donnerstag 2026-09-10, ausgeführt:** Deploy `35e7ae3` mit Phase 3 und `G-105`/`G-107`/`G-110`/`G-111`;
+Donnerstagstermin hat sofort gefeuert und ist zugestellt; R-2 Rechte `750`/`640`, Gruppe `10001`
+(`G-108` behoben). Nachweis `workforce/evidence/2026-09-10_deploy_phase3_und_rechte.md`.
+Nächster Schritt: Gerds Review nach dem Lauf eintragen; Montag 2026-09-14 erste reguläre
+Montagsnachricht prüfen; Meilenstein zwei Modelle je Identität (`!`) planen.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein

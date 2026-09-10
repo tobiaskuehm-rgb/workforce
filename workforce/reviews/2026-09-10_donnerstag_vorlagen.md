@@ -60,3 +60,7 @@ fünf Kandidaten für Baustein C schriftlich, im Chat oder als Datei, bis zum 20
   überfällige Vorlagen, ein Deploy mit Nachweis.
 
 Nächster Schritt: Der CEO entscheidet P-2, R-2 und S-2 am 2026-09-10; Owner Tobias.
+
+## Entscheidung 2026-09-10
+
+CEO: „ja" zu P-2 und R-2. Beide ausgeführt, Nachweis `workforce/evidence/2026-09-10_deploy_phase3_und_rechte.md`; der Donnerstagstermin hat noch am selben Vormittag gefeuert und ist zugestellt. S-2: Thorsten hat in seiner Sitzung drei Kandidaten aufgenommen (`e8323b5`), damit in Arbeit. Gerds Review nach dem Lauf läuft.
