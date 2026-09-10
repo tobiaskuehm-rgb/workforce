@@ -38,8 +38,16 @@ begegnete. Ein Werkzeug einer Rolle darf in fremden Fenstern nicht sichtbar werd
 
 ## Was gezählt wird
 
-Ein Commit betrifft eine Identität, wenn er **ihren Skillordner berührt** oder wenn sein
-**Betreff mit ihrem Rufnamen beginnt**. Beides zusammen, weil Arbeit *an* einer Identität und
+Ein Commit betrifft eine Identität, wenn er **einen ihrer Pfade berührt** oder wenn sein
+**Betreff mit ihrem Rufnamen beginnt**. Zu ihren Pfaden gehören immer `skills/<name>` und
+`skills/<name>-workspace`, dazu je Identität eingetragene weitere in `stand.json` unter
+`pfade` — für Thorsten `FILTER.md`, sein Regelwerk.
+
+**Der Arbeitsbereich zählte bis zum 2026-09-10 nicht mit.** Eine Pfadangabe `skills/karl`
+trifft `skills/karl-workspace` nicht, und damit fiel jede Messrunde aus der Zählung: bei Karl
+drei Commits, bei Thorsten die einzige. Thorsten stand deshalb auf vier statt acht. Gefunden
+hat es der CEO, nicht der Wächter — zum zweiten Mal an derselben Frage, nämlich wo die Arbeit
+einer Identität wirklich liegt. Beides zusammen, weil Arbeit *an* einer Identität und
 Arbeit *durch* eine Identität verschiedene Spuren hinterlassen. Doppelt gezählt wird nicht.
 
 Schwellen stehen in `stand.json`: fünf Commits in der Probezeit, zehn im Regelbetrieb, je

@@ -71,7 +71,7 @@ def spuren_ausserhalb(eintrag, seit_datum):
     return gezaehlt
 
 
-def commits_seit(name, anzeige, seit):
+def commits_seit(name, anzeige, seit, pfade):
     """Kurzhashes der Commits, die diese Identitaet betreffen, seit dem letzten Review.
 
     Rueckgabe: List[str]. Ohne Typannotation in der Signatur, weil der Mac dieses
@@ -80,10 +80,14 @@ def commits_seit(name, anzeige, seit):
     spanne = [f"{seit}..HEAD"] if seit else []
     treffer = set()  # type: Set[str]
 
-    # Weg 1: Commits, die ihren Ordner beruehren.
-    for zeile in git("log", "--format=%h", *spanne, "--", f"skills/{name}").splitlines():
-        if zeile.strip():
-            treffer.add(zeile.strip())
+    # Weg 1: Commits, die einen ihrer Pfade beruehren. Der Arbeitsbereich zaehlt mit:
+    # `skills/<name>` als Pfadangabe trifft `skills/<name>-workspace` NICHT, und damit fielen
+    # bis zum 2026-09-10 saemtliche Messrunden aus der Zaehlung — bei Karl drei, bei Thorsten
+    # die einzige. Zusaetzliche Pfade stehen je Identitaet in `stand.json` unter `pfade`.
+    for pfad in pfade:
+        for zeile in git("log", "--format=%h", *spanne, "--", pfad).splitlines():
+            if zeile.strip():
+                treffer.add(zeile.strip())
 
     # Weg 2: Commits, deren Betreff mit ihrem Namen beginnt ("Marlene: ...").
     rufname = anzeige.split(" (")[0]
@@ -105,7 +109,8 @@ def bericht(nur_faellige=False):
         if eintrag.get("zustand") == "ruht":
             zeilen.append((eintrag["anzeige"], "ruht", "", "-", ""))
             continue
-        gezaehlt = commits_seit(name, eintrag["anzeige"], eintrag.get("letztes_review"))
+        pfade = [f"skills/{name}", f"skills/{name}-workspace"] + eintrag.get("pfade", [])
+        gezaehlt = commits_seit(name, eintrag["anzeige"], eintrag.get("letztes_review"), pfade)
         grenze = schwelle(stand, eintrag)
         seit_datum = eintrag.get("letztes_review_datum")
         aussen = spuren_ausserhalb(eintrag, seit_datum)
