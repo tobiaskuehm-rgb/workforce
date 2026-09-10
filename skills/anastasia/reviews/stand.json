@@ -6,8 +6,9 @@
     "karl": {
       "anzeige": "Karl (SAO-001)",
       "zustand": "probezeit",
-      "letztes_review": null,
-      "schwelle": null
+      "letztes_review": "65a2a6e875aa88ed45a336457a1359a1d9c83c87",
+      "schwelle": null,
+      "letztes_review_datum": "2026-09-10"
     },
     "marlene": {
       "anzeige": "Marlene (POA-001)",
