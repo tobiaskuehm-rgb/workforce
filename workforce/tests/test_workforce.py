@@ -385,6 +385,27 @@ class ScheduleTest(Harness):
         self.assertEqual(1, self.store.audit_count("SCHEDULE_MISSED", "MONTAG"))
         self.assertEqual([], self.provider.calls)
 
+    def test_a_crash_between_record_and_mark_fires_once_next_round(self):
+        # G-112: the mark comes after the effect; a crash in between leaves a day that fires
+        # again, and the repeat produces exactly one message, one row, one call.
+        self.with_item()
+        self.now = 1_699_250_400.0
+        real = self.store.record_inbound
+        def dies_once(**kw):
+            self.store.record_inbound = real
+            real(**kw)
+            raise RuntimeError("process died after the record")
+        self.store.record_inbound = dies_once
+        with self.assertRaises(RuntimeError):
+            self.app.check_schedule()
+        today = app_module.today(lambda: self.now)
+        self.assertLess(self.store.setting("schedule_seen_MONTAG", ""), today)  # baseline only, today's mark not written
+        self.assertEqual(1, self.app.check_schedule())
+        mid = derived_id("SCHED", "MONTAG", app_module.today(lambda: self.now))
+        self.assertEqual(1, self.store._db.execute("SELECT count(*) FROM messages WHERE message_id = ?", (mid,)).fetchone()[0])
+        self.assertEqual(1, self.store.audit_count("SCHEDULED", mid))
+        self.assertEqual(1, len(self.provider.calls))
+
     def test_an_exhausted_budget_is_resumed_the_next_day_like_any_message(self):
         # G-100/G-109 together: a schedule fire follows the ordinary budget-wait path.
         item = {"id": "MONTAG", "weekday": 1, "hour": 6, "identity": "A", "prompt": "Wochenlage."}

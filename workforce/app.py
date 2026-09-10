@@ -103,12 +103,18 @@ class App:
                 self.store.set_setting(key, last_due)
             if not due_today or self.store.setting(key, "") >= day:
                 continue
+            # Effect before mark (G-112, the G-082 clause of invariant 5): the record is the
+            # durable effect and is repeatable (INSERT OR IGNORE); the mark comes after it, so
+            # a crash in between leaves a day that fires again, never one that vanished.
             message_id = derived_id("SCHED", item.id, day)
-            self.store.set_setting(key, day)
             self.store.record_inbound(message_id=message_id, update_id=None, chat_id=self.config.allowed_chat_id,
                                       sender=HUMAN, recipient=item.identity, text=item.prompt)
-            self.store.audit(ACTOR, f"{message_id}-SCHEDULED", "SCHEDULED", message_id,
-                             {"schedule_id": item.id, "day": day})
+            # The row's own existence decides, not a flag from this run: a crash between the
+            # record and this line must still leave exactly one SCHEDULED row next round.
+            if self.store.audit_count("SCHEDULED", message_id) == 0:
+                self.store.audit(ACTOR, f"{message_id}-SCHEDULED", "SCHEDULED", message_id,
+                                 {"schedule_id": item.id, "day": day})
+            self.store.set_setting(key, day)
             self.process(message_id)
             fired += 1
         return fired
