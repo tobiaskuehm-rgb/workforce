@@ -7,7 +7,7 @@ Was Anastasia weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Ei
 | Datum | Entscheidung | Quelle |
 |---|---|---|
 | ~~2026-09-07~~ | ~~Ob Marv (Skillbauer) Mitarbeiter wird, ist offen („Bin mir noch unschlüssig als Mitarbeiter").~~ | Chat 2026-09-07 |
-| 2026-09-08 | Marv wird Mitarbeiter und ist Anastasia unterstellt. Kennung und `DEC`-Eintrag vergibt der CEO; bis dahin `CEO-CHAT-2026-09-08/PENDING-DEC`. | Chat 2026-09-08 |
+| 2026-09-08 | Marv wird Mitarbeiter und ist Anastasia unterstellt. Kennung `AI-SKE-001` am selben Tag vergeben; der `DEC`-Eintrag steht weiter aus, bis dahin `CEO-CHAT-2026-09-08/PENDING-DEC`. | Chat 2026-09-08, Commit 940f9d1 |
 | 2026-09-08 | Marv überarbeitet die drei ungemessenen Skills: Thorsten, Anastasia, CFO. | Chat 2026-09-08 |
 | 2026-09-08 | Der CFO wird erst im Oktober 2026 gebraucht; Name und Messung haben bis dahin Zeit. | Chat 2026-09-08 |
 | 2026-09-08 | Marv hat den Auftrag zur Modellmessung bereits direkt vom CEO. Anastasia beauftragt ihn nicht ein zweites Mal; Marv läuft nur einmal, kein Parallelstart, kein Neuanlegen. | Chat 2026-09-08 |

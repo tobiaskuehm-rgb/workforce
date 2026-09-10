@@ -40,8 +40,9 @@
     "marv": {
       "anzeige": "Marv Skillbauer",
       "zustand": "probezeit",
-      "letztes_review": null,
-      "schwelle": null
+      "letztes_review": "6aa4b9890aadd9c56bea5919fdde5c6aaee40055",
+      "schwelle": null,
+      "letztes_review_datum": "2026-09-10"
     },
     "gerd": {
       "anzeige": "Gerd (AI-ENG-001)",
