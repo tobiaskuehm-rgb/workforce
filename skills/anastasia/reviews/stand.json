@@ -21,11 +21,12 @@
     "thorsten": {
       "anzeige": "Thorsten (RAS-001)",
       "zustand": "probezeit",
-      "letztes_review": null,
+      "letztes_review": "8e3fda82e5dc97973b3f9ae95cd364122aee6950",
       "schwelle": null,
       "pfade": [
         "FILTER.md"
-      ]
+      ],
+      "letztes_review_datum": "2026-09-10"
     },
     "anastasia": {
       "anzeige": "Anastasia (PEO-001)",
