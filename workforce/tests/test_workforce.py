@@ -412,15 +412,21 @@ class ScheduleTest(Harness):
         self.with_item()
         self.now = 1_699_250_400.0 - 86_400            # Sunday: baseline
         self.app.check_schedule()
+        baseline = self.store.setting("schedule_seen_MONTAG", "")
         self.now = 1_699_250_400.0 + 86_400            # Tuesday: Monday was missed
         real = self.store._set_setting_sql
         def dies_once(key, value):
             self.store._set_setting_sql = real
+            real(key, value)                            # the mark is written, then the crash
             raise RuntimeError("died inside the transaction")
         self.store._set_setting_sql = dies_once
         with self.assertRaises(RuntimeError):
             self.app.check_schedule()
         self.assertEqual(0, self.store.audit_count("SCHEDULE_MISSED", "MONTAG"))
+        # From Gerd's draft on codex/g112-g113: the mark rolls back with the row, and the
+        # connection is left without an open transaction.
+        self.assertEqual(baseline, self.store.setting("schedule_seen_MONTAG", ""))
+        self.assertFalse(self.store._db.in_transaction)
         self.app.check_schedule()
         self.assertEqual(1, self.store.audit_count("SCHEDULE_MISSED", "MONTAG"))
         dup = self.store._db.execute("SELECT request_id FROM audit GROUP BY request_id HAVING count(*) > 1").fetchall()
