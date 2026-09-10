@@ -1,7 +1,7 @@
 # Entwurf für das Entscheidungslog, DEC-038 bis DEC-045
 
 Vorlage von Karl, 2026-09-10. Ziel: `Startup_Codex/START_UP_Codex_Projektquellen_2026-08-13/03_DECISION_LOG.txt`
-im iCloud-Satz, ans Ende anhängen. Form wie `DEC-036`. Der CEO schreibt, oder sagt „trag ein".
+im iCloud-Satz, ans Ende angehängt am 2026-09-10 auf Anweisung des CEO („die können wir alle sofort verabschieden“), DEC-044 vorher geändert: Marlene arbeitet direkt auf Drive und NAS.
 
 ## DEC-038 – Neubau des Workforce-Kerns statt Weiterführung des Prototyps
 **Datum:** 2026-09-03
@@ -49,12 +49,14 @@ im iCloud-Satz, ans Ende anhängen. Form wie `DEC-036`. Der CEO schreibt, oder s
 
 **Ersetzt/klärt:** `PEO-007` führt Marlenes Probezeit weiter; Marvs Status aus dem Chat vom 2026-09-07 („unschlüssig") ist entschieden.
 
-## DEC-044 – Klasse Rechte: Marlene bis Phase 4 auf dem Kopienweg
-**Datum:** 2026-09-08
+## DEC-044 – Klasse Rechte: Marlene arbeitet direkt auf Google Drive und NAS
+**Datum:** 2026-09-10
 **Entscheider:** CEO
 **Status:** ACTIVE
 
-**Entscheidung:** Marlene erhält keinen eigenen Lesezugang zu Google Drive oder NAS-Inbox; Dokumente kommen als Kopie. Der lesende Zugang wird mit Phase 4 (Paperless) entschieden, mit eigener Invariantenzeile und Gerds Review vorher.
+**Entscheidung:** Marlene arbeitet nicht mehr auf Kopien. Sie darf auf Google Drive (ihre Ablage) und auf die NAS (Inbox) zugreifen, lesend und für ihre Ablage schreibend, für die Vorgänge des Private Office. Die Grenzen aus `DEC-036` bleiben: keine Löschung oder Änderung von Originalen, keine Zahlung, Einreichung oder externe Nachricht ohne Ja des CEO, keine privaten Inhalte in Start-UP-Quellen.
+
+**Ersetzt/klärt:** Ersetzt die Vorlage R-1 aus dem Gesamtreview vom 2026-09-08 (Kopienweg bis Phase 4); der Chat vom 2026-09-08 („ok" zu R-1) ist damit überholt.
 
 ## DEC-045 – Klasse Produktives: Phase 3 und Rechte auf der NAS
 **Datum:** 2026-09-10
