@@ -287,3 +287,70 @@ Freigabe Gerd: `6cda0c5` für den zweiten Deploy (P-3, Option a). Nicht freigege
 Logsatz „offen danach: keine" — offen bleiben `G-117`, `G-118`.
 
 **Letzte vergebene Befundnummer: `G-118`.**
+
+## 2026-09-10 — Review nach dem Deploy `0ef72cb` (Gerd via Claude Code, Auftrag Karl)
+
+NAS nur lesend geprüft (`ps`, `logs`, `exec verify|status`, `ls`, `stat`, sqlite `mode=ro`).
+
+**Baum byte-identisch.** 504 Dateien unter `/volume1/docker/workforce` (`workforce/` flach +
+`skills/`) gegen `git archive 0ef72cb` verglichen, sha256 je Datei: kein Unterschied, keine
+fehlende, keine unerwartete Datei. Einziges Extra ist `config.json`, unversioniert, Digest
+`3490e16af4cc…` — derselbe, den die Startzeile nennt.
+
+**Startzeile/Stand.** `workforce: Stand 0ef72cbd07d5, Konfiguration 3490e16af4cc, Kanal ACTIVE,
+Standardidentitaet KARL`; `verify` → `RESULT: PASS`, `status` → Stand `0ef72cbd07d5`, 1 Aufruf,
+`0.0474 von 2.00`, 0 offene Ausgänge.
+
+**Zeitplan hat gehalten.** `SCHEDULED` weiterhin genau eine Zeile (`seq 62`),
+`schedule_seen_DONNERSTAG_ENTSCHEIDUNGEN = 2026-09-10`, `…MONTAG_LAGE = 2026-09-07`, keine
+`SCHEDULE_MISSED`-Zeile. Zwischen Termin und heute liegen **zwei** Neustarts (`STARTUP seq 69`
+mit `35e7ae3` um 08:04, `seq 70` mit `0ef72cb` um 11:21); keiner hat erneut gefeuert.
+
+**Rechte.** Ordner `.` und `secrets/` `750`, `config.json`, `secrets/telegram_bot_token` und
+`secrets/anthropic_api_key` je `640`, alle Gruppe `10001` (Eigentümer `1026`). Kein `+`
+(DSM-ACL) auf den Paketdateien — der Elternordner trägt eines. Kein Secretwert gelesen.
+
+**Zustellung/Kette.** Kein `OUT`/`SENT` ohne externe Id, keine doppelte externe Id, jede der 9
+`IN`/`SCHED`-Nachrichten mit `DONE` hat genau eine Antwort, die zwei `IGNORED` keine, kein
+offener `OUT`. Audit selbst nachgerechnet statt `verify` geglaubt: 70 von 70 Zeilen intakt;
+Gegenprobe mit einer im Speicher veränderten Nutzlast bricht bei `seq 6` (Invariante 6).
+
+## `G-119` – Der Prüfsummenschritt hat eine Option benutzt, die es auf dem Ziel nicht gibt
+Laufzeit: Gerd via Claude Code. Geprüft: `6cda0c5..0ef72cb`. Schwere: niedrig.
+
+Beobachtung: `workforce/deploy_nas.sh:55` rief `sha256sum -c --quiet -` in `alpine` auf.
+Alpines `sha256sum` ist Busybox und kennt `--quiet` nicht; der Schritt brach fail-closed ab,
+der Deploy stoppte vor Rechten und `up`, der alte Container lief weiter (Startzeile `seq 69`
+belegt ihn). `0ef72cb` entfernt die Option. Der Test dazu (`test_scripts.py:35`) ersetzt
+`sha256sum -c` durch ein Skript mit `FAKE_SHA_EXIT` — die Aufrufform wurde also nie gegen ein
+echtes Busybox geprüft, nur ihre Wirkung simuliert. Dieselbe Klasse wie `G-043`: nicht ein
+erfundener Name, sondern erfundenes Verhalten des Zielsystems.
+
+Warum es zählt: Kein Schaden — fail-closed hat gehalten, und das ist der Beleg, den die
+Bauform verspricht. Aber jede weitere Option in einem Container-Einzeiler hat dieselbe blinde
+Stelle, und ein Deploy, der im Fenster abbricht, kostet das Fenster.
+
+### Kleinste sichere Korrektur
+Erledigt (Option entfernt, real auf der NAS geprobt). Offen bleibt der Wächter: Der Fehlerpfad
+(`sha256sum -c` mit abweichender Zeile → Exitcode ≠ 0) ist auf Busybox **nicht** gemessen,
+nur gefaked. Ein einmaliger Nachweislauf gegen `alpine` mit einem verfälschten Manifest schließt
+das; danach den Exitcode im Nachweis nennen.
+
+### Geprüft und nicht bestätigt
+`G-117` und `G-118` unverändert offen: Die Rückmessung im Skript liest weiterhin nur
+`telegram_bot_token` (nicht `anthropic_api_key`) und keine ACL; das Manifest deckt weiterhin nur
+`workforce/`, nicht das mit ausgerollte `skills/`, und meldet Unerwartetes nicht. Beides habe
+ich diesmal von Hand gemessen — beide Secrets `640 10001`, `skills/` byte-identisch —, das
+ersetzt den Wächter nicht.
+
+### Gate und Auftrag an Claude Code
+**GRÜN für den ausgerollten Stand `0ef72cb`**: Baum, Konfiguration, Startzeile, Rechte,
+Zustellung und Auditkette sind gemessen und tragen; `G-119` ohne dauerhaften Schaden.
+**Freigegeben:** der Zeitplanbetrieb bis einschließlich `2026-09-14` (Montagstermin
+`MONTAG_LAGE`) im jetzigen Stand.
+**Nicht freigegeben ohne neuen Nachcheck:** der Zeitplanbetrieb **über den 2026-09-14 hinaus** —
+`G-117` und `G-118` sind bis dahin zu schließen und der Fehlerpfad aus `G-119` einmal real zu
+messen; ferner jeder weitere Deploy, dessen Prüfsummen- oder Rechteschritt geändert wird, ohne
+dass die geänderte Aufrufform auf der NAS gelaufen ist.
+
+**Letzte vergebene Befundnummer: `G-119`.**
