@@ -26,17 +26,55 @@ ein Modell, ein Kontext, ein Verlauf für alle. Ein Agent ist ein **eigener Lauf
 Modell und eigenem Kontext; seine Arbeit landet nicht im Fenster des CEO. Modelle je Identität
 gibt es deshalb nur als Agent oder im Bot, nie als Skill.
 
+## Verfahren, die keine Identität sind
+
+Zwei Skills beschreiben keine Rolle, sondern ein Vorgehen. Sie haben keine Kennung, keinen
+Status, keinen Vorgesetzten und kein Gedächtnis, weil es niemanden gibt, der sich erinnert.
+
+| Verfahren | Ordner | wozu | Herkunft |
+|---|---|---|---|
+| 3-Loop | `3loop/` | ein Vorschlag, drei Gegenvorschläge, drei Sichten, ein Fazit | Marv, 2026-09-07, aus dem Bau von Marlene und Marv |
+| Ideen-Vergleich | `idee/` | eine Idee gegen einen Gegenvorschlag, blind bewertet | Marv, 2026-09-09, Endfassung aus dem Vergleich |
+
+Sie stehen **vor** dem Register und nicht darin. Das ist keine Kosmetik: Der Wächter liest ab
+`## Register` und verlangt für jeden Eintrag dort eine Gedächtnisdatei. Ein Verfahren, das im
+Register stünde, würde ein Gedächtnis verlangen, das es nicht geben soll.
+
 ## Register
 
-| Identität | Ordner | Agent | Bot | Stand |
-|---|---|---|---|---|
-| Karl `SAO-001`, Standard, **COO auf Probe** seit 2026-09-08 (Chat, `PENDING-DEC`) | `karl/` | Sonnet | Opus | v2 nach Marv, 2026-09-07: Feld erkundet (FwDV 100, Chief of Staff, ISO 19011, Scrum, GGO), drei Fassungen, fünf Prüfrunden, Endfassung 43/43 gegen 26/43; Arbeitsbereich `karl-workspace/` |
-| Marlene `POA-001` | `marlene/` | Sonnet | Sonnet | eingesammelt aus `~/.claude/skills`, Verweis zurückgelegt |
-| Thorsten `RAS-001` | `thorsten/` | Sonnet | Opus | aus Opportunity-Filter v0.2 des Quellensatzes und `FILTER.md`, 2026-09-06; Runde 1 durch Marv am 2026-09-08: 34/36 gegen 15/36, größter gemessener Abstand; Arbeitsbereich `thorsten-workspace/` |
-| Anastasia `PEO-001` | `anastasia/` | Sonnet | Sonnet | aus Company State, Regel 4 und ihrer Organisationsbestandsaufnahme, 2026-09-06; Runde 1 durch Marv am 2026-09-08: 34/35 gegen 24/35, vier Prüffälle, fremde Bewerter; Arbeitsbereich `anastasia-workspace/` |
-| Wolle, CFO, Kennung offen | `cfo/` | Sonnet | Sonnet | neu, 2026-09-06; Name Wolle vom CEO 2026-09-08 (Chat, `PENDING-DEC`), Kennung und `DEC`-Eintrag offen; Bedarf erst Oktober 2026 (Chat 2026-09-08) |
-| Marv Skillbauer `AI-SKE-001`, unterstellt Anastasia | `marv/` | Opus | — | hat sich selbst gebaut, 2026-09-06; bewusst kein Bot-Skill; Mitarbeiter seit 2026-09-08, Kennung `AI-SKE-001` vom CEO am 2026-09-08 vergeben (Chat, `CEO-CHAT-2026-09-08/PENDING-DEC`), zwei Runden 40/40 gegen 17/40; Auftrag: Skills von Thorsten, Anastasia, Wolle überarbeiten und messen |
-| Gerd `AI-ENG-001` | `gerd/` | Opus | — | aus seinen Prüfrunden, 2026-09-06; lebt in Claude Code (Prüfer) und ChatGPT (Vorlagen, seit 2026-09-09), bewusst kein Bot-Skill; zwei Runden durch Marv am 2026-09-08: 37/38 gegen 29/38, dann 40/42 gegen 36/42; Arbeitsbereich `gerd-workspace/` |
+Ein Registereintrag beantwortet fünf Fragen: wer, welche Kennung, in welchem Status, wer führt,
+und wo steht der Nachweis. Bis zum 2026-09-10 beantwortete er zwei davon. Die Ordnerspalte
+bleibt die zweite, weil zwei Wächter sie dort lesen (`test_identitaeten.py`,
+`test_organigramm.py`).
+
+| Identität | Ordner | Kennung | Status | Vorgesetzter / fachliche Führung | letzter Review |
+|---|---|---|---|---|---|
+| Karl, Koordinator, Standard im Bot | `karl/` | `SAO-001` | Probezeit (`DEC-002`) | CEO / Anastasia | 2026-09-10, `probezeit/karl_SAO-001.md` |
+| Marlene, Private Office | `marlene/` | `POA-001` | Probezeit (`DEC-036`) | CEO / Anastasia | 2026-09-10, `probezeit/marlene_POA-001_2026-09-10.md` |
+| Thorsten, Research & Strategy | `thorsten/` | `RAS-001` | Probezeit (`DEC-002`) | CEO / Anastasia | noch keiner |
+| Anastasia, People & Organization | `anastasia/` | `PEO-001` | Probezeit (`DEC-002`) | CEO (auch Kontrolle) / — | 2026-09-10, Selbstprüfung, `probezeit/anastasia_PEO-001.md` |
+| Wolle, CFO | `cfo/` | Kennung offen | ruht bis Oktober 2026 | CEO / Anastasia | noch keiner |
+| Marv, Skillbauer | `marv/` | `AI-SKE-001` | Mitarbeiter seit 2026-09-08, `DEC` offen | CEO / Anastasia | 2026-09-10, `probezeit/marv_AI-SKE-001.md` |
+| Gerd, Systemarchitekt und Prüfer | `gerd/` | `AI-ENG-001` | Probezeit (`DEC-002`) | CEO / Anastasia | 2026-09-10, `probezeit/gerd_AI-ENG-001.md` |
+
+**Kein Status wird vorab auf `ACTIVE` gesetzt**, solange Kennung oder Entscheidungsnummer offen
+sind. Zwei Einträge tragen deshalb offene Felder: Wolles Kennung und Marvs `DEC`.
+
+**Reviewtermine gibt es nicht.** Ein Review wird über Arbeit ausgelöst, nicht über den
+Kalender — siehe `anastasia/reviews/`. Der Grund steht im 3-Loop vom 2026-09-08: Alle sieben
+Identitäten sind am selben Tag angelegt worden und wären am selben Tag fällig geworden.
+
+### Modelle je Identität
+
+| Identität | Agent | Bot | Stand des Skills |
+|---|---|---|---|
+| Karl | Sonnet | Opus | v2 nach Marv, 43/43 gegen 26/43 über fünf Runden |
+| Marlene | Sonnet | Sonnet | drei Runden und Praxistest an 47 Dateien |
+| Thorsten | Sonnet | Opus | Prüffälle liegen, **noch nicht gemessen** |
+| Anastasia | Sonnet | Sonnet | Runde 1 durch Marv, 34/35 gegen 24/35 |
+| Wolle | Sonnet | Sonnet | keine Prüffälle, ruht |
+| Marv | Opus | — | Runde 2, 40/40 gegen 17/40; eigener Skill, kein fremder Blick |
+| Gerd | Opus | — | Runde 2, 40/42 gegen 36/42 |
 
 Die Modellwahl folgt zwei Fragen, und sie ziehen in verschiedene Richtungen: **Wie oft wird
 er gerufen?** und **wie teuer ist eine schlechtere Antwort?** Gerd prüft und Marv baut — selten,
