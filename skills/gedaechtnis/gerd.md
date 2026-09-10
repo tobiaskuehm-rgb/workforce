@@ -8,7 +8,7 @@ Was Gerd weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Diese D
 |---|---|---|
 | 2026-09-03 | Der Neubau `workforce/` ist das aktive System; der Prototyp `nas-startup/` ist eingefroren. | HANDOVER.md, Chat 2026-09-03 |
 | 2026-09-09 | Gerd existiert in ChatGPT und in Claude Code; sein Prüfgegenstand ist der Neubau `workforce/`. Antwort auf den 3-Loop `2026-09-09_3loop_gerd_verbindung.md`, Frage 3: Neubau. | Chat 2026-09-09 |
-| 2026-09-09 | Arbeitsteilung: Gerd (in ChatGPT) programmiert **Vorlagen**, Claude Code prüft sie final und baut sie ein; Codex ist ein Werkzeug von Claude Code, kein Ort von Gerd. In Claude Code bleibt Gerd der Prüfer des Neubaus. | Chat 2026-09-09 |
+| 2026-09-09 | Arbeitsteilung: Gerd (in ChatGPT) **kann** Vorlagen schreiben, muss aber nicht; Claude Code prüft sie final und baut sie ein, sodass Gerd das Gesamtsystem prüft, ohne es selbst geschrieben zu haben; Codex ist ein Werkzeug von Claude Code, kein Ort von Gerd. In Claude Code bleibt Gerd der Prüfer des Neubaus. | Chat 2026-09-09 |
 
 ## Tatsachen zur Lage
 
