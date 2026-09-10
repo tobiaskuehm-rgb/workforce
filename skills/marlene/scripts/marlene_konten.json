@@ -63,5 +63,37 @@
   "zustellweg": "kein Postfach, nur Kontodaten",
   "zweiter_faktor": "pushTAN in der ING App, bei Tobias",
   "benutzer": "Tobiaskuehm"
+ },
+ "marlene-allianz-pkv": {
+  "anbieter": "Allianz Private Krankenversicherung, Kundenportal/App",
+  "klasse": "B",
+  "zweck": "Arztberichte und Belege einreichen, Erstattungsstand ansehen",
+  "schluesselbund_dienst": "marlene-allianz-pkv",
+  "schluesselbund": "login",
+  "aktionen": [
+   "anmelden",
+   "dokument_laden",
+   "beleg_einreichen",
+   "erstattungsstand_ansehen",
+   "abmelden"
+  ],
+  "zustellweg": "unbekannt, wird geprüft sobald Zugang steht",
+  "zweiter_faktor": "bei Tobias"
+ },
+ "marlene-beihilfe-vkb": {
+  "anbieter": "Versicherungskammer Bayern / Bayerische Beamtenkrankenkasse, Beihilfeablöseversicherung",
+  "klasse": "B",
+  "zweck": "Beihilfeanträge einreichen, Bearbeitungsstand ansehen",
+  "schluesselbund_dienst": "marlene-beihilfe-vkb",
+  "schluesselbund": "login",
+  "aktionen": [
+   "anmelden",
+   "dokument_laden",
+   "beleg_einreichen",
+   "erstattungsstand_ansehen",
+   "abmelden"
+  ],
+  "zustellweg": "unbekannt, wird geprüft sobald Zugang steht",
+  "zweiter_faktor": "bei Tobias"
  }
 }
