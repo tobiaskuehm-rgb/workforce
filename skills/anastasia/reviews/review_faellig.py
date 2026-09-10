@@ -111,21 +111,25 @@ def bericht(nur_faellige=False):
         aussen = spuren_ausserhalb(eintrag, seit_datum)
         # Der Ausloeser nimmt den groesseren der beiden Wege. Wer im Repo arbeitet, wird
         # ueber Commits faellig; wer draussen arbeitet, ueber seine Dateien.
-        wirksam = max(len(gezaehlt), aussen or 0)
-        ist_faellig = wirksam >= grenze
+        # Fuenf Commits sind ein Arbeitsabschnitt, fuenf geaenderte Dateien eine Stunde.
+        # Beide Wege brauchen deshalb ihre eigene Schwelle, sonst wird eine Identitaet mit
+        # externem Arbeitsort am Tag nach ihrem Review wieder faellig (gemessen 2026-09-10).
+        grenze_aussen = int(stand.get("schwelle_arbeitsort", 40))
+        ist_faellig = len(gezaehlt) >= grenze or (aussen or 0) >= grenze_aussen
+        wirksam = len(gezaehlt) if len(gezaehlt) >= grenze else (aussen or 0)
         if ist_faellig:
             faellig.append((name, eintrag["anzeige"], wirksam, grenze))
         zeilen.append((
             eintrag["anzeige"],
             eintrag.get("zustand", ""),
             f"{len(gezaehlt)}/{grenze}",
-            "-" if aussen is None else str(aussen),
+            "-" if aussen is None else "%d/%d" % (aussen, int(stand.get("schwelle_arbeitsort", 40))),
             "FAELLIG" if ist_faellig else "",
         ))
 
     if nur_faellige:
         for name, anzeige, anzahl, grenze in faellig:
-            print(f"Review faellig: {anzeige} — {anzahl} Commits seit dem letzten Review (Schwelle {grenze})")
+            print(f"Review faellig: {anzeige} — {anzahl} Arbeitseinheiten seit dem letzten Review (Schwelle {grenze})")
     else:
         breite = max(len(z[0]) for z in zeilen)
         print(f"{'Identitaet'.ljust(breite)}  Zustand      Commits  Dateien  ")
