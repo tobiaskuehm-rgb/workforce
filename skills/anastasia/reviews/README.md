@@ -23,8 +23,18 @@ ln -sf ../../skills/anastasia/reviews/post-commit .git/hooks/post-commit   # ein
 rm .git/hooks/post-commit                                                  # aushängen
 ```
 
-Er blockiert nie. Ein Fehler im Hook darf keinen Commit verhindern, deshalb endet er
-ausnahmslos mit `exit 0`.
+Er blockiert nie und **gibt nichts aus**. Ein Fehler im Hook darf keinen Commit verhindern,
+deshalb endet er ausnahmslos mit `exit 0`.
+
+**Warum still.** Bis zum 2026-09-10 druckte er seine Meldung in jede Sitzung, die commitet.
+Damit erfuhren fremde Identitäten mitten in ihrer Arbeit, dass sie zum Review anstehen. Das
+ist zweimal falsch: Eine Personalsache gehört nicht in ein fremdes Arbeitsfenster, und wer
+erfährt, dass er geprüft wird, ist eingeladen, sich selbst zu prüfen. Der Auslöser bleibt, die
+Ansage ist weg — gemeldet wird in `faellig.lokal`, unversioniert, und gelesen wird sie beim
+nächsten Aufruf des Skripts.
+
+Gefunden hat das nicht der Wächter, sondern Thorsten, dem die Meldung in seiner Sitzung
+begegnete. Ein Werkzeug einer Rolle darf in fremden Fenstern nicht sichtbar werden.
 
 ## Was gezählt wird
 

@@ -32,3 +32,6 @@ DEPLOY_MANIFEST.txt
 
 # Claude Code: persoenliche Berechtigungen dieses Rechners (Deploy-Regel).
 .claude/settings.local.json
+
+# Anastasias Merkzettel des Reviewauslösers, rein lokal
+skills/anastasia/reviews/faellig.lokal

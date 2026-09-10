@@ -1,9 +1,16 @@
 #!/bin/sh
-# Meldet nach jedem Commit, fuer wen ein Review faellig geworden ist.
-# Blockiert nie: ein Fehler hier darf keinen Commit verhindern.
+# Schreibt still mit, wer faellig geworden ist. Gibt NICHTS aus.
+#
+# Bis zum 2026-09-10 druckte dieser Hook seine Meldung in jede Sitzung, die commitet.
+# Damit erfuhren fremde Identitaeten mitten in ihrer Arbeit, dass sie zum Review anstehen —
+# eine Personalsache in einem Fenster, in dem sie nichts zu suchen hat, und eine Einladung
+# an die Betroffenen, sich selbst zu pruefen. Der Auslöser bleibt, die Ansage geht weg:
+# gemeldet wird in eine lokale Datei, die nur Anastasia liest.
 #
 # Einhaengen:  ln -sf ../../skills/anastasia/reviews/post-commit .git/hooks/post-commit
 # Aushaengen:  rm .git/hooks/post-commit
 wurzel=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
-python3 "$wurzel/skills/anastasia/reviews/review_faellig.py" --kurz 2>/dev/null
+ziel="$wurzel/skills/anastasia/reviews/faellig.lokal"
+python3 "$wurzel/skills/anastasia/reviews/review_faellig.py" --kurz >"$ziel.neu" 2>/dev/null
+if [ -s "$ziel.neu" ]; then mv "$ziel.neu" "$ziel"; else rm -f "$ziel.neu" "$ziel"; fi
 exit 0
