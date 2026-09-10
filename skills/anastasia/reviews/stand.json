@@ -26,8 +26,9 @@
     "anastasia": {
       "anzeige": "Anastasia (PEO-001)",
       "zustand": "probezeit",
-      "letztes_review": null,
-      "schwelle": null
+      "letztes_review": "1fda9383a3f9ea7e850b8cbd51938ae6badd0bad",
+      "schwelle": null,
+      "letztes_review_datum": "2026-09-10"
     },
     "cfo": {
       "anzeige": "Wolle (CFO)",
