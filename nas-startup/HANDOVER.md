@@ -170,8 +170,9 @@ Donnerstagstermin hat sofort gefeuert und ist zugestellt; R-2 Rechte `750`/`640`
 `G-107`, `G-108`, `G-110`, `G-111` geschlossen — aber Gate **ROT**: Der Deploy lief gegen sein Gate
 vom 2026-09-09 (`G-112`/`G-113`, von Karl nicht gelesen, `G-114`, Regel 71), dazu `G-115`/`G-116`.
 Alle vier behoben (Regeln 72, 73), 67 Tests, Gegenproben rot. Vorlage P-3 für den zweiten Deploy
-vor Montag: `workforce/reviews/2026-09-10_vorlage_p3_zweiter_deploy.md`. Nächster Schritt: Gerds
-Nachcheck, dann P-3 durch den CEO, dann Deploy.
+vor Montag: `workforce/reviews/2026-09-10_vorlage_p3_zweiter_deploy.md`. Gerds Nachcheck: `6cda0c5` freigegeben, `G-117`/`G-118` neu, ohne Sperre.
+Nächster Schritt: P-3 durch den CEO, dann Deploy von `6cda0c5` (oder dem dann aktuellen
+Stand, wenn er nur Doku enthält), dann Gerds Review nach dem Lauf.
 
 **Zur Historie:** Commit `781cc84` trägt die Botschaft „die Schleife bekommt
 ein Ende", enthält aber nur die `HO-027`-Anmeldung der Parallelsitzung — mein

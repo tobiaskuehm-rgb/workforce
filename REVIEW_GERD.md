@@ -265,3 +265,25 @@ Auftrag: `G-112`, `G-113` beheben (je ein Commit), `G-115` und `G-116` in `deplo
 ein zweiter Deploy vor dem 2026-09-14.
 
 **Letzte vergebene Befundnummer: `G-116`.**
+
+## 2026-09-10 — Nachcheck `3b6cae3..6cda0c5` (Gerd via Claude Code, Auftrag Karl)
+
+67 Tests, `sh -n` sauber, Spiegel identisch. Gegenprobe je Korrektur in einer Kopie: Reihenfolge
+zurückgedreht → `G-112`-Test rot; `audit_and_set` auf zwei Transaktionen → `G-113`-Test rot;
+Rechte- und Prüfsummenblock entfernt → drei Skripttests rot. **`G-112`, `G-113`, `G-115`,
+`G-116` geschlossen.** Abweichung bei `G-112` (`audit_count` statt `created`): richtig, kein
+neues Loch — Sonde mit Absturz nach der Zeile, vor der Marke: eine Nachricht, eine Zeile, ein
+Aufruf. `stat -c '%a %g %n'` ist busybox-tauglich, die Erwartung stimmt nach dem `sed`.
+
+| ID | Schwere | Befund | Korrektur/Nachweis |
+|---|---:|---|---|
+| `G-117` | mittel, abgeleitet | Die Rückmessung misst Modusbits von vier Pfaden. (a) Die Dateien auf der NAS tragen ein `+` (DSM-ACL); `%a` liest keine ACL, ein „750" kann grün sein, während eine ACL weiter breit erlaubt. (b) `secrets/anthropic_api_key` wird gesetzt, aber nie zurückgelesen. | offen, keine Deploy-Sperre. Vorschlag Gerd: ACL neben `stat` lesen (`getfacl`/`synoacltool`), Erwartung je Secret aus `$secrets` erzeugen statt fest schreiben. |
+| `G-118` | niedrig | Der Prüfsummenschritt deckt `workforce/`, nicht `skills/`, obwohl der Baum nach `/etc/workforce/skills` gemountet ist; und `sha256sum -c` meldet keine unerwartete Datei (Klasse `G-020`/`G-047`). Regel 73 sagt mehr, als der Schritt misst. | offen, keine Deploy-Sperre. Vorschlag: zweites Manifest für `skills/`, und ein `find`-Vergleich gegen die Manifestliste für Unerwartetes. |
+
+Geprüft und nicht bestätigt: Manifestformat `shasum` → `sha256sum -c`, keine Secrets im
+Manifest, Reihenfolge Prüfsumme → Rechte → Abbruch vor `up`, `chmod 640` bricht nichts.
+
+Freigabe Gerd: `6cda0c5` für den zweiten Deploy (P-3, Option a). Nicht freigegeben: der
+Logsatz „offen danach: keine" — offen bleiben `G-117`, `G-118`.
+
+**Letzte vergebene Befundnummer: `G-118`.**

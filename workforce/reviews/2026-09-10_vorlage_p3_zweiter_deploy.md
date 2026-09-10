@@ -28,6 +28,11 @@ Bot antwortet nicht; Aufwand: zwei Nachrichten.
 **Empfehlung:** (a).
 
 **Satz fürs Log:** Klasse Produktives: Der CEO gibt den zweiten Deploy des Neubaus vor dem
-2026-09-14 frei, sobald Gerd `G-112` bis `G-116` nachgeprüft hat; offen danach: keine.
+2026-09-14 frei; Gerd hat `6cda0c5` nachgeprüft und freigegeben; offen danach: `G-117` (ACL und
+zweites Secret in der Rückmessung), `G-118` (Prüfsummen auch für `skills/`, Unerwartetes melden), beide ohne Deploy-Sperre.
 
 Nächster Schritt: Der CEO entscheidet P-3; Owner Tobias.
+
+## Nachtrag: Gerds Nachcheck liegt vor
+
+`6cda0c5` ist freigegeben. Der Logsatz oben ist korrigiert: „offen danach: keine" war falsch, Gerd hat `G-117` und `G-118` gestellt, beide ohne Sperre. Ein Ja des CEO gilt damit für den Stand mit genau diesen zwei offenen Punkten.
