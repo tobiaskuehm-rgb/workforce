@@ -8,6 +8,7 @@ import pathlib
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from workforce import app as app_module
 from workforce import boundary, config, models
@@ -335,6 +336,30 @@ class ScheduleTest(Harness):
         self.assertEqual(0, self.app.check_schedule())
         self.now = 1_699_218_000.0  # Sun 2023-11-05 21:00:00 UTC - wrong day
         self.assertEqual(0, self.app.check_schedule())
+
+    def test_a_failed_schedule_insert_is_retried_once_on_the_same_day(self):
+        self.with_item()
+        self.now = 1_699_250_400.0  # Mon 2023-11-06 06:00 UTC
+        mid = derived_id("SCHED", "MONTAG", "2023-11-06")
+        record_inbound = self.store.record_inbound
+        with patch.object(self.store, "record_inbound", side_effect=RuntimeError("INSERT_INTERRUPTED")) as insert:
+            with self.assertRaisesRegex(RuntimeError, "^INSERT_INTERRUPTED$"):
+                self.app.check_schedule()
+            insert.assert_called_once()
+        self.assertIsNone(self.store.message(mid))
+        self.assertEqual(0, self.store.audit_count("SCHEDULED", mid))
+        self.assertEqual([], self.provider.calls)
+
+        with patch.object(self.store, "record_inbound", wraps=record_inbound) as retry:
+            self.app.poll_once()
+            self.app.poll_once()
+            retry.assert_called_once()
+        rows = self.store._db.execute("SELECT message_id FROM messages WHERE direction = 'IN'").fetchall()
+        self.assertEqual([mid], [row["message_id"] for row in rows])
+        self.assertEqual("DONE", self.store.message(mid)["status"])
+        self.assertEqual(1, self.store.audit_count("SCHEDULED", mid))
+        self.assertEqual(1, len(self.provider.calls))
+        self.assertEqual((True, None), self.store.verify_audit())
 
     def test_it_fires_again_the_next_matching_week(self):
         self.with_item()

@@ -104,11 +104,14 @@ class App:
             if not due_today or self.store.setting(key, "") >= day:
                 continue
             message_id = derived_id("SCHED", item.id, day)
+            # Persist the retryable effect before the marker so an interrupted insert cannot lose the day.
+            created = self.store.record_inbound(message_id=message_id, update_id=None,
+                                                chat_id=self.config.allowed_chat_id, sender=HUMAN,
+                                                recipient=item.identity, text=item.prompt)
+            if created:
+                self.store.audit(ACTOR, f"{message_id}-SCHEDULED", "SCHEDULED", message_id,
+                                 {"schedule_id": item.id, "day": day})
             self.store.set_setting(key, day)
-            self.store.record_inbound(message_id=message_id, update_id=None, chat_id=self.config.allowed_chat_id,
-                                      sender=HUMAN, recipient=item.identity, text=item.prompt)
-            self.store.audit(ACTOR, f"{message_id}-SCHEDULED", "SCHEDULED", message_id,
-                             {"schedule_id": item.id, "day": day})
             self.process(message_id)
             fired += 1
         return fired
