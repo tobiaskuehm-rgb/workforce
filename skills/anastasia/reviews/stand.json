@@ -1,7 +1,7 @@
 {
   "schwelle_standard": 10,
   "schwelle_probezeit": 5,
-  "hinweis": "Ein Commit ist ein Ersatzmass fuer eine Arbeitseinheit, kein gutes. Er misst Spuren im Repo. Wer ausserhalb arbeitet (Marlene im Drive, Thorsten im Filter), wird hier zu niedrig gezaehlt; fuer diese Identitaeten traegt der Zaehler nicht allein.",
+  "hinweis": "Zwei Wege, der groessere zaehlt: Commits fuer Identitaeten, die im Repo arbeiten, und geaenderte Dateien am 'arbeitsort' fuer die, die draussen arbeiten. Ohne den zweiten Weg zaehlte Marlene null eigene Arbeit, waehrend die Commits ueber sie als ihre erschienen (Einwand des CEO, 2026-09-10).",
   "identitaeten": {
     "karl": {
       "anzeige": "Karl (SAO-001)",
@@ -13,7 +13,9 @@
       "anzeige": "Marlene (POA-001)",
       "zustand": "probezeit",
       "letztes_review": "3db6c538570e5aaf9ec8c728119a0e058d6b23a7",
-      "schwelle": null
+      "schwelle": null,
+      "arbeitsort": "~/Library/CloudStorage/GoogleDrive-Tobias.kuehm@icloud.com/Meine Ablage/01_Ablage_Eingang/_Marlene",
+      "letztes_review_datum": "2026-09-07"
     },
     "thorsten": {
       "anzeige": "Thorsten (RAS-001)",

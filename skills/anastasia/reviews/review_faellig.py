@@ -12,6 +12,7 @@ durch eine Identitaet verschiedene Spuren hinterlassen.
 """
 import json
 import pathlib
+import datetime
 import subprocess
 import sys
 from typing import List, Optional, Set
@@ -42,6 +43,32 @@ def schwelle(stand: dict, eintrag: dict) -> int:
     if eintrag.get("zustand") == "probezeit":
         return int(stand["schwelle_probezeit"])
     return int(stand["schwelle_standard"])
+
+
+def spuren_ausserhalb(eintrag, seit_datum):
+    """Zaehlt Arbeitsspuren einer Identitaet ausserhalb des Repos.
+
+    Wer im Drive oder in einem Vorgangsregister arbeitet, hinterlaesst dort Dateien und
+    keinen Commit. Ohne diesen Weg zaehlt der Ausloeser fuer solche Identitaeten null,
+    waehrend die Commits *ueber* sie mitgezaehlt werden — das Mass zeigte dann fremde
+    Arbeit als ihre an (Einwand des CEO, 2026-09-10).
+    """
+    ort = eintrag.get("arbeitsort")
+    if not ort:
+        return None
+    wurzel = pathlib.Path(ort).expanduser()
+    if not wurzel.is_dir():
+        return None
+    grenze = datetime.datetime.strptime(seit_datum, "%Y-%m-%d").timestamp() if seit_datum else 0
+    gezaehlt = 0
+    for pfad in wurzel.rglob("*"):
+        if pfad.is_file() and not pfad.name.startswith("."):
+            try:
+                if pfad.stat().st_mtime >= grenze:
+                    gezaehlt += 1
+            except OSError:
+                continue
+    return gezaehlt
 
 
 def commits_seit(name, anzeige, seit):
@@ -76,17 +103,23 @@ def bericht(nur_faellige=False):
     faellig = []  # type: List[tuple]
     for name, eintrag in stand["identitaeten"].items():
         if eintrag.get("zustand") == "ruht":
-            zeilen.append((eintrag["anzeige"], "ruht", "", ""))
+            zeilen.append((eintrag["anzeige"], "ruht", "", "-", ""))
             continue
         gezaehlt = commits_seit(name, eintrag["anzeige"], eintrag.get("letztes_review"))
         grenze = schwelle(stand, eintrag)
-        ist_faellig = len(gezaehlt) >= grenze
+        seit_datum = eintrag.get("letztes_review_datum")
+        aussen = spuren_ausserhalb(eintrag, seit_datum)
+        # Der Ausloeser nimmt den groesseren der beiden Wege. Wer im Repo arbeitet, wird
+        # ueber Commits faellig; wer draussen arbeitet, ueber seine Dateien.
+        wirksam = max(len(gezaehlt), aussen or 0)
+        ist_faellig = wirksam >= grenze
         if ist_faellig:
-            faellig.append((name, eintrag["anzeige"], len(gezaehlt), grenze))
+            faellig.append((name, eintrag["anzeige"], wirksam, grenze))
         zeilen.append((
             eintrag["anzeige"],
             eintrag.get("zustand", ""),
             f"{len(gezaehlt)}/{grenze}",
+            "-" if aussen is None else str(aussen),
             "FAELLIG" if ist_faellig else "",
         ))
 
@@ -95,9 +128,9 @@ def bericht(nur_faellige=False):
             print(f"Review faellig: {anzeige} — {anzahl} Commits seit dem letzten Review (Schwelle {grenze})")
     else:
         breite = max(len(z[0]) for z in zeilen)
-        print(f"{'Identitaet'.ljust(breite)}  Zustand      Commits  ")
-        for anzeige, zustand, zaehler, marke in zeilen:
-            print(f"{anzeige.ljust(breite)}  {zustand.ljust(11)}  {zaehler.ljust(7)}  {marke}")
+        print(f"{'Identitaet'.ljust(breite)}  Zustand      Commits  Dateien  ")
+        for anzeige, zustand, zaehler, aussen, marke in zeilen:
+            print(f"{anzeige.ljust(breite)}  {zustand.ljust(11)}  {zaehler.ljust(7)}  {aussen.ljust(7)}  {marke}")
         print()
         print(f"{len(faellig)} von {len(stand['identitaeten'])} faellig." if faellig else "Niemand faellig.")
 
@@ -112,6 +145,7 @@ def gemacht(name, sha):
         return 2
     voll = git("rev-parse", sha or "HEAD").strip()
     stand["identitaeten"][name]["letztes_review"] = voll
+    stand["identitaeten"][name]["letztes_review_datum"] = datetime.date.today().isoformat()
     STAND.write_text(json.dumps(stand, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{stand['identitaeten'][name]['anzeige']}: Review vermerkt auf {voll[:8]}.")
     return 0
