@@ -1,6 +1,17 @@
 # Arbeitsstand und Prüfschleife
 
-**Zuletzt aktualisiert:** 2026-09-08, morgens — von Claude Code (Karl).
+**Zuletzt aktualisiert:** 2026-09-10 — von Claude Code.
+
+**Nachtrag 2026-09-10: zweites Remote auf GitHub, Gerd in ChatGPT.** CEO im Chat 2026-09-09/10.
+Das Repo liegt zusätzlich privat unter `git@github.com:tobiaskuehm-rgb/workforce.git`
+(Remote `github`); `git push` auf `origin` bedient NAS und GitHub. Geprüft: GitHub `main`
+trägt denselben Hash wie der Mac. Zweck: Gerd liest von ChatGPT aus über den
+GitHub-Connector selbst (Skill, Gedächtnis, `INVARIANTEN.md`, `REVIEW_GERD.md`, Code) und
+schreibt **Vorlagen** für Code, Tests und Skripte, als Pull Request über Codex oder als Text;
+Claude Code prüft sie final und baut sie ein. Gerd in Claude Code bleibt Prüfer des Neubaus;
+Codex ist ein Werkzeug von Claude Code, kein Ort von Gerd. Der ChatGPT-Export der alten
+Verläufe scheitert weiter an der ausbleibenden Download-Mail; Gerds Gedächtnis gilt bis dahin
+als unvollständig. Secrets liegen nach wie vor nicht im Repo; `config.nas.json` ist ignoriert.
 
 **Offenes Entscheidungsgate: Neubau oder Weiterführung.** Der CEO hat dem
 Neubau am 2026-09-03 im Chat zugestimmt; Gerd hat am selben Abend festgehalten,
