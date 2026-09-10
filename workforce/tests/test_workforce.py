@@ -406,6 +406,27 @@ class ScheduleTest(Harness):
         self.assertEqual(1, self.store.audit_count("SCHEDULED", mid))
         self.assertEqual(1, len(self.provider.calls))
 
+    def test_a_missed_row_and_its_mark_are_one_transaction(self):
+        # G-113: if the mark cannot be written, the row is not written either; the next round
+        # writes exactly one, never two under the same request-id.
+        self.with_item()
+        self.now = 1_699_250_400.0 - 86_400            # Sunday: baseline
+        self.app.check_schedule()
+        self.now = 1_699_250_400.0 + 86_400            # Tuesday: Monday was missed
+        real = self.store._set_setting_sql
+        def dies_once(key, value):
+            self.store._set_setting_sql = real
+            raise RuntimeError("died inside the transaction")
+        self.store._set_setting_sql = dies_once
+        with self.assertRaises(RuntimeError):
+            self.app.check_schedule()
+        self.assertEqual(0, self.store.audit_count("SCHEDULE_MISSED", "MONTAG"))
+        self.app.check_schedule()
+        self.assertEqual(1, self.store.audit_count("SCHEDULE_MISSED", "MONTAG"))
+        dup = self.store._db.execute("SELECT request_id FROM audit GROUP BY request_id HAVING count(*) > 1").fetchall()
+        self.assertEqual([], dup)
+        self.assertTrue(self.store.verify_audit()[0])
+
     def test_an_exhausted_budget_is_resumed_the_next_day_like_any_message(self):
         # G-100/G-109 together: a schedule fire follows the ordinary budget-wait path.
         item = {"id": "MONTAG", "weekday": 1, "hour": 6, "identity": "A", "prompt": "Wochenlage."}

@@ -98,9 +98,11 @@ class App:
             if not seen:
                 self.store.set_setting(key, last_due)  # first run: a baseline, not a miss
             elif last_due > seen:
-                self.store.audit(ACTOR, f"SCHED-{item.id}-{last_due}-MISSED", "SCHEDULE_MISSED", item.id,
-                                 {"schedule_id": item.id, "day": last_due, "seen": seen})
-                self.store.set_setting(key, last_due)
+                # Row and mark in one transaction (G-113): a crash between them would repeat
+                # the row under the same request-id next round.
+                self.store.audit_and_set(ACTOR, f"SCHED-{item.id}-{last_due}-MISSED", "SCHEDULE_MISSED", item.id,
+                                         {"schedule_id": item.id, "day": last_due, "seen": seen},
+                                         key=key, value=last_due)
             if not due_today or self.store.setting(key, "") >= day:
                 continue
             # Effect before mark (G-112, the G-082 clause of invariant 5): the record is the
