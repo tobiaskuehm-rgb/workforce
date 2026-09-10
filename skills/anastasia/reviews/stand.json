@@ -3,12 +3,47 @@
   "schwelle_probezeit": 5,
   "hinweis": "Ein Commit ist ein Ersatzmass fuer eine Arbeitseinheit, kein gutes. Er misst Spuren im Repo. Wer ausserhalb arbeitet (Marlene im Drive, Thorsten im Filter), wird hier zu niedrig gezaehlt; fuer diese Identitaeten traegt der Zaehler nicht allein.",
   "identitaeten": {
-    "karl":      {"anzeige": "Karl (SAO-001)",      "zustand": "probezeit", "letztes_review": null, "schwelle": null},
-    "marlene":   {"anzeige": "Marlene (POA-001)",   "zustand": "probezeit", "letztes_review": "3db6c538570e5aaf9ec8c728119a0e058d6b23a7", "schwelle": null},
-    "thorsten":  {"anzeige": "Thorsten (RAS-001)",  "zustand": "probezeit", "letztes_review": null, "schwelle": null},
-    "anastasia": {"anzeige": "Anastasia (PEO-001)", "zustand": "probezeit", "letztes_review": null, "schwelle": null},
-    "cfo":       {"anzeige": "Wolle (CFO)",         "zustand": "ruht",      "letztes_review": null, "schwelle": null},
-    "marv":      {"anzeige": "Marv Skillbauer",     "zustand": "probezeit", "letztes_review": null, "schwelle": null},
-    "gerd":      {"anzeige": "Gerd (AI-ENG-001)",   "zustand": "probezeit", "letztes_review": null, "schwelle": null}
+    "karl": {
+      "anzeige": "Karl (SAO-001)",
+      "zustand": "probezeit",
+      "letztes_review": null,
+      "schwelle": null
+    },
+    "marlene": {
+      "anzeige": "Marlene (POA-001)",
+      "zustand": "probezeit",
+      "letztes_review": "3db6c538570e5aaf9ec8c728119a0e058d6b23a7",
+      "schwelle": null
+    },
+    "thorsten": {
+      "anzeige": "Thorsten (RAS-001)",
+      "zustand": "probezeit",
+      "letztes_review": null,
+      "schwelle": null
+    },
+    "anastasia": {
+      "anzeige": "Anastasia (PEO-001)",
+      "zustand": "probezeit",
+      "letztes_review": null,
+      "schwelle": null
+    },
+    "cfo": {
+      "anzeige": "Wolle (CFO)",
+      "zustand": "ruht",
+      "letztes_review": null,
+      "schwelle": null
+    },
+    "marv": {
+      "anzeige": "Marv Skillbauer",
+      "zustand": "probezeit",
+      "letztes_review": null,
+      "schwelle": null
+    },
+    "gerd": {
+      "anzeige": "Gerd (AI-ENG-001)",
+      "zustand": "probezeit",
+      "letztes_review": "a8a6f5aec379bfab996d2d4910009e40c13243b1",
+      "schwelle": null
+    }
   }
 }
