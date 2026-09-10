@@ -35,5 +35,15 @@
   "imap": "imap.gmx.net:993",
   "smtp": "mail.gmx.net:587",
   "benutzer": "tobias.kuehm@gmx.de"
+ },
+ "marlene-ing-fints": {
+  "anbieter": "ING, FinTS Read-only Adapter (Registrierungsnummer bei der Deutschen Kreditwirtschaft)",
+  "klasse": "A",
+  "zweck": "FinTS-Produktregistrierung für lesenden ING-Zugang; noch kein Kontozugang beantragt",
+  "schluesselbund_dienst": "marlene-ing-fints",
+  "schluesselbund": "login",
+  "aktionen": [],
+  "zustellweg": "Mail mit Anhang",
+  "zweiter_faktor": "bei Tobias; ING-Kontofreischaltung steht noch aus"
  }
 }
