@@ -86,6 +86,15 @@ class Store:
         self._db.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
                          "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, value))
 
+    def audit_and_set(self, actor: str, request_id: str, kind: str, record_key: str, payload: Dict[str, Any],
+                      *, key: str, value: str) -> str:
+        # Roll back both facts if interrupted, so a retry cannot duplicate an already committed audit.
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            digest = self._append_audit(actor, request_id, kind, record_key, payload)
+            self.set_setting(key, value)
+            return digest
+
     def channel(self) -> str:
         return self.setting("channel", "DISABLED")  # fail closed: a fresh file answers nobody
 

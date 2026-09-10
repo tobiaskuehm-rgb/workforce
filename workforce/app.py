@@ -98,9 +98,9 @@ class App:
             if not seen:
                 self.store.set_setting(key, last_due)  # first run: a baseline, not a miss
             elif last_due > seen:
-                self.store.audit(ACTOR, f"SCHED-{item.id}-{last_due}-MISSED", "SCHEDULE_MISSED", item.id,
-                                 {"schedule_id": item.id, "day": last_due, "seen": seen})
-                self.store.set_setting(key, last_due)
+                self.store.audit_and_set(ACTOR, f"SCHED-{item.id}-{last_due}-MISSED", "SCHEDULE_MISSED", item.id,
+                                         {"schedule_id": item.id, "day": last_due, "seen": seen},
+                                         key=key, value=last_due)
             if not due_today or self.store.setting(key, "") >= day:
                 continue
             message_id = derived_id("SCHED", item.id, day)

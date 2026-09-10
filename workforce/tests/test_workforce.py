@@ -410,6 +410,37 @@ class ScheduleTest(Harness):
         self.assertEqual(1, self.store.audit_count("SCHEDULE_MISSED", "MONTAG"))
         self.assertEqual([], self.provider.calls)
 
+    def test_a_missed_schedule_audit_and_marker_roll_back_together(self):
+        self.with_item()
+        self.now = 1_699_250_400.0 - 86_400  # Sunday: establish the baseline.
+        self.app.check_schedule()
+        key = "schedule_seen_MONTAG"
+        seen = self.store.setting(key, "")
+        self.now += 2 * 86_400  # Tuesday: Monday was missed.
+        rid = "SCHED-MONTAG-2023-11-06-MISSED"
+        set_setting = self.store.set_setting
+
+        def interrupt_setting(setting_key, value):
+            self.assertEqual((key, "2023-11-06"), (setting_key, value))
+            self.assertEqual([rid], [row["request_id"] for row in self.store.audit_rows(rid)])
+            set_setting(setting_key, value)
+            raise RuntimeError("SETTING_INTERRUPTED")
+
+        with patch.object(self.store, "set_setting", side_effect=interrupt_setting) as setting:
+            with self.assertRaisesRegex(RuntimeError, "^SETTING_INTERRUPTED$"):
+                self.app.check_schedule()
+            setting.assert_called_once()
+        self.assertEqual([], self.store.audit_rows(rid))
+        self.assertEqual(seen, self.store.setting(key, ""))
+        self.assertFalse(self.store._db.in_transaction)
+
+        self.assertEqual(0, self.app.check_schedule())
+        self.assertEqual(0, self.app.check_schedule())
+        self.assertEqual([rid], [row["request_id"] for row in self.store.audit_rows(rid)])
+        self.assertEqual("2023-11-06", self.store.setting(key, ""))
+        self.assertEqual([], self.provider.calls)
+        self.assertEqual((True, None), self.store.verify_audit())
+
     def test_an_exhausted_budget_is_resumed_the_next_day_like_any_message(self):
         # G-100/G-109 together: a schedule fire follows the ordinary budget-wait path.
         item = {"id": "MONTAG", "weekday": 1, "hour": 6, "identity": "A", "prompt": "Wochenlage."}
