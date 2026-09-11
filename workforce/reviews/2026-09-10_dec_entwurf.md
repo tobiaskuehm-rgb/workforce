@@ -66,3 +66,12 @@ im iCloud-Satz, ans Ende angehängt am 2026-09-10 auf Anweisung des CEO („die 
 **Entscheidung:** Deploy `35e7ae3` (Phase 3, der Kern meldet sich: Montag Wochenlage, Donnerstag Entscheidungstermin, je 06:00 UTC an Karl) und Ordnerrechte `750`/`640`, Gruppe `10001`; danach Deploy `0ef72cb` mit den Korrekturen `G-112` bis `G-116`. Nachweise `workforce/evidence/2026-09-10_deploy_phase3_und_rechte.md` und `2026-09-10_deploy2_g112.md`. Gerd: Zeitplanbetrieb freigegeben bis einschließlich 2026-09-14; darüber hinaus nach `G-117`–`G-119`.
 
 **Ersetzt/klärt:** `DEC-037` (Codex-Zeitpläne) ist damit historisch; die Nachtläufe aus Codex sind seit 2026-09-07 Archiv, der Takt kommt aus dem Kern.
+
+## DEC-046 – Ideen-Battle: Erzeugen, Bewerten und Regelgeben getrennt
+**Datum:** 2026-09-11
+**Entscheider:** CEO (Antwort auf den 3-Loop `workforce/reviews/2026-09-11_3loop_battle_karl.md`)
+**Status:** ACTIVE
+
+**Entscheidung:** Erzeugen bleibt offen (Thorsten drei, CEO drei, montags); eine überarbeitete Fassung ersetzt ihre Zeile. Bewertet wird blind durch **Marv** als fremde Instanz, gesammelt über den Bestand. Filteränderungen schlägt Thorsten vor, **Karl gibt sie frei**, gültig ab dem nächsten Durchgang, nie im selben Lauf wie eine Benotung. Die Probe ist der Maßstab: Jeder Kandidat über der Schwelle bekommt eine Probe unter 100 Euro und vier Wochen, höchstens zwei gleichzeitig; Thorstens Trefferquote der Vorhersagen ist die Zahl seiner Probezeit. Ein Wächter meldet Häufung (mehr als die Hälfte der zehn höchsten Werte in einem Feld). Der Brandschutzstrang wird zu einer Zeile zusammengezogen, die beste Fassung bleibt.
+
+**Ersetzt/klärt:** Anastasias Entscheidung vom 2026-09-11 (Thorsten verantwortet den Filter selbst) ist ersetzt; ihr Weg zum CEO gilt für Rolle und Leistung, Fachinhalte laufen über Karl. `DEC-042` (Messung Thorstens) bleibt.
