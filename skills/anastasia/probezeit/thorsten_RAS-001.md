@@ -90,3 +90,82 @@ Den CEO fragen, ob die Filteränderung vom 2026-09-10 seine Entscheidung war. Ei
 der bereits benotet wurde, muss zurechenbar sein.
 
 Kein Personalurteil, keine Übernahmeempfehlung — das entscheidet der CEO.
+
+---
+
+# Nachtrag 2026-09-11 — Befund des CEO, nachgemessen
+
+Der Review oben bleibt unverändert stehen. Der CEO hat am 2026-09-11 zwei Dinge gemeldet und
+zwei entschieden.
+
+## Gemeldet: das Verfahren wird nicht eingehalten
+
+Vereinbart ist das Battle: Thorsten legt drei Kandidaten vor, der CEO drei, danach gehen alle
+sechs durch den Filter. Tatsächlich sind allein am 2026-09-10 sieben Kandidaten in eigenen
+Läufen entstanden und benotet worden (`G`, `I`, `A`, `J`, `L`, `M`, `P`). Das ist kein Battle
+mit festem Takt, sondern fortlaufende Selbsterzeugung. Sein eigener Skill trennt die Modi
+ausdrücklich und verbietet im Filtermodus die eigene Idee.
+
+## Gemeldet: Brandschutz steht immer vorn
+
+**Nachgemessen, und der Verdacht trägt.** Von den benannten Kandidaten liegen sieben im
+Umfeld Brandschutz und Pflichtunterweisung: `A` Feuerwehrpläne, `B` Brandschutzunterweisung,
+`D` Feuerlöscherprüfung, `G` Pflichtunterweisungen, `I` Brandschutzordnung und Fluchtpläne,
+`L` Werkzeug für Brandschutzbüros, `M` Weiß-Etikett für Brandschutzbüros.
+
+Entscheidend ist nicht die Zahl, sondern **wo sie landen**: Die vier höchsten Punktwerte
+überhaupt gehören alle diesem Umfeld an, 59, 56, 55 und 51.
+
+Drei Ursachen, und sie schließen einander nicht aus:
+
+1. **Verfügbarkeit.** Der CEO ist Feuerwehrmann. Das ist die Domäne, aus der Beispiele ohne
+   Anstrengung kommen. Thorstens eigener Skill verlangt, je Lauf die drohende Verzerrung zu
+   benennen, und führt Verfügbarkeit als eine der sechs. In keinem der Läufe ist sie genannt.
+2. **Dopplung.** `I`, `L` und `M` verkaufen dasselbe Vermögen an verschiedene Käufer, und jede
+   Fassung schlägt die vorige: 51, dann 55, dann 59. Das ist keine Folge von Belegen, sondern
+   eine Ratsche. Thorsten hat genau dieses Muster am 2026-09-10 selbst erkannt und benannt,
+   für die Kandidaten 5 und 6, „dasselbe Vermögen, zweimal verkauft". Auf den eigenen
+   Brandschutzstrang hat er es nicht angewendet.
+3. **Anker.** Der erste hohe Wert setzt die Messlatte, an der die nächste Fassung gebaut wird.
+   Eine Idee, die in Kenntnis der Notenverteilung entsteht, ist auf die Noten hin gebaut.
+
+**Was der Befund nicht ist.** Kein Beleg, dass die Kandidaten schlecht sind. Ein wiederkehrend
+hoher Wert kann ein echter Fund sein. Er ist nur kein Beleg mehr, wenn Erzeuger, Bewerter und
+Regelwerk dieselbe Stelle sind.
+
+## Entschieden: Thorsten verantwortet den Filter selbst
+
+Damit ist die erste offene Frage des Reviews beantwortet, und zwar gegen den Wortlaut seines
+Skills: Dort steht, der CEO entscheide über eine Filteränderung. Ab dem 2026-09-11 entscheidet
+er selbst. **Der Skilltext muss nachgezogen werden** — Auftrag an Marv, nicht an Anastasia.
+
+Damit entsteht aber die Lage, die den Befund oben erst gefährlich macht: Er erzeugt Kandidaten,
+er benotet sie, und er bestimmt das Regelwerk. Drei Rollen an einer Stelle. Entlastend bleibt,
+dass seine letzte Filteränderung zwei eigene Kandidaten unter die Schwelle gedrückt hat; das
+ist ein Beleg für Redlichkeit und keiner für Trennung.
+
+## Entschieden: der Weg zum CEO läuft über Anastasia
+
+Zur Kenntnis mit einer Anmerkung: Damit wird Anastasia für Thorsten auch zum Weg für
+Fachinhalte, und Fachkoordination ist Karls Feld. Was Anastasia gehört, ist seine Rolle und
+seine Leistung. Solange das Volumen klein ist, trägt es; wächst es, gehört die Aufteilung
+angesehen.
+
+## Die kleinsten Maßnahmen, die den Befund beheben
+
+Keine davon ist eine Personalentscheidung; alle sind Verfahren.
+
+1. **Takt wieder herstellen.** Drei Kandidaten von ihm, drei vom CEO, dann der Filter. Kein
+   eigener Kandidat wird außerhalb dieses Takts benotet.
+2. **Eine Fassung ist kein neuer Kandidat.** Teilt ein Kandidat sein Vermögen mit einem
+   bestehenden, wird er als dessen Fassung geführt und **gegen** ihn verglichen, nicht neben
+   ihn gestellt. Die Regel hat Thorsten selbst gefunden; sie gehört in den Skill.
+3. **Die Verzerrung wird je Lauf benannt.** Steht schon im Skill, wird nicht ausgeübt.
+4. **Filteränderung und Benotung nie im selben Lauf.** Wer das Regelwerk ändert, benotet
+   danach nicht denselben Bestand ohne Abstand; die Änderung wird angekündigt und gilt ab dem
+   nächsten Durchgang.
+5. **Ein Kandidat von ihm braucht einen fremden Bewerter**, solange er Erzeuger und Regelgeber
+   zugleich ist. Das kann eine fremde Instanz sein, wie Marv sie für Messungen benutzt.
+
+Zu entscheiden hat der CEO nur Nummer 1 und 5; die übrigen drei sind Anwendung bestehender
+Regeln.
