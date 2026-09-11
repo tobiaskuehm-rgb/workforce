@@ -125,8 +125,15 @@ def bericht(nur_faellige=False):
         takt = eintrag.get("takt_tage")
         faellig_nach_zeit = False
         if takt and seit_datum:
-            alter = (datetime.date.today() - datetime.date.fromisoformat(seit_datum)).days
+            heute = datetime.date.today()
+            alter = (heute - datetime.date.fromisoformat(seit_datum)).days
             faellig_nach_zeit = alter >= int(takt)
+            # Ein Wochentag verankert den Bericht: faellig ab diesem Tag, sobald seit dem
+            # letzten Bericht ein neuer angebrochen ist (CEO, 2026-09-11: montags).
+            tag = eintrag.get("takt_wochentag")
+            if tag is not None:
+                letzter = datetime.date.fromisoformat(seit_datum)
+                faellig_nach_zeit = heute.weekday() >= int(tag) and (heute - letzter).days >= 1 and heute.isocalendar()[1] != letzter.isocalendar()[1]
         elif takt:
             faellig_nach_zeit = True
         ist_faellig = faellig_nach_zeit or len(gezaehlt) >= grenze or (aussen or 0) >= grenze_aussen

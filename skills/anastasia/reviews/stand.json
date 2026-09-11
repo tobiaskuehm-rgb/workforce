@@ -18,7 +18,8 @@
       "arbeitsort": "~/Library/CloudStorage/GoogleDrive-Tobias.kuehm@icloud.com/Meine Ablage/01_Ablage_Eingang/_Marlene",
       "letztes_review_datum": "2026-09-11",
       "takt_tage": 7,
-      "hinweis": "Woechentlich statt ueber Schwelle: sie arbeitet produktiv nach aussen (CEO, 2026-09-11)."
+      "hinweis": "Woechentlich montags zum Wochenstart, nicht ueber Schwelle: sie arbeitet produktiv nach aussen (CEO, 2026-09-11, E5 b).",
+      "takt_wochentag": 0
     },
     "thorsten": {
       "anzeige": "Thorsten (RAS-001)",
