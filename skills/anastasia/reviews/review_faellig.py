@@ -136,7 +136,13 @@ def bericht(nur_faellige=False):
                 faellig_nach_zeit = heute.weekday() >= int(tag) and (heute - letzter).days >= 1 and heute.isocalendar()[1] != letzter.isocalendar()[1]
         elif takt:
             faellig_nach_zeit = True
-        ist_faellig = faellig_nach_zeit or len(gezaehlt) >= grenze or (aussen or 0) >= grenze_aussen
+        # Ein Takt ERSETZT die Mengenschwellen, er ergaenzt sie nicht. Sonst stuende eine
+        # produktive Identitaet dauerhaft auf faellig, und ein Waechter, der immer rot ist,
+        # wird abgeschaltet statt gelesen (gemessen 2026-09-11: Marlene 64 von 40).
+        if takt:
+            ist_faellig = faellig_nach_zeit
+        else:
+            ist_faellig = len(gezaehlt) >= grenze or (aussen or 0) >= grenze_aussen
         wirksam = len(gezaehlt) if len(gezaehlt) >= grenze else (aussen or 0)
         if ist_faellig:
             faellig.append((name, eintrag["anzeige"], wirksam, grenze))
