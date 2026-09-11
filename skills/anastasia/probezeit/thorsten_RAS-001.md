@@ -169,3 +169,32 @@ Keine davon ist eine Personalentscheidung; alle sind Verfahren.
 
 Zu entscheiden hat der CEO nur Nummer 1 und 5; die übrigen drei sind Anwendung bestehender
 Regeln.
+
+## Einwand des CEO, 2026-09-11: Maßnahme 1 ist falsch
+
+Der Einwand: Ein fester Takt von drei Kandidaten führt dazu, dass keine neuen Vorschläge mehr
+kommen und stattdessen die vorhandenen immer weiter geprüft werden. Er trägt. Meine Maßnahme
+hätte ein Erzeugungsproblem in ein Stillstandsproblem verwandelt, und Stillstand ist teurer:
+Der dritte Baustein wird über neue Kandidaten gefunden, nicht über die Politur alter.
+
+**Der Fehler in meiner Analyse war die Stellschraube.** Ich habe die Menge begrenzt, obwohl
+nicht die Menge das Problem ist. Das Problem ist, dass eine überarbeitete Fassung als **neuer**
+Kandidat mit **neuer** Note danebentritt und die vorige schlägt. Das erzeugt die Ratsche, und
+sie funktioniert bei drei Kandidaten genauso wie bei zwanzig.
+
+**Maßnahme 1 neu — zwei Ströme trennen, keinen drosseln.**
+
+- **Erzeugen bleibt offen.** Kein Limit, kein Takt. Ein neuer Kandidat bekommt eine Nummer,
+  seine Herkunft und Stufe 1. Mehr nicht.
+- **Benoten geschieht gesammelt**, an einem festen Punkt über den **ganzen** Bestand. Wer
+  später eintrifft, wird mit allen anderen zugleich benotet und nicht gegen eine Rangliste, die
+  er schon kennt.
+- **Eine Fassung ersetzt ihre Zeile, sie eröffnet keine neue.** `M` ist keine neue Idee neben
+  `L` und `I`, sondern deren dritte Fassung. Die Note wird überschrieben, die alte bleibt mit
+  Datum daneben lesbar. Damit verschwindet die Ratsche, ohne dass eine Idee verloren geht.
+- **Weiterprüfen bleibt erlaubt und erwünscht.** Sein Skill verlangt ohnehin, ein früheres
+  Urteil nicht zu überschreiben, sondern mit Datum neu zu bewerten. Was nicht erlaubt ist, ist
+  die Neubewertung als Neuzugang zu führen.
+
+Damit bleiben zur Entscheidung des CEO nur noch der feste Bewertungspunkt und der fremde
+Bewerter aus Maßnahme 5.
