@@ -120,7 +120,16 @@ def bericht(nur_faellige=False):
         # Beide Wege brauchen deshalb ihre eigene Schwelle, sonst wird eine Identitaet mit
         # externem Arbeitsort am Tag nach ihrem Review wieder faellig (gemessen 2026-09-10).
         grenze_aussen = int(stand.get("schwelle_arbeitsort", 40))
-        ist_faellig = len(gezaehlt) >= grenze or (aussen or 0) >= grenze_aussen
+        # Ein Takt in Tagen schlaegt beide Zaehlwege: Wer produktiv nach aussen arbeitet, wird
+        # nach Zeit geprueft und nicht nach Menge (CEO, 2026-09-11, fuer Marlene).
+        takt = eintrag.get("takt_tage")
+        faellig_nach_zeit = False
+        if takt and seit_datum:
+            alter = (datetime.date.today() - datetime.date.fromisoformat(seit_datum)).days
+            faellig_nach_zeit = alter >= int(takt)
+        elif takt:
+            faellig_nach_zeit = True
+        ist_faellig = faellig_nach_zeit or len(gezaehlt) >= grenze or (aussen or 0) >= grenze_aussen
         wirksam = len(gezaehlt) if len(gezaehlt) >= grenze else (aussen or 0)
         if ist_faellig:
             faellig.append((name, eintrag["anzeige"], wirksam, grenze))
