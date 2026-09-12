@@ -90,7 +90,7 @@ class AntwortformTest(unittest.TestCase):
         self.assertEqual([], form_vollstaendig(FORM.read_text()))
 
     def test_eine_lesart_ohne_stand_faellt_auf(self):
-        ohne = "Regel. Herkunft: Chat 2026-09-10 und 2026-09-12, Lesart von Karl."
+        ohne = "Regel: antippen. Herkunft: Chat 2026-09-10 und 2026-09-12, Lesart von Karl."
         self.assertEqual(["Stand der Lesart"], form_vollstaendig(ohne))
         self.assertEqual([], form_vollstaendig(ohne + " bestätigt am 2026-09-12."))
         self.assertEqual([], form_vollstaendig(ohne + " noch nicht bestätigt."))
@@ -113,7 +113,7 @@ class AntwortformTest(unittest.TestCase):
 
     def test_eine_fehlende_herkunft_faellt_auf(self):
         self.assertEqual(
-            ["2026-09-12", "Stand der Lesart"],
+            ["2026-09-12", "antippen", "Stand der Lesart"],
             form_vollstaendig("Chat 2026-09-10, Lesart von Karl."),
         )
 
