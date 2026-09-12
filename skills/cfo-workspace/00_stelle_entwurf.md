@@ -102,12 +102,21 @@ Marlene stellt die Daten bereit: Sie prüft Belege, erledigt Vorgänge, führt d
 
 Eine Seite: Was der Kreislauf erzeugt hat, was er verbraucht hat, was übrig ist, wie das Portfolio steht und was die Hauptsparten diesen Monat erbracht und gekostet haben, wie viel Kapital in A, B und C steckt, was C diesen Monat verbraucht hat und wie lange sein Budget noch reicht, welche Regel verletzt ist, und die eine Entscheidung, die ansteht. Dazu einmal im Jahr die Durchsicht aller wiederkehrenden Ausgaben mit dem, was eine Kürzung freisetzen würde.
 
+## Entschieden am 12.09.2026, nach dem 3-Loop
+
+Der Loop (`01_3loop_vorschlaege.md`, `02_3loop_matrix.md`) verglich diesen Entwurf mit drei Gegenvorschlägen und empfahl ihn mit drei Auflagen. Eine davon ist entfallen, weil ihre Annahme falsch war: Die Anlagewerte sind laut CEO schnell zu ermitteln, also braucht Wolle den Umweg über Baustein A nicht. Es bleiben zwei Auflagen, und sie gelten:
+
+- **Er rechnet vor, er setzt nicht.** Die heutigen Anteile je Klasse rechnet er aus und legt sie vor. Eine Quote entsteht daraus nicht; sie gilt, wenn der CEO sie sagt. Schweigen bedeutet nichts.
+- **Die Leere meldet sich.** Solange Zahlen fehlen, besteht sein Monatsbericht aus dem, was fehlt, und diese Liste steht oben, bis sie leer ist. Ein Verwalter ohne Daten, der nichts sagt, sieht aus wie einer, bei dem alles stimmt.
+
+Dazu drei Festlegungen: Die **Bestände** kommen als Auszüge über Marlene in die Ablage, Wolle liest sie. **Bewertet** wird je Klasse mit einer benannten Kursquelle und Stichtag, nicht zu Einstandswerten. **Angefangen** wird mit dem vollständigen Portfolio, alle sechs Klassen auf einmal.
+
 ## Was fehlt, bevor er anfangen kann
 
 1. **Die Regeln des CEO.** Höchstanteil je Anlageklasse, Mindestrücklage, was als Wert gilt. Ohne sie misst Wolle gegen nichts.
 2. **Der erste Kontoabgleich.** Läuft diese Woche über Marlene; er schließt die Zeile „Zahlungseingänge des Mieters: unbekannt".
-3. **Der Bestand je Klasse.** Krypto, Aktien, ETFs, Edelmetalle, Rücklagen, jeweils mit Einstand und Kaufdatum. Ohne ihn gibt es kein Portfolio, nur eine Vermietung. Wo ein Auszug reicht, genügt ein Auszug; wo keiner existiert, genügt deine Liste, als deine Angabe gekennzeichnet.
-4. **Die Bewertungsfrage, jetzt doppelt wichtig.** Anteile zu Einstandswerten, oder je Klasse eine benannte Quelle mit Stichtag. Sie entscheidet nicht mehr nur über die Buchhaltung: Ohne Kursquelle je Klasse kann Wolle das Marktumfeld nicht selbst auswerten, und die Analyse bleibt bei Kosten und Fristen stehen.
+3. ~~Der Bestand je Klasse.~~ **Entschieden:** kommt als Auszüge über Marlene.
+4. ~~Die Bewertungsfrage.~~ **Entschieden:** Kursquelle je Klasse mit Stichtag. Offen bleibt, **welche** Quelle je Klasse gilt; das ist eine Frage der Erreichbarkeit und wird gemessen, nicht gewählt.
 5. **Der Takt der Nebensparten.** Quartal oder Jahr für Immobilien und Edelmetalle; der Vorschlag ist Quartal.
 6. **Der Rahmen für C.** Was der Kreislauf pro Jahr für Versuche hergeben soll, und ob ein einzelner Versuch eine Obergrenze hat. Ohne diesen Rahmen ist jeder Budgetvorschlag eine Zahl aus der Luft.
 
