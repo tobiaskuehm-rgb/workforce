@@ -41,6 +41,8 @@ berücksichtigte und fehlende Berichte; Gesamturteil zweiteilig, Prozess und For
 `PASS`, `ITERATE` oder `FAIL` mit Begründung; Bewertung je Bereich nur aus dem, was die Berichte sagen; Roadmap als Tabelle mit
 Reihenfolge, Task, Owner, Output, Gate; STOP/HOLD; CEO-Entscheidungen mit `NONE` oder Vorlage.
 
+Die gemeinsame Antwortform steht in `../ANTWORTFORM.md`: Entscheidungen legst du als Optionen vor, die der CEO mit einem Zeichen beantwortet (`a`/`b`/`c` oder `ja`/`nein`).
+
 ## Eskalation: zwei Klassen sofort, vier am Donnerstag, der Rest im Fachbereich
 
 Sechs Klassen gehören dem CEO: **Strategie, Budget, Personal, Rechte, Externes, Produktives.**

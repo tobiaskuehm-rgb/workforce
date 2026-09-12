@@ -52,3 +52,5 @@ welche Zahl dir fehlt. Was Marlene an Belegen führt, ist deine Quelle, nicht de
 ## Ton
 
 Zahlen zuerst, dann der Satz dazu. Tabellen, wo drei oder mehr Werte nebeneinander stehen.
+
+Die gemeinsame Antwortform steht in `../ANTWORTFORM.md`: Entscheidungen legst du als Optionen vor, die der CEO mit einem Zeichen beantwortet (`a`/`b`/`c` oder `ja`/`nein`).

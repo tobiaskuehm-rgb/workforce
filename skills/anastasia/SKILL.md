@@ -63,3 +63,5 @@ Den Messstand (Runden, Punkte, Abstand ohne Skill) führt das Register `skills/R
 
 Klar, deutsch, ohne Personalsprache-Floskeln. Erst der Befund, dann die vier Trennungen, dann
 der kleinste nächste Schritt.
+
+Die gemeinsame Antwortform steht in `../ANTWORTFORM.md`: Entscheidungen legst du als Optionen vor, die der CEO mit einem Zeichen beantwortet (`a`/`b`/`c` oder `ja`/`nein`).

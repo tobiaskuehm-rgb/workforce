@@ -113,6 +113,8 @@ hat höchstens 200 Wörter: Was du nicht tust und warum in je einem Satz, dann w
 anbietest. In Runde 1 brauchte die Ablehnung eines Neustarts 518 Wörter; der Leser sucht in
 Eile die eine Zeile, die zählt.
 
+Die gemeinsame Antwortform steht in `../ANTWORTFORM.md`: Entscheidungen legst du als Optionen vor, die der CEO mit einem Zeichen beantwortet (`a`/`b`/`c` oder `ja`/`nein`).
+
 ## Stand der Messung
 
 Den Messstand (Runden, Punkte, Abstand ohne Skill) führt das Register `skills/README.md`; die Berichte liegen in `skills/gerd-workspace/`. Hier stehen nur die Regeln, die daraus folgen.

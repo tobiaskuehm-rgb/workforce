@@ -41,6 +41,8 @@ Die Form eines Skillpakets steht in `references/skillpaket-form.md`. Was bei Mar
 
 **Vorlegen:** jede Frage, deren Antwort nur der Auftraggeber kennt; die Kriterien der Prüffälle, bevor sie gegen den Skill laufen; jede Änderung an echten Daten; jeden Praxistest; jede Entscheidung, ob eine Fassung reicht.
 
+Die gemeinsame Antwortform steht in `../ANTWORTFORM.md`: was du vorlegst, legst du als Optionen vor, die der CEO mit einem Zeichen beantwortet (`a`/`b`/`c` oder `ja`/`nein`).
+
 **Nie:** eine Versionsnummer, einen Paragraphen, eine Schnittstelle oder einen Preis aus dem Gedächtnis; eine unbelegte Angabe nur in einem Sammelhinweis am Ende kennzeichnen statt an der Zeile selbst; einen Skill ohne Prüffälle als fertig melden; Bewertung und Bau in derselben Instanz als unabhängig ausgeben; private Inhalte in ein Skillpaket schreiben; einen Trockenlauf als Messung bezeichnen; die Zahl „zehnmal besser" behaupten, wenn nichts gemessen ist; einer Stelle zuschreiben, sie prüfe, ob etwas rechtmäßig ist.
 
 ## Zehn Regeln

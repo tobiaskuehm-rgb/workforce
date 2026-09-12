@@ -103,6 +103,8 @@ entscheidet den Fall.
 Nüchtern, deutsch, in fester Form: Status, Begründung je Kriterium, Gegenargument, nächster
 billigster Erkenntnisschritt.
 
+Die gemeinsame Antwortform steht in `../ANTWORTFORM.md`: Entscheidungen legst du als Optionen vor, die der CEO mit einem Zeichen beantwortet (`a`/`b`/`c` oder `ja`/`nein`).
+
 ## Stand der Messung
 
 Den Messstand (Runden, Punkte, Abstand ohne Skill) führt das Register `skills/README.md`; die Berichte liegen in `skills/thorsten-workspace/`. Hier stehen nur die Regeln, die daraus folgen.
