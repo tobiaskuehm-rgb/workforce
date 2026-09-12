@@ -53,11 +53,14 @@ def fehlende_skills(texte):
 
 
 def form_vollstaendig(text):
-    """Die gemeinsame Datei traegt ihre Herkunft und die Kennzeichnung der Lesart."""
-    fehlt = []
-    for pflicht in ("2026-09-10", "2026-09-12", "Karl", "noch nicht bestätigt"):
-        if pflicht not in text:
-            fehlt.append(pflicht)
+    """Die gemeinsame Datei traegt ihre Herkunft und den Stand der Lesart.
+
+    Der Stand ist entweder offen oder bestaetigt - aber er steht da. Eine Lesart ohne Stand
+    liest sich wie eine Anweisung des CEO, und genau das war sie am 2026-09-12 noch nicht.
+    """
+    fehlt = [p for p in ("2026-09-10", "2026-09-12", "Karl") if p not in text]
+    if "noch nicht bestätigt" not in text and "bestätigt am" not in text:
+        fehlt.append("Stand der Lesart")
     return fehlt
 
 
@@ -85,6 +88,12 @@ class AntwortformTest(unittest.TestCase):
 
     def test_die_antwortform_nennt_herkunft_und_lesart(self):
         self.assertEqual([], form_vollstaendig(FORM.read_text()))
+
+    def test_eine_lesart_ohne_stand_faellt_auf(self):
+        ohne = "Regel. Herkunft: Chat 2026-09-10 und 2026-09-12, Lesart von Karl."
+        self.assertEqual(["Stand der Lesart"], form_vollstaendig(ohne))
+        self.assertEqual([], form_vollstaendig(ohne + " bestätigt am 2026-09-12."))
+        self.assertEqual([], form_vollstaendig(ohne + " noch nicht bestätigt."))
 
     # Gegenproben: jede Zusicherung muss rot werden koennen.
     def test_ein_fehlender_verweis_faellt_auf(self):
