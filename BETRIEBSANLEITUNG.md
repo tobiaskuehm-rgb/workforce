@@ -9,8 +9,9 @@ Ein Ein-Personen-Unternehmen im Aufbau, dessen Belegschaft aus KI-Identitäten b
 entscheidest, sie arbeiten zu. Drei Geschäftslinien: **A** Vermietung (läuft), **B** Krypto
 als Reserve (läuft), **C** der dritte Baustein aus geistiger Arbeit (wird gesucht).
 
-Ehrlich zum Stand: Das System ist weit, das Geschäft nicht. 48 Entscheidungen, 380 Commits,
-ein Bot, der auf der NAS läuft und antwortet. Null Proben am Markt, null Euro verdient.
+Ehrlich zum Stand: Das System ist weit, das Geschäft nicht. 48 Entscheidungen im Log und 393 Commits
+(gezählt am 2026-09-12, beide wachsen täglich), ein Bot, der auf der NAS läuft und antwortet.
+Null Proben am Markt, null Euro verdient.
 
 ## 2. Die sieben, und was sie tun
 
@@ -20,11 +21,15 @@ ein Bot, der auf der NAS läuft und antwortet. Null Proben am Markt, null Euro v
 | **Marlene** | `POA-001` | Private Verwaltung: Belege, Fristen, Ablage, Rockhausen, Arztrechnungen. Arbeitet direkt auf Drive und NAS. |
 | **Thorsten** | `RAS-001` | Geschäftsideen prüfen, Recherche, der Filter. |
 | **Anastasia** | `PEO-001` | Rollen, Register, Probezeiten. Wer was darf und wie es dokumentiert ist. |
-| **Wolle** | CFO | Zahlen je Linie, Budgets, Fristen. Ruht bis Oktober. |
+| **Wolle** | Kennung offen | Zahlen je Linie, Budgets, Fristen. Ruht bis Oktober. |
 | **Gerd** | `AI-ENG-001` | Prüft System und Code. Hängt direkt bei dir, nicht unter Karl — wer prüft, wird nicht von dem gesteuert, den er prüft. |
-| **Marv** | Skillbauer | Baut und misst die Skills der anderen. Unter Anastasia. |
+| **Marv** | `AI-SKE-001` | Baut und misst die Skills der anderen. Unter Anastasia. |
 
 Wer wem berichtet, steht in `skills/ORGANIGRAMM.md`.
+
+Zwei sind noch nicht vollständig eingetragen: **Wolle** hat noch keine Kennung und ruht bis
+Oktober, **Marv** hat eine Kennung, aber noch keine Nummer im Entscheidungslog. Beides liegt
+bei dir, beides eilt nicht.
 
 ## 3. Drei Orte, drei verschiedene Dinge
 
@@ -109,6 +114,9 @@ Fünf Dinge, die gelten, auch wenn es unbequem ist. Sie stehen ausführlich in `
   es steht nachlesbar in den Reviews.
 - **Niemand hier kann dir sagen, was du tun sollst.** Auch eine Rolle, die dafür gebaut würde,
   könnte nur beraten. Genau deshalb gibt es sie nicht.
+
+**Gegengelesen** von Anastasia am 2026-09-12: drei Korrekturen eingebaut (Kennungen von Wolle
+und Marv, Zahlen mit Zähldatum, Halbsatz zur Registerreife). Ihr Urteil davor: überarbeiten.
 
 **Gegenprobe zu dieser Anleitung:** Wenn du in zwei Wochen etwas nachfragen musst, das hier
 drinsteht, ist sie zu lang oder am falschen Ort. Wenn du etwas fragst, das nicht drinsteht,
