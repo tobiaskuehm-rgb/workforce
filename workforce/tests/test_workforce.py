@@ -55,10 +55,11 @@ class FakeProvider:
         self.model = (models.resolve("claude-haiku-4-5", provider="claude") if paid
                       else models.resolve("echo-v1", provider="echo"))
         self.is_paid, self.text, self.fail, self.refused = paid, text, fail, refused
-        self.calls = []
+        self.calls, self.systems = [], []
 
     def complete(self, *, system, content):
         self.calls.append(content)
+        self.systems.append(system)
         if self.fail:
             raise ProviderError(self.fail)
         return Reply(text=self.text, model=self.model.name, refused=self.refused,
@@ -529,6 +530,69 @@ class StoreTest(Harness):
         with self.assertRaises(sqlite3.IntegrityError):
             self.store.set_channel("ACTIVE", actor="test", request_id="TEST-CHANNEL")
         self.assertEqual("DISABLED", self.store.channel())
+
+
+class ContextTest(unittest.TestCase):
+    """Befund ohne Nummer (Karl, 2026-09-12; Gerd vergibt): the bot cannot read a file at runtime, so what an identity must know is read
+    at start. Before this, every SKILL.md said "your memory is ../gedaechtnis/x.md" and the
+    bot had no memory at all."""
+
+    def build(self, tmp, files, text="Stand: nichts."):
+        for name in files:
+            (pathlib.Path(tmp) / name).write_text(text, encoding="utf-8")
+        values = json.loads(json.dumps(BASE))
+        values["identities"]["A"]["context_files"] = list(files)
+        return values
+
+    def test_context_files_become_part_of_the_system_prompt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            values = self.build(tmp, ["gedaechtnis.md"], "Der CFO heisst Wolle.")
+            cfg = config.parse(values, base_dir=tmp)
+            identity = cfg.identities["A"]
+            self.assertIn("Der CFO heisst Wolle.", identity.system_prompt)
+            self.assertIn("gedaechtnis.md", identity.system_prompt)
+            self.assertTrue(identity.system_prompt.startswith("Hilf."))  # skill first, context after
+            self.assertGreater(identity.context_bytes, 0)
+
+    def test_no_context_files_is_the_default_and_changes_nothing(self):
+        cfg = config.parse(json.loads(json.dumps(BASE)))
+        self.assertEqual(("Hilf.", 0), (cfg.identities["A"].system_prompt, cfg.identities["A"].context_bytes))
+
+    def test_a_missing_context_file_refuses_the_start(self):
+        values = json.loads(json.dumps(BASE))
+        values["identities"]["A"]["context_files"] = ["gibtesnicht.md"]
+        with self.assertRaises(config.ConfigError) as ctx:
+            config.parse(values, base_dir="/nonexistent")
+        self.assertIn("CONFIG_CONTEXT_FILE_MISSING", str(ctx.exception))
+
+    def test_an_empty_or_oversized_context_file_refuses(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (pathlib.Path(tmp) / "leer.md").write_text("   ", encoding="utf-8")
+            values = json.loads(json.dumps(BASE))
+            values["identities"]["A"]["context_files"] = ["leer.md"]
+            with self.assertRaises(config.ConfigError):
+                config.parse(values, base_dir=tmp)
+            (pathlib.Path(tmp) / "gross.md").write_text("x" * (config.MAX_CONTEXT_BYTES + 1), encoding="utf-8")
+            values["identities"]["A"]["context_files"] = ["gross.md"]
+            with self.assertRaises(config.ConfigError) as ctx:
+                config.parse(values, base_dir=tmp)
+            self.assertIn("CONFIG_CONTEXT_TOO_LARGE", str(ctx.exception))
+
+    def test_the_context_reaches_the_provider(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (pathlib.Path(tmp) / "g.md").write_text("Der CFO heisst Wolle.", encoding="utf-8")
+            values = self.build(tmp, ["g.md"], "Der CFO heisst Wolle.")
+            values["db_path"] = os.path.join(tmp, "w.db")
+            cfg = config.parse(values, base_dir=tmp)
+            store = Store(cfg.db_path, clock=lambda: 1_700_000_000.0)
+            store.set_channel("ACTIVE", actor="test", request_id="T")
+            telegram, provider = FakeTelegram(), FakeProvider()
+            application = App(cfg, store, telegram, {"A": provider, "B": provider},
+                              clock=lambda: 1_700_000_000.0, log=lambda s: None)
+            telegram.queue.append(update(1, "wer ist der cfo"))
+            application.poll_once()
+            self.assertIn("Der CFO heisst Wolle.", provider.systems[0])
+            store.close()
 
 
 class ScheduleConfigTest(unittest.TestCase):

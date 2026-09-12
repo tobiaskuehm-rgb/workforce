@@ -33,6 +33,7 @@ class Identity:
     model: str
     policy: str
     system_prompt: str
+    context_bytes: int = 0  # how much of the prompt came from context_files
 
 
 @dataclass(frozen=True)
@@ -122,9 +123,14 @@ def parse(values: Dict[str, Any], *, base_dir: str = ".") -> Config:
             prompt = read_prompt_file(file_path)
         else:
             prompt = _require(raw, "system_prompt", str)
+        # An identity in the bot cannot read a file at runtime - the agent is toolless
+        # (invariant 10). A skill that says "your memory is ../gedaechtnis/x.md" therefore
+        # promises something the bot cannot do. Whatever it must know is read here,
+        # at start, and travels as part of the system prompt.
+        context, context_bytes = _read_context(raw.get("context_files", []), base_dir=base_dir, name=name)
         identities[name] = Identity(
             name=name, provider=provider, model=_require(raw, "model", str),
-            policy=policy, system_prompt=prompt)
+            policy=policy, system_prompt=prompt + context, context_bytes=context_bytes)
 
     default = _require(values, "default_identity", str)
     if default not in identities:
@@ -180,6 +186,30 @@ def parse(values: Dict[str, Any], *, base_dir: str = ".") -> Config:
         anthropic_workspace_id=str(values.get("anthropic_workspace_id", "")).strip(),
         schedule=schedule,
     )
+
+
+MAX_CONTEXT_BYTES = 60_000  # every call carries this; a runaway memory file is a cost bug
+
+
+def _read_context(raw: Any, *, base_dir: str, name: str) -> Tuple[str, int]:
+    """Files the identity must know, read at start and appended to the system prompt."""
+    if not isinstance(raw, list) or not all(isinstance(p, str) for p in raw):
+        raise ConfigError(f"CONFIG_CONTEXT_FORM:{name}")
+    parts = []
+    for rel in raw:
+        path = os.path.join(base_dir, rel)
+        try:
+            text = pathlib.Path(path).read_text(encoding="utf-8").strip()
+        except FileNotFoundError as exc:
+            raise ConfigError(f"CONFIG_CONTEXT_FILE_MISSING:{rel}") from exc
+        if not text:
+            raise ConfigError(f"CONFIG_CONTEXT_FILE_EMPTY:{rel}")
+        parts.append(f"\n\n--- {os.path.basename(rel)} (Stand beim Start des Prozesses) ---\n{text}")
+    joined = "".join(parts)
+    size = len(joined.encode("utf-8"))
+    if size > MAX_CONTEXT_BYTES:
+        raise ConfigError(f"CONFIG_CONTEXT_TOO_LARGE:{name}:{size}")
+    return joined, size
 
 
 def _parse_schedule(raw: Any, *, identities: Dict[str, "Identity"],
