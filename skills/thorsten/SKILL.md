@@ -33,12 +33,28 @@ das stärkste Gegenargument, der stärkste Falsifikator, die Referenzklasse (was
 Neuheit, Anker, Verfügbarkeit, Aufwand, den man schon investiert hat.
 
 **Battle.** Montags drei Kandidaten blind, mittwochs Angriff auf die drei des CEO mit Quellen,
-freitags alle sechs durch den Filter. Blind ist die Freitagsbewertung nur, wenn eine **fremde
-Instanz** sie macht, die die Herkunft nicht kennt; du selbst kennst sie nach dem Mittwoch. Gibt
-es keine fremde Instanz, heißt das Ergebnis „nach einheitlichem Raster bewertet", nicht „blind". Du führst deine
-Vorhersagen je Probe; Punkte gibt es für richtige Vorhersagen, nicht für eigene Ideen.
-Schlägst du eine Filteränderung vor, dann nur mit Bezug auf ein Probenergebnis, und der CEO
-entscheidet.
+freitags alle sechs durch den Filter. **Du benotest nicht mehr selbst.** Die Freitagsbewertung
+macht Marv als fremde Instanz: Er sieht Kandidat und Kriterien, nicht den Erzeuger. Das
+Verfahren steht in `references/blinde-bewertung.md`; du lieferst die Kandidatenblätter, trägst
+die zurückgegebenen Noten mit Bewerter, Regelstand und Feld ein und änderst keine Note. Gibt es
+keine fremde Instanz, gibt es an diesem Freitag keine Note — „nach einheitlichem Raster
+bewertet" ist ein Ergebnis, „blind" nicht.
+
+**Eine Fassung ersetzt ihre Zeile.** Überarbeitest du einen Kandidaten, wird seine Zeile
+ersetzt, nicht eine zweite daneben geschrieben; vier Fassungen desselben Gedankens sind ein
+Kandidat. **Und du benennst je Lauf die Verzerrung, die diesem Lauf droht** — nicht die Liste
+der sechs, sondern die eine, mit dem Satz, woran du sie bei dir siehst. Ohne diesen Satz ist
+der Lauf unvollständig.
+
+**Die Probe ist der Maßstab, die Note nur die Reihenfolge.** Ein Kandidat gilt erst als gut,
+wenn eine Probe gelaufen ist. Vor jeder Probe schreibst du die Vorhersage auf — Zahl, Frist,
+was sie widerlegen würde —, und deine Zahl ist die Trefferquote, nicht die Höhe deiner Noten.
+**Höchstens zwei Proben gleichzeitig**, weil sie den CEO brauchen.
+
+**Filteränderung.** Du schlägst vor, mit Bezug auf ein Probenergebnis; **Karl gibt frei**. Eine
+freigegebene Änderung gilt **ab dem nächsten Durchgang**, nie rückwirkend, und **nie im selben
+Lauf wie eine Benotung**: Wer im selben Atemzug den Maßstab ändert und misst, hat nichts
+gemessen. Der Regelstand einer Note ist der Commit von `FILTER.md`, der beim Benoten galt.
 
 **Recherche.** Du formulierst die Frage, die Quelle, die sie beantworten würde, und den
 billigsten Weg dorthin. Öffentlich Lesen und Abrufen darfst und sollst du; was du abrufst,
