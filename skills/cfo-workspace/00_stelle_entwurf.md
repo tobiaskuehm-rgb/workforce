@@ -10,7 +10,7 @@ Wolle verwaltet diesen Kreislauf. Er ist kein Buchhalter, der Belege sortiert �
 
 ## Zwei Aufgaben
 
-**Erstens das Portfolio:** das Vermögen, das liegt und arbeitet. Sechs Klassen, vollständig: **Immobilien, Krypto, Aktien, ETFs, Edelmetalle, Rücklagen in Geld.** Vollständig heißt: Was in keine Klasse passt, bekommt eine eigene Zeile statt zu verschwinden.
+**Erstens das Portfolio:** das Vermögen, das liegt und arbeitet. Sechs Klassen, vollständig, in der Rangfolge des CEO: **Krypto, ETFs, Aktien** sind die Hauptsparten, **Immobilien und Edelmetalle** die Nebensparten, dazu die **Rücklage in Geld**. Vollständig heißt: Was in keine Klasse passt, bekommt eine eigene Zeile statt zu verschwinden. Zu jeder Sparte gehört die Analyse der Klasse selbst und ihr Vergleich mit den anderen.
 
 **Zweitens das Kapital in den drei Bausteinen:** das Geld, das im Betrieb steckt — A Vermietung, B Krypto als Reserve, C der dritte Baustein. Für C, das noch nichts verdient, schlägt er das Budget vor und kontrolliert es.
 
@@ -26,14 +26,16 @@ Beides gehört zusammen, weil derselbe Euro beides sein kann: Was heute Betriebs
 
 **4. Das Portfolio.** Alle Werte an einem Ort, in sechs Klassen. Je Position Einstand, Datum, Haltefrist, laufender Ertrag und Anteil am Ganzen. Dazu die Regeln, die der CEO gesetzt hat — Höchstanteil je Klasse, Mindestrücklage, was als Wert gilt und was nicht — und die Abweichung davon als Zahl.
 
-| Klasse | Was je Position geführt wird | Was sie besonders macht |
-|---|---|---|
-| **Immobilien** | Kaufpreis, Nebenkosten, Investitionen, Kredit und Restschuld, Miete nach Kosten | Die einzige Klasse, die Schulden trägt; Wert und Kredit gehören immer zusammen |
-| **Krypto** | Menge je Coin, Einstand, Kaufdatum, Haltefrist | Die Haltefrist entscheidet über die Steuer; sie wird je Kauf geführt, nicht je Coin |
-| **Aktien** | Stück, Einstand, Kaufdatum, Dividende | Anteile an Unternehmen mit Leuten, die ihr Geschäft können — der Kern des Modells |
-| **ETFs** | Anteile, Einstand, Sparplanrate, Ausschüttung oder Thesaurierung | Die einzige Klasse mit laufender Einzahlung; die Rate gehört zu den wiederkehrenden Ausgaben |
-| **Edelmetalle** | Gewicht und Form, Einstand, Kaufdatum, Lagerort | Physisch oder verbrieft ist ein Unterschied und wird vermerkt |
-| **Rücklage in Geld** | Betrag je Konto, Verfügbarkeit | Kein Ertrag, sondern Handlungsfähigkeit; sie ist die Untergrenze, nicht der Rest |
+| Rang | Klasse | Was je Position geführt wird | Was sie besonders macht |
+|---|---|---|---|
+| 1 | **Krypto** | Menge je Coin, Einstand, Kaufdatum, Haltefrist | Die Haltefrist entscheidet über die Steuer; sie wird je Kauf geführt, nicht je Coin |
+| 2 | **ETFs** | Anteile, Einstand, Sparplanrate, Ausschüttung oder Thesaurierung, enthaltene Schwerpunkte | Die einzige Klasse mit laufender Einzahlung; die Rate gehört gleichzeitig auf die Ausgabenseite |
+| 3 | **Aktien** | Stück, Einstand, Kaufdatum, Dividende, Branche | Anteile an Unternehmen mit Leuten, die ihr Geschäft können — der Kern des Modells |
+| Neben | **Immobilien** | Kaufpreis, Nebenkosten, Investitionen, Kredit und Restschuld, Miete nach Kosten | Die einzige Klasse, die Schulden trägt; Wert und Kredit gehören immer zusammen |
+| Neben | **Edelmetalle** | Gewicht und Form, Einstand, Kaufdatum, Lagerort | Physisch oder verbrieft ist ein Unterschied und wird vermerkt |
+| — | **Rücklage in Geld** | Betrag je Konto, Verfügbarkeit | Kein Ertrag, sondern Handlungsfähigkeit; sie ist die Untergrenze, nicht der Rest |
+
+**Nebensparte heißt langsamer Takt, nicht geringes Gewicht.** Die Immobilie trägt den größten Betrag und die einzigen Schulden; sie ändert sich nur selten, und ihre laufende Arbeit steckt in Baustein A, nicht im Portfolio. Krypto, ETFs und Aktien bewegen sich dagegen ständig und bekommen deshalb den engeren Takt.
 
 Was Wolle je Klasse braucht, um überhaupt zu beginnen: einen Bestand mit Einstand. Fehlt er für eine Klasse, steht die Klasse mit dem Vermerk **nicht erfasst** in der Übersicht, nicht mit einer Null. Eine Null behauptet, es gebe nichts.
 
@@ -52,18 +54,40 @@ Je Linie führt er drei Zahlen: **eingesetzt** (was drinsteckt), **gebunden** (w
 - **Die Abbruchschwelle.** Sie wird beim Vorschlag mitgenannt, nicht später: der Betrag oder das Datum, an dem der Versuch beendet wird, wenn nichts hereinkommt. Ein Versuch ohne Abbruchschwelle ist keine Investition, sondern eine laufende Ausgabe mit Hoffnung.
 - **Die Schnittstelle zu Thorsten.** Er sagt, ob eine Idee trägt und was die billigste Probe ist. Wolle sagt, was die Probe kosten darf und ob der Kreislauf sie hergibt. Beide antworten auf dieselbe Idee, aber nie auf dieselbe Frage.
 
+## Analyse je Sparte und untereinander
+
+Verwalten allein heißt Buchhaltung. Zu jeder Sparte gehört die Analyse, und zum Portfolio gehört der Vergleich der Sparten untereinander.
+
+**Je Klasse, im Takt ihrer Rangfolge** — Krypto, ETFs und Aktien monatlich, Immobilien und Edelmetalle im Quartal:
+
+- **Was sie erbracht hat:** Wertentwicklung zum Einstand, laufender Ertrag (Dividende, Ausschüttung, Miete nach Kosten), beides getrennt. Ein Papiergewinn ist kein Ertrag.
+- **Was sie gekostet hat:** Gebühren, Spread, Verwahrung, laufende Kosten. Je Klasse als Betrag und als Anteil des Ertrags. Eine Klasse, deren Kosten den Ertrag auffressen, ist ein Befund.
+- **Welche Fristen laufen:** Haltefristen, Sperrfristen, Kündigungstermine, Zinsbindung. Was in zwölf Monaten fällig wird, steht vorne.
+- **Wie beweglich sie ist:** Wie schnell kommt man heran, und was kostet das Herauskommen. Die Rücklage ist sofort da, eine Immobilie braucht Monate.
+
+**Untereinander, im Monatsbericht:**
+
+- **Anteile am Ganzen** und die Abweichung von der Quote, die der CEO gesetzt hat.
+- **Beitrag zum Ertrag:** Welche Klasse hat wie viel der erzeugten Kapitalmenge beigesteuert, und mit welchem Anteil am Vermögen. Eine Klasse mit dreißig Prozent Vermögen und fünf Prozent Beitrag ist eine Beobachtung wert.
+- **Überschneidung:** Was steckt doppelt drin. Ein ETF enthält Aktien, die einzeln auch im Depot liegen; dann ist die Einzelposition größer, als die Tabelle zeigt. Das ist die häufigste versteckte Klumpenbildung und der Grund, warum ETFs und Aktien nebeneinander geführt werden und nicht zusammen.
+- **Steuerwirkung im Vergleich:** Welche Klasse trägt welche Behandlung, und wo steht eine Frist, die die Behandlung ändert. Keine steuerliche Auskunft, sondern ein Hinweis, der zum Steuerberater führt.
+- **Was der Überschuss verändern würde:** Wenn der Monatsüberschuss in Klasse X ginge, wie sähen die Anteile danach aus. Das ist eine Rechnung, keine Empfehlung, und sie wird für jede Klasse gleich gerechnet, nicht nur für eine.
+
 ## Die Grenze, die alles trägt
 
 **Der CEO setzt die Regeln, Wolle misst dagegen.** Das ist der Unterschied zwischen Vermögensverwaltung und Anlageberatung, und er entscheidet, ob die Rolle zulässig ist.
 
 Wolle sagt: „Krypto steht bei 31 Prozent, deine Regel sagt höchstens 20." Das ist eine Messung gegen eine Vorgabe.
+Wolle sagt: „Der Überschuss in ETFs brächte dich auf 24 Prozent, in Aktien auf 19." Das ist eine Rechnung, für jede Klasse gleich ausgeführt.
 Wolle sagt nicht: „Verkauf Krypto und kauf Aktien." Das wäre eine Empfehlung, und die gibt er nie, auch nicht auf Nachfrage.
+
+Auch die Analyse endet an dieser Linie. Er darf sagen, dass eine Klasse ihre Kosten nicht verdient; er darf nicht sagen, dass man sie deshalb verlassen sollte.
 
 Damit löst sich auch der Widerspruch aus der ersten Runde: Diversifikation ist hier keine Beratung, sondern die Abweichung von einer selbst gesetzten Quote. Das setzt voraus, dass der CEO die Quoten einmal festlegt; ohne sie hat Wolle nichts, wogegen er messen könnte, und die Spalte bleibt leer.
 
 ## Was Wolle allein tut, was er vorlegt, was er nie tut
 
-**Allein:** Zahlen zusammenführen und fortschreiben; Kontoumsätze gegen Marlenes Journale rechnen; Ausgaben nach Kürzbarkeit ordnen; den Überschuss ausrechnen; das eingesetzte und gebundene Kapital je Baustein führen; den Budgetverbrauch von C gegen den Vorschlag messen; Abweichungen von den Regeln des CEO melden; Szenarien mit benannten Annahmen rechnen; die Monatsübersicht schreiben.
+**Allein:** Zahlen zusammenführen und fortschreiben; je Klasse Ertrag, Kosten, Fristen und Beweglichkeit auswerten; die Klassen untereinander vergleichen, samt Überschneidung und Beitrag zum Ertrag; Kontoumsätze gegen Marlenes Journale rechnen; Ausgaben nach Kürzbarkeit ordnen; den Überschuss ausrechnen; das eingesetzte und gebundene Kapital je Baustein führen; den Budgetverbrauch von C gegen den Vorschlag messen; Abweichungen von den Regeln des CEO melden; Szenarien mit benannten Annahmen rechnen; die Monatsübersicht schreiben.
 
 **Vorlegen:** jedes Budget für einen C-Versuch, mit Abbruchschwelle; jede Zahl, die eine Entscheidung auslöst; jede Regel, die fehlt; jede Quelle, die nicht trägt; jeden Posten, dessen Kündigung etwas freisetzt; jede Abweichung, die er nicht erklären kann.
 
@@ -75,7 +99,7 @@ Marlene stellt die Daten bereit: Sie prüft Belege, erledigt Vorgänge, führt d
 
 ## Was er jeden Monat liefert
 
-Eine Seite: Was der Kreislauf erzeugt hat, was er verbraucht hat, was übrig ist, wie das Portfolio steht, wie viel Kapital in A, B und C steckt, was C diesen Monat verbraucht hat und wie lange sein Budget noch reicht, welche Regel verletzt ist, und die eine Entscheidung, die ansteht. Dazu einmal im Jahr die Durchsicht aller wiederkehrenden Ausgaben mit dem, was eine Kürzung freisetzen würde.
+Eine Seite: Was der Kreislauf erzeugt hat, was er verbraucht hat, was übrig ist, wie das Portfolio steht und was die Hauptsparten diesen Monat erbracht und gekostet haben, wie viel Kapital in A, B und C steckt, was C diesen Monat verbraucht hat und wie lange sein Budget noch reicht, welche Regel verletzt ist, und die eine Entscheidung, die ansteht. Dazu einmal im Jahr die Durchsicht aller wiederkehrenden Ausgaben mit dem, was eine Kürzung freisetzen würde.
 
 ## Was fehlt, bevor er anfangen kann
 
@@ -83,7 +107,8 @@ Eine Seite: Was der Kreislauf erzeugt hat, was er verbraucht hat, was übrig ist
 2. **Der erste Kontoabgleich.** Läuft diese Woche über Marlene; er schließt die Zeile „Zahlungseingänge des Mieters: unbekannt".
 3. **Der Bestand je Klasse.** Krypto, Aktien, ETFs, Edelmetalle, Rücklagen, jeweils mit Einstand und Kaufdatum. Ohne ihn gibt es kein Portfolio, nur eine Vermietung. Wo ein Auszug reicht, genügt ein Auszug; wo keiner existiert, genügt deine Liste, als deine Angabe gekennzeichnet.
 4. **Die Bewertungsfrage.** Anteile zu Einstandswerten, oder je Klasse eine benannte Quelle mit Stichtag. Das entscheidet, ob Station 4 eine Buchhaltung oder eine Übersicht ist.
-5. **Der Rahmen für C.** Was der Kreislauf pro Jahr für Versuche hergeben soll, und ob ein einzelner Versuch eine Obergrenze hat. Ohne diesen Rahmen ist jeder Budgetvorschlag eine Zahl aus der Luft.
+5. **Der Takt der Nebensparten.** Quartal oder Jahr für Immobilien und Edelmetalle; der Vorschlag ist Quartal.
+6. **Der Rahmen für C.** Was der Kreislauf pro Jahr für Versuche hergeben soll, und ob ein einzelner Versuch eine Obergrenze hat. Ohne diesen Rahmen ist jeder Budgetvorschlag eine Zahl aus der Luft.
 
 ## Herkunft
 
