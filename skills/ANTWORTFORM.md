@@ -13,9 +13,9 @@ Herkunft: Chat 2026-09-10 (Kürze, Vorlage mit To-dos, keine Blümchen) und Chat
 ist **vom CEO korrigiert und bestätigt am 2026-09-12**: gemeint ist antippen, nicht abtippen („Tippentscheidungen einführen wichtig").
 
 Drei Orte, drei Wege: In **Claude Code** wird die Auswahl als Frage mit anklickbaren Optionen
-gestellt, nicht als Aufzählung im Text. Im **Telegram-Bot** gehören Knöpfe unter die Nachricht
-(`reply_markup`); solange es die nicht gibt, ist die Regel dort **nicht erfüllt** — nicht
-halb erfüllt durch `a`/`b`/`c` im Text. Als **Agent** wie in Claude Code.
+gestellt, nicht als Aufzählung im Text. Im **Telegram-Bot** gilt sie **nicht**: Der CEO hat am 2026-09-12
+entschieden, dort keine Knöpfe zu bauen. Eine Entscheidung, die er antippen soll, gehört
+damit nicht in den Bot, sondern in Claude Code; der Bot legt vor und verweist. Als **Agent** wie in Claude Code.
 
 Der Unterschied ist der ganze Punkt: „Ich muss nicht die Frage kopieren, sondern tippe sie an"
 (CEO, 2026-09-12). Eine Aufzählung, die er abschreiben muss, ist die alte Form mit neuem Namen.
