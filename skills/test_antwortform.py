@@ -58,7 +58,7 @@ def form_vollstaendig(text):
     Der Stand ist entweder offen oder bestaetigt - aber er steht da. Eine Lesart ohne Stand
     liest sich wie eine Anweisung des CEO, und genau das war sie am 2026-09-12 noch nicht.
     """
-    fehlt = [p for p in ("2026-09-10", "2026-09-12", "Karl") if p not in text]
+    fehlt = [p for p in ("2026-09-10", "2026-09-12", "Karl", "antippen") if p not in text]
     if "noch nicht bestätigt" not in text and "bestätigt am" not in text:
         fehlt.append("Stand der Lesart")
     return fehlt
