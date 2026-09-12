@@ -113,7 +113,7 @@ class AntwortformTest(unittest.TestCase):
 
     def test_eine_fehlende_herkunft_faellt_auf(self):
         self.assertEqual(
-            ["2026-09-12", "noch nicht bestätigt"],
+            ["2026-09-12", "Stand der Lesart"],
             form_vollstaendig("Chat 2026-09-10, Lesart von Karl."),
         )
 
