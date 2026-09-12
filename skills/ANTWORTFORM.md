@@ -5,7 +5,11 @@ To-do-Liste. **Jede Antwort, die eine Entscheidung des CEO braucht, legt sie ihm
 Er soll die Antwort auswählen, nicht abtippen. Zwei bis vier Optionen, je eine Zeile
 Erklärung, was passiert, wenn er sie wählt; die Empfehlung steht zuerst. Keine
 Fließtextfrage, keine offene Frage ohne Optionen.
-Braucht die Antwort keine Entscheidung, endet sie ohne Optionen — Optionen sind kein Schmuck.
+**In Claude Code endet jede Antwort mit einer Auswahl zum Antippen** (CEO, 2026-09-12: „in
+jedem Code-Prompt zum Antippen"). Auch wenn nur der nächste Schritt ansteht, wird er zur
+Auswahl: weitermachen, etwas anderes, oder Schluss. Der CEO soll nie tippen müssen, um
+weiterzukommen. Nur wenn er selbst eine Frage gestellt hat und die Antwort sie vollständig
+beantwortet, endet sie ohne Auswahl.
 Eine eigene Antwortform eines Skills bleibt, wie sie ist; diese Regel kommt hinzu.
 
 Herkunft: Chat 2026-09-10 (Kürze, Vorlage mit To-dos, keine Blümchen) und Chat 2026-09-12
