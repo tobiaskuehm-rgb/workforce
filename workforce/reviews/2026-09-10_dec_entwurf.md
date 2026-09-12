@@ -75,3 +75,14 @@ im iCloud-Satz, ans Ende angehängt am 2026-09-10 auf Anweisung des CEO („die 
 **Entscheidung:** Erzeugen bleibt offen (Thorsten drei, CEO drei, montags); eine überarbeitete Fassung ersetzt ihre Zeile. Bewertet wird blind durch **Marv** als fremde Instanz, gesammelt über den Bestand. Filteränderungen schlägt Thorsten vor, **Karl gibt sie frei**, gültig ab dem nächsten Durchgang, nie im selben Lauf wie eine Benotung. Die Probe ist der Maßstab: Jeder Kandidat über der Schwelle bekommt eine Probe unter 100 Euro und vier Wochen, höchstens zwei gleichzeitig; Thorstens Trefferquote der Vorhersagen ist die Zahl seiner Probezeit. Ein Wächter meldet Häufung (mehr als die Hälfte der zehn höchsten Werte in einem Feld). Der Brandschutzstrang wird zu einer Zeile zusammengezogen, die beste Fassung bleibt.
 
 **Ersetzt/klärt:** Anastasias Entscheidung vom 2026-09-11 (Thorsten verantwortet den Filter selbst) ist ersetzt; ihr Weg zum CEO gilt für Rolle und Leistung, Fachinhalte laufen über Karl. `DEC-042` (Messung Thorstens) bleibt.
+
+## DEC-047 – Recherchestufe, täglicher Lauf und ein Abrufer für Quellen
+**Datum:** 2026-09-12
+**Entscheider:** CEO (Antwort auf `workforce/reviews/2026-09-12_vorlage_recherchestufe.md` und den 3-Loop `2026-09-12_3loop_recherche_karl.md`)
+**Status:** ACTIVE
+
+**Entscheidung:** `FILTER.md` bekommt zwischen Noten und Probe eine Recherchestufe: keine Probe ohne Recherche, keine Note ohne Material mit Quelle und Datum. Thorsten läuft werktäglich über den Bestand und liefert je Lauf eine Frage, deren Antwort den Kandidaten kippen oder tragen würde, samt Fundort; er schreibt ins Gedächtnis und **meldet freitags gesammelt**. Karl sieht darüber und gibt Filteränderungen frei (`DEC-046`). Der Montagstermin fragt den CEO nach **einer Beobachtung** der Woche, nicht nach Ideen. Ein **Abrufer** wird gebaut: ein getrenntes, lesendes Programm holt Quellen und legt sie als Datei ab; Thorsten liest sie als Daten durch die Datengrenze. Das Modell selbst bekommt keinen Netzzugriff — Invariante 10 bleibt.
+
+**Abgrenzung:** Der Abrufer ist der erste Schritt in Phase 5 und braucht eine eigene Zeile in `INVARIANTEN.md` sowie Gerds Review vor dem ersten Lauf. Ollama wird erst danach interessant, für Läufe, die keine Quelle brauchen.
+
+**Antwortform:** Alle Identitäten schließen eine Antwort, die eine Entscheidung verlangt, mit Optionen ab, die der CEO mit einem Zeichen beantworten kann. Lesart von Karl aus „zukünftig in allen Chats tippentscheidungen".
