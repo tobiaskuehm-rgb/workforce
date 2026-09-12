@@ -141,3 +141,7 @@ Dann hilft keine achte und keine Anleitung, sondern Weglassen — und das steht 
 vier Vorschläge.
 
 Nächster Schritt: Der CEO beantwortet die drei Fragen; Owner Tobias.
+
+## Entscheidung des CEO, 2026-09-12
+
+Gegenprobe je Vorlage: ja. Betriebsanleitung: ja, aber von Karl, Anastasia liest gegen. Tempo: ja, höchstens eine Vorlage je Tag. Keine achte Rolle. Eingetragen als `DEC-048`.

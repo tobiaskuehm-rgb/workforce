@@ -86,3 +86,14 @@ im iCloud-Satz, ans Ende angehängt am 2026-09-10 auf Anweisung des CEO („die 
 **Abgrenzung:** Der Abrufer ist der erste Schritt in Phase 5 und braucht eine eigene Zeile in `INVARIANTEN.md` sowie Gerds Review vor dem ersten Lauf. Ollama wird erst danach interessant, für Läufe, die keine Quelle brauchen.
 
 **Antwortform:** Alle Identitäten schließen eine Antwort, die eine Entscheidung verlangt, mit Optionen ab, die der CEO mit einem Zeichen beantworten kann. Lesart von Karl aus „zukünftig in allen Chats tippentscheidungen".
+
+## DEC-048 – Einarbeitung des CEO: Gegenprobe, Betriebsanleitung, Tempo
+**Datum:** 2026-09-12
+**Entscheider:** CEO (Antwort auf den 3-Loop `workforce/reviews/2026-09-12_3loop_einarbeitung_karl.md`)
+**Status:** ACTIVE
+
+**Entscheidung:** Es entsteht **keine** achte Identität für die Einarbeitung; der CEO hat den Einwand selbst benannt, dass auch sie nur beraten könnte, und die Bewertung gab ihm recht (25 gegen 52 Punkte). Stattdessen drei Maßnahmen. **Erstens:** Jede Vorlage nennt eine Gegenprobe — ein Satz „Woran du erkennst, dass ich falsch liege" mit einer Beobachtung, die der CEO selbst machen kann. **Zweitens:** Karl schreibt eine Betriebsanleitung von zwei bis drei Seiten (was das Haus ist, wer was tut, was Skill, Agent und Telegram-Bot unterscheidet, was der CEO an welchem Tag zu tun hat); Anastasia liest gegen. **Drittens:** höchstens eine Vorlage je Tag.
+
+**Antwortform, korrigiert:** „Tippentscheidungen" heißt antippen, nicht abtippen. In Claude Code endet jede Antwort mit einer Auswahl zum Antippen, auch wenn nur der nächste Schritt ansteht. Im Telegram-Bot werden **keine** Knöpfe gebaut; der Bot legt vor und verweist, Entscheidungen holt der CEO in Claude Code.
+
+**Abgrenzung:** Eine Übergabe des Unternehmens bleibt das Abschlussereignis der Bauphase, nicht ihr Anfang. Bedingung: Linie A läuft vollständig im System und ein Kandidat für Baustein C hat eine Probe bestanden.

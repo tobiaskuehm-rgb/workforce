@@ -12,6 +12,14 @@ weiterzukommen. Nur wenn er selbst eine Frage gestellt hat und die Antwort sie v
 beantwortet, endet sie ohne Auswahl.
 Eine eigene Antwortform eines Skills bleibt, wie sie ist; diese Regel kommt hinzu.
 
+**Jede Vorlage nennt ihre Gegenprobe:** ein Satz „Woran du erkennst, dass ich falsch liege",
+und zwar eine Beobachtung, die der CEO selbst machen kann — kein Risiko, keine Floskel. Wer
+keine nennen kann, hat keinen Vorschlag, sondern eine Meinung (CEO, 2026-09-12).
+
+**Höchstens eine Vorlage je Tag.** Das Haus baut schneller, als ein Mensch mit zwei Stunden
+prüfen kann; genau daraus entstand `G-114`. Was mehr anfällt, wartet auf den nächsten Tag oder
+auf den Donnerstagstermin (CEO, 2026-09-12).
+
 Herkunft: Chat 2026-09-10 (Kürze, Vorlage mit To-dos, keine Blümchen) und Chat 2026-09-12
 („Zukünftig in allen Chats tippentscheidungen"). Die Lesart stammte von Karl (SAO-001) und
 ist **vom CEO korrigiert und bestätigt am 2026-09-12**: gemeint ist antippen, nicht abtippen („Tippentscheidungen einführen wichtig").
