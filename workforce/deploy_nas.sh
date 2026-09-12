@@ -49,19 +49,42 @@ for s in $secrets; do
 done
 # What landed is measured, not assumed (G-116): every shipped file's sha256 against the
 # committed tree, checked on the NAS inside a throwaway container. Any deviation aborts.
+# The manifest covers what the deploy ships: the package flat, plus skills/ as it lands
+# (G-118). Both are mounted into the container, so both decide behaviour.
 manifest="$(mktemp)"; unpack="$(mktemp -d)"
-git archive --format=tar HEAD workforce | tar -xf - -C "$unpack"
+git archive --format=tar HEAD workforce skills | tar -xf - -C "$unpack"
+# The package lands flat at the root, skills/ keeps its folder - the manifest names the paths
+# as they are on the NAS, so `sha256sum -c` can be run from there.
 (cd "$unpack/workforce" && find . -type f | sed 's|^\./||' | sort | while read -r f; do shasum -a 256 "$f"; done) > "$manifest"
+(cd "$unpack" && find skills -type f | sort | while read -r f; do shasum -a 256 "$f"; done) >> "$manifest"
 ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -i -v '$root:/w' -w /w alpine sha256sum -c -" < "$manifest" \
   || { echo "FAIL: ausgerollte Dateien weichen von $(git rev-parse --short HEAD) ab" >&2; rm -rf "$unpack" "$manifest" "$archiv"; exit 1; }
+# A deploy adds and never removes (G-047): a file that left the tree stays on the NAS and is
+# reported as unexpected. config.json and secrets/ are deliberately not versioned.
+erlaubt="$(mktemp)"
+{ cut -c 67- "$manifest"; printf 'config.json\n'; } | sort > "$erlaubt"
+gefunden="$(ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -v '$root:/w' -w /w alpine find . -type f -not -path './secrets/*' | sed 's|^\./||' | sort" < /dev/null)"
+unerwartet="$(printf '%s\n' "$gefunden" | grep -Fxv -f "$erlaubt" || true)"
+rm -f "$erlaubt"
+[ -z "$unerwartet" ] || { echo "FAIL: unerwartete Dateien auf der NAS: $(printf '%s' "$unerwartet" | tr '\n' ' ')" >&2; rm -rf "$unpack" "$manifest" "$archiv"; exit 1; }
 rm -rf "$unpack" "$manifest"
 # Rights are set by the script, not by hand (G-115, G-108): directories 750, files 640, the
 # script 750, group 10001 so the container user reads by number (G-044). Then read back.
 ssh -o BatchMode=yes "$host" "cd '$root' \
   && $docker run --rm -v '$root:/w' alpine sh -c 'chgrp -R 10001 /w && find /w -type d -exec chmod 750 {} + && find /w -type f -exec chmod 640 {} + && chmod 750 /w/deploy_nas.sh'" < /dev/null
-rechte="$(ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -v '$root:/w' alpine stat -c '%a %g %n' /w /w/secrets /w/config.json /w/secrets/telegram_bot_token" < /dev/null | sed 's|/w||' | tr '\n' ' ')"
-erwartet="750 10001  750 10001 /secrets 640 10001 /config.json 640 10001 /secrets/telegram_bot_token "
+# Every secret this deploy shipped is read back, not just the first (G-117); the expectation
+# is generated from $secrets, so adding a secret cannot silently skip its check.
+pfade="/w /w/skills /w/secrets /w/config.json"; erwartet="750 10001 /w|750 10001 /w/skills|750 10001 /w/secrets|640 10001 /w/config.json"
+for s in $secrets; do pfade="$pfade /w/secrets/$s"; erwartet="$erwartet|640 10001 /w/secrets/$s"; done
+rechte="$(ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -v '$root:/w' alpine stat -c '%a %g %n' $pfade" < /dev/null | tr '\n' '|' | sed 's/|$//')"
 [ "$rechte" = "$erwartet" ] || { echo "FAIL: Rechte auf der NAS: $rechte" >&2; rm -f "$archiv"; exit 1; }
+# A mode of 750 says nothing while a DSM ACL grants more (G-117). synoacltool runs on the NAS
+# itself, not in a container; "no archive" means the path carries no ACL beyond the mode.
+acl="$(ssh -o BatchMode=yes "$host" "for p in '$root' '$root/secrets' '$root/config.json'; do synoacltool -get \"\$p\" 2>/dev/null | grep -c '^ *\[[0-9]' || true; done | tr '\n' ' '" < /dev/null)"
+case "$acl" in
+  "0 0 0 "|"") : ;;
+  *) echo "FAIL: ACL-Eintraege auf der NAS (Ordner, secrets, config): $acl" >&2; rm -f "$archiv"; exit 1 ;;
+esac
 ssh -o BatchMode=yes "$host" "cd '$root' \
   && $docker compose $compose build -q --build-arg WORKFORCE_COMMIT=$(git rev-parse HEAD) \
   && $docker compose $compose up -d --force-recreate && $docker compose $compose ps" < /dev/null

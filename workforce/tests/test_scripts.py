@@ -28,10 +28,16 @@ n=$(cat "$FAKE_SSH_LOG/count" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > 
 printf '%s\n' "$@" > "$FAKE_SSH_LOG/$n.args"
 cat > "$FAKE_SSH_LOG/$n.stdin"
 case "$*" in
-  *"stat -c"*) printf '%s\n' "${FAKE_STAT:-750 10001 /w
-750 10001 /w/secrets
-640 10001 /w/config.json
-640 10001 /w/secrets/telegram_bot_token}"; exit 0 ;;
+  *"stat -c"*)
+    # Answer for exactly the paths that were asked for, so the script's own expectation
+    # (built from $secrets) is what gets compared - not a list baked into the fake.
+    if [ -n "${FAKE_STAT:-}" ]; then printf '%s\n' "$FAKE_STAT"; exit 0; fi
+    for p in $(printf '%s' "$*" | sed "s/.*%n' //"); do
+      case "$p" in *.*|*/secrets/*) printf '640 10001 %s\n' "$p" ;; *) printf '750 10001 %s\n' "$p" ;; esac
+    done
+    exit 0 ;;
+  *synoacltool*) printf '%s\n' "${FAKE_ACL:-0 0 0 }"; exit 0 ;;
+  *"find . -type f"*) printf '%s' "${FAKE_FIND:-}"; exit 0 ;;
   *"sha256sum -c"*) exit "${FAKE_SHA_EXIT:-0}" ;;
 esac
 [ -n "${FAKE_SSH_STDOUT:-}" ] && cat "$FAKE_SSH_STDOUT"
@@ -131,7 +137,8 @@ class DeployTest(ScriptHarness):
         cmds = [a[-1] for a, _ in self.calls()]
         self.assertTrue(any("chmod 750" in c and "chgrp -R 10001" in c for c in cmds), cmds)
         self.assertTrue(any("stat -c" in c for c in cmds))
-        self.env["FAKE_STAT"] = "777 100 /w\n750 10001 /w/secrets\n640 10001 /w/config.json\n640 10001 /w/secrets/telegram_bot_token"
+        self.assertTrue(any("/w/secrets/anthropic_api_key" in c for c in cmds))  # G-117: every secret
+        self.env["FAKE_STAT"] = "777 100 /w\n750 10001 /w/skills\n750 10001 /w/secrets\n640 10001 /w/config.json\n640 10001 /w/secrets/telegram_bot_token\n640 10001 /w/secrets/anthropic_api_key"
         run = self.deploy(clone)
         self.assertNotEqual(0, run.returncode)
         self.assertIn("Rechte auf der NAS", run.stderr)
@@ -152,6 +159,33 @@ class DeployTest(ScriptHarness):
         run = self.deploy(clone)
         self.assertNotEqual(0, run.returncode)
         self.assertIn("weichen von", run.stderr)
+
+    def test_an_acl_beyond_the_mode_aborts(self):
+        # G-117: 750 says nothing while a DSM ACL grants more.
+        clone = self.clone("claude")
+        self.env["FAKE_ACL"] = "0 2 0 "
+        run = self.deploy(clone)
+        self.assertNotEqual(0, run.returncode)
+        self.assertIn("ACL-Eintraege", run.stderr)
+        self.assertFalse(any("up -d --force-recreate" in a[-1] for a, _ in self.calls()))
+
+    def test_an_unexpected_file_on_the_nas_aborts(self):
+        # G-118: a deploy adds and never removes; what stayed behind is named.
+        clone = self.clone("claude")
+        self.env["FAKE_FIND"] = "app.py\naltes_modul.py\n"
+        run = self.deploy(clone)
+        self.assertNotEqual(0, run.returncode)
+        self.assertIn("altes_modul.py", run.stderr)
+        self.assertNotIn("app.py", run.stderr.split("unerwartete Dateien")[-1].replace("altes_modul.py", ""))
+
+    def test_the_manifest_covers_skills_too(self):
+        # G-118: skills/ is mounted into the container and decides behaviour.
+        clone = self.clone("claude")
+        run = self.deploy(clone)
+        self.assertEqual(0, run.returncode, run.stderr)
+        manifest = [s for a, s in self.calls() if "sha256sum -c" in a[-1]][0].decode()
+        self.assertTrue(any(l.endswith("  app.py") for l in manifest.splitlines()))
+        self.assertTrue(any("skills/karl/SKILL.md" in l for l in manifest.splitlines()))
 
     def test_the_archive_is_the_committed_tree_without_secrets_or_state(self):
         clone = self.clone("claude")
