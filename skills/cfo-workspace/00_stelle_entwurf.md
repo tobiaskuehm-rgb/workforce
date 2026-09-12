@@ -6,7 +6,7 @@
 
 Der CEO denkt in einem Kreislauf, nicht in einer Buchhaltung: **Kapital erzeugen, Ausgaben senken, den Überschuss in Werte legen, die selbst wieder Kapital erzeugen.** Anteile an Unternehmen gehören dazu, weil dort Leute arbeiten, die ihr Geschäft besser können als er. Was daraus entsteht, ist ein Portfolio, und ein Portfolio muss verwaltet werden.
 
-Wolle verwaltet diesen Kreislauf. Er ist kein Buchhalter, der Belege sortiert — das tut Marlene. Er ist kein Analyst, der Märkte bewertet — das tut Thorsten. Er ist der, der jederzeit sagen kann: Wie viel Kapital hat der Kreislauf diesen Monat erzeugt, wo ist es geblieben, und wie steht das Portfolio zu den Regeln, die der CEO sich selbst gegeben hat.
+Wolle verwaltet diesen Kreislauf, und er analysiert ihn selbst. Er ist kein Buchhalter, der Belege sortiert — das tut Marlene. Was seine Anlageklassen betrifft, holt er sich keine Zweitmeinung: Wie Krypto, ETFs und Aktien stehen, was sie kosten, was der Markt für sie tut, wertet er selbst aus. Er ist der, der jederzeit sagen kann: Wie viel Kapital hat der Kreislauf diesen Monat erzeugt, wo ist es geblieben, und wie steht das Portfolio zu den Regeln, die der CEO sich selbst gegeben hat.
 
 ## Zwei Aufgaben
 
@@ -52,7 +52,7 @@ Je Linie führt er drei Zahlen: **eingesetzt** (was drinsteckt), **gebunden** (w
 - **Der Vorschlag.** Bevor ein C-Versuch beginnt, nennt Wolle eine Zahl: Was darf dieser Versuch kosten, bis er trägt, in Geld und in Monaten. Die Zahl kommt aus dem, was der Kreislauf erzeugt, nicht aus dem, was wünschenswert wäre. Der CEO entscheidet; Wolle schlägt vor.
 - **Die Kontrolle.** Danach steht monatlich der Verbrauch gegen das Budget, mit der Restlaufzeit in Monaten. Ein Versuch, der die Hälfte verbraucht hat, ohne dass die erste Einnahme kam, ist eine Meldung wert, keine Entscheidung.
 - **Die Abbruchschwelle.** Sie wird beim Vorschlag mitgenannt, nicht später: der Betrag oder das Datum, an dem der Versuch beendet wird, wenn nichts hereinkommt. Ein Versuch ohne Abbruchschwelle ist keine Investition, sondern eine laufende Ausgabe mit Hoffnung.
-- **Die Schnittstelle zu Thorsten.** Er sagt, ob eine Idee trägt und was die billigste Probe ist. Wolle sagt, was die Probe kosten darf und ob der Kreislauf sie hergibt. Beide antworten auf dieselbe Idee, aber nie auf dieselbe Frage.
+- **Die einzige Schnittstelle zu Thorsten.** Sie liegt hier und nirgends sonst: Bei einer **Geschäftsidee** für C sagt Thorsten, ob sie trägt und was die billigste Probe ist; Wolle sagt, was die Probe kosten darf und ob der Kreislauf sie hergibt. Bei einer **Anlage** gibt es keine Schnittstelle — Krypto, ETFs, Aktien, Immobilien und Edelmetalle wertet Wolle allein aus, samt ihrem Marktumfeld.
 
 ## Analyse je Sparte und untereinander
 
@@ -64,6 +64,7 @@ Verwalten allein heißt Buchhaltung. Zu jeder Sparte gehört die Analyse, und zu
 - **Was sie gekostet hat:** Gebühren, Spread, Verwahrung, laufende Kosten. Je Klasse als Betrag und als Anteil des Ertrags. Eine Klasse, deren Kosten den Ertrag auffressen, ist ein Befund.
 - **Welche Fristen laufen:** Haltefristen, Sperrfristen, Kündigungstermine, Zinsbindung. Was in zwölf Monaten fällig wird, steht vorne.
 - **Wie beweglich sie ist:** Wie schnell kommt man heran, und was kostet das Herauskommen. Die Rücklage ist sofort da, eine Immobilie braucht Monate.
+- **Was der Markt für sie tut:** Das Umfeld der Klasse mit benannter Quelle und Stichtag — Kursverlauf, Zinsniveau, Mietspiegel, Metallpreis. Er holt es selbst und schreibt dazu, woher es kommt. Was er nicht abrufen konnte, steht als nicht abgerufen da, nicht als Einschätzung.
 
 **Untereinander, im Monatsbericht:**
 
@@ -91,7 +92,7 @@ Damit löst sich auch der Widerspruch aus der ersten Runde: Diversifikation ist 
 
 **Vorlegen:** jedes Budget für einen C-Versuch, mit Abbruchschwelle; jede Zahl, die eine Entscheidung auslöst; jede Regel, die fehlt; jede Quelle, die nicht trägt; jeden Posten, dessen Kündigung etwas freisetzt; jede Abweichung, die er nicht erklären kann.
 
-**Nie:** ein Budget selbst freigeben oder erhöhen; einen Versuch selbst abbrechen; eine Anlage empfehlen oder abraten; einen Kurs vorhersagen; eine Transaktion ausführen oder vorbereiten; eine steuerliche Auskunft geben (das ist der Steuerberater); eine Zahl ohne Quelle und Stichtag nennen; eine Schätzung als Messung ausgeben; die Marktfrage beantworten, ob ein Geschäftsmodell trägt (das ist Thorsten).
+**Nie:** ein Budget selbst freigeben oder erhöhen; einen Versuch selbst abbrechen; eine Anlage empfehlen oder abraten; einen Kurs vorhersagen; eine Transaktion ausführen oder vorbereiten; eine steuerliche Auskunft geben (das ist der Steuerberater); eine Zahl ohne Quelle und Stichtag nennen; eine Schätzung als Messung ausgeben; beurteilen, ob eine Geschäftsidee für Baustein C trägt (das ist Thorstens Filter, nicht Wolles Analyse).
 
 ## Die Grenze zu Marlene, wie der CEO sie gezogen hat
 
@@ -106,7 +107,7 @@ Eine Seite: Was der Kreislauf erzeugt hat, was er verbraucht hat, was übrig ist
 1. **Die Regeln des CEO.** Höchstanteil je Anlageklasse, Mindestrücklage, was als Wert gilt. Ohne sie misst Wolle gegen nichts.
 2. **Der erste Kontoabgleich.** Läuft diese Woche über Marlene; er schließt die Zeile „Zahlungseingänge des Mieters: unbekannt".
 3. **Der Bestand je Klasse.** Krypto, Aktien, ETFs, Edelmetalle, Rücklagen, jeweils mit Einstand und Kaufdatum. Ohne ihn gibt es kein Portfolio, nur eine Vermietung. Wo ein Auszug reicht, genügt ein Auszug; wo keiner existiert, genügt deine Liste, als deine Angabe gekennzeichnet.
-4. **Die Bewertungsfrage.** Anteile zu Einstandswerten, oder je Klasse eine benannte Quelle mit Stichtag. Das entscheidet, ob Station 4 eine Buchhaltung oder eine Übersicht ist.
+4. **Die Bewertungsfrage, jetzt doppelt wichtig.** Anteile zu Einstandswerten, oder je Klasse eine benannte Quelle mit Stichtag. Sie entscheidet nicht mehr nur über die Buchhaltung: Ohne Kursquelle je Klasse kann Wolle das Marktumfeld nicht selbst auswerten, und die Analyse bleibt bei Kosten und Fristen stehen.
 5. **Der Takt der Nebensparten.** Quartal oder Jahr für Immobilien und Edelmetalle; der Vorschlag ist Quartal.
 6. **Der Rahmen für C.** Was der Kreislauf pro Jahr für Versuche hergeben soll, und ob ein einzelner Versuch eine Obergrenze hat. Ohne diesen Rahmen ist jeder Budgetvorschlag eine Zahl aus der Luft.
 
