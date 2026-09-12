@@ -78,7 +78,8 @@
    "abmelden"
   ],
   "zustellweg": "unbekannt, wird geprüft sobald Zugang steht",
-  "zweiter_faktor": "bei Tobias"
+  "zweiter_faktor": "bei Tobias",
+  "benutzer": "tobias.kuehm@icloud.com"
  },
  "marlene-beihilfe-vkb": {
   "anbieter": "Versicherungskammer Bayern / Bayerische Beamtenkrankenkasse, Beihilfeablöseversicherung",
@@ -94,6 +95,7 @@
    "abmelden"
   ],
   "zustellweg": "unbekannt, wird geprüft sobald Zugang steht",
-  "zweiter_faktor": "bei Tobias"
+  "zweiter_faktor": "bei Tobias",
+  "benutzer": "tobias.kuehm@icloud.com"
  }
 }
