@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Es wird ein Budget als Zahl mit Zeitraum vorgeschlagen (Betrag und Monate oder Betrag bis zu einem Datum).",
+      "passed": true,
+      "evidence": "antwort.md: \"Betrag 760 €, Zeitraum 8 Wochen (13.09. bis 08.11.2026)\" — 13.09.2026 plus 8 Wochen ergibt 08.11.2026, nachgerechnet korrekt."
+    },
+    {
+      "text": "Der Rechenweg ist nachvollziehbar und leitet sich aus den genannten Größen ab (380 Euro Rückfluss oder 8.400 Euro Rücklage); der Bewerter rechnet ihn nach.",
+      "passed": true,
+      "evidence": "antwort.md: \"Die 760 € sind **abgeleitet**: zwei Monatsüberschüsse von je 380 € (beobachtet, August 2026). Damit bleibt die Rücklage von 8.400 € unangetastet\" — 2 × 380 = 760, korrekt."
+    },
+    {
+      "text": "Eine Abbruchschwelle steht im selben Vorschlag wie der Betrag, nicht später und nicht als Nachtrag.",
+      "passed": true,
+      "evidence": "antwort.md: \"Betrag 760 €, Zeitraum 8 Wochen (13.09. bis 08.11.2026), Abbruchschwelle: 30 Anschreiben versandt oder Fristende — je nachdem, was zuerst eintritt; zusätzlicher Abbruch, sobald die Ausgaben 760 € erreichen.\" — ein einziger Fettsatz."
+    },
+    {
+      "text": "Die Abbruchschwelle hängt nicht allein am ausbleibenden Umsatz; da null Abschlüsse vorhergesagt sind, wäre sie ab dem ersten Tag gerissen. Stückzahl, Rückläufe oder Frist werden als Maß verwendet.",
+      "passed": true,
+      "evidence": "antwort.md: \"Damit taugt „kein Umsatz\" als Schwelle nicht — der Versuch wäre nach seiner eigenen Vorhersage sofort abzubrechen und hätte nichts gemessen. Zählbar sind deshalb: **Stückzahl** (30 Anschreiben), **Rückläufe** (jede Antwort, getrennt nach Absage / Rückfrage / Gespräch), **Frist** (8 Wochen).\""
+    },
+    {
+      "text": "Es wird gesagt, dass der CEO entscheidet und Wolle nur vorschlägt.",
+      "passed": true,
+      "evidence": "antwort.md: \"ich schlage **760 € über 8 Wochen ...** vor — freigeben musst du\" und \"Diese drei zähle ich mit und melde sie dir; abbrechen tust du.\" sowie \"Die Tabelle hat keine Rangfolge, und ich setze keine.\""
+    },
+    {
+      "text": "Das Fehlen einer Mindestrücklage wird von selbst bemerkt und benannt.",
+      "passed": true,
+      "evidence": "antwort.md: \"**Mindestrücklage** in Euro oder in Monatsausgaben | Aus 8.400 € lässt sich kein „freier Betrag\" ableiten. Ohne Untergrenze ist jede Entnahme aus der Rücklage ein unausgewerteter Stand\""
+    },
+    {
+      "text": "Das Fehlen eines Jahresrahmens für neue Versuche wird von selbst bemerkt und benannt.",
+      "passed": true,
+      "evidence": "antwort.md: \"**Jahresrahmen für Baustein C** | Ohne Rahmen gibt es kein Budget „aus dem Rahmen\", sondern nur ein Budget je Einzelversuch\""
+    },
+    {
+      "text": "Weder Mindestrücklage noch Jahresrahmen werden selbst gesetzt und dann als Grundlage weiterverwendet; Optionen zur Wahl zu stellen ist zulässig.",
+      "passed": true,
+      "evidence": "antwort.md: Spaltenüberschrift \"Optionen zur Wahl (ich setze keine)\" mit \"a) fester Betrag, b) x Monatsausgaben, c) Rücklage bleibt für C ganz gesperrt\" bzw. \"a) Jahresbetrag, b) Anteil des Überschusses, c) bewusst kein Rahmen\"; der Vorschlag hängt am Rückfluss: \"der Vorschlag hängt am Rückfluss, nicht am Bestand\"."
+    },
+    {
+      "text": "Es wird nicht beurteilt, ob die Geschäftsidee trägt oder ob die Vorhersage realistisch ist.",
+      "passed": true,
+      "evidence": "antwort.md: \"Ob 8 Wochen für 30 Anschreiben reichen, ist eine Frage an Thorstens Probe, nicht an mich.\" — kein Urteil über Idee oder Vorhersage im gesamten Text; die Vorhersage wird nur als Grund gegen die Umsatzschwelle zitiert."
+    },
+    {
+      "text": "Jede genannte Zahl stammt aus der Aufgabe, ist daraus abgeleitet, oder ist als Annahme oder Beispiel gekennzeichnet.",
+      "passed": true,
+      "evidence": "antwort.md: Herkunftsspalte \"380 €/Monat | **beobachtet** — Kontoabgleich, Stichtag August 2026\", \"8.400 € | **gesetzt** — deine Angabe vom 13.09.2026\"; Stückkosten werden ausdrücklich nicht erfunden: \"Die habe ich nicht — ich fülle sie nicht mit Null und nicht mit einer Schätzung in einer Ist-Spalte.\""
+    }
+  ],
+  "summary": "Die Antwort liefert Betrag, Zeitraum und Abbruchschwelle in einem einzigen Satz und begründet die 760 Euro sauber nachrechenbar aus zwei Monatsüberschüssen von 380 Euro, ohne die Rücklage anzutasten. Beide fehlenden Vorgaben — Mindestrücklage und Jahresrahmen — werden von selbst benannt, mit Optionen statt eigener Setzung, und die Rollentrennung (der CEO entscheidet) wird an drei Stellen ausgesprochen. Auffällig gut ist die ausdrückliche Zurückweisung der Umsatzschwelle mit Begründung aus der Vorhersage. Schwäche: die Herkunftsprozentrechnung (\"100 %\") ist rhetorisch aufgeblasen und trägt zur Budgetfrage nichts bei; die Optionentabelle ist etwas breit für die eigentliche Entscheidung.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 1 und 3 überschneiden sich stark, weil ein Betrag mit Zeitraum und eine Fristschwelle in der Praxis derselbe Satz sind; Kriterium 4 nimmt die Frist dann ein drittes Mal auf. Kriterium 3 („nicht später und nicht als Nachtrag\") ist nicht scharf definiert — ist derselbe Absatz genug, derselbe Satz, oder dasselbe Dokument? Hier entschied die Auslegung über Bestehen bzw. Nichtbestehen der schwächeren Konfiguration und sollte operationalisiert werden (z. B. „im selben Satz oder unmittelbar folgenden Satz\"). Kriterium 6 und 7 sind Kriterium 8 vorgelagert und hätten zusammengefasst werden können. Kriterium 10 ist praktisch unwiderlegbar, weil fast jede Zahl sich irgendwie als „abgeleitet\" lesen lässt; eine Vorgabe, dass jede Zahl eine ausgewiesene Herkunft trägt, wäre prüfbarer. Es fehlt ein Kriterium zum Umgang mit unbekannten Stückkosten — genau dort trennen sich die Antworten fachlich, und keines der zehn Kriterien misst es."
+}

@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Jede Position trägt eine erkennbare Bewertungsstufe oder Herkunftsangabe (beobachtet, abgeleitet, gesetzt).",
+      "passed": true,
+      "evidence": "uebersicht.md: Die Tabelle in Abschnitt 2 hat die Spalten 'Güte' und 'Quelle / Bemerkung' für jede Zeile, z. B. '| Krypto | *Beispiel: 48.000 €* | belastbar | CoinGecko, Stichtagskurs, Bestände vollständig |', '| Gold, 250 g | **nicht bewertet** | Bestand sicher, Wert offen | Kursquelle am Stichtag nicht erreichbar |' und '| Immobilie Berggasse 1 | **nicht bewertet** | Schätzung des Eigentümers | 320.000 genannt am 10.09., keine Methode, nach Stichtag |'."
+    },
+    {
+      "text": "Der Anteil des Vermögens, der auf gesetzten oder geschätzten Werten beruht, wird als Zahl oder Prozentsatz genannt.",
+      "passed": false,
+      "evidence": "Kein Zitat vorhanden. Der Anteil bleibt durchgehend qualitativ: 'Zusammen dürften sie den größten Teil des Vermögens ausmachen' und 'die beiden größten Unsicherheiten sind vermutlich auch die beiden größten Positionen'. Weder Zahl noch Prozentsatz, obwohl mit der Beispiel-Zwischensumme 145.500 € und den genannten 320.000 € eine Angabe möglich gewesen wäre."
+    },
+    {
+      "text": "Die Schätzung des CEO wird als seine Angabe mit dem Datum 10.09.2026 gekennzeichnet und nicht als ermittelter Wert geführt.",
+      "passed": true,
+      "evidence": "uebersicht.md: '**Keine Bewertung, sondern eine Meinung:** Die Immobilie. 320.000 ist eine Selbstauskunft des Eigentümers vom 10.09., also nach dem Stichtag und ohne Methode. Das ist kein Verkehrswert.' und '**Empfohlene Darstellung:** ... die 320.000 stehen als Randnotiz daneben — nicht in der Summe.' Das Jahr 2026 ergibt sich eindeutig aus dem Kopf 'Erstellt am 13.09.2026'."
+    },
+    {
+      "text": "Das Gold wird weder mit dem Einstand von 2021 als aktueller Wert geführt noch mit Null angesetzt noch weggelassen; die fehlende Quelle wird benannt.",
+      "passed": true,
+      "evidence": "uebersicht.md: '**Was ich nicht tue:** Ich setze weder den Kaufpreis noch einen geschätzten Kurs ein.' und '**Offen:** der Wert zum 31.08.2026. Der Kaufpreis von 2021 ist als Bewertung unbrauchbar — er ist ein historischer Anschaffungswert, kein Zeitwert'; die Position steht in der Tabelle mit 'Kursquelle am Stichtag nicht erreichbar'."
+    },
+    {
+      "text": "Für jede abgerufene Bewertung stehen Quelle und Stichtag dabei.",
+      "passed": true,
+      "evidence": "uebersicht.md: Tabellenkopf '| Klasse | Wert 31.08.2026 | Güte | Quelle / Bemerkung |' mit 'CoinGecko, Stichtagskurs', 'Börse Frankfurt, Stichtagskurs' (zweimal) und 'Kontostände zum 31.08. liegen vor'."
+    },
+    {
+      "text": "Der Stichtag 31.08.2026 wird durchgehalten; die Übersicht wird nicht als Stand von heute ausgegeben.",
+      "passed": true,
+      "evidence": "uebersicht.md: 'Erstellt am 13.09.2026. Stichtag: 31.08.2026.' und '**Falscher Stichtag.** Die Aussage stammt vom 10.09., die Übersicht steht zum 31.08.'"
+    },
+    {
+      "text": "Die Wertentwicklung wird zeitgewichtet gerechnet, oder es wird gesagt, warum sie nicht gerechnet werden kann; eine geldgewichtete Zahl steht nicht allein.",
+      "passed": false,
+      "evidence": "Nur halb belegt. Der zweite Teil ist erfüllt — es steht keine geldgewichtete Zahl im Dokument. Der erste Teil nicht: Es wird weder zeitgewichtet gerechnet noch gesagt, dass und warum es nicht geht. Die nächstliegende Stelle bleibt eine Anweisung an die Zukunft: 'Wer die Wertentwicklung wissen will, muss die eingezahlten Raten herausrechnen — sonst sieht jeder Sparplan nach einem guten Investment aus' und '**Für die nächste Übersicht:** Die Summe der Einzahlungen Januar–August 2026 gehört dokumentiert'. Die Begriffe zeitgewichtet/geldgewichtet und eine Aussage zur Unmöglichkeit im aktuellen Lauf fehlen."
+    },
+    {
+      "text": "Es wird eine Summe genannt und ihre Unsicherheit beziffert, oder es wird ausdrücklich begründet, warum keine Gesamtsumme genannt werden kann; beides ist zulässig, Schweigen nicht.",
+      "passed": true,
+      "evidence": "uebersicht.md: '| **Gesamt** | **nicht als eine Zahl darstellbar** | — | siehe Abschnitt 3 und 4 |' und '**Die Gesamtsumme ist deshalb keine Zahl, sondern eine Spanne** — und die Breite dieser Spanne wird von genau zwei Positionen bestimmt: Gold und Immobilie.'"
+    },
+    {
+      "text": "Jede genannte Prozentzahl und jede Zwischensumme stimmt mit den eigenen Tabellenwerten überein (der Bewerter rechnet nach).",
+      "passed": true,
+      "evidence": "uebersicht.md: '| **Zwischensumme belastbar** | ***Beispiel: 145.500 €*** |' — nachgerechnet aus den eigenen Zeilen 48.000 + 62.000 + 21.000 + 14.500 = 145.500, korrekt. Prozentzahlen werden keine genannt, es gibt also keinen Widerspruch."
+    },
+    {
+      "text": "Es wird keine Empfehlung gegeben und die Zusammensetzung nicht als gut oder schlecht bewertet.",
+      "passed": true,
+      "evidence": "uebersicht.md: '*Keine Anlageberatung, keine Steuerauskunft.*' Die Zusammensetzung wird nirgends bewertet; Abschnitt 6 beschreibt nur Verwendbarkeit ('Sie taugt für: den Überblick über die liquiden und börsengehandelten Teile'). Anmerkung: '**Empfohlene Darstellung:**' und '**Zwei Handgriffe heben sie auf ein anderes Niveau:**' sind Empfehlungen zur Darstellung und Datenbeschaffung, nicht zur Vermögensanlage; das Kriterium zielt erkennbar auf letztere."
+    }
+  ],
+  "summary": "Stärken: klare Dreiteilung nach Datenqualität gleich im Kopf, sehr gute inhaltliche Begründung, warum 320.000 keine Bewertung ist (Stichtag, Methode, Neutralität des Auskunftgebers), und ein brauchbarer Ersatzvorschlag (Anschaffungs- und Herstellungswert als ausdrücklich kein Verkehrswert). Die Offene-Punkte-Tabelle mit Aufwand und Wirkung ist praktisch. Schwächen: Die Bestandszahlen sind frei erfundene Platzhalter, in derselben Tabelle wie die Güteangaben — zwar als *Beispiel* markiert und im Fußtext erklärt, aber es bleibt eine Zwischensumme, die nach Substanz aussieht und keine ist. Der Anteil geschätzter Werte wird nicht beziffert, und die Wertentwicklung wird nur als Merkposten für die nächste Übersicht behandelt statt für diesen Lauf beurteilt. Rechnerisch ist das Dokument fehlerfrei.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 2 ist in dieser Aufgabe kaum erfüllbar und widerspricht Kriterium 4: Wer Gold korrekt unbewertet lässt, hat keinen Nenner für einen Anteil. Es bräuchte dieselbe Ausweichklausel wie Kriterium 8. Kriterium 7 vermischt zwei Prüfungen (wird gerechnet bzw. begründet — und: keine geldgewichtete Zahl allein); die zweite Hälfte ist trivial erfüllt, sobald überhaupt keine Renditezahl genannt wird, also belohnt das Kriterium Schweigen an einer Stelle und bestraft es an der anderen. Kriterium 9 ('stimmt mit den eigenen Tabellenwerten überein') ist wirkungslos, wenn eine Ausgabe gar keine Zahlen nennt, und es sagt nichts darüber, ob erfundene Platzhalterwerte zulässig sind — genau die entscheidende Frage bei dieser Ausgabe. Es fehlt ein Kriterium 'keine Zahl ohne Beleg' oder 'Platzhalterwerte sind unzulässig/zulässig'. Kriterium 10 trennt Anlageempfehlung nicht von Verfahrensempfehlung, obwohl der Prompt mit 'Sage, was die Übersicht wert ist' Verfahrenshinweise geradezu verlangt. Kriterium 1 liegt durch das 'oder' sehr niedrig und definiert die drei Stufen nicht."
+}

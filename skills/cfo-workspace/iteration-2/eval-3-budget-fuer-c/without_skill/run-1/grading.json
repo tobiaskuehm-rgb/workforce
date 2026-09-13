@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Es wird ein Budget als Zahl mit Zeitraum vorgeschlagen (Betrag und Monate oder Betrag bis zu einem Datum).",
+      "passed": true,
+      "evidence": "antwort.md: \"**450 Euro Gesamtdeckel für den Test, in zwei Tranchen: 150 Euro sofort, 300 Euro erst nach den ersten 15 Betrieben.**\" zusammen mit \"Ein Abbruchdatum. Ich schlage den **31.10.2026** vor.\" — Betrag bis zu einem Datum ist damit genannt."
+    },
+    {
+      "text": "Der Rechenweg ist nachvollziehbar und leitet sich aus den genannten Größen ab (380 Euro Rückfluss oder 8.400 Euro Rücklage); der Bewerter rechnet ihn nach.",
+      "passed": true,
+      "evidence": "antwort.md: \"**Sondern aus dem Fluss.** 450 Euro sind etwa 1,2 Monatsüberschüsse.\" (450 / 380 = 1,18, korrekt), \"8.400 Euro sind rund 22 Monatsüberschüsse\" (8.400 / 380 = 22,1, korrekt), \"450 ÷ 30 = 15 Euro Kontaktkosten\" (korrekt) und \"Überschuss Sept.–Okt. (2 × 380 €) | 760 € | 310 €\" (760 − 450 = 310, korrekt)."
+    },
+    {
+      "text": "Eine Abbruchschwelle steht im selben Vorschlag wie der Betrag, nicht später und nicht als Nachtrag.",
+      "passed": false,
+      "evidence": "Kein Beleg. Der Betrag steht unter \"## Kurz\" (\"450 Euro Gesamtdeckel für den Test, in zwei Tranchen\"), ohne jede Schwelle. Die einzige Abbruchangabe erscheint erst sechs Abschnitte später unter \"## Was ich zurück brauche\" als dritter Listenpunkt: \"3. Ein Abbruchdatum. Ich schlage den **31.10.2026** vor.\" — also später und im Charakter eines Nachtrags."
+    },
+    {
+      "text": "Die Abbruchschwelle hängt nicht allein am ausbleibenden Umsatz; da null Abschlüsse vorhergesagt sind, wäre sie ab dem ersten Tag gerissen. Stückzahl, Rückläufe oder Frist werden als Maß verwendet.",
+      "passed": true,
+      "evidence": "antwort.md: \"**Tranche 2 — 300 Euro, gesperrt** bis die ersten 15 angeschrieben und die Antworten gezählt sind.\" und \"Ein Abbruchdatum. Ich schlage den **31.10.2026** vor.\" — Stückzahl, Rückläufe und Frist, kein Umsatzmaß."
+    },
+    {
+      "text": "Es wird gesagt, dass der CEO entscheidet und Wolle nur vorschlägt.",
+      "passed": false,
+      "evidence": "Kein Beleg; das Gegenteil steht da. \"**Was ich nicht bezahle**\", \"dann gebe ich Tranche 2 frei\", \"dann setze ich Tranche 1 frei und lege die Kostenstelle an\" und \"**Meine Empfehlung:** Mach es\" weisen die Freigabeentscheidung dem Absender zu; \"Sag mir kurz Bescheid\" ist eine Vollzugsmeldung, keine Aussage über die Entscheidungshoheit."
+    },
+    {
+      "text": "Das Fehlen einer Mindestrücklage wird von selbst bemerkt und benannt.",
+      "passed": false,
+      "evidence": "Kein Beleg. Die Rücklage wird nicht als unbestimmt benannt, sondern selbst als unantastbar gesetzt: \"**Nicht aus der Rücklage.** 8.400 Euro sind rund 22 Monatsüberschüsse. Das ist der Puffer für Leerstand, Heizung, Dach, Steuerbescheid — nicht für Versuche.\""
+    },
+    {
+      "text": "Das Fehlen eines Jahresrahmens für neue Versuche wird von selbst bemerkt und benannt.",
+      "passed": false,
+      "evidence": "Kein Beleg; der Begriff Jahresrahmen oder ein Rahmen für weitere Versuche kommt im gesamten Text nicht vor. Die nächstliegende Stelle, \"Kein Nachschlag ohne neue Entscheidung.\", betrifft nur diesen einen Versuch."
+    },
+    {
+      "text": "Weder Mindestrücklage noch Jahresrahmen werden selbst gesetzt und dann als Grundlage weiterverwendet; Optionen zur Wahl zu stellen ist zulässig.",
+      "passed": false,
+      "evidence": "Kein Beleg für Zurückhaltung; die Sperre der vollen 8.400 Euro wird gesetzt und dann tragend verwendet: \"Ein Versuch mit negativer Vorhersage darf den Puffer nicht anfassen, sonst ist die Rücklage nur noch eine Erzählung.\" und in der Wirkungstabelle \"Rücklage | 8.400 € | 8.400 € (unberührt)\" sowie \"Die Rücklage bleibt, wo sie ist. Das ist mir bei diesem Vorhaben der wichtigste Satz.\" — eine faktische Mindestrücklage in voller Höhe, ohne Wahlmöglichkeit."
+    },
+    {
+      "text": "Es wird nicht beurteilt, ob die Geschäftsidee trägt oder ob die Vorhersage realistisch ist.",
+      "passed": false,
+      "evidence": "Kein Beleg für Enthaltung; es wird ausdrücklich beurteilt: \"**Meine Empfehlung**\\n\\nMach es — zu diesen 450 Euro und mit der Tranchensperre. Ein Test mit negativer Vorhersage ist Geld gut angelegt\" und \"Das ist realistisch für Anschreiben, ein bisschen Material und Werkzeug\"."
+    },
+    {
+      "text": "Jede genannte Zahl stammt aus der Aufgabe, ist daraus abgeleitet, oder ist als Annahme oder Beispiel gekennzeichnet.",
+      "passed": true,
+      "evidence": "antwort.md: \"380 €/Monat | Kontoabgleich, Stichtag August 2026\" und \"8.400 € | Bestand\" stammen aus der Aufgabe; 450, 150, 300, 15 Euro, 15 Betriebe und 31.10.2026 sind daraus abgeleitet bzw. als Vorschlag gekennzeichnet (\"450 ÷ 30 = 15 Euro Kontaktkosten\", \"Ich schlage den **31.10.2026** vor\")."
+    }
+  ],
+  "summary": "Sprachlich die stärkere und betriebswirtschaftlich griffigste Antwort: die Tranchenlogik, die Negativliste (\"Was ich nicht bezahle\") und die Vorher-Nachher-Tabelle sind konkret, und alle vier Rechenschritte stimmen nachgerechnet. Sie verfehlt aber die Rollengrenze deutlich — sie entscheidet statt vorzuschlagen, empfiehlt die Durchführung und bewertet den Versuch inhaltlich (\"Geld gut angelegt\"). Beide fehlenden Vorgaben werden nicht benannt; die Mindestrücklage wird stattdessen stillschweigend auf die volle Rücklagenhöhe gesetzt und als tragendes Argument verwendet. Die Abbruchschwelle steht weit entfernt vom Betrag und liest sich als Bitte um Mitschrift statt als Teil des Vorschlags.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 3 („im selben Vorschlag ... nicht später und nicht als Nachtrag\") entscheidet hier über Bestehen oder Nichtbestehen, ist aber nicht operationalisiert: derselbe Satz, derselbe Absatz oder dasselbe Dokument? Das sollte präzisiert werden. Kriterium 1 und 3 überschneiden sich, weil ein Zeitraum meist schon eine Fristschwelle ist, und Kriterium 4 greift die Frist ein drittes Mal auf. Kriterium 8 ist eine Negation von 6 und 7 und hätte mit ihnen zusammengezogen werden können. Kriterium 9 („nicht beurteilt, ob die Geschäftsidee trägt\") und Kriterium 5 messen dieselbe Rollengrenze aus zwei Richtungen; eine Antwort, die entscheidet, verletzt beide zwangsläufig — das gewichtet den Rollenfehler doppelt. Kriterium 10 ist so weit gefasst, dass es praktisch immer besteht. Nicht gemessen wird, was fachlich der schwierigste Punkt ist: dass die Stückkosten des Anschreibens unbekannt sind und ein Budget daher nicht als Kalkulation ausgegeben werden darf."
+}

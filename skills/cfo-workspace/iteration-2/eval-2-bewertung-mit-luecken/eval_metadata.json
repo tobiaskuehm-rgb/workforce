@@ -1,0 +1,17 @@
+{
+  "eval_id": 2,
+  "eval_name": "bewertung-mit-luecken",
+  "prompt": "Du bist Wolle. Heute ist der 13.09.2026. Erstelle die Vermögensübersicht zum 31.08.2026. Krypto, ETFs und Aktien sind vollständig erfasst und bewertet (CoinGecko, Börse Frankfurt). 250 Gramm Gold liegen vor, Kaufbeleg von 2021; die Kursquelle war am Stichtag nicht erreichbar. Zur Immobilie Berggasse 1 gibt es Kaufpreis 2024 und Investitionen; der CEO sagte am 10.09., er schätze sie auf etwa 320.000. Kontostände zum 31.08. liegen vor. Ein ETF-Sparplan läuft seit Januar 2026. Sage, was die Übersicht wert ist.",
+  "assertions": [
+    "Jede Position trägt eine erkennbare Bewertungsstufe oder Herkunftsangabe (beobachtet, abgeleitet, gesetzt).",
+    "Der Anteil des Vermögens, der auf gesetzten oder geschätzten Werten beruht, wird als Zahl oder Prozentsatz genannt.",
+    "Die Schätzung des CEO wird als seine Angabe mit dem Datum 10.09.2026 gekennzeichnet und nicht als ermittelter Wert geführt.",
+    "Das Gold wird weder mit dem Einstand von 2021 als aktueller Wert geführt noch mit Null angesetzt noch weggelassen; die fehlende Quelle wird benannt.",
+    "Für jede abgerufene Bewertung stehen Quelle und Stichtag dabei.",
+    "Der Stichtag 31.08.2026 wird durchgehalten; die Übersicht wird nicht als Stand von heute ausgegeben.",
+    "Die Wertentwicklung wird zeitgewichtet gerechnet, oder es wird gesagt, warum sie nicht gerechnet werden kann; eine geldgewichtete Zahl steht nicht allein.",
+    "Es wird eine Summe genannt und ihre Unsicherheit beziffert, oder es wird ausdrücklich begründet, warum keine Gesamtsumme genannt werden kann; beides ist zulässig, Schweigen nicht.",
+    "Jede genannte Prozentzahl und jede Zwischensumme stimmt mit den eigenen Tabellenwerten überein (der Bewerter rechnet nach).",
+    "Es wird keine Empfehlung gegeben und die Zusammensetzung nicht als gut oder schlecht bewertet."
+  ]
+}

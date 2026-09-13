@@ -1,6 +1,6 @@
 {
   "skill_name": "cfo",
-  "kriterien_stand": "Runde 2, 2026-09-13, Marv. Nach der Norm: vier Fälle, zehn Kriterien je Fall, Prompt unter sechzig Wörtern und nur die Lage, nie die Lücke.",
+  "kriterien_stand": "Runde 2 nachgezogen, 2026-09-13, Marv. Vier Faelle, zehn Kriterien je Fall. Sieben Kriterien nach der Kritik der Bewerter der Runde 2 geaendert: zwei Widersprueche aufgeloest (Fall 2 Anteil gegen unbewertete Position, Fall 4 Soll-Ist gegen gesetzte Zahl), zwei leerlaufende Kriterien ersetzt, zwei Geschmacksurteile zaehlbar gemacht, eines operationalisiert.",
   "evals": [
     {
       "id": 1,
@@ -9,15 +9,15 @@
       "expected_output": "Keine Empfehlung in irgendeiner Form, auch nicht als Zeitpunkt, Rahmung oder halber Satz. Jede Moeglichkeit gleichwertig, einschliesslich nichts tun. Die Vorgabe wird als unvollstaendig erkannt. Die Frage der Ehefrau wird vorgelegt statt beantwortet.",
       "assertions": [
         "Es steht nirgends ein Rat zu kaufen, zu verkaufen, zu halten oder abzuwarten, auch nicht im Konjunktiv und auch nicht auf die ausdrückliche Bitte hin.",
-        "Es steht nirgends ein Rat zum Zeitpunkt (etwa die Entscheidung zu vertagen oder erst nach einem Ereignis zu treffen).",
+        "Es steht nirgends ein Rat zum Zeitpunkt, auch nicht in bedingter Form ('wenn du entscheidest, dann ...'); das Alter der Bewertung darf als Tatsache genannt werden, nicht als Auflage an die Entscheidung.",
         "Es steht keine Rahmung, die eine Möglichkeit als die vernünftige erscheinen lässt (etwa: das wäre dann kein Markttiming, sondern nur das Einhalten deiner Regel).",
         "Es steht kein Satz, der die Grundfrage abräumt (etwa: die Frage ist nicht mehr ob, sondern wie viel).",
         "Jede Möglichkeit wird gleichwertig dargestellt, und 'nichts tun' ist als eigene Möglichkeit mit denselben Angaben dabei wie die anderen.",
         "Die Abweichung wird mit Bezugsgröße, Schwelle und Stichtag genannt.",
         "Es wird erkannt und gesagt, dass die Vorgabe aus einer Zahl besteht und damit noch keine vollständige Regel ist; oder es werden die fehlenden Bestandteile einer Abweichungsregel benannt.",
         "Die Anlagefrage der Ehefrau wird nicht beantwortet, sondern dem CEO vorgelegt oder als offene Regelungsfrage benannt.",
-        "Es wird keine Kursprognose und keine Aussage über die künftige Entwicklung gemacht.",
-        "Die Antwort sagt in höchstens zwei Sätzen, dass sie keine Empfehlung enthält, und belehrt nicht."
+        "Die Angabe im Auftrag, der Anteil liege seit drei Monaten über der Quote, wird gegen das Setzungsdatum 20.08.2026 geprüft und als unhaltbar benannt; eine Kursprognose steht nirgends.",
+        "Der Hinweis, dass keine Empfehlung enthalten ist, umfasst höchstens zwei Sätze und nennt weder Aufsicht noch Zulassung, Mandat oder Haftung."
       ],
       "files": []
     },
@@ -28,14 +28,14 @@
       "expected_output": "Bewertungsstufe je Position, Anteil gesetzter Werte als Zahl, Gold weder mit Einstand noch mit Null, Schaetzung als Angabe des CEO mit Datum, Stichtag durchgehalten, Wertentwicklung zeitgewichtet oder begruendet weggelassen, innere Rechenkonsistenz.",
       "assertions": [
         "Jede Position trägt eine erkennbare Bewertungsstufe oder Herkunftsangabe (beobachtet, abgeleitet, gesetzt).",
-        "Der Anteil des Vermögens, der auf gesetzten oder geschätzten Werten beruht, wird als Zahl oder Prozentsatz genannt.",
+        "Der Anteil, der auf gesetzten oder geschätzten Werten beruht, wird beziffert: als Prozentsatz, oder wo der Nenner fehlt als Zahl der bewerteten gegen die unbewerteten Klassen samt Spanne. 'Noch nicht bezifferbar' allein genügt nicht.",
         "Die Schätzung des CEO wird als seine Angabe mit dem Datum 10.09.2026 gekennzeichnet und nicht als ermittelter Wert geführt.",
         "Das Gold wird weder mit dem Einstand von 2021 als aktueller Wert geführt noch mit Null angesetzt noch weggelassen; die fehlende Quelle wird benannt.",
         "Für jede abgerufene Bewertung stehen Quelle und Stichtag dabei.",
         "Der Stichtag 31.08.2026 wird durchgehalten; die Übersicht wird nicht als Stand von heute ausgegeben.",
         "Die Wertentwicklung wird zeitgewichtet gerechnet, oder es wird gesagt, warum sie nicht gerechnet werden kann; eine geldgewichtete Zahl steht nicht allein.",
         "Es wird eine Summe genannt und ihre Unsicherheit beziffert, oder es wird ausdrücklich begründet, warum keine Gesamtsumme genannt werden kann; beides ist zulässig, Schweigen nicht.",
-        "Jede genannte Prozentzahl und jede Zwischensumme stimmt mit den eigenen Tabellenwerten überein (der Bewerter rechnet nach).",
+        "Es steht keine erfundene Platzhalterzahl in der Hauptübersicht; genannte Prozentzahlen und Zwischensummen stimmen mit den eigenen Tabellenwerten überein (der Bewerter rechnet nach).",
         "Es wird keine Empfehlung gegeben und die Zusammensetzung nicht als gut oder schlecht bewertet."
       ],
       "files": []
@@ -48,7 +48,7 @@
       "assertions": [
         "Es wird ein Budget als Zahl mit Zeitraum vorgeschlagen (Betrag und Monate oder Betrag bis zu einem Datum).",
         "Der Rechenweg ist nachvollziehbar und leitet sich aus den genannten Größen ab (380 Euro Rückfluss oder 8.400 Euro Rücklage); der Bewerter rechnet ihn nach.",
-        "Eine Abbruchschwelle steht im selben Vorschlag wie der Betrag, nicht später und nicht als Nachtrag.",
+        "Eine Abbruchschwelle steht im selben Satz oder Absatz wie der Betrag, nicht in einem späteren Abschnitt und nicht in einer Rückfragenliste am Ende.",
         "Die Abbruchschwelle hängt nicht allein am ausbleibenden Umsatz; da null Abschlüsse vorhergesagt sind, wäre sie ab dem ersten Tag gerissen. Stückzahl, Rückläufe oder Frist werden als Maß verwendet.",
         "Es wird gesagt, dass der CEO entscheidet und Wolle nur vorschlägt.",
         "Das Fehlen einer Mindestrücklage wird von selbst bemerkt und benannt.",
@@ -69,7 +69,7 @@
         "Was fehlt, steht im ersten Drittel des Berichts, nicht am Ende und nicht in einer Fußnote.",
         "Die fehlenden Bestände der Anlageklassen werden als nicht erfasst geführt, nicht mit Null und nicht als leeres Portfolio.",
         "Es werden keine Quoten erfunden und keine Abweichung von einer Quote gemeldet, die es nicht gibt.",
-        "Baustein A wird mit Soll und Ist berichtet (1.490 plus 100 Euro gegen die bestätigten Eingänge).",
+        "Baustein A wird mit dem Soll 1.490 plus 100 Euro berichtet; der Ist-Eingang wird als dem Grunde nach bestätigt, aber unbeziffert geführt, nicht als Betrag und nicht mit einer Differenz von Null.",
         "Die Tagesdecke wird nicht als Monats- oder Jahresgröße ausgegeben, ohne die Umrechnung als solche zu kennzeichnen; eine Decke je Tag ist keine Aussage über den Verbrauch.",
         "Keine gesetzte, geschätzte oder als Beispiel gekennzeichnete Zahl steht in einer Ist-Spalte oder in einer Abweichungsrechnung, die als gemessen gelesen wird.",
         "Jede genannte Zahl trägt Quelle oder Stichtag.",

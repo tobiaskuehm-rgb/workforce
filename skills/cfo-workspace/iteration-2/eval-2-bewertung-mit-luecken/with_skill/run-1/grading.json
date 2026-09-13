@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Jede Position trägt eine erkennbare Bewertungsstufe oder Herkunftsangabe (beobachtet, abgeleitet, gesetzt).",
+      "passed": true,
+      "evidence": "uebersicht.md: Die Klassentabelle führt für alle sechs Zeilen eine Spalte 'Stufe' und 'Herkunft / Stichtag', z. B. '| Krypto | erfasst | a (beobachtet) | CoinGecko, Stichtag aus der Antwort |' und '| Immobilie Berggasse 1 | **kein Ist-Wert** | e (gesetzt) | CEO-Schätzung 10.09.2026; beobachtet nur Kaufpreis 2024 + Investitionen |'; Gold trägt statt einer Stufe die Herkunftsangabe 'Quelle am Stichtag nicht erreichbar; Kaufbeleg 2021 = Anschaffung'."
+    },
+    {
+      "text": "Der Anteil des Vermögens, der auf gesetzten oder geschätzten Werten beruht, wird als Zahl oder Prozentsatz genannt.",
+      "passed": false,
+      "evidence": "uebersicht.md: '**Anteil des Vermögens auf gesetzten Werten (Stufe e):** noch nicht bezifferbar — der Nenner fehlt, solange Gold unbewertet ist.' Die einzige genannte Prozentzahl ist ausdrücklich fiktiv: '*Beispiel, keine Ist-Zahlen:* 320.000 (Beispiel) zu 800.000 (Beispiel) wären 40 % (Beispiel)'. Damit fehlt die vom Kriterium verlangte Zahl; das Kriterium lässt — anders als Kriterium 8 — keine Begründungsalternative zu."
+    },
+    {
+      "text": "Die Schätzung des CEO wird als seine Angabe mit dem Datum 10.09.2026 gekennzeichnet und nicht als ermittelter Wert geführt.",
+      "passed": true,
+      "evidence": "uebersicht.md: 'Die Angabe „etwa 320.000\" ist eine **gesetzte** Größe des CEO vom 10.09.2026. Sie steht damit nicht in einer Ist-Spalte und nicht in einer Summe, die als gemessen gelesen wird.'"
+    },
+    {
+      "text": "Das Gold wird weder mit dem Einstand von 2021 als aktueller Wert geführt noch mit Null angesetzt noch weggelassen; die fehlende Quelle wird benannt.",
+      "passed": true,
+      "evidence": "uebersicht.md: 'Die Kursquelle war am 31.08. nicht erreichbar. Vorhanden ist ein Kaufbeleg von 2021 — das ist ein Anschaffungswert, kein Stichtagswert. ... Bis dahin steht die Position mit Menge und ohne Wert (Regel 8: „nicht erfasst\", nicht Null).' Die Position steht in der Tabelle: '| Edelmetalle, 250 g Gold | **nicht erfasst** |'."
+    },
+    {
+      "text": "Für jede abgerufene Bewertung stehen Quelle und Stichtag dabei.",
+      "passed": true,
+      "evidence": "uebersicht.md: Tabellenspalte 'Wert 31.08.' mit 'CoinGecko, Stichtag aus der Antwort', 'Börse Frankfurt, je ISIN, XETR', 'Kontostände 31.08.2026'; dazu im Schlussteil: 'beobachtete Preise identischer Werte an aktiven Märkten, je Position mit Quelle und Stichtag aus der Antwort der Quelle.'"
+    },
+    {
+      "text": "Der Stichtag 31.08.2026 wird durchgehalten; die Übersicht wird nicht als Stand von heute ausgegeben.",
+      "passed": true,
+      "evidence": "uebersicht.md: '# Vermögensübersicht zum 31.08.2026 ... Erstellt am 13.09.2026 von Wolle.' — Erstellungsdatum und Stichtag werden getrennt geführt; zusätzlich: 'Zwei Stichtage fallen auseinander: Wertermittlungsstichtag 10.09.2026 gegenüber dem Bestandsstichtag 31.08.2026'."
+    },
+    {
+      "text": "Die Wertentwicklung wird zeitgewichtet gerechnet, oder es wird gesagt, warum sie nicht gerechnet werden kann; eine geldgewichtete Zahl steht nicht allein.",
+      "passed": true,
+      "evidence": "uebersicht.md: 'Für den ETF-Sparplan (läuft seit Januar 2026) fehlen sie in dieser Aufstellung. Ohne sie gibt es **keine zeitgewichtete Wertentwicklung**; eine geldgewichtete Zahl allein wäre bei laufenden Einzahlungen überwiegend eine Messung des Einzahlungstakts und steht deshalb nicht hier.' Eine geldgewichtete Zahl wird nirgends genannt."
+    },
+    {
+      "text": "Es wird eine Summe genannt und ihre Unsicherheit beziffert, oder es wird ausdrücklich begründet, warum keine Gesamtsumme genannt werden kann; beides ist zulässig, Schweigen nicht.",
+      "passed": true,
+      "evidence": "uebersicht.md: 'solange das so bleibt, ist dies eine Übersicht mit zwei offenen Positionen und **keine bezifferbare Vermögenssumme**' und 'hier stehen sie nicht, weil die Summe ohne die beiden offenen Positionen keine Vermögenssumme ist.'"
+    },
+    {
+      "text": "Jede genannte Prozentzahl und jede Zwischensumme stimmt mit den eigenen Tabellenwerten überein (der Bewerter rechnet nach).",
+      "passed": true,
+      "evidence": "uebersicht.md: Einzige Prozentzahl ist '320.000 (Beispiel) zu 800.000 (Beispiel) wären 40 % (Beispiel)' — nachgerechnet: 320.000 / 800.000 = 0,40 = 40 %, korrekt. Zwischensummen werden keine gebildet ('hier stehen sie nicht'), also kein Widerspruch zu Tabellenwerten."
+    },
+    {
+      "text": "Es wird keine Empfehlung gegeben und die Zusammensetzung nicht als gut oder schlecht bewertet.",
+      "passed": true,
+      "evidence": "uebersicht.md: 'Jede Möglichkeit mit ihrer Folge; die Wahl trifft der CEO.' und 'Vorgelegt, nicht entschieden: die Goldbewertung, die Ersatzregel bei ausgefallener Quelle, Qualitätsstichtag und Verfahren für Berggasse 1, die Lizenzfrage LBMA/IBA.' Die Optionentabelle nennt Folgen ohne Präferenz; eine Aussage über gute oder schlechte Zusammensetzung fehlt."
+    }
+  ],
+  "summary": "Die Ausgabe ist methodisch sehr diszipliniert: Bewertungsstufen (a/c/e) je Position, saubere Trennung von Bestands-, Wertermittlungs- und Qualitätsstichtag, ausdrückliche Weigerung, Gold mit Einstand oder Null zu führen, und eine Entscheidungsvorlage für die Goldbewertung ohne Empfehlung. Schwäche ist die vollständige Abwesenheit von Beträgen: Alle vier 'erfassten' Klassen stehen nur mit dem Wort 'erfasst' da, die Zahlen werden in eine nicht beigefügte Anlage verwiesen. Daran scheitert das Kriterium zum Anteil gesetzter Werte — es wird ausdrücklich nicht beziffert, sondern nur an einem Beispiel illustriert. Auffälliger Fehler im engeren Sinn: keiner; die genannte Beispielrechnung (40 %) stimmt, und es steht keine unbelegte Zahl in der Übersicht.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 2 ('Anteil ... wird als Zahl oder Prozentsatz genannt') steht im Widerspruch zu Kriterium 4 und 8: Wenn Gold zulässigerweise unbewertet bleibt, fehlt der Nenner, und eine korrekte Bearbeitung kann den Anteil gar nicht beziffern. Es müsste eine Ausweichklausel tragen wie Kriterium 8 ('oder es wird ausdrücklich begründet, warum nicht'), sonst bestraft es genau die saubere Arbeitsweise, die der Rest verlangt. Kriterium 1 ist unscharf, weil es 'Bewertungsstufe ODER Herkunftsangabe' zulässt und damit sehr niedrig liegt; die Klammer nennt drei Stufen, ohne sie zu definieren. Kriterium 5 ist unprüfbar, wenn die Ausgabe — wie hier vom Prompt angelegt — gar keine echten Kursdaten hat: 'jede abgerufene Bewertung' kann dann leer sein und das Kriterium fällt trivial durch oder trivial bestanden aus. Kriterium 9 läuft leer, wenn eine Ausgabe konsequent keine Zahlen nennt; es bräuchte den Zusatz, dass fehlende Zahlen nicht als bestanden gelten. Kriterium 10 unterscheidet nicht zwischen Anlageempfehlung (unerwünscht) und Verfahrensempfehlung (im Prompt mit 'Sage, was die Übersicht wert ist' faktisch verlangt). Es fehlt ein Kriterium dazu, ob überhaupt Beträge geliefert werden — eine Übersicht ohne jede Zahl kann derzeit fast alle Kriterien bestehen."
+}
