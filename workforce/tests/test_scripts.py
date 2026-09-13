@@ -36,8 +36,16 @@ case "$*" in
       case "$p" in *.*|*/secrets/*) printf '640 10001 %s\n' "$p" ;; *) printf '750 10001 %s\n' "$p" ;; esac
     done
     exit 0 ;;
-  *synoacltool*) printf '%s\n' "${FAKE_ACL:-0 0 0 }"; exit 0 ;;
-  *"find . -type f"*) printf '%s' "${FAKE_FIND:-}"; exit 0 ;;
+  *synoacltool*) [ -n "${FAKE_ACL_EXIT:-}" ] && exit "$FAKE_ACL_EXIT"; printf '%s' "${FAKE_ACL:-ACL:0 ACL:0 ACL:0 }"; exit 0 ;;
+  *"find . -type f"*)
+    # Without an override, answer like a NAS that carries exactly what was shipped: the paths
+    # from the manifest this run already sent, plus the unversioned config.
+    if [ -n "${FAKE_FIND+x}" ]; then printf '%s' "$FAKE_FIND"; exit 0; fi
+    for m in "$FAKE_SSH_LOG"/*.stdin; do
+      head -1 "$m" 2>/dev/null | grep -q '^[0-9a-f]\{64\}  ' && cut -c 67- "$m"
+    done
+    printf 'config.json\n'
+    exit 0 ;;
   *"sha256sum -c"*) exit "${FAKE_SHA_EXIT:-0}" ;;
 esac
 [ -n "${FAKE_SSH_STDOUT:-}" ] && cat "$FAKE_SSH_STDOUT"
@@ -163,10 +171,28 @@ class DeployTest(ScriptHarness):
     def test_an_acl_beyond_the_mode_aborts(self):
         # G-117: 750 says nothing while a DSM ACL grants more.
         clone = self.clone("claude")
-        self.env["FAKE_ACL"] = "0 2 0 "
+        self.env["FAKE_ACL"] = "ACL:0 ACL:2 ACL:0 "
         run = self.deploy(clone)
         self.assertNotEqual(0, run.returncode)
-        self.assertIn("ACL-Eintraege", run.stderr)
+        self.assertIn("ACL auf der NAS nicht wie erwartet", run.stderr)
+        self.assertFalse(any("up -d --force-recreate" in a[-1] for a, _ in self.calls()))
+
+    def test_a_missing_acl_tool_aborts_instead_of_passing(self):
+        # Ein Waechter, der bei einem Fehlschlag gruen meldet, ist keiner: fehlt synoacltool,
+        # ist die ACL nicht gemessen - nicht sauber.
+        clone = self.clone("claude")
+        self.env["FAKE_ACL_EXIT"] = "9"
+        run = self.deploy(clone)
+        self.assertNotEqual(0, run.returncode)
+        self.assertIn("synoacltool fehlt", run.stderr)
+        self.assertFalse(any("up -d --force-recreate" in a[-1] for a, _ in self.calls()))
+
+    def test_an_empty_file_list_aborts_instead_of_passing(self):
+        clone = self.clone("claude")
+        self.env["FAKE_FIND"] = ""
+        run = self.deploy(clone)
+        self.assertNotEqual(0, run.returncode)
+        self.assertIn("Pruefung nicht gelaufen", run.stderr)
         self.assertFalse(any("up -d --force-recreate" in a[-1] for a, _ in self.calls()))
 
     def test_an_unexpected_file_on_the_nas_aborts(self):

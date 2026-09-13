@@ -63,7 +63,11 @@ ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -i -v '$root:/w' -w
 # reported as unexpected. config.json and secrets/ are deliberately not versioned.
 erlaubt="$(mktemp)"
 { cut -c 67- "$manifest"; printf 'config.json\n'; } | sort > "$erlaubt"
-gefunden="$(ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -v '$root:/w' -w /w alpine find . -type f -not -path './secrets/*' | sed 's|^\./||' | sort" < /dev/null)"
+gefunden="$(ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -v '$root:/w' -w /w alpine find . -type f -not -path './secrets/*' | sed 's|^\./||' | sort" < /dev/null)" \
+  || { echo "FAIL: Dateiliste der NAS nicht lesbar" >&2; rm -rf "$unpack" "$manifest" "$erlaubt" "$archiv"; exit 1; }
+# Nach einem Deploy liegen dort Dateien. Eine leere Liste heisst nicht "nichts Unerwartetes",
+# sondern "nicht gemessen" - und ein Waechter, der bei einem Fehlschlag gruen meldet, ist keiner.
+[ -n "$gefunden" ] || { echo "FAIL: Dateiliste der NAS ist leer - Pruefung nicht gelaufen" >&2; rm -rf "$unpack" "$manifest" "$erlaubt" "$archiv"; exit 1; }
 unerwartet="$(printf '%s\n' "$gefunden" | grep -Fxv -f "$erlaubt" || true)"
 rm -f "$erlaubt"
 [ -z "$unerwartet" ] || { echo "FAIL: unerwartete Dateien auf der NAS: $(printf '%s' "$unerwartet" | tr '\n' ' ')" >&2; rm -rf "$unpack" "$manifest" "$archiv"; exit 1; }
@@ -80,10 +84,14 @@ rechte="$(ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -v '$root
 [ "$rechte" = "$erwartet" ] || { echo "FAIL: Rechte auf der NAS: $rechte" >&2; rm -f "$archiv"; exit 1; }
 # A mode of 750 says nothing while a DSM ACL grants more (G-117). synoacltool runs on the NAS
 # itself, not in a container; "no archive" means the path carries no ACL beyond the mode.
-acl="$(ssh -o BatchMode=yes "$host" "for p in '$root' '$root/secrets' '$root/config.json'; do synoacltool -get \"\$p\" 2>/dev/null | grep -c '^ *\[[0-9]' || true; done | tr '\n' ' '" < /dev/null)"
-case "$acl" in
-  "0 0 0 "|"") : ;;
-  *) echo "FAIL: ACL-Eintraege auf der NAS (Ordner, secrets, config): $acl" >&2; rm -f "$archiv"; exit 1 ;;
+# Die Antwort traegt eine Marke je Pfad, damit "keine ACL" von "nicht gemessen" unterscheidbar
+# ist: fehlt synoacltool oder scheitert der Aufruf, kommt keine Marke und der Deploy bricht ab.
+rc=0
+acl="$(ssh -o BatchMode=yes "$host" "command -v synoacltool >/dev/null || exit 9; for p in '$root' '$root/secrets' '$root/config.json'; do n=\$(synoacltool -get \"\$p\" 2>/dev/null | grep -c '^ *\[[0-9]' || true); printf 'ACL:%s ' \"\$n\"; done" < /dev/null)" || rc=$?
+case "$rc:$acl" in
+  "0:ACL:0 ACL:0 ACL:0 ") : ;;
+  "9:"*) echo "FAIL: synoacltool fehlt auf der NAS - ACL nicht pruefbar" >&2; rm -f "$archiv"; exit 1 ;;
+  *) echo "FAIL: ACL auf der NAS nicht wie erwartet (Exit $rc): $acl" >&2; rm -f "$archiv"; exit 1 ;;
 esac
 ssh -o BatchMode=yes "$host" "cd '$root' \
   && $docker compose $compose build -q --build-arg WORKFORCE_COMMIT=$(git rev-parse HEAD) \

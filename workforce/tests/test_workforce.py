@@ -565,6 +565,16 @@ class ContextTest(unittest.TestCase):
             config.parse(values, base_dir="/nonexistent")
         self.assertIn("CONFIG_CONTEXT_FILE_MISSING", str(ctx.exception))
 
+    def test_a_directory_as_context_file_refuses_with_a_stable_code(self):
+        # Kein Traceback im Neustart-Loop, sondern eine Kennung, die den Pfad nennt.
+        with tempfile.TemporaryDirectory() as tmp:
+            (pathlib.Path(tmp) / "ordner").mkdir()
+            values = json.loads(json.dumps(BASE))
+            values["identities"]["A"]["context_files"] = ["ordner"]
+            with self.assertRaises(config.ConfigError) as ctx:
+                config.parse(values, base_dir=tmp)
+            self.assertIn("CONFIG_CONTEXT_FILE_UNREADABLE:ordner", str(ctx.exception))
+
     def test_an_empty_or_oversized_context_file_refuses(self):
         with tempfile.TemporaryDirectory() as tmp:
             (pathlib.Path(tmp) / "leer.md").write_text("   ", encoding="utf-8")

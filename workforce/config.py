@@ -202,6 +202,10 @@ def _read_context(raw: Any, *, base_dir: str, name: str) -> Tuple[str, int]:
             text = pathlib.Path(path).read_text(encoding="utf-8").strip()
         except FileNotFoundError as exc:
             raise ConfigError(f"CONFIG_CONTEXT_FILE_MISSING:{rel}") from exc
+        except (OSError, UnicodeDecodeError) as exc:
+            # A directory, a permission, a binary file: every one of them must end as a stable
+            # identifier, not as a traceback in a restarting container.
+            raise ConfigError(f"CONFIG_CONTEXT_FILE_UNREADABLE:{rel}") from exc
         if not text:
             raise ConfigError(f"CONFIG_CONTEXT_FILE_EMPTY:{rel}")
         parts.append(f"\n\n--- {os.path.basename(rel)} (Stand beim Start des Prozesses) ---\n{text}")

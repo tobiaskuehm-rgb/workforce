@@ -27,6 +27,7 @@ Was Karl weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Eine sp
 | 2026-09-12 | **In Claude Code endet jede Antwort mit einer Auswahl zum Antippen**, auch wenn nur der nächste Schritt ansteht. Der CEO soll nie tippen müssen, um weiterzukommen. | Chat 2026-09-12 |
 | 2026-09-12 | **Einarbeitungs-Loop entschieden:** keine achte Rolle. (1) Jede Vorlage nennt eine Gegenprobe, die der CEO selbst prüfen kann. (2) **Karl** schreibt die Betriebsanleitung, Anastasia liest gegen. (3) **Höchstens eine Vorlage je Tag.** | Chat 2026-09-12 |
 | 2026-09-12 | Betriebsanleitung `BETRIEBSANLEITUNG.md` geschrieben (neun Abschnitte, Orte/Takt/Klassen/Prüffragen/Invarianten). Anastasia liest gegen. | `DEC-048` |
+| 2026-09-12 | **Code-Review: drei Befunde, alle meine, alle dieselbe Familie** — ein Wächter, der bei einem Fehlschlag grün meldet. ACL-Prüfung, Prüfung auf unerwartete Dateien, Lesefehler bei Kontextdateien. Behoben, Regel 74. Ich habe Regel 47 an einem Tag zweimal gebrochen. | `/code-review`, 2026-09-12 |
 | 2026-09-12 | Deploy auf **Montag** verschoben, nicht davor: der CEO hat erst Montag wieder Volumen. Gerds Freigabe deckt den Montagstermin noch ab. | Chat 2026-09-12 |
 | 2026-09-07 | Der nächtliche Tagesprozess aus Codex mit Berichten bis 01:45 ist Archiv. Ein fehlender Claude-Bericht dort ist kein Auftrag mehr; integriert wird auf Anfrage und ~~freitags~~ montags und donnerstags (seit 2026-09-08). | bis heute in `karl/SKILL.md`, Abschnitt „Was du weißt" |
 
