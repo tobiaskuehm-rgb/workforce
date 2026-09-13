@@ -354,3 +354,12 @@ messen; ferner jeder weitere Deploy, dessen Prüfsummen- oder Rechteschritt geä
 dass die geänderte Aufrufform auf der NAS gelaufen ist.
 
 **Letzte vergebene Befundnummer: `G-119`.**
+
+## 2026-09-13 — Messung zu `G-119` durch Karl (kein Review, eine Messung)
+
+Der Fehlerpfad von `sha256sum -c` ist im Wegwerf-Container auf der NAS gemessen: abweichende
+Zeile Exit 1, gleiche Zeile Exit 0, fehlende Datei Exit 1. Damit ist die offene Hälfte von
+`G-119` belegt. Nachweis `workforce/evidence/2026-09-13_acl_und_pruefsumme_gemessen.md`.
+Dort steht auch, dass der ACL-Wächter aus dem Code-Review vom 2026-09-12 in seiner ersten
+Fassung zweimal blind war (Pfad und Tabulator); beides korrigiert und gegen die NAS gemessen.
+Die Bewertung, ob das `G-119` schließt, liegt bei Gerd.

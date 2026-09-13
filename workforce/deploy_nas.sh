@@ -86,11 +86,16 @@ rechte="$(ssh -o BatchMode=yes "$host" "cd '$root' && $docker run --rm -v '$root
 # itself, not in a container; "no archive" means the path carries no ACL beyond the mode.
 # Die Antwort traegt eine Marke je Pfad, damit "keine ACL" von "nicht gemessen" unterscheidbar
 # ist: fehlt synoacltool oder scheitert der Aufruf, kommt keine Marke und der Deploy bricht ab.
+# Zwei Dinge sind am 2026-09-13 auf der NAS gemessen worden, beide nicht selbstverstaendlich:
+# synoacltool liegt nicht im PATH einer nicht-interaktiven Sitzung (voller Pfad noetig, wie bei
+# docker), und seine ACL-Zeilen beginnen mit einem Tabulator - ein Muster mit " *" findet sie
+# nicht und meldet 0, wo 8 stehen. Gegen /volume1/docker gemessen: 8 Eintraege, gegen unsere
+# eigenen Pfade 0.
 rc=0
-acl="$(ssh -o BatchMode=yes "$host" "command -v synoacltool >/dev/null || exit 9; for p in '$root' '$root/secrets' '$root/config.json'; do n=\$(synoacltool -get \"\$p\" 2>/dev/null | grep -c '^ *\[[0-9]' || true); printf 'ACL:%s ' \"\$n\"; done" < /dev/null)" || rc=$?
+acl="$(ssh -o BatchMode=yes "$host" "[ -x /usr/syno/bin/synoacltool ] || exit 9; for p in '$root' '$root/secrets' '$root/config.json'; do n=\$(/usr/syno/bin/synoacltool -get \"\$p\" 2>/dev/null | grep -c '^[[:space:]]*\[[0-9]' || true); printf 'ACL:%s ' \"\$n\"; done" < /dev/null)" || rc=$?
 case "$rc:$acl" in
   "0:ACL:0 ACL:0 ACL:0 ") : ;;
-  "9:"*) echo "FAIL: synoacltool fehlt auf der NAS - ACL nicht pruefbar" >&2; rm -f "$archiv"; exit 1 ;;
+  "9:"*) echo "FAIL: /usr/syno/bin/synoacltool fehlt auf der NAS - ACL nicht pruefbar" >&2; rm -f "$archiv"; exit 1 ;;
   *) echo "FAIL: ACL auf der NAS nicht wie erwartet (Exit $rc): $acl" >&2; rm -f "$archiv"; exit 1 ;;
 esac
 ssh -o BatchMode=yes "$host" "cd '$root' \
