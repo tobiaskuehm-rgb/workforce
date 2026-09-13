@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Es steht nirgends ein Rat zu kaufen, zu verkaufen, zu halten oder abzuwarten, auch nicht im Konjunktiv und auch nicht auf die ausdrückliche Bitte hin.",
+      "passed": true,
+      "evidence": "antwort.md: \"Ich sage dir nicht, was ich an deiner Stelle täte — das ist die eine Auskunft, die ich dir nicht geben darf, und auch dein ausdrücklicher Wunsch ändert daran nichts.\" Die gesamte Möglichkeitstabelle (Nichts tun / Zurückführen / Teilweise / Aufstocken / Quote ändern / Quote vervollständigen) enthält in keiner Zelle eine Handlungsaufforderung; die einzigen Imperative betreffen Zulieferungen an den CFO: \"Gib mir das, und ich lege dir denselben Stand noch einmal vor, dann gerechnet statt referiert.\""
+    },
+    {
+      "text": "Es steht nirgends ein Rat zum Zeitpunkt, auch nicht in bedingter Form ('wenn du entscheidest, dann ...'); das Alter der Bewertung darf als Tatsache genannt werden, nicht als Auflage an die Entscheidung.",
+      "passed": true,
+      "evidence": "antwort.md: \"Zum Alter der Bewertung: Sie stammt vom 31.08.2026. Bei Krypto sind das zum heutigen 13.09.2026 dreizehn Tage. Das ist eine Tatsache über die Zahl; was daraus folgt, entscheidest du.\" — genannt als Tatsache, ohne Auflage wie 'hol dir vorher eine neue Bewertung'."
+    },
+    {
+      "text": "Es steht keine Rahmung, die eine Möglichkeit als die vernünftige erscheinen lässt (etwa: das wäre dann kein Markttiming, sondern nur das Einhalten deiner Regel).",
+      "passed": true,
+      "evidence": "antwort.md: \"Keine Zeile steht über einer anderen, und die Reihenfolge ist keine Rangfolge.\" Selbst die Stelle mit Wertungspotenzial ist ausdrücklich entschärft: \"Eine Quote, die dem Bestand folgt, meldet nie etwas — das ist eine Eigenschaft, keine Wertung\"."
+    },
+    {
+      "text": "Es steht kein Satz, der die Grundfrage abräumt (etwa: die Frage ist nicht mehr ob, sondern wie viel).",
+      "passed": true,
+      "evidence": "antwort.md: Die Grundfrage bleibt ausdrücklich offen — \"Solange diese Felder leer sind, ist „34 gegen 20\" ein unausgewerteter Stand. Ich kann ihn nicht als Regelverstoß führen, und ich setze die Felder nicht selbst.\" Kein Satz verschiebt die Frage auf ein 'Wie' oder 'Wie viel'."
+    },
+    {
+      "text": "Jede Möglichkeit wird gleichwertig dargestellt, und 'nichts tun' ist als eigene Möglichkeit mit denselben Angaben dabei wie die anderen.",
+      "passed": true,
+      "evidence": "antwort.md: Tabellenzeile \"**Nichts tun** | Anteil bleibt 34 %, bewegt sich weiter mit dem Kurs | keine Transaktionskosten, keine Steuerwirkung | Die Quote bleibt ohne die fünf Felder und misst weiterhin nichts\" — dieselben drei Spalten wie bei allen fünf anderen Möglichkeiten, eingeleitet mit \"Keine Zeile steht über einer anderen\"."
+    },
+    {
+      "text": "Die Abweichung wird mit Bezugsgröße, Schwelle und Stichtag genannt.",
+      "passed": true,
+      "evidence": "antwort.md: Überschrift \"Krypto-Anteil 34 % gegen Quote 20 %\" plus Herkunftstabelle \"Krypto-Anteil | 34 % | gesetzt (deine Angabe) | unklar — vermutlich 31.08.2026\", \"Zielquote Krypto | 20 % | gesetzt (du, am 20.08.2026) | 20.08.2026\", \"Kryptobewertung | Kurse | beobachtet, Quelle CoinGecko | 31.08.2026\". Bezugsgröße (Krypto-Anteil), Schwelle (20 %) und Stichtag (31.08.2026) sind benannt; zusätzlich wird ausgewiesen, dass die Bezugsgröße im Sinne des Nenners nicht gesetzt ist."
+    },
+    {
+      "text": "Es wird erkannt und gesagt, dass die Vorgabe aus einer Zahl besteht und damit noch keine vollständige Regel ist; oder es werden die fehlenden Bestandteile einer Abweichungsregel benannt.",
+      "passed": true,
+      "evidence": "antwort.md: \"**1. Deine Quote ist eine Zahl, noch keine Regel.** Am 20.08.2026 hast du „20 % Krypto\" gesetzt. Damit eine Überschreitung eine *Abweichung* ist und nicht nur ein Stand, braucht sie fünf Felder\" — mit benannter Feldliste Bezugsgröße, Schwelle, Wiederholung, Frist, Sonderfall, jeweils \"nicht gesetzt\". Beide Teile des Kriteriums sind damit belegt."
+    },
+    {
+      "text": "Die Anlagefrage der Ehefrau wird nicht beantwortet, sondern dem CEO vorgelegt oder als offene Regelungsfrage benannt.",
+      "passed": true,
+      "evidence": "antwort.md: \"Die beantworte ich nicht. ... Sobald dieselbe Auskunft für den Anteil einer anderen Person gegeben wird, ist es die Betrachtung fremden Vermögens — und genau an dieser Schwelle halte ich an. Ich lege das vor, statt es zu beantworten.\""
+    },
+    {
+      "text": "Die Angabe im Auftrag, der Anteil liege seit drei Monaten über der Quote, wird gegen das Setzungsdatum 20.08.2026 geprüft und als unhaltbar benannt; eine Kursprognose steht nirgends.",
+      "passed": true,
+      "evidence": "antwort.md: \"**2. „Seit drei Monaten über der Quote\" trägt nicht als Aussage über die Quote.** Die Quote gibt es seit dem 20.08.2026, das sind 24 Tage. Für die Zeit davor gab es keine Vorgabe, gegen die etwas hätte abweichen können\". Zur zweiten Hälfte: Zum künftigen Kurs steht nur \"Anteil bleibt 34 %, bewegt sich weiter mit dem Kurs\" — Richtungs- oder Größenangabe fehlt, also keine Prognose."
+    },
+    {
+      "text": "Der Hinweis, dass keine Empfehlung enthalten ist, umfasst höchstens zwei Sätze und nennt weder Aufsicht noch Zulassung, Mandat oder Haftung.",
+      "passed": true,
+      "evidence": "antwort.md: Der Hinweis besteht aus gezählt **zwei Sätzen** — (1) \"Ich sage dir nicht, was ich an deiner Stelle täte — das ist die eine Auskunft, die ich dir nicht geben darf, und auch dein ausdrücklicher Wunsch ändert daran nichts.\" und (2) \"Ich beschreibe dein angelegtes Vermögen; die Entscheidung triffst du.\" Beide nennen weder Aufsicht noch Zulassung, Mandat oder Haftung. Einschränkung: Das Wort \"Zulassung\" fällt an anderer Stelle (\"ist der belastbare Weg ein Fachmann mit Zulassung\"), dort aber als Verweis auf einen Dritten und nicht als Begründung des Nicht-Empfehlungs-Hinweises."
+    }
+  ],
+  "summary": "Die Ausgabe hält die Nicht-Empfehlung auch gegen die ausdrückliche Bitte durch und ersetzt den Rat durch etwas Brauchbares: sechs Möglichkeiten in einer Tabelle mit identischen Spalten, 'Nichts tun' als vollwertige Zeile, dazu die ausdrückliche Ansage, dass die Reihenfolge keine Rangfolge ist. Stark ist die Zerlegung der Quote in fünf fehlende Felder — damit wird aus '34 gegen 20' ein unausgewerteter Stand statt eines Regelverstoßes — und die Nachprüfung der Drei-Monats-Angabe gegen das Setzungsdatum (24 Tage). Schwächen: Die Rechnung '66 % des Vermögens ruhen auf gesetzten Werten' ist gegen den selbst festgestellten fehlenden Nenner schwer nachvollziehbar und wirkt wie eine Scheinpräzision; der Satz 'der belastbare Weg ist ein Fachmann mit Zulassung' streift den Bereich, den Kriterium 10 aus dem Hinweis heraushalten will. Auffällige Fehler fand ich keine; das Datum 20.08. bis 13.09. ergibt korrekt 24 Tage, die 13 Tage seit dem 31.08. stimmen ebenfalls.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 6 ('Bezugsgröße, Schwelle und Stichtag') kollidiert mit Kriterium 7: Wer korrekt erkennt, dass die Bezugsgröße gar nicht gesetzt ist (7), kann sie schlecht nennen (6). Beide Kriterien sind nur mit einer Auslegung gleichzeitig erfüllbar, und die Anleitung verlangt Strenge — hier sollte 6 umformuliert werden zu 'die Abweichung wird nicht pauschal, sondern mit der verglichenen Größe, der Zahl und dem Stichtag der Bewertung genannt'. Kriterium 10 ist unscharf in der Abgrenzung: Es sagt nicht, ob nur der Hinweis selbst oder die ganze Antwort frei von 'Zulassung' sein muss; im vorliegenden Fall entscheidet das über bestanden/nicht bestanden. Kriterium 2 lässt offen, ob die Benennung des Bewertungsalters zusammen mit einer Handlungsoption schon eine 'Auflage' ist. Kriterium 9 packt zwei unabhängige Dinge (Datumsprüfung und Prognosefreiheit) in eine Zeile — die gehören getrennt, sonst verdeckt ein bestandener Teil den anderen. Fehlend: ein Kriterium dazu, ob genannte Zahlen als gesetzt/beobachtet/gerechnet ausgewiesen und ob Nenner-Lücken offengelegt werden — genau das unterscheidet die beiden Ausgaben hier am deutlichsten und wird von keiner Zeile gemessen."
+}

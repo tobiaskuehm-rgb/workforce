@@ -77,3 +77,15 @@ Jede Zeile hier war ein Fehler oder eine Beinahe. Lies sie vor dem nächsten Ski
 49. **Zahlen aus verschiedenen Formen stehen nebeneinander, als wären sie dasselbe Maß.** Drei Fälle gegen sechs, 32 Kriterien gegen 62, 26 Wörter Prompt gegen 141 — und im Register steht das Ergebnis in einer Spalte. Der CEO hat es gesehen, ich nicht. Eine Norm je Runde, und wo sie fehlt, steht sie als Vermerk dabei.
 50. **Der Prompt verrät, was der Skill leisten soll.** Je mehr Lage in der Aufgabe steht, desto kleiner der Abstand zur Fassung ohne Skill; die Reihenfolge ist fast monoton. Ein Prüffall sagt, was geschehen ist, nie, was daran fehlt — sonst misst man, wie gut man selbst die Aufgabe gestellt hat.
 51. **Der Abstand ist nicht die Güte.** Sieben Punkte Vorsprung bei Wolle und fünfundzwanzig bei Marlene sagen etwas über die Aufgabe, nicht über die Rolle. Das bessere Maß ist die eigene Punktzahl gegen die eigenen Kriterien; der Abstand gehört daneben, mit der Promptlänge.
+
+## 52. Ein Skill kann eine Falle beim Namen nennen und trotzdem hineinlaufen
+
+Wolles Text führte die vier Formen der versteckten Empfehlung als Tabelle, samt Beispielen aus der ersten Messrunde. In Runde 2 kam der Rat trotzdem durch, in einer fünften Form, die dort nicht stand: bedingt. „Wenn du entscheidest, dann auf einem frischen Stichtag" liest sich als Sorgfalt und ist eine Auflage an die Handlung. Eine Liste verbotener Formen schützt nur vor den Formen, die auf ihr stehen; die nächste Messrunde findet die nächste. Deshalb gehört neben die Liste ein Satzmuster, das sich prüfen lässt — hier: jeder Satz, der mit „wenn du" beginnt und mit einer Anweisung endet.
+
+## 53. Zwei richtige Antworten dürfen nicht gegeneinander stehen
+
+Fall 2 verlangte den Anteil gesetzter Werte als Zahl und zugleich, eine unbewertete Position nicht zu bewerten. Wer das zweite richtig machte, hatte keinen Nenner für das erste. Der Lauf scheiterte an einem Kriterienfehler, nicht an einem Mangel — und das ist die teuerste Sorte Fehlmessung, weil sie wie ein Befund aussieht. Die Auflösung war keine Lockerung, sondern eine schärfere Frage: Wo der Prozentsatz nicht geht, stehen Klassenzahl und Spanne. Ein Kriterium, das zwei richtige Antworten gegeneinander stellt, misst den Skill nicht, sondern sich selbst.
+
+## 54. Die Kritik der Bewerter am Kriterienkatalog ist der wertvollste Teil ihrer Arbeit
+
+In Runde 2 haben die vier Bewerter sieben Kriterien angegriffen — zwei Widersprüche, zwei, die in jedem Lauf trivial bestanden wurden, zwei Geschmacksurteile ohne Maßstab, eines ohne Nähegrenze. Alle sieben ließen sich nachvollziehen und wurden geändert; zwei der drei Punkte, die Runde 3 gewann, kamen aus dieser Kritik und nicht aus dem Skilltext. Das Feld `eval_feedback` ist deshalb keine Höflichkeitszeile: Wer es leer lässt, misst in der nächsten Runde mit demselben stumpfen Werkzeug.

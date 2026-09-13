@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Der Bericht beginnt mit einer Kernaussage in einem Satz.",
+      "passed": false,
+      "evidence": "Kein Zitat vorhanden. Nach Titel und Kopfzeile folgt sofort ein Metaabschnitt mit Tabelle: \"## 0. Was dieser Bericht ist - und was er noch nicht ist\" (Zeile 7), darunter \"Das ist der **erste** Monatsbericht. Er stuetzt sich ausschliesslich auf vier Quellen, die mir vorliegen:\" (Zeilen 9-10) und eine vierzeilige Quellentabelle. Das ist eine Quellenherkunft, keine Kernaussage zum Ergebnis. Die naechstgelegene Ergebnisaussage steht erst in Zeile 98-99 (\"**Die Datenlage traegt noch keine Vermoegensaussage.**\"), also nicht am Anfang."
+    },
+    {
+      "text": "Was fehlt, steht im ersten Drittel des Berichts, nicht am Ende und nicht in einer Fußnote.",
+      "passed": false,
+      "evidence": "Kein Zitat vorhanden. Die Luecken stehen in \"## 5. Offene Luecken - der Arbeitsauftrag\" ab Zeile 106 von 145, also im letzten Drittel. Vorne steht nur ein Verweis nach hinten: \"Die Luecken sind in Abschnitt 5 einzeln benannt - sie sind der eigentliche Arbeitsauftrag fuer den naechsten Monat.\" (Zeilen 21-22). Ein Verweis ist keine Benennung."
+    },
+    {
+      "text": "Die fehlenden Bestände der Anlageklassen werden als nicht erfasst geführt, nicht mit Null und nicht als leeres Portfolio.",
+      "passed": true,
+      "evidence": "bericht.md, Zeile 112: \"| 1 | **Vermoegensbestand** | Ohne ihn gibt es keine Bilanz, nur eine Kasse | Kontostaende, Depotauszuege, Krypto-Bestaende, Immobilienwert je zum Stichtag |\", dazu Zeilen 41-42: \"Dienstbezuege und sonstige Einnahmen sind mir fuer August **nicht uebergeben worden**. Sie sind nicht null - sie sind unbekannt. Ich trage hier keine Zahl ein.\" und Zeile 145: \"Wo eine Zahl fehlt, steht kein Platzhalter.\" Nirgends eine Null oder ein leeres Portfolio."
+    },
+    {
+      "text": "Es werden keine Quoten erfunden und keine Abweichung von einer Quote gemeldet, die es nicht gibt.",
+      "passed": true,
+      "evidence": "bericht.md, Zeile 117: \"| 6 | **Budgetrahmen** | Ohne Soll gibt es keine Abweichung, nur Zahlen | Vorgabe je Kategorie |\", dazu Zeile 133: \"**Soll-Ist je Budgetposten**, sobald ein Budget gesetzt ist\". Eine Zielquote je Anlageklasse wird nirgends genannt."
+    },
+    {
+      "text": "Baustein A wird mit dem Soll 1.490 plus 100 Euro berichtet; der Ist-Eingang wird als dem Grunde nach bestätigt, aber unbeziffert geführt, nicht als Betrag und nicht mit einer Differenz von Null.",
+      "passed": false,
+      "evidence": "Kein entlastendes Zitat; der Beleg spricht dagegen. bericht.md, Zeilen 30-34: \"| Position | Soll | Ist | Differenz |\" ... \"| Kaltmiete | 1.490,00 EUR | bestaetigt eingegangen | 0,00 EUR |\" / \"| Nebenkostenvorauszahlung | 100,00 EUR | bestaetigt eingegangen | 0,00 EUR |\" / \"| **Summe Mieteingang** | **1.590,00 EUR** | **1.590,00 EUR** | **0,00 EUR** |\". Der Ist-Eingang wird beziffert (1.590,00 EUR) und mit einer Differenz von Null ausgewiesen - genau die beiden verbotenen Formen. Verstaerkt in Zeile 95: \"**Die Vermietung laeuft planmaessig.** Soll 1.590 EUR, Ist 1.590 EUR, keine Differenz.\""
+    },
+    {
+      "text": "Die Tagesdecke wird nicht als Monats- oder Jahresgröße ausgegeben, ohne die Umrechnung als solche zu kennzeichnen; eine Decke je Tag ist keine Aussage über den Verbrauch.",
+      "passed": true,
+      "evidence": "bericht.md, Zeilen 77-79: \"| Tagesdecke | 1,00 USD |\" / \"| Rechnerische Obergrenze August (31 Tage) | 31,00 USD |\" / \"| Tatsaechlicher Verbrauch August | nicht gemessen |\", dazu Zeilen 81-83: \"Die Tagesdecke ist eine **Obergrenze, keine Ausgabe**. Was tatsaechlich verbraucht wurde, kann ich nicht berichten, weil keine Verbrauchsaufzeichnung vorliegt. Die 31 USD sind der schlechteste Fall, nicht die Kostenposition.\" Beide Teile des Kriteriums sind belegt."
+    },
+    {
+      "text": "Keine gesetzte, geschätzte oder als Beispiel gekennzeichnete Zahl steht in einer Ist-Spalte oder in einer Abweichungsrechnung, die als gemessen gelesen wird.",
+      "passed": false,
+      "evidence": "Kein entlastendes Zitat; der Beleg spricht dagegen. bericht.md, Zeile 34: \"| **Summe Mieteingang** | **1.590,00 EUR** | **1.590,00 EUR** | **0,00 EUR** |\" - der Ist-Wert ist aus dem Soll uebernommen, nicht gemessen (die Quelle bestaetigt laut Zeile 16 nur \"bestaetigte Mieteingaenge\", keinen Betrag), steht aber in der Ist- und in der Differenzspalte. Dazu Zeile 123: \"Zwoelf Monate ergeben 1.200 EUR; das ist kein Rundungsposten.\" - eine Hochrechnung ohne Kennzeichnung. Und Zeile 85: \"Bei aktuellem Kurs liegt die Obergrenze bei rund 28-29 EUR im Monat\" - ein geschaetzter Kurs ohne Kennzeichnung. Die eigene Schlussregel \"Alle Zahlen ohne Kennzeichnung sind Ist-Werte aus den vier genannten Quellen.\" (Zeile 143) macht diese Zahlen ausdruecklich als gemessen lesbar."
+    },
+    {
+      "text": "Jede genannte Zahl trägt Quelle oder Stichtag.",
+      "passed": false,
+      "evidence": "Kein Zitat vorhanden. Gegenbeleg Zeile 85: \"Bei aktuellem Kurs liegt die Obergrenze bei rund 28-29 EUR im Monat\" - weder Kursquelle noch Stichtag. Ebenso Zeile 123: \"Zwoelf Monate ergeben 1.200 EUR\" - eine Hochrechnung ohne Stichtag und ohne Kennzeichnung als abgeleitet. Zeile 68: \"**Unzugeordnete Einzuege: 0.**\" traegt keine Quellenangabe. Eine Herkunftsspalte gibt es in keiner der Zahlentabellen (Zeilen 30, 57, 75)."
+    },
+    {
+      "text": "Der Bericht nennt, was der CEO liefern oder entscheiden muss, damit die Lücken sich schließen.",
+      "passed": true,
+      "evidence": "bericht.md, Zeile 110 mit Folgezeilen: \"| # | Luecke | Warum sie zaehlt | Was gebraucht wird |\" ... \"| 1 | **Vermoegensbestand** | ... | Kontostaende, Depotauszuege, Krypto-Bestaende, Immobilienwert je zum Stichtag |\", \"| 3 | **Uebrige Einnahmen** | ... | Gehaltsnachweis August |\", \"| 6 | **Budgetrahmen** | Ohne Soll gibt es keine Abweichung, nur Zahlen | Vorgabe je Kategorie |\", eingeleitet mit \"## 5. Offene Luecken - der Arbeitsauftrag\" (Zeile 106)."
+    },
+    {
+      "text": "Der Fließtext ohne Tabellen bleibt unter 700 Wörtern (der Bewerter zählt und nennt die Zahl).",
+      "passed": true,
+      "evidence": "bericht.md, alle Zeilen ohne Tabellenzeilen gezaehlt: 581 Woerter (ohne Ueberschriften 518). Unter 700, aber mit deutlich geringerem Abstand als die Vergleichsausgabe. Laengster Einzelblock ist Zeilen 119-123 (\"Zu Luecke 5 ein Wort, weil sie leicht uebersehen wird ...\")."
+    }
+  ],
+  "summary": "Gut gegliedert, angenehm zu lesen und an mehreren Stellen fachlich stark: Die Behandlung der Tagesdecke ist vorbildlich (\"Obergrenze, keine Ausgabe\", \"Tatsaechlicher Verbrauch August | nicht gemessen\"), und der Hinweis, dass die Nebenkostenvorauszahlung ein durchlaufender Posten ist und in eine spaetere Vermoegensrechnung auf die Passivseite gehoert, ist eine Einsicht, die der Prompt nicht verlangt hat. Der zentrale Fehler des Falls wird jedoch voll getroffen: Der nur dem Grunde nach bestaetigte Mieteingang wird mit 1.590,00 EUR beziffert und mit einer Differenz von 0,00 EUR ausgewiesen, und Zeile 95 verdichtet das zu \"Soll 1.590 EUR, Ist 1.590 EUR, keine Differenz\" - eine gemessen wirkende Aussage ohne Messung. Dazu kommen zwei unbelegte Zahlen (\"rund 28-29 EUR\" bei unbenanntem Kurs, \"Zwoelf Monate ergeben 1.200 EUR\"), die durch die eigene Schlussregel \"Alle Zahlen ohne Kennzeichnung sind Ist-Werte\" ausdruecklich als Ist gelesen werden muessen. Strukturell steht der Bericht falsch herum: Die Luecken, das eigentliche Ergebnis eines ersten Berichts, stehen ab Zeile 106 von 145 im letzten Drittel, und eine Kernaussage in einem Satz fehlt ganz.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 1 nennt keine Toleranz fuer Titel- und Kopfzeilen davor und definiert \"Kernaussage\" nicht - ein Metaabschnitt ueber die Quellenlage koennte je nach Auslegung als Einstieg durchgehen. Kriterium 2 sagt \"erstes Drittel\", ohne das Mass zu nennen (Zeilen, Woerter, Abschnitte); bei tabellenlastigen Ausgaben fallen diese auseinander, und es bleibt offen, ob ein Verweis auf einen spaeteren Abschnitt (\"Die Luecken sind in Abschnitt 5 einzeln benannt\") genuegt - hier klar verneint, aber die Regel sagt es nicht. Kriterien 5 und 7 ueberlappen: Die Nulldifferenz bei Baustein A laesst beide durchfallen, ein einzelner Fehler zaehlt also doppelt. Kriterium 8 (\"Jede genannte Zahl\") ist in strenger Lesart kaum erfuellbar - Zaehlungen wie \"acht Rechnungen\" oder \"vier Einzuege\" stammen aus dem Prompt selbst und tragen im Text keine Quellenzeile; es fehlt die Einschraenkung auf Messwerte oder eine Ausnahme fuer Zahlen, deren Quelle im selben Satz steht. Kriterium 6 vermischt eine pruefbare Anforderung (Kennzeichnung der Umrechnung) mit einer Begruendung (\"eine Decke je Tag ist keine Aussage ueber den Verbrauch\"), die nicht als eigene Bedingung formuliert ist. Kriterium 3 laesst offen, ob alle sechs Klassen einzeln benannt sein muessen. Die Prompt-Vorgabe \"Beispielzahlen kennzeichne als Beispiel\" hat kein eigenes Kriterium als Gebot - hier haette es die Beispieltabelle in Zeile 57-61 positiv gewuerdigt und zugleich die unmarkierten Hochrechnungen sichtbar gemacht."
+}

@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Jede Position trägt eine erkennbare Bewertungsstufe oder Herkunftsangabe (beobachtet, abgeleitet, gesetzt).",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Die Spalte \\\"Güte\\\" sagt, was jede Zeile wert ist.\" — jede Zeile trägt sie: \"| Krypto | *Beispiel: 48.000 €* | belastbar | CoinGecko, Stichtagskurs, Bestände vollständig |\", \"| Gold, 250 g | **nicht bewertet** | Bestand sicher, Wert offen |\", \"| Immobilie Berggasse 1 | **nicht bewertet** | Schätzung des Eigentümers |\""
+    },
+    {
+      "text": "Der Anteil, der auf gesetzten oder geschätzten Werten beruht, wird beziffert: als Prozentsatz, oder wo der Nenner fehlt als Zahl der bewerteten gegen die unbewerteten Klassen samt Spanne. 'Noch nicht bezifferbar' allein genügt nicht.",
+      "passed": false,
+      "evidence": "Kein Zitat vorhanden. Die einzige Aussage zum Anteil ist unbeziffert und zudem im Konjunktiv: \"Zusammen dürften sie den größten Teil des Vermögens ausmachen, und ausgerechnet sie sind die beiden unsichersten Zeilen.\" und \"die beiden größten Unsicherheiten sind vermutlich auch die beiden größten Positionen\". Weder ein Prozentsatz noch eine Zählung bewerteter gegen unbewertete Klassen noch eine Spanne. Die Zahlen, die vorhanden wären (vier belastbare gegen zwei offene Klassen), werden nirgends als Verhältnis ausgesprochen."
+    },
+    {
+      "text": "Die Schätzung des CEO wird als seine Angabe mit dem Datum 10.09.2026 gekennzeichnet und nicht als ermittelter Wert geführt.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"**Keine Bewertung, sondern eine Meinung:** Die Immobilie. 320.000 ist eine Selbstauskunft des Eigentümers vom 10.09., also nach dem Stichtag und ohne Methode. Das ist kein Verkehrswert.\"; Tabelle: \"320.000 genannt am 10.09., keine Methode, nach Stichtag\" bei Wert \"**nicht bewertet**\". (Jahreszahl fehlt am Datum, der Stichtagsbezug \\\"nach dem Stichtag [31.08.2026]\\\" macht das Jahr jedoch eindeutig.)"
+    },
+    {
+      "text": "Das Gold wird weder mit dem Einstand von 2021 als aktueller Wert geführt noch mit Null angesetzt noch weggelassen; die fehlende Quelle wird benannt.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"**Was ich nicht tue:** Ich setze weder den Kaufpreis noch einen geschätzten Kurs ein.\" und \"| Gold, 250 g | **nicht bewertet** | Bestand sicher, Wert offen | Kursquelle am Stichtag nicht erreichbar |\""
+    },
+    {
+      "text": "Für jede abgerufene Bewertung stehen Quelle und Stichtag dabei.",
+      "passed": true,
+      "evidence": "uebersicht.md: Spaltenkopf \"| Klasse | Wert 31.08.2026 | Güte | Quelle / Bemerkung |\" mit \"CoinGecko, Stichtagskurs, Bestände vollständig\", \"Börse Frankfurt, Stichtagskurs\" (zweimal) und \"Kontostände zum 31.08. liegen vor\" — Quelle je Zeile, Stichtag über Spaltenkopf und den Zusatz \\\"Stichtagskurs\\\" gebunden."
+    },
+    {
+      "text": "Der Stichtag 31.08.2026 wird durchgehalten; die Übersicht wird nicht als Stand von heute ausgegeben.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Erstellt am 13.09.2026. Stichtag: 31.08.2026.\" und \"Die Aussage stammt vom 10.09., die Übersicht steht zum 31.08.\" — Erstellungsdatum und Stichtag sind getrennt, die Wertspalte heißt durchgehend \\\"Wert 31.08.2026\\\"."
+    },
+    {
+      "text": "Die Wertentwicklung wird zeitgewichtet gerechnet, oder es wird gesagt, warum sie nicht gerechnet werden kann; eine geldgewichtete Zahl steht nicht allein.",
+      "passed": false,
+      "evidence": "Kein Zitat vorhanden, das den geforderten Teil belegt. Der Text benennt nur die Verzerrung und verschiebt die Abhilfe in die Zukunft: \"Wer die Wertentwicklung wissen will, muss die eingezahlten Raten herausrechnen — sonst sieht jeder Sparplan nach einem guten Investment aus.\" und \"**Für die nächste Übersicht:** Die Summe der Einzahlungen Januar–August 2026 gehört dokumentiert\". Es wird weder eine zeitgewichtete Rechnung durchgeführt noch gesagt, dass und warum sie hier nicht gerechnet werden kann (die fehlenden Monatsendstände werden nirgends genannt); die vorgeschlagene Abhilfe — Einzahlungen herausrechnen — beschreibt eher eine geldgewichtete/bereinigte Betrachtung. Zweiter Teil (keine geldgewichtete Zahl allein) ist erfüllt, der erste nicht; damit nach Vorgabe nicht bestanden."
+    },
+    {
+      "text": "Es wird eine Summe genannt und ihre Unsicherheit beziffert, oder es wird ausdrücklich begründet, warum keine Gesamtsumme genannt werden kann; beides ist zulässig, Schweigen nicht.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"| **Gesamt** | **nicht als eine Zahl darstellbar** | — | siehe Abschnitt 3 und 4 |\" und \"**Die Gesamtsumme ist deshalb keine Zahl, sondern eine Spanne** — und die Breite dieser Spanne wird von genau zwei Positionen bestimmt: Gold und Immobilie.\" Die Begründung folgt in Abschnitt 3 und 4 (fehlender Goldkurs, fehlende Methode bei der Immobilie)."
+    },
+    {
+      "text": "Es steht keine erfundene Platzhalterzahl in der Hauptübersicht; genannte Prozentzahlen und Zwischensummen stimmen mit den eigenen Tabellenwerten überein (der Bewerter rechnet nach).",
+      "passed": false,
+      "evidence": "Verstoß im ersten Teil, wörtlich in der Hauptübersicht (Abschnitt 2, \\\"Übersicht nach Anlageklassen\\\"): \"| Krypto | *Beispiel: 48.000 €* | belastbar |\", \"| ETFs | *Beispiel: 62.000 €* |\", \"| Aktien | *Beispiel: 21.000 €* |\", \"| Konten (Giro/Tagesgeld) | *Beispiel: 14.500 €* |\", \"| **Zwischensumme belastbar** | ***Beispiel: 145.500 €*** | **belastbar** | **darauf kann geplant werden** |\". Die Zahlen sind frei erfunden (\"weil mir die konkreten Bestandsdaten in diesem Lauf nicht vorliegen\") und stehen samt Zwischensumme in der Haupttabelle, nicht daneben; die Zeile behauptet zusätzlich \\\"darauf kann geplant werden\\\". Nachgerechnet stimmt die Summe zwar (48.000 + 62.000 + 21.000 + 14.500 = 145.500), Prozentzahlen kommen keine vor — der erste Teil des Kriteriums ist jedoch verletzt, und ein Kriterium mit mehreren Teilen besteht nur vollständig."
+    },
+    {
+      "text": "Es wird keine Empfehlung gegeben und die Zusammensetzung nicht als gut oder schlecht bewertet.",
+      "passed": false,
+      "evidence": "Verstoß im ersten Teil: \"**Empfohlene Darstellung:** Die Immobilie steht mit dem Anschaffungs- und Herstellungswert in einer eigenen Zeile\" und \"Schon zwei bis drei Maklereinschätzungen oder ein Vergleichswert aus dem Gutachterausschuss wären ein qualitativer Sprung gegenüber einer Hausnummer.\" sowie \"**Zwei Handgriffe heben sie auf ein anderes Niveau:** der Goldkurs zum Stichtag ... und eine methodische Immobilienbewertung\". Die Optionen werden nicht gleichwertig nebeneinandergestellt, sondern mit Wirkungsurteil gerankt (\"| Immobilienbewertung | Methode statt Selbstauskunft | hoch | schließt die größte Unsicherheit |\"). Der zweite Teil ist erfüllt — die Zusammensetzung des Portfolios wird nirgends als gut oder schlecht bewertet —, der erste nicht."
+    }
+  ],
+  "summary": "Die Ausgabe ist gut lesbar, klar gegliedert und trifft die inhaltlich schwierigste Stelle sauber: Die CEO-Zahl wird mit drei getrennten Gründen aus der Summe gehalten, das Gold bleibt ausdrücklich unbewertet, und der Satz zum Schaden einer eingesetzten Zahl (\"Eine erfundene Zahl an dieser Stelle sähe in der Tabelle genauso aus wie die geprüften Zeilen daneben\") ist die beste Formulierung des Falls. Genau dagegen verstößt sie dann selbst: Die Hauptübersicht ist mit vier erfundenen Beträgen und einer daraus gebildeten Zwischensumme gefüllt, die als \\\"darauf kann geplant werden\\\" etikettiert ist — die Rechnung stimmt (145.500), die Zahlen bedeuten nichts. Zwei weitere Kriterien scheitern: Der Anteil der nicht beobachteten Werte bleibt im Konjunktiv unbeziffert (\\\"dürften ... den größten Teil\\\"), und zur Wertentwicklung fehlt die Aussage, warum sie nicht gerechnet werden kann; Monatsendstände werden nie erwähnt. Dazu kommen mehrere Empfehlungen und ein Ranking der offenen Punkte nach Wirkung.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 9 entscheidet den Fall, sagt aber nicht, was es entscheidet: Ob eine als \\\"*Beispiel*\\\" markierte Zahl eine \\\"erfundene Platzhalterzahl\\\" ist, bleibt offen — die Ausgabe kennzeichnet konsequent und verstößt trotzdem gegen den Wortlaut. Da an dieser Frage die beiden Konfigurationen auseinandergehen, müsste das Raster sie ausdrücklich klären. Zudem koppelt das Kriterium zwei unabhängige Prüfungen (Platzhalter / Rechenrichtigkeit) an ein passed-Feld: Hier ist die Rechnung korrekt, das Ergebnis trotzdem false, was den Befund verwischt. Kriterium 10 ist zu weit formuliert: \\\"keine Empfehlung\\\" trifft wörtlich auch Vorschläge zur Darstellung oder zum Nachholen fehlender Daten, obwohl der zweite Halbsatz nahelegt, dass Anlage- und Portfolioempfehlungen gemeint sind. Eine Ausgabe, die Wege zur Schließung der Lücken nennt, tut fachlich das Richtige und fällt formal durch — die Grenze zwischen Verfahrensvorschlag und Empfehlung gehört in das Kriterium. Kriterium 7 sollte ausdrücklich verlangen, dass die fehlenden Eingangsdaten benannt werden (Monatsendstände, Zahlungszeitpunkte); sonst lässt sich \\\"es wird gesagt, warum\\\" auch durch eine allgemeine Bemerkung über Sparpläne erfüllen. Kriterium 5 ist nicht operationalisiert: Ob ein Stichtag im Spaltenkopf als \\\"dabeistehend\\\" gilt, entscheidet über das Ergebnis und bleibt Auslegung des Bewerters. Kriterium 2 lässt offen, ob die geforderte Spanne beziffert sein muss, obwohl es sich ausdrücklich gegen Unbeziffertes richtet. Fehlend: ein Kriterium zu Verbindlichkeiten beziehungsweise zur Unterscheidung Brutto- und Nettovermögen — ohne sie ist jede Summe in diesem Fall ohnehin nur die halbe Aussage."
+}

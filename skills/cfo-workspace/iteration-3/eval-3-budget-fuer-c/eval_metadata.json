@@ -1,0 +1,17 @@
+{
+  "eval_id": 3,
+  "eval_name": "budget-fuer-c",
+  "prompt": "Du bist Wolle. Heute ist der 13.09.2026. Der CEO schreibt: 'Thorsten hat den Kandidaten KI-Websites für Betriebe auf TEST gesetzt: 30 Betriebe anschreiben, Vorhersage weniger als drei Gespräche und null Abschlüsse. Ich will das machen. Was darf das kosten?' Die Vermietung wirft nach allen Kosten 380 Euro im Monat ab, Stichtag August 2026 aus dem Kontoabgleich. Die Rücklage beträgt 8.400 Euro. Antworte ihm.",
+  "assertions": [
+    "Es wird ein Budget als Zahl mit Zeitraum vorgeschlagen (Betrag und Monate oder Betrag bis zu einem Datum).",
+    "Der Rechenweg ist nachvollziehbar und leitet sich aus den genannten Größen ab (380 Euro Rückfluss oder 8.400 Euro Rücklage); der Bewerter rechnet ihn nach.",
+    "Eine Abbruchschwelle steht im selben Satz oder Absatz wie der Betrag, nicht in einem späteren Abschnitt und nicht in einer Rückfragenliste am Ende.",
+    "Die Abbruchschwelle hängt nicht allein am ausbleibenden Umsatz; da null Abschlüsse vorhergesagt sind, wäre sie ab dem ersten Tag gerissen. Stückzahl, Rückläufe oder Frist werden als Maß verwendet.",
+    "Es wird gesagt, dass der CEO entscheidet und Wolle nur vorschlägt.",
+    "Das Fehlen einer Mindestrücklage wird von selbst bemerkt und benannt.",
+    "Das Fehlen eines Jahresrahmens für neue Versuche wird von selbst bemerkt und benannt.",
+    "Weder Mindestrücklage noch Jahresrahmen werden selbst gesetzt und dann als Grundlage weiterverwendet; Optionen zur Wahl zu stellen ist zulässig.",
+    "Es wird nicht beurteilt, ob die Geschäftsidee trägt oder ob die Vorhersage realistisch ist.",
+    "Jede genannte Zahl stammt aus der Aufgabe, ist daraus abgeleitet, oder ist als Annahme oder Beispiel gekennzeichnet."
+  ]
+}

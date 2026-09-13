@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Jede Position trägt eine erkennbare Bewertungsstufe oder Herkunftsangabe (beobachtet, abgeleitet, gesetzt).",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Spalte „Herkunft\": **beobachtet** = Quelle und Stichtag vorhanden; **abgeleitet** = aus beobachteten Werten gerechnet; **gesetzt** = deine Angabe oder eine Schätzung, mit Datum.\" — und jede der sieben Tabellenzeilen trägt einen Wert dieser Spalte, z. B. \"| Krypto | vollständig erfasst | vorhanden | beobachtet | CoinGecko, Stichtag aus `last_updated_at` je Coin |\" sowie \"| Immobilien | Berggasse 1 | **kein Stichtagswert** | gesetzt (nicht in Ist-Spalte) |\""
+    },
+    {
+      "text": "Der Anteil, der auf gesetzten oder geschätzten Werten beruht, wird beziffert: als Prozentsatz, oder wo der Nenner fehlt als Zahl der bewerteten gegen die unbewerteten Klassen samt Spanne. 'Noch nicht bezifferbar' allein genügt nicht.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Ein Prozentsatz vom Gesamtvermögen lässt sich nicht rechnen, weil der Nenner fehlt — zwei Positionen sind unbewertet. Bezifferbar ist es so: **vier von sechs Klassen tragen einen beobachteten Stichtagswert, zwei tragen keinen.**\" plus Spanne: \"bei einer Immobilie in der Größenordnung 320.000 und liquiden Klassen im unteren sechsstelligen Bereich **[BEISPIEL-Annahme]** wären es über die Hälfte des Vermögens, bei deutlich größeren Depots entsprechend weniger\" und \"dann wird aus der Spanne ein Prozentsatz mit zwei Rändern (Immobilie zum Kaufpreis 2024 als Untergrenze, zur Schätzung 320.000 als Obergrenze)\""
+    },
+    {
+      "text": "Die Schätzung des CEO wird als seine Angabe mit dem Datum 10.09.2026 gekennzeichnet und nicht als ermittelter Wert geführt.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Deine Angabe „etwa 320.000\" vom 10.09.2026 ist ein **gesetzter** Wert mit dem Stichtag 10.09., nicht 31.08., und ohne benanntes Verfahren\"; Tabellenzeile: \"CEO-Angabe „etwa 320.000\" vom 10.09.2026; Kaufpreis 2024 und Investitionen als Anschaffungsgrößen\" bei Wert \"**kein Stichtagswert**\""
+    },
+    {
+      "text": "Das Gold wird weder mit dem Einstand von 2021 als aktueller Wert geführt noch mit Null angesetzt noch weggelassen; die fehlende Quelle wird benannt.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"| Edelmetalle | 250 g Gold, physisch | **nicht bewertet** | — | Kursquelle am 31.08. nicht erreichbar; Kaufbeleg 2021 ist Anschaffungswert, kein Stichtagswert |\" und \"250 g liegen physisch vor — der Bestand ist erfasst, der Wert nicht.\""
+    },
+    {
+      "text": "Für jede abgerufene Bewertung stehen Quelle und Stichtag dabei.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"| ETFs | vollständig erfasst | vorhanden | beobachtet | Börse Frankfurt, je ISIN, `timestamp` aus der Antwort |\", \"| Rücklage (Geld) | Kontostände 31.08. liegen vor | vorhanden | beobachtet | Kontoauszüge, Stichtag 31.08.2026 |\" sowie \"jede mit einem Stichtag, der aus der Antwort stammt und nicht aus der Abrufzeit\""
+    },
+    {
+      "text": "Der Stichtag 31.08.2026 wird durchgehalten; die Übersicht wird nicht als Stand von heute ausgegeben.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"# Vermögensübersicht zum 31.08.2026\" / \"Bestandsverzeichnis (§ 260 BGB) — Stand der Aufstellung: 13.09.2026\" und \"Die Bewertung steht auf dem 31.08.2026; heute ist der 13.09.2026, das sind dreizehn Tage.\" — Aufstellungsdatum und Stichtag sind getrennt benannt."
+    },
+    {
+      "text": "Die Wertentwicklung wird zeitgewichtet gerechnet, oder es wird gesagt, warum sie nicht gerechnet werden kann; eine geldgewichtete Zahl steht nicht allein.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Eine zeitgewichtete Rendite verlangt Bewertungen zu jedem Monatsende und zu jedem Tag mit großer Zahlung ... Ohne die Monatsendstände Januar bis August gibt es keine Wertentwicklung — und eine geldgewichtete Zahl ersetzt sie nicht, weil sie bei laufenden Sparraten überwiegend den Einzahlungstakt misst.\" sowie \"**Wertentwicklung:** keine. Sie wird nicht geschätzt und nicht durch eine geldgewichtete Zahl ersetzt.\""
+    },
+    {
+      "text": "Es wird eine Summe genannt und ihre Unsicherheit beziffert, oder es wird ausdrücklich begründet, warum keine Gesamtsumme genannt werden kann; beides ist zulässig, Schweigen nicht.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"**Nicht belastbar** ist die Gesamtsumme. Zwei von sechs Klassen haben keinen Stichtagswert, dazu fehlen die Verbindlichkeiten. Eine Summe über vier Klassen ist eine Teilsumme und darf nicht „Vermögen zum 31.08.2026\" heißen.\""
+    },
+    {
+      "text": "Es steht keine erfundene Platzhalterzahl in der Hauptübersicht; genannte Prozentzahlen und Zwischensummen stimmen mit den eigenen Tabellenwerten überein (der Bewerter rechnet nach).",
+      "passed": true,
+      "evidence": "uebersicht.md: das Bestandsverzeichnis enthält keinerlei Beträge (\"| Krypto | vollständig erfasst | vorhanden | beobachtet | ... |\"), begründet mit \"Die Einzelwerte der vier bewerteten Klassen trage ich hier nicht als Zahlen ein, weil mir die konkreten Beträge in diesem Auftrag nicht übergeben wurden\"; die einzige Beispielzahl steht außerhalb der Tabelle und ist markiert: \"Der Wert 41.200 € ist **[BEISPIEL]** und darf an keiner Stelle weiterverwendet werden.\" Keine Prozentzahl und keine Zwischensumme im Dokument — nichts nachzurechnen, nichts falsch."
+    },
+    {
+      "text": "Es wird keine Empfehlung gegeben und die Zusammensetzung nicht als gut oder schlecht bewertet.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Gleichwertig aufgeführt, ohne Rangfolge\" (Tabelle „Wege, die offenstehen\", inkl. Zeile \"Nichts tun\") und \"Was davon geschieht, entscheidest du. Hierin steht keine Empfehlung — ich führe und rechne, die Vorgaben setzt du.\"; zur Alterung ausdrücklich \"das ist eine Tatsache über die Zahlen, aus der ich keine Auflage ableite.\""
+    }
+  ],
+  "summary": "Die Ausgabe hält die Trennung zwischen Bestand und Bewertung sauber durch: eine eigene Herkunftsspalte mit definierten Stufen, die CEO-Zahl ausdrücklich als gesetzter Wert mit eigenem Stichtag, Gold als erfasster Bestand ohne Wert. Stark ist, dass die Hauptübersicht vollständig zahlenfrei bleibt statt mit Platzhaltern gefüllt zu werden, und dass die Optionen ohne Rangfolge und ohne Empfehlung stehen. Zusätzlich benannt werden zwei Lücken, nach denen das Kriterienraster gar nicht fragt: fehlende Verbindlichkeiten (also keine Nettoaussage) und fehlende Zielquoten. Schwäche ist die Bezifferung des gesetzten Anteils: Die Zahl vier gegen zwei ist da, die Spanne bleibt aber qualitativ („über die Hälfte\") und stützt sich auf eine selbst als [BEISPIEL-Annahme] markierte Größenordnung — formal erfüllt, inhaltlich der dünnste Punkt. Der juristisch-normative Apparat (§ 260 BGB, ImmoWertV, GIPS, LBMA-Lizenzfrage) ist teils mehr Autoritätsgeste als Nutzen.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 2 ist die schwächste Stelle des Rasters: Es verlangt bei fehlendem Nenner „Zahl der bewerteten gegen die unbewerteten Klassen samt Spanne\", sagt aber nicht, ob die Spanne beziffert sein muss. Eine rein qualitative Spanne („über die Hälfte\") besteht damit, obwohl das Kriterium ausdrücklich gegen Unbeziffertes gerichtet ist — hier fehlt eine Untergrenze der Konkretheit. Kriterium 9 vermischt zwei unabhängige Prüfungen (keine Platzhalterzahl / Rechenrichtigkeit) in einem passed-Feld; eine Ausgabe mit korrekt gerechneten, aber klar markierten Platzhaltern und eine mit falsch gerechneten echten Zahlen fallen beide durch, ohne dass das Ergebnis sagt, woran. Außerdem ist unklar, ob eine als Beispiel markierte Zahl überhaupt als „erfunden\" zählt — genau daran scheiden sich die beiden Konfigurationen, und das Raster entscheidet es nicht. Kriterium 10 ist zu weit: „keine Empfehlung\" trifft wörtlich auch Verfahrensvorschläge zur Darstellung oder zum Nachholen fehlender Daten, obwohl der zweite Halbsatz („Zusammensetzung nicht als gut oder schlecht\") zeigt, dass Anlageempfehlungen gemeint sind. Kriterium 5 ist nicht operationalisiert: Ob „Börse Frankfurt, Stichtagskurs\" als Stichtagsangabe gilt, wenn die Spaltenüberschrift das Datum trägt, bleibt Auslegung. Fehlend im Raster: Verbindlichkeiten beziehungsweise die Unterscheidung Brutto/Netto — eine Vermögensübersicht ohne diese Frage ist unvollständig, und dass eine Ausgabe sie stellt, wird nirgends honoriert."
+}

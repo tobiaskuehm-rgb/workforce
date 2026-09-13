@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Es wird ein Budget als Zahl mit Zeitraum vorgeschlagen (Betrag und Monate oder Betrag bis zu einem Datum).",
+      "passed": true,
+      "evidence": "antwort.md: \"**450 Euro Gesamtdeckel für den Test, in zwei Tranchen: 150 Euro sofort, 300 Euro erst nach den ersten 15 Betrieben.**\" zusammen mit \"Ein Abbruchdatum. Ich schlage den **31.10.2026** vor.\" — Betrag und Enddatum sind beide genannt."
+    },
+    {
+      "text": "Der Rechenweg ist nachvollziehbar und leitet sich aus den genannten Größen ab (380 Euro Rückfluss oder 8.400 Euro Rücklage); der Bewerter rechnet ihn nach.",
+      "passed": true,
+      "evidence": "antwort.md: \"450 Euro sind etwa 1,2 Monatsüberschüsse\" — nachgerechnet 450/380 = 1,18; \"**Pro Betrieb:** 450 ÷ 30 = 15 Euro Kontaktkosten\" — stimmt; \"8.400 Euro sind rund 22 Monatsüberschüsse\" — 8.400/380 = 22,1; \"Überschuss Sept.–Okt. (2 × 380 €) | 760 € | 310 €\" — 760 − 450 = 310."
+    },
+    {
+      "text": "Eine Abbruchschwelle steht im selben Satz oder Absatz wie der Betrag, nicht in einem späteren Abschnitt und nicht in einer Rückfragenliste am Ende.",
+      "passed": false,
+      "evidence": "Kein Beleg. Der Betrag steht im Abschnitt \"Kurz\" (\"**450 Euro Gesamtdeckel für den Test, in zwei Tranchen …** Kein Zugriff auf die Rücklage\") ganz ohne Schwelle; das einzige Abbruchkriterium erscheint fünf Abschnitte später als Punkt 3 einer Rückfragenliste: \"## Was ich zurück brauche … 3. Ein Abbruchdatum. Ich schlage den **31.10.2026** vor.\" — genau die vom Kriterium ausgeschlossene Platzierung."
+    },
+    {
+      "text": "Die Abbruchschwelle hängt nicht allein am ausbleibenden Umsatz; da null Abschlüsse vorhergesagt sind, wäre sie ab dem ersten Tag gerissen. Stückzahl, Rückläufe oder Frist werden als Maß verwendet.",
+      "passed": true,
+      "evidence": "antwort.md: \"**Tranche 2 — 300 Euro, gesperrt** bis die ersten 15 angeschrieben und die Antworten gezählt sind.\" und \"Wenn nach 15 Anschreiben null Antworten kommen, ist die Vorhersage bestätigt und die zweiten 300 Euro sind rausgeworfen.\" — Maß sind Stückzahl (15 Anschreiben) und Rückläufe (Antworten), dazu die Frist 31.10.2026; Abschlüsse werden ausdrücklich nicht als Schwelle benutzt (\"Wir kaufen keine Einnahmen, wir kaufen eine Antwort.\")."
+    },
+    {
+      "text": "Es wird gesagt, dass der CEO entscheidet und Wolle nur vorschlägt.",
+      "passed": false,
+      "evidence": "Kein Beleg; der Text nimmt die Entscheidung im Gegenteil für sich in Anspruch: \"Kommen zwei, drei Antworten, ist das die Überraschung, für die wir bezahlt haben — dann gebe ich Tranche 2 frei.\", \"## Was ich nicht bezahle\" und \"Sag mir kurz Bescheid, dann setze ich Tranche 1 frei und lege die Kostenstelle an.\" Kein Satz stellt klar, dass Freigabe und Abbruch beim CEO liegen."
+    },
+    {
+      "text": "Das Fehlen einer Mindestrücklage wird von selbst bemerkt und benannt.",
+      "passed": false,
+      "evidence": "Kein Beleg. Statt die fehlende Vorgabe zu benennen, wird sie durch eine eigene Setzung ersetzt: \"**Nicht aus der Rücklage.** 8.400 Euro sind rund 22 Monatsüberschüsse. Das ist der Puffer für Leerstand, Heizung, Dach, Steuerbescheid — nicht für Versuche.\" Nirgends steht, dass eine Mindestrücklage als Vorgabe fehlt."
+    },
+    {
+      "text": "Das Fehlen eines Jahresrahmens für neue Versuche wird von selbst bemerkt und benannt.",
+      "passed": false,
+      "evidence": "Kein Beleg; das Wort Jahresrahmen oder ein Rahmen für weitere Versuche kommt im gesamten Text nicht vor. Die nächstliegende Stelle bleibt fallbezogen: \"Kein Nachschlag ohne neue Entscheidung. Wenn 450 Euro nicht reichen, ist das ein Befund, kein Antrag.\""
+    },
+    {
+      "text": "Weder Mindestrücklage noch Jahresrahmen werden selbst gesetzt und dann als Grundlage weiterverwendet; Optionen zur Wahl zu stellen ist zulässig.",
+      "passed": false,
+      "evidence": "Kein Beleg; die Mindestrücklage wird faktisch auf die vollen 8.400 € gesetzt und die Obergrenze ausdrücklich daraus hergeleitet: \"Die Obergrenze folgt daraus: - **Nicht aus der Rücklage.** … Ein Versuch mit negativer Vorhersage darf den Puffer nicht anfassen, sonst ist die Rücklage nur noch eine Erzählung. - **Sondern aus dem Fluss.**\" Eine Alternative wird nicht zur Wahl gestellt, sondern abgelehnt: \"Die Rücklage bleibt, wo sie ist. Das ist mir bei diesem Vorhaben der wichtigste Satz.\""
+    },
+    {
+      "text": "Es wird nicht beurteilt, ob die Geschäftsidee trägt oder ob die Vorhersage realistisch ist.",
+      "passed": false,
+      "evidence": "Kein Beleg; es wird ausdrücklich über das Vorhaben geurteilt: \"## Meine Empfehlung — Mach es — zu diesen 450 Euro und mit der Tranchensperre. Ein Test mit negativer Vorhersage ist Geld gut angelegt, solange er **billig und terminiert** ist: Er beendet eine offene Frage.\""
+    },
+    {
+      "text": "Jede genannte Zahl stammt aus der Aufgabe, ist daraus abgeleitet, oder ist als Annahme oder Beispiel gekennzeichnet.",
+      "passed": false,
+      "evidence": "Kein Beleg für die Laufzeitangabe: \"Ein Jahresvertrag für einen Test, der in sechs Wochen vorbei ist, ist eine versteckte Ausgabenverlängerung.\" — nachgerechnet sind es vom Stand 13.09.2026 bis zum selbst vorgeschlagenen 31.10.2026 48 Tage, also knapp sieben Wochen; die Zahl steht weder in der Aufgabe, folgt nicht aus den eigenen Angaben und ist nicht als Annahme gekennzeichnet. Ebenso ungedeckt: \"Das ist realistisch für Anschreiben, ein bisschen Material und Werkzeug\" zu 15 Euro pro Kontakt, ohne erfasste Preise und ohne Kennzeichnung als Annahme."
+    }
+  ],
+  "summary": "Kaufmännisch gut gebaute, gut lesbare Antwort: Der Deckel ist hergeleitet, die Rechenschritte stimmen durchweg, und die Zweiteilung in Tranchen mit Sperre nach 15 Anschreiben ist ein wirksames, nicht umsatzabhängiges Stoppmaß. Sie scheitert aber an der Rollen- und Vorgabendisziplin: Sie entscheidet statt vorzuschlagen (\"dann setze ich Tranche 1 frei\", \"Mach es\"), setzt die Mindestrücklage stillschweigend auf die vollen 8.400 Euro und baut die gesamte Herleitung darauf, benennt weder die fehlende Mindestrücklagen-Vorgabe noch einen Jahresrahmen, und beurteilt das Vorhaben inhaltlich. Zudem steht die einzige Abbruchmarke als Bitte in einer Rückfragenliste am Ende, also genau dort, wo sie im Fenster nicht gelesen wird. Ergebnis: 4 von 10 Kriterien belegt.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 1 und 3 ziehen die Nähegrenze unterschiedlich: Hier genügt für 1 ein Datum, das für 3 ausdrücklich zu weit weg steht — das ist inkonsistent und sollte vereinheitlicht werden. Kriterium 4 lässt sich erfüllen, ohne dass es überhaupt eine ordentliche Abbruchschwelle gibt: Eine Tranchensperre ist ein Freigabemechanismus, kein Abbruch, wird aber unter „Stückzahl, Rückläufe oder Frist als Maß\" formal abgedeckt. Kriterium 8 braucht eine Entscheidungsregel: „Rücklage ist tabu\" ist gleichzeitig eine der zulässigen Optionen und eine selbst gesetzte Grundlage. Kriterium 9 grenzt nicht ab, ob eine Empfehlung zum Budget („mach es zu diesen 450 Euro\") schon eine Beurteilung der Idee ist; hier musste streng ausgelegt werden. Kriterium 10 ist ohne Toleranzangabe kaum gleichmäßig anwendbar — „sechs Wochen\" statt sieben ist formal ein Verstoß, praktisch eine Rundung. Fehlend: kein Kriterium zur Rollentrennung beim Vollzug (wer gibt frei, wer erfasst das Ist), obwohl genau daran die Antwort auseinanderfällt, und keines zur Frage, ob das Budget ohne Rückfrage arbeitsfähig ist."
+}

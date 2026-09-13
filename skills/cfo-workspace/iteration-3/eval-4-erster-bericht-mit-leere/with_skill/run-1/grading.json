@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Der Bericht beginnt mit einer Kernaussage in einem Satz.",
+      "passed": true,
+      "evidence": "bericht.md, Zeile 5 (dritte Zeile nach Titel und Verfasserzeile, ein einziger Satz): \"**Kernaussage:** Baustein A (Vermietung) ist fuer August erstmals durchgehend belegt - Soll, Ist und Bankabgleich stimmen aus einer Quelle -, waehrend das Portfolio in allen sechs Klassen noch ohne Stichtagswert dasteht; eine Vermoegensaussage ist deshalb in diesem Bericht nicht moeglich, und der Anteil gesetzter Werte am Vermoegen laesst sich nur als Spanne 0 bis 100 Prozent angeben.\""
+    },
+    {
+      "text": "Was fehlt, steht im ersten Drittel des Berichts, nicht am Ende und nicht in einer Fußnote.",
+      "passed": true,
+      "evidence": "bericht.md, Zeile 7 von 57 - unmittelbar nach der Kernaussage die erste Ueberschrift: \"## Was fehlt\", darunter Zeile 9: \"**Stichtagswerte fuer alle sechs Klassen.** Krypto, ETFs, Aktien, Immobilien, Edelmetalle, Ruecklage: null von sechs tragen einen Wert zum 31.08.2026.\""
+    },
+    {
+      "text": "Die fehlenden Bestände der Anlageklassen werden als nicht erfasst geführt, nicht mit Null und nicht als leeres Portfolio.",
+      "passed": true,
+      "evidence": "bericht.md, Zeile 9: \"Ohne Nenner gibt es keinen Vermoegensstand, keine Anteile je Klasse und keine Wertentwicklung. Nicht erfasst - nicht null.\" Die Tabellenzeile zaehlt entsprechend nur die Abdeckung, nicht den Wert: \"Klassen mit Stichtagswert 31.08.2026 | 0 von 6 | beobachtet - eigene Bestandsfuehrung\" (Zeile 51)."
+    },
+    {
+      "text": "Es werden keine Quoten erfunden und keine Abweichung von einer Quote gemeldet, die es nicht gibt.",
+      "passed": true,
+      "evidence": "bericht.md, Zeile 21: \"Solange keine Quote gesetzt ist, kann ich jede Klasse nur als Stand ausweisen, nie als Abweichung; eine Ueber- oder Unterdeckung existiert dann fachlich nicht.\" Zeile 12 dazu: \"Zielquoten je Klasse, Mindestruecklage in Euro, Jahresrahmen fuer Baustein C ... Ich benenne sie und setze keine davon.\" Im ganzen Bericht steht keine Prozentzielgroesse je Klasse."
+    },
+    {
+      "text": "Baustein A wird mit dem Soll 1.490 plus 100 Euro berichtet; der Ist-Eingang wird als dem Grunde nach bestätigt, aber unbeziffert geführt, nicht als Betrag und nicht mit einer Differenz von Null.",
+      "passed": true,
+      "evidence": "bericht.md, Zeilen 43-46: \"Soll-Miete Rockhausen, monatlich | 1.490,00 EUR | beobachtet - Journal Vermietung, Stand 08/2026\" / \"Nebenkostenvorauszahlung, monatlich | 100,00 EUR\" / \"Soll-Eingang gesamt, monatlich | 1.590,00 EUR | abgeleitet aus den beiden Zeilen darueber\" / \"Ist-Eingang August 2026 | bestaetigt, Betrag nicht erfasst | beobachtet - Kontoabgleich 08/2026 (Eingang bestaetigt, ohne Betragsangabe)\". Eine Differenzspalte existiert nicht."
+    },
+    {
+      "text": "Die Tagesdecke wird nicht als Monats- oder Jahresgröße ausgegeben, ohne die Umrechnung als solche zu kennzeichnen; eine Decke je Tag ist keine Aussage über den Verbrauch.",
+      "passed": true,
+      "evidence": "bericht.md, Zeilen 49-50: \"Tagesdecke Bot | 1,00 USD/Tag | gesetzt - Vorgabe CEO, Stand 13.09.2026\" / \"Monatsobergrenze Bot, 31 Tage | 31,00 USD | abgeleitet aus der Tagesdecke\", dazu Zeile 55: \"die Monatsobergrenze des Bots ist mit 31 Tagen gerechnet - **[Beispiel: 31 Tage]**; der tatsaechliche Abrechnungszeitraum ist mir nicht bestaetigt\". Die Umrechnung ist als abgeleitet und als Rechenmuster gekennzeichnet; als Verbrauch wird sie nirgends gefuehrt, der Ergebnisposten lautet \"Ueberschuss August | nicht erfasst\" (Zeile 53)."
+    },
+    {
+      "text": "Keine gesetzte, geschätzte oder als Beispiel gekennzeichnete Zahl steht in einer Ist-Spalte oder in einer Abweichungsrechnung, die als gemessen gelesen wird.",
+      "passed": true,
+      "evidence": "bericht.md, Zeile 41: Die Zahlentabelle hat die Spalten \"| Position | Wert | Herkunft |\" - keine Ist- und keine Differenzspalte. Die einzige gesetzte Zahl ist als solche markiert (\"Tagesdecke Bot | 1,00 USD/Tag | gesetzt\", Zeile 49), die einzige Beispielzahl steht ausserhalb der Tabelle: \"Eine Zahl in diesem Bericht dient nur als Rechenmuster ... in einem 30-Tage-Monat lautet dieselbe Rechnung 30,00 USD **[Beispiel]**\" (Zeile 55)."
+    },
+    {
+      "text": "Jede genannte Zahl trägt Quelle oder Stichtag.",
+      "passed": true,
+      "evidence": "bericht.md, Zeilen 41-53: jede Zeile der Zahlentabelle traegt eine Herkunft, z. B. \"Gepruefte Bankeinzuege August | 4 Stueck, Summe nicht erfasst | beobachtet - Kontoabgleich 08/2026\" und \"Anteil gesetzter Werte am Vermoegen | 0 bis 100 % (Nenner fehlt) | abgeleitet aus der Zeile darueber\". Die einzige Zahl im Fliesstext traegt Kennzeichnung und Bezug: \"in einem 30-Tage-Monat lautet dieselbe Rechnung 30,00 USD **[Beispiel]**\" (Zeile 55). Die Zaehlungen in den Entscheidungstabellen (\"6 von 6 Klassen werden ueberwachbar\", Zeile 25) sind ausdruecklich Folgen von Moeglichkeiten, keine Messwerte."
+    },
+    {
+      "text": "Der Bericht nennt, was der CEO liefern oder entscheiden muss, damit die Lücken sich schließen.",
+      "passed": true,
+      "evidence": "bericht.md, Zeile 12: \"**Vier Vorgaben des CEO**, ohne die kein Vergleich moeglich ist: Zielquoten je Klasse, Mindestruecklage in Euro, Jahresrahmen fuer Baustein C, und die Betragsgrenze, ab der ein Zahlungstag eine Zwischenbewertung ausloest.\" Dazu der Abschnitt \"## Was zu entscheiden ist\" (Zeile 19) mit \"**Frage 1 - Zielquoten je Anlageklasse.**\" und \"**Frage 2 - Mindestruecklage in Euro.**\", jeweils mit Moeglichkeiten und Folge in Zahlen."
+    },
+    {
+      "text": "Der Fließtext ohne Tabellen bleibt unter 700 Wörtern (der Bewerter zählt und nennt die Zahl).",
+      "passed": true,
+      "evidence": "bericht.md, alle Zeilen ohne Tabellenzeilen gezaehlt: 396 Woerter (ohne Ueberschriften 376). Deutlich unter 700. Belegzeile fuer die Zaehlgrenze: Der laengste zusammenhaengende Abschnitt ist Zeile 55 (\"Eine Zahl in diesem Bericht dient nur als Rechenmuster ...\"), der Rest sind kurze Aufzaehlungen."
+    }
+  ],
+  "summary": "Sehr diszipliniert: Kernaussage voran, Luecken im ersten Drittel, und jede Zahl traegt eine Herkunftsspalte mit der Unterscheidung beobachtet / abgeleitet / gesetzt. Der kritische Punkt des Falls - der bestaetigte, aber unbezifferte Mieteingang - ist korrekt als \"bestaetigt, Betrag nicht erfasst\" gefuehrt, ohne Ist-Betrag und ohne Nulldifferenz; ebenso wird die fehlende Bestandsseite als \"Nicht erfasst - nicht null\" gefuehrt. Schwaeche ist die Formulierung der Kernaussage: \"Soll, Ist und Bankabgleich stimmen aus einer Quelle\" liest sich beim schnellen Lesen wie eine Uebereinstimmungsaussage und widerspricht damit fast der eigenen Tabelle, in der der Ist-Wert gar nicht beziffert ist. Der Satz \"Anteil gesetzter Werte am Vermoegen | 0 bis 100 % (Nenner fehlt)\" ist formal sauber, aber inhaltlich eine Nullaussage, die Platz in der Kernaussage belegt. Der Bericht bleibt insgesamt knapp (396 Woerter Fliesstext) und beantwortet keine Frage, die er nicht belegen kann.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 1 nennt keine Toleranz fuer Titel- und Verfasserzeile davor; beide Ausgaben stellen etwas vor die erste inhaltliche Zeile, und ohne Regel muss der Bewerter selbst entscheiden, ob eine Kopfzeile den Anfang verschiebt. Kriterium 2 sagt \"erstes Drittel\", legt aber nicht fest, wovon - Zeilen, Woerter oder Abschnitte; bei Berichten mit grossen Tabellen fallen diese Masse auseinander. Kriterien 5 und 7 ueberlappen stark: Die verbotene Nulldifferenz bei Baustein A ist genau der Fall, den 7 allgemein verbietet, sodass ein einzelner Fehler zweimal zaehlt und die Punktsumme verzerrt. Kriterium 6 vermischt zwei Pruefungen in einem Satz (Kennzeichnung der Umrechnung, und dass eine Decke kein Verbrauch ist); der zweite Teil ist als Begruendung formuliert, nicht als pruefbare Anforderung - unklar, ob ein Bericht durchfaellt, der die Umrechnung sauber kennzeichnet, den fehlenden Verbrauch aber nicht erwaehnt. Kriterium 8 ist in strenger Lesart unerfuellbar: Zaehlungen wie \"6 von 6\" in hypothetischen Folgetabellen sind Zahlen ohne Quelle, aber offensichtlich keine Messwerte; die Regel muesste auf Messwerte eingeschraenkt werden. Kriterium 3 nennt \"die Anlageklassen\", ohne zu sagen, ob alle sechs einzeln benannt sein muessen oder eine Sammelaussage genuegt. Es fehlt ein Kriterium zur Prompt-Vorgabe \"Beispielzahlen kennzeichne als Beispiel\" als eigene Anforderung - sie taucht nur indirekt als Verbot in 7 auf, nie als Gebot."
+}

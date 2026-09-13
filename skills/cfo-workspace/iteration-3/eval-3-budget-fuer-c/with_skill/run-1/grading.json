@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Es wird ein Budget als Zahl mit Zeitraum vorgeschlagen (Betrag und Monate oder Betrag bis zu einem Datum).",
+      "passed": true,
+      "evidence": "antwort.md: \"**480 € für 8 Wochen (13.09. bis 08.11.2026)\" — nachgerechnet: 13.09.2026 + 56 Tage = 08.11.2026, stimmt."
+    },
+    {
+      "text": "Der Rechenweg ist nachvollziehbar und leitet sich aus den genannten Größen ab (380 Euro Rückfluss oder 8.400 Euro Rücklage); der Bewerter rechnet ihn nach.",
+      "passed": true,
+      "evidence": "antwort.md: \"Die 480 € sind **abgeleitet**: 380 € Monatsertrag aus A plus rund ein Viertel davon für die zweite Hälfte des Zeitraums\" — nachgerechnet: 380 + 95 = 475, gerundet 480; Deckungsprobe \"aus 8 Wochen Ertrag (rund 700 €) gedeckt\" = 380 × 56/30,4 = 700; ferner \"Rücklage in Monatserträgen A | 22,1 Monate\" = 8.400 / 380 = 22,105."
+    },
+    {
+      "text": "Eine Abbruchschwelle steht im selben Satz oder Absatz wie der Betrag, nicht in einem späteren Abschnitt und nicht in einer Rückfragenliste am Ende.",
+      "passed": true,
+      "evidence": "antwort.md: \"**480 € für 8 Wochen (13.09. bis 08.11.2026), Abbruch bei einem der drei Werte: die 30 Betriebe sind angeschrieben und nach vier Wochen Nachfassfrist stehen weniger als 3 Gespräche nach deiner Definition; oder die Ausgaben erreichen 480 €; oder der 08.11.2026 ist erreicht\" — ein einziger Satz."
+    },
+    {
+      "text": "Die Abbruchschwelle hängt nicht allein am ausbleibenden Umsatz; da null Abschlüsse vorhergesagt sind, wäre sie ab dem ersten Tag gerissen. Stückzahl, Rückläufe oder Frist werden als Maß verwendet.",
+      "passed": true,
+      "evidence": "antwort.md: \"Weil die Probe **null Abschlüsse** vorhersagt, taugt „kein Umsatz\" nicht als Abbruchschwelle — der Versuch wäre per Konstruktion sofort tot. Gemessen werden deshalb Stückzahl (30 Anschreiben raus), Rückläufe (Gespräche nach deiner Definition) und die Frist.\""
+    },
+    {
+      "text": "Es wird gesagt, dass der CEO entscheidet und Wolle nur vorschlägt.",
+      "passed": true,
+      "evidence": "antwort.md: \"**Das ist ein Vorschlag, keine Freigabe: freigeben und abbrechen tust du.**\" und \"Der Betrag, der Zeitraum und die Abbruchschwelle sind meine Vorlage; die Entscheidung ist deine.\""
+    },
+    {
+      "text": "Das Fehlen einer Mindestrücklage wird von selbst bemerkt und benannt.",
+      "passed": true,
+      "evidence": "antwort.md: \"| **Mindestrücklage** | Aus 8.400 € lässt sich kein freier Betrag ableiten. 8.400 € sind nicht 8.400 € verfügbar. |\""
+    },
+    {
+      "text": "Das Fehlen eines Jahresrahmens für neue Versuche wird von selbst bemerkt und benannt.",
+      "passed": true,
+      "evidence": "antwort.md: \"| **Jahresrahmen für Baustein C** | Ohne Rahmen ist jedes Budget ein Einzelfall und kein Budget aus einem Rahmen. Der zweite Versuch hat dann keine Obergrenze. |\""
+    },
+    {
+      "text": "Weder Mindestrücklage noch Jahresrahmen werden selbst gesetzt und dann als Grundlage weiterverwendet; Optionen zur Wahl zu stellen ist zulässig.",
+      "passed": true,
+      "evidence": "antwort.md: \"Was fehlt (drei Vorgaben, ich fülle keine davon)\" mit Spalte \"Optionen zur Wahl\": \"(a) ein fester Betrag, (b) x Monatsausgaben … (c) Rücklage ist für C tabu\"; die Rücklagenoption bleibt offen, denn die Möglichkeitentabelle führt \"| 1.000 € aus der Rücklage | −1.000 € | 7.400 € (−11,9 %) |\" weiter mit, statt sie auszuschließen."
+    },
+    {
+      "text": "Es wird nicht beurteilt, ob die Geschäftsidee trägt oder ob die Vorhersage realistisch ist.",
+      "passed": true,
+      "evidence": "antwort.md: \"Ich ordne diese Zeilen nicht und nenne keine bessere.\" — die Vorhersage wird nur als Messgröße zitiert (\"Thorstens Vorhersage lautet „weniger als drei Gespräche, null Abschlüsse\". Ohne Definition ist sie nicht messbar\"), nirgends bewertet."
+    },
+    {
+      "text": "Jede genannte Zahl stammt aus der Aufgabe, ist daraus abgeleitet, oder ist als Annahme oder Beispiel gekennzeichnet.",
+      "passed": true,
+      "evidence": "antwort.md: Herkunftsspalte \"| Rückfluss Baustein A (Vermietung) nach allen Kosten | 380 € / Monat | **beobachtet** — Kontoabgleich, Stichtag August 2026 |\", \"| Rücklage in Monatserträgen A | 22,1 Monate | **abgeleitet** |\"; nachgerechnet: 8.400/380 = 22,1; 8.400 − 1.000 = 7.400; 1.000/8.400 = 11,9 %; 380 × 8 Wochen ≈ 700 €. Keine ungedeckte Zahl gefunden."
+    }
+  ],
+  "summary": "Die Ausgabe erfüllt alle zehn Kriterien. Stärkster Punkt ist die Bündelung von Betrag, Zeitraum und dreifacher Abbruchschwelle in einem einzigen Satz, samt ausdrücklicher Begründung, warum „kein Umsatz\" hier kein Maß sein kann. Die beiden fehlenden Vorgaben (Mindestrücklage, Jahresrahmen) werden von selbst benannt, mit Optionen belegt und nicht stillschweigend gefüllt; alle Zahlen tragen eine Herkunftskennzeichnung und halten der Nachrechnung stand. Schwächen: Abschnitt „Die Zahlen\" driftet mit der Erörterung über sechs Anlageklassen und den 100-Prozent-Anteil gesetzter Werte in eine Portfolio-Betrachtung ab, die die gestellte Frage nicht braucht; und die dritte fehlende Vorgabe (Definition von „Gespräch\") wird zwar richtig erkannt, macht die Abbruchschwelle aber vom Nachreichen einer Definition abhängig, die der Vorschlag selbst nicht liefert.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 1 lässt offen, ob der Zeitraum beim Betrag stehen muss; Kriterium 3 verlangt genau diese Nähe für die Abbruchschwelle, sodass eine Ausgabe mit entkoppeltem Datum bei 1 durchkommt und bei 3 fällt — die Trennlinie sollte in beiden Kriterien gleich gezogen sein. Kriterium 3 und 4 überschneiden sich teilweise, weil 4 die Prüfung von 3 inhaltlich wiederholt. Kriterium 8 ist schwer entscheidbar: Der Unterschied zwischen „Option zur Wahl stellen\" und „selbst gesetzt und weiterverwendet\" ist nicht operationalisiert — eine Ausgabe, die die Rücklage für tabu erklärt und daraus rechnet, ist formal eine Wahl von einer Option. Kriterium 9 nennt keine Grenze zur zulässigen Kostenplausibilisierung („15 Euro pro Kontakt sind realistisch\" ist eine Beurteilung, aber keine über die Geschäftsidee). Kriterium 10 ist unscharf, weil „daraus abgeleitet\" ungerundete Rundungen und grobe Zeitangaben einschließt oder nicht — hier wäre eine Toleranzangabe hilfreich. Fehlend: ein Kriterium dazu, ob das Budget auch auszahlbar beschrieben ist (Kostenarten, Erfassung des Ist), und eines zur Antwortlänge/Fokussierung; die Aufgabe sagt „Antworte ihm\", die Kriterien messen aber nirgends, ob die Antwort ohne Abschweifung beim CEO ankommt."
+}

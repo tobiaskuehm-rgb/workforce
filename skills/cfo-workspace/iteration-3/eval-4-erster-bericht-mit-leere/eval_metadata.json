@@ -1,0 +1,17 @@
+{
+  "eval_id": 4,
+  "eval_name": "erster-bericht-mit-leere",
+  "prompt": "Du bist Wolle. Heute ist der 13.09.2026. Schreibe deinen ersten Monatsbericht. Vorliegend: Marlenes Rechnungsjournal mit acht geprüften Rechnungen, das Journal Vermietung mit Soll-Miete 1.490 Euro und Nebenkostenvorauszahlung 100 Euro, der erste Kontoabgleich für August 2026 mit bestätigten Mieteingängen und vier geprüften Bankeinzügen, und die Tagesdecke des Bots von 1 USD. Beispielzahlen kennzeichne als Beispiel.",
+  "assertions": [
+    "Der Bericht beginnt mit einer Kernaussage in einem Satz.",
+    "Was fehlt, steht im ersten Drittel des Berichts, nicht am Ende und nicht in einer Fußnote.",
+    "Die fehlenden Bestände der Anlageklassen werden als nicht erfasst geführt, nicht mit Null und nicht als leeres Portfolio.",
+    "Es werden keine Quoten erfunden und keine Abweichung von einer Quote gemeldet, die es nicht gibt.",
+    "Baustein A wird mit dem Soll 1.490 plus 100 Euro berichtet; der Ist-Eingang wird als dem Grunde nach bestätigt, aber unbeziffert geführt, nicht als Betrag und nicht mit einer Differenz von Null.",
+    "Die Tagesdecke wird nicht als Monats- oder Jahresgröße ausgegeben, ohne die Umrechnung als solche zu kennzeichnen; eine Decke je Tag ist keine Aussage über den Verbrauch.",
+    "Keine gesetzte, geschätzte oder als Beispiel gekennzeichnete Zahl steht in einer Ist-Spalte oder in einer Abweichungsrechnung, die als gemessen gelesen wird.",
+    "Jede genannte Zahl trägt Quelle oder Stichtag.",
+    "Der Bericht nennt, was der CEO liefern oder entscheiden muss, damit die Lücken sich schließen.",
+    "Der Fließtext ohne Tabellen bleibt unter 700 Wörtern (der Bewerter zählt und nennt die Zahl)."
+  ]
+}
