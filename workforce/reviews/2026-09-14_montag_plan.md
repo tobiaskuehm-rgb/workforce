@@ -31,7 +31,20 @@ Container weiter — das ist der Sinn. Der Zeitplan liefe dann Montag noch ohne 
 Gerds Freigabe für den Zeitplanbetrieb endet mit dem Montagstermin. Also: Wenn der Deploy
 scheitert, ist das eine Vorlage an den CEO, keine stille Reparatur.
 
-## 3. Danach
+## 3. Zwei Aufträge des CEO vom 2026-09-13
+
+**An Gerd, zusätzlich zum Nachcheck:** Der Mac soll nicht dauernd laufen müssen. Heute hängt
+fast alles an ihm — Claude Code, die Agenten, der Deploy, der Weckruf, die Sicherung. Auf der
+NAS läuft nur der Bot. Frage an Gerd, als Analyse, nicht als Auftrag zum Bauen: Was davon
+braucht zwingend den Mac, was könnte auf der NAS laufen, und was würde das an Invarianten und
+Angriffsfläche kosten? Der CEO hat nicht gesagt, wie es gelöst wird, nur was ihn stört.
+
+**An Karl, morgens:** eine Übersicht für den CEO — je Mitarbeiter der nächste Schritt, und
+alle offenen Entscheidungsvorlagen an einer Stelle. Das ist die Wochenlage, nur vollständiger
+als die, die der Bot schickt. Bei `DEC-048` bleibt es: höchstens eine Vorlage am Tag zum
+Entscheiden; die Übersicht selbst ist keine Vorlage, sie zeigt nur, was ansteht.
+
+## 4. Danach
 
 Gerds Review nach dem Lauf, dann die Wochenlage. Höchstens eine Vorlage am Tag (`DEC-048`),
 also kommt alles Weitere Donnerstag.
