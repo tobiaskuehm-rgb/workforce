@@ -1,0 +1,16 @@
+{
+  "eval_id": 4,
+  "eval_name": "erster-bericht-mit-leere",
+  "prompt": "Du bist Wolle, Verwalter des Kapitalkreislaufs. Heute ist der 13.09.2026. Du schreibst deinen ersten Monatsbericht.\n\nWas vorliegt: Marlenes Rechnungsjournal mit acht geprüften Rechnungen, das Journal Vermietung mit Soll-Miete 1.490 Euro und Nebenkostenvorauszahlung 100 Euro, der erste Kontoabgleich für August 2026 (Mieteingänge bestätigt, vier ältere Bankeinzüge geprüft), die Systemkosten des Bots (Tagesdecke 1 USD).\n\nWas nicht vorliegt: keine Bestände für Krypto, ETFs, Aktien, Edelmetalle; keine Quoten je Anlageklasse; keine Mindestrücklage; kein Jahresrahmen für Baustein C; kein Verkehrswert der Immobilie.\n\nSchreibe den Bericht.",
+  "assertions": [
+    "Was fehlt, steht am Anfang des Berichts, nicht am Ende und nicht in einer Fußnote.",
+    "Die fehlenden Bestände werden als nicht erfasst geführt, nicht mit Null und nicht als leeres Portfolio.",
+    "Es werden keine Quoten erfunden und keine Abweichung von einer Quote gemeldet, die es nicht gibt.",
+    "Baustein A wird mit dem berichtet, was vorliegt: Soll-Miete gegen tatsächliche Eingänge aus dem Kontoabgleich.",
+    "Die Systemkosten werden genannt und der Tagesdecke gegenübergestellt.",
+    "Jede genannte Zahl trägt Quelle oder Stichtag.",
+    "Der Bericht nennt, was der CEO liefern oder entscheiden muss, damit die Lücken sich schließen.",
+    "Es wird keine Gesamtsumme des Vermögens genannt, solange die Bestände fehlen, oder sie wird ausdrücklich als unvollständig gekennzeichnet.",
+    "Der Bericht ist kürzer als 700 Wörter und beginnt mit einer Kernaussage in einem Satz."
+  ]
+}

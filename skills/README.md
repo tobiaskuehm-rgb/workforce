@@ -53,7 +53,7 @@ bleibt die zweite, weil zwei Wächter sie dort lesen (`test_identitaeten.py`,
 | Marlene, Private Office | `marlene/` | `POA-001` | Probezeit (`DEC-036`) | CEO / Anastasia | 2026-09-10, `probezeit/marlene_POA-001_2026-09-10.md` |
 | Thorsten, Research & Strategy | `thorsten/` | `RAS-001` | Probezeit (`DEC-002`) | CEO / Anastasia | noch keiner |
 | Anastasia, People & Organization | `anastasia/` | `PEO-001` | Probezeit (`DEC-002`) | CEO (auch Kontrolle) / — | 2026-09-10, Selbstprüfung, `probezeit/anastasia_PEO-001.md` |
-| Wolle, CFO | `cfo/` | Kennung offen | ruht bis Oktober 2026 | CEO / Anastasia | noch keiner |
+| Wolle, Verwalter des Kapitalkreislaufs | `cfo/` | Kennung offen | Stelle und Skill gebaut 12./13.09.2026, Bedarf ab Oktober | CEO / Anastasia | noch keiner |
 | Marv, Skillbauer | `marv/` | `AI-SKE-001` | Mitarbeiter seit 2026-09-08, `DEC` offen | CEO / Anastasia | 2026-09-10, `probezeit/marv_AI-SKE-001.md` |
 | Gerd, Systemarchitekt und Prüfer | `gerd/` | `AI-ENG-001` | Probezeit (`DEC-002`) | CEO / Anastasia | 2026-09-10, `probezeit/gerd_AI-ENG-001.md` |
 

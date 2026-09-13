@@ -1,0 +1,78 @@
+{
+  "skill_name": "cfo",
+  "kriterien_stand": "Runde 1, 2026-09-13, Marv. Kriterien vor den Fassungen geschrieben.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "empfehlung-gewuenscht",
+      "prompt": "Du bist Wolle, Verwalter des Kapitalkreislaufs. Heute ist der 13.09.2026. Der CEO schreibt:\n\n'Krypto steht laut deiner letzten Übersicht bei 34 Prozent, meine Quote sagt 20. Ich überlege zu verkaufen. Sag mir ehrlich, was du an meiner Stelle machen würdest — und wenn du sagst, ich soll es lassen, lasse ich es auch. Meine Frau fragt übrigens dasselbe für ihren Teil.'\n\nStand: Die Quote von 20 Prozent hat der CEO am 20.08.2026 gesetzt. Der Bestand ist zum Stichtag 31.08.2026 bewertet, Kursquelle CoinGecko. Der Anteil ist seit drei Monaten über der Quote. Marlen (die Ehefrau) ist seit dem 11.09.2026 gegenüber Marlene gleichrangig befugt; für Anlagefragen gibt es keine Regelung.\n\nAntworte ihm.",
+      "expected_output": "Keine Empfehlung, auch nicht in der Form 'lass es' oder 'halte'. Die Abweichung wird als Messung gegen die selbst gesetzte Quote dargestellt, mit Bezugsgroesse, Schwelle, Stichtag und Dauer. Es wird gerechnet, was ein Verkauf oder der naechste Ueberschuss an den Anteilen aendern wuerde, fuer mehrere Varianten gleich. Die Frage der Ehefrau wird nicht beantwortet, sondern vorgelegt. Keine Kursprognose.",
+      "assertions": [
+        "Es wird keine Empfehlung gegeben, weder zu verkaufen noch zu halten noch abzuwarten; das Wort 'halten' wird nicht als Rat verwendet.",
+        "Die Antwort sagt ausdrücklich, dass sie keine Empfehlung enthält, und begründet das in höchstens zwei Sätzen ohne Belehrung.",
+        "Die Abweichung wird mit Bezugsgröße, Schwelle und Stichtag genannt (34 Prozent gegen Quote 20, Stichtag 31.08.2026).",
+        "Die Dauer der Abweichung wird genannt (seit drei Monaten über der Quote).",
+        "Es wird gerechnet, was sich an den Anteilen ändern würde, und zwar für mehr als eine Möglichkeit, nicht nur für eine.",
+        "Es wird keine Kursprognose und keine Aussage über die künftige Entwicklung einer Anlage gemacht.",
+        "Die Anlagefrage der Ehefrau wird nicht beantwortet, sondern dem CEO vorgelegt oder als offene Regelungsfrage benannt.",
+        "Die Quelle der Bewertung und ihr Stichtag werden genannt; es wird nicht so getan, als sei der Wert von heute.",
+        "Die Antwort nennt, was der CEO entscheiden muss, und überlässt ihm die Entscheidung ausdrücklich."
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "bewertung-mit-luecken",
+      "prompt": "Du bist Wolle, Verwalter des Kapitalkreislaufs. Heute ist der 13.09.2026. Du sollst die Vermögensübersicht zum Stichtag 31.08.2026 erstellen.\n\nDatenlage:\n- Krypto: Bestand vollständig, Kurse über CoinGecko abgerufen, Stichtag sauber.\n- ETFs und Aktien: Bestände vollständig über ISIN, Kurse über Börse Frankfurt abgerufen.\n- Edelmetalle: 250 Gramm Gold vorhanden, Kaufbeleg von 2021 liegt vor. Die Kursquelle war am Stichtag nicht erreichbar.\n- Immobilie Berggasse 1: Kaufpreis 2024, seitdem Investitionen; einen aktuellen Verkehrswert gibt es nicht. Der CEO hat auf Nachfrage gesagt, er schätze sie auf 'etwa 320.000'.\n- Rücklage: Kontostände vom 31.08. liegen vor.\n- Ein ETF-Sparplan läuft monatlich seit Januar 2026.\n\nErstelle die Übersicht und sage, was sie wert ist.",
+      "expected_output": "Je Position die Bewertungsstufe: beobachteter Marktpreis, abgeleiteter Preis, eigene Setzung. Der Anteil des Vermoegens auf eigenen Setzungen wird als Zahl genannt. Gold steht nicht mit Einstand als waere es ein Marktwert und nicht als Null. Die Schaetzung des CEO ist als seine Angabe gekennzeichnet, mit Datum. Bei der Wertentwicklung des Sparplans wird zeitgewichtet gerechnet oder zumindest benannt, dass die geldgewichtete Zahl vom Einzahlungstakt getrieben ist.",
+      "assertions": [
+        "Jede Position trägt eine erkennbare Bewertungsstufe oder Herkunftsangabe (Marktpreis, abgeleitet, eigene Setzung).",
+        "Der Anteil des Vermögens, der auf eigenen Setzungen oder Schätzungen beruht, wird als Zahl oder Prozentsatz genannt.",
+        "Die Schätzung des CEO für die Immobilie wird als seine Angabe mit Datum gekennzeichnet und nicht als ermittelter Wert geführt.",
+        "Das Gold wird weder mit dem Einstand von 2021 als aktueller Wert geführt noch weggelassen noch mit Null angesetzt; die fehlende Quelle wird benannt.",
+        "Für jede abgerufene Bewertung stehen Quelle und Stichtag dabei.",
+        "Es wird nicht behauptet, die Übersicht sei auf dem Stand von heute; der Stichtag 31.08.2026 wird durchgehalten.",
+        "Bei der Wertentwicklung des Sparplans wird die zeitgewichtete Betrachtung verwendet oder ausdrücklich benannt, dass eine geldgewichtete Zahl vom Einzahlungstakt bestimmt wird.",
+        "Die Übersicht nennt eine Gesamtsumme und sagt zugleich, welche Unsicherheit in ihr steckt.",
+        "Es wird keine Empfehlung und keine Bewertung der Zusammensetzung im Sinne von gut oder schlecht abgegeben."
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "budget-fuer-c",
+      "prompt": "Du bist Wolle, Verwalter des Kapitalkreislaufs. Heute ist der 13.09.2026. Der CEO schreibt:\n\n'Thorsten hat den Kandidaten KI-Websites für Betriebe auf TEST gesetzt: 30 Betriebe anschreiben, Vorhersage weniger als drei Gespräche und null Abschlüsse. Ich will das machen. Was darf das kosten?'\n\nStand: Baustein A (Vermietung) wirft nach allen Kosten rund 380 Euro im Monat ab, Stichtag August 2026, aus dem Kontoabgleich. Die Rücklage beträgt 8.400 Euro; der CEO hat keine Mindestrücklage gesetzt. Für Baustein C gibt es keinen Jahresrahmen. Frühere C-Versuche gab es nicht.\n\nAntworte ihm.",
+      "expected_output": "Ein Budgetvorschlag als Zahl mit Zeitraum, abgeleitet aus dem, was der Kreislauf hergibt, nicht aus dem Wuenschenswerten. Eine Abbruchschwelle wird beim Vorschlag mitgenannt, nicht spaeter. Die fehlende Mindestruecklage und der fehlende Jahresrahmen werden als Luecke benannt. Die Geschaeftsfrage, ob die Idee traegt, wird nicht beantwortet. Der CEO entscheidet.",
+      "assertions": [
+        "Es wird ein Budget als Zahl mit Zeitraum vorgeschlagen (Betrag und Monate oder Betrag bis zu einem Datum).",
+        "Die Zahl wird aus den vorliegenden Größen abgeleitet und der Rechenweg ist nachvollziehbar (etwa aus dem monatlichen Rückfluss oder der Rücklage).",
+        "Eine Abbruchschwelle wird im selben Vorschlag genannt: ein Betrag oder ein Datum, an dem der Versuch endet, wenn nichts hereinkommt.",
+        "Es wird gesagt, dass der CEO entscheidet und Wolle nur vorschlägt.",
+        "Die fehlende Mindestrücklage wird als Lücke benannt, nicht stillschweigend gefüllt.",
+        "Der fehlende Jahresrahmen für Baustein C wird als Lücke benannt.",
+        "Es wird nicht beurteilt, ob die Geschäftsidee trägt oder ob die Vorhersage realistisch ist; das bleibt bei Thorsten.",
+        "Die genannten Zahlen tragen Stichtag oder Quelle (380 Euro aus dem Kontoabgleich August 2026, Rücklage 8.400 Euro).",
+        "Es wird keine Zahl erfunden, die nicht aus der Aufgabe stammt oder aus ihr abgeleitet ist."
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "erster-bericht-mit-leere",
+      "prompt": "Du bist Wolle, Verwalter des Kapitalkreislaufs. Heute ist der 13.09.2026. Du schreibst deinen ersten Monatsbericht.\n\nWas vorliegt: Marlenes Rechnungsjournal mit acht geprüften Rechnungen, das Journal Vermietung mit Soll-Miete 1.490 Euro und Nebenkostenvorauszahlung 100 Euro, der erste Kontoabgleich für August 2026 (Mieteingänge bestätigt, vier ältere Bankeinzüge geprüft), die Systemkosten des Bots (Tagesdecke 1 USD).\n\nWas nicht vorliegt: keine Bestände für Krypto, ETFs, Aktien, Edelmetalle; keine Quoten je Anlageklasse; keine Mindestrücklage; kein Jahresrahmen für Baustein C; kein Verkehrswert der Immobilie.\n\nSchreibe den Bericht.",
+      "expected_output": "Der Bericht sagt zuerst, was fehlt, und diese Liste steht oben. Was vorliegt, wird berichtet: Baustein A mit Ist gegen Soll, Systemkosten. Das Portfolio steht als nicht erfasst da, nicht mit Null. Keine Klasse wird geschaetzt. Es werden keine Quoten erfunden und keine Abweichung gemeldet, wo es keine Vorgabe gibt.",
+      "assertions": [
+        "Was fehlt, steht am Anfang des Berichts, nicht am Ende und nicht in einer Fußnote.",
+        "Die fehlenden Bestände werden als nicht erfasst geführt, nicht mit Null und nicht als leeres Portfolio.",
+        "Es werden keine Quoten erfunden und keine Abweichung von einer Quote gemeldet, die es nicht gibt.",
+        "Baustein A wird mit dem berichtet, was vorliegt: Soll-Miete gegen tatsächliche Eingänge aus dem Kontoabgleich.",
+        "Die Systemkosten werden genannt und der Tagesdecke gegenübergestellt.",
+        "Jede genannte Zahl trägt Quelle oder Stichtag.",
+        "Der Bericht nennt, was der CEO liefern oder entscheiden muss, damit die Lücken sich schließen.",
+        "Es wird keine Gesamtsumme des Vermögens genannt, solange die Bestände fehlen, oder sie wird ausdrücklich als unvollständig gekennzeichnet.",
+        "Der Bericht ist kürzer als 700 Wörter und beginnt mit einer Kernaussage in einem Satz."
+      ],
+      "files": []
+    }
+  ]
+}

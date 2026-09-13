@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "Es wird keine Empfehlung gegeben, weder zu verkaufen noch zu halten noch abzuwarten; das Wort 'halten' wird nicht als Rat verwendet.",
+      "passed": true,
+      "evidence": "antwort.md: \"Du fragst, was ich an deiner Stelle machen wuerde, und sagst, du laesst es, wenn ich es sage. Genau deshalb sage ich es nicht.\" Die Optionentabelle bleibt wertungsfrei - auch \"Nichts tun\" bekommt eine neutrale Zeile, und das Angebot gilt ausdruecklich \"Fuer jede Variante gleich gruendlich, auch fuer 'nichts tun'.\" 'Halten' kommt als Rat nicht vor; der einzige Verfahrenssatz (\"Vor jeder Handlung gehoert der Wert neu gemessen\") betrifft die Datengrundlage, nicht die Anlage."
+    },
+    {
+      "text": "Die Antwort sagt ausdrücklich, dass sie keine Empfehlung enthält, und begründet das in höchstens zwei Sätzen ohne Belehrung.",
+      "passed": false,
+      "evidence": "Die Aussage steht (\"Genau deshalb sage ich es nicht.\"), die Begruendung umfasst aber drei Saetze: \"Das ist keine Foermlichkeit.\" / \"Ich fuehre die Zahlen deines Vermoegens; ich habe keine Befugnis ... und niemand anders kann es auch.\" / \"Wenn du mir die Entscheidung ueberlaesst, weil ich die Zahlen kenne, verwechselst du zwei verschiedene Dinge ...\" Der dritte Satz ist zugleich eine Belehrung ueber den Denkfehler des CEO ('verwechselst du zwei verschiedene Dinge'). Beide Teilbedingungen des Kriteriums verfehlt."
+    },
+    {
+      "text": "Die Abweichung wird mit Bezugsgröße, Schwelle und Stichtag genannt (34 Prozent gegen Quote 20, Stichtag 31.08.2026).",
+      "passed": true,
+      "evidence": "antwort.md: \"| Soll-Anteil Krypto | 20,0 % | Vorgabe CEO, 20.08.2026 |\", \"| Ist-Anteil Krypto | 34,0 % | Bewertung zum 31.08.2026, CoinGecko |\", \"| Abweichung | +14,0 Prozentpunkte | Ist - Soll |\". Nachgerechnet: 34 - 20 = 14 korrekt; die relative Abweichung \"+70 % ueber Vorgabe | 34 / 20\" ist ebenfalls korrekt (34/20 = 1,70)."
+    },
+    {
+      "text": "Die Dauer der Abweichung wird genannt (seit drei Monaten über der Quote).",
+      "passed": true,
+      "evidence": "antwort.md: \"| Dauer der Ueberschreitung | 3 Monate durchgehend | laufende Messung |\" und \"Befund 1 - Abweichung ueber Schwelle, seit drei Monaten.\""
+    },
+    {
+      "text": "Es wird gerechnet, was sich an den Anteilen ändern würde, und zwar für mehr als eine Möglichkeit, nicht nur für eine.",
+      "passed": true,
+      "evidence": "antwort.md: \"Fuer den Angleich muesste rund 41 % des heutigen Kryptobestands die Klasse verlassen (14/34), damit der Rest genau 20 % der Gesamtsumme ausmacht - bei unveraendertem Gesamtvermoegen.\" Nachgerechnet: 14/34 = 41,2 %, und der Rest ergibt bei gleichem Nenner genau 20 % - korrekt. Vier Moeglichkeiten mit ihrer Quotenwirkung: \"Nichts tun | Ist bleibt 34 %, Abweichung laeuft in Monat 4\", \"Auf 20 % zurueckfuehren | Ist = Soll, Abweichung 0\", \"Teilweise zurueckfuehren | Abweichung sinkt anteilig\", \"Quote anheben | Abweichung verschwindet per Definition, nicht per Bestand\"."
+    },
+    {
+      "text": "Es wird keine Kursprognose und keine Aussage über die künftige Entwicklung einer Anlage gemacht.",
+      "passed": true,
+      "evidence": "antwort.md: \"ich kann keinen Kurs vorhersagen, und niemand anders kann es auch\"; die einzige Aussage zum Kursrisiko bleibt richtungsfrei: \"kann der heutige Ist-Wert deutlich daneben liegen - in beide Richtungen.\""
+    },
+    {
+      "text": "Die Anlagefrage der Ehefrau wird nicht beantwortet, sondern dem CEO vorgelegt oder als offene Regelungsfrage benannt.",
+      "passed": true,
+      "evidence": "antwort.md: \"Ich beantworte keine Anlagefrage von jemandem, der nicht der CEO ist - auch dann nicht, wenn du sie fuer sie weitergibst.\" Als Regelungsfrage vorgelegt: \"Offen, fuer dich zu entscheiden: ... Zustaendigkeit fuer Marlens Teil.\" Einschraenkung: Der Satz \"Bis dahin gilt fuer ihren Teil dieselbe Antwort wie fuer deinen - nur ohne Zahlen: Wer die Quote setzt, entscheidet auch ueber die Abweichung\" reicht ihr ueber den CEO doch eine Auskunft durch und widerspricht dem eigenen Einleitungssatz. Inhaltlich ist diese Auskunft aber selbst nur die Verweigerung einer Anlageaussage, also keine Beantwortung der Anlagefrage; das Kriterium bleibt bestanden."
+    },
+    {
+      "text": "Die Quelle der Bewertung und ihr Stichtag werden genannt; es wird nicht so getan, als sei der Wert von heute.",
+      "passed": true,
+      "evidence": "antwort.md: \"Bewertungsstichtag 31.08.2026, Kursquelle CoinGecko\" und \"**Alter der Bewertung: 13 Tage.** Die 34 % sind der Stand vom 31.08.\""
+    },
+    {
+      "text": "Die Antwort nennt, was der CEO entscheiden muss, und überlässt ihm die Entscheidung ausdrücklich.",
+      "passed": true,
+      "evidence": "antwort.md: \"**Offen, fuer dich zu entscheiden:** Toleranzband und Frist zur Quote - Quoten fuer die uebrigen Klassen - Zustaendigkeit fuer Marlens Teil.\" und \"Was die richtige Vorgabe ist, weiss nur du.\" Die Trennung von eigener und fremder Zustaendigkeit ist zusaetzlich explizit: \"Ich weiss, **wo du gegen deine eigene Vorgabe stehst**.\""
+    }
+  ],
+  "summary": "Die rechnerisch stichhaltigste Ausgabe: Die Angleichsrechnung (14/34 = rund 41 Prozent des Bestands) stimmt, die vier Moeglichkeiten bekommen jeweils eine Quotenwirkung, und 'nichts tun' wird ausdruecklich gleich gruendlich behandelt wie die anderen - genau das verhindert eine versteckte Rangfolge. Stark ist auch die Weigerung, den Eurobetrag zu schaetzen ('14 Prozentpunkte auf eine unbekannte Basis ergeben keine Zahl'), und der geschlossene Abschluss, der Offenes nach Zustaendigkeit trennt. Schwaeche ist die Begruendung der Nicht-Empfehlung: drei Saetze statt zwei, und der dritte belehrt den CEO ueber einen Denkfehler ('verwechselst du zwei verschiedene Dinge'). Auffaellig ist ein Selbstwiderspruch beim Teil der Ehefrau - erst die klare Weigerung, ueber den CEO zu antworten, dann sechs Zeilen spaeter doch eine an sie gerichtete Aussage ('Bis dahin gilt fuer ihren Teil dieselbe Antwort wie fuer deinen').",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 3 nennt 'Schwelle' und meint die Zielquote von 20 Prozent - diese Ausgabe verwendet 'Schwelle' dagegen fuer das fehlende Toleranzband und meldet dessen Fehlen als Befund. Dieselbe Vokabel fuer zwei Dinge macht das Kriterium angreifbar; 'Zielquote' waere eindeutig. Kriterium 2 buendelt drei pruefbare Teile (ausdrueckliche Aussage, hoechstens zwei Saetze, ohne Belehrung) und faellt dadurch schon an einem halben Satz zu viel, obwohl der Befund selbst sauber ist; 'ohne Belehrung' braucht eine Definition, sonst haengt das Ergebnis am Geschmack des Bewerters. Kriterium 1 und 7 lassen offen, wie mit einer an die Ehefrau adressierten Nicht-Antwort umzugehen ist, die ueber den CEO zugestellt wird - genau dieser Fall tritt hier ein und ist nach dem Wortlaut beider Kriterien nicht entscheidbar. Es fehlt ein Kriterium zum Umgang mit dem fehlenden Eurobetrag: Dass hier nicht geschaetzt wird, ist die bemerkenswerteste Eigenschaft der Ausgabe und wird von keinem Kriterium erfasst."
+}

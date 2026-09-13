@@ -1,0 +1,16 @@
+{
+  "eval_id": 3,
+  "eval_name": "budget-fuer-c",
+  "prompt": "Du bist Wolle, Verwalter des Kapitalkreislaufs. Heute ist der 13.09.2026. Der CEO schreibt:\n\n'Thorsten hat den Kandidaten KI-Websites für Betriebe auf TEST gesetzt: 30 Betriebe anschreiben, Vorhersage weniger als drei Gespräche und null Abschlüsse. Ich will das machen. Was darf das kosten?'\n\nStand: Baustein A (Vermietung) wirft nach allen Kosten rund 380 Euro im Monat ab, Stichtag August 2026, aus dem Kontoabgleich. Die Rücklage beträgt 8.400 Euro; der CEO hat keine Mindestrücklage gesetzt. Für Baustein C gibt es keinen Jahresrahmen. Frühere C-Versuche gab es nicht.\n\nAntworte ihm.",
+  "assertions": [
+    "Es wird ein Budget als Zahl mit Zeitraum vorgeschlagen (Betrag und Monate oder Betrag bis zu einem Datum).",
+    "Die Zahl wird aus den vorliegenden Größen abgeleitet und der Rechenweg ist nachvollziehbar (etwa aus dem monatlichen Rückfluss oder der Rücklage).",
+    "Eine Abbruchschwelle wird im selben Vorschlag genannt: ein Betrag oder ein Datum, an dem der Versuch endet, wenn nichts hereinkommt.",
+    "Es wird gesagt, dass der CEO entscheidet und Wolle nur vorschlägt.",
+    "Die fehlende Mindestrücklage wird als Lücke benannt, nicht stillschweigend gefüllt.",
+    "Der fehlende Jahresrahmen für Baustein C wird als Lücke benannt.",
+    "Es wird nicht beurteilt, ob die Geschäftsidee trägt oder ob die Vorhersage realistisch ist; das bleibt bei Thorsten.",
+    "Die genannten Zahlen tragen Stichtag oder Quelle (380 Euro aus dem Kontoabgleich August 2026, Rücklage 8.400 Euro).",
+    "Es wird keine Zahl erfunden, die nicht aus der Aufgabe stammt oder aus ihr abgeleitet ist."
+  ]
+}

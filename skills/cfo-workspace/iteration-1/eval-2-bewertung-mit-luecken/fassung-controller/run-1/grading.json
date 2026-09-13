@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "Jede Position trägt eine erkennbare Bewertungsstufe oder Herkunftsangabe (Marktpreis, abgeleitet, eigene Setzung).",
+      "passed": true,
+      "evidence": "uebersicht.md: Aufteilung in \"### Belegt zum Stichtag\" mit Spalte \"Kurs/Quelle\" (\"CoinGecko, Stichtag\", \"Börse Frankfurt, Stichtag\", \"Kontostand 31.08.\") und \"### Nicht stichtagsbelegt\" mit \"**fehlender Wert** — Menge steht, Wert nicht\" bzw. \"CEO-Schätzung 320.000 ist keine Bewertung\"."
+    },
+    {
+      "text": "Der Anteil des Vermögens, der auf eigenen Setzungen oder Schätzungen beruht, wird als Zahl oder Prozentsatz genannt.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Anteil nicht belegt am Gesamtbild | **60 %**\" und \"Die wichtigste Zahl dieser Übersicht ist nicht die Summe, sondern die 60 %.\" (Nachgerechnet: die Bezugszahl 334.000 € stimmt nicht gegen die eigenen Posten, siehe summary.)"
+    },
+    {
+      "text": "Die Schätzung des CEO für die Immobilie wird als seine Angabe mit Datum gekennzeichnet und nicht als ermittelter Wert geführt.",
+      "passed": false,
+      "evidence": "uebersicht.md: \"Berggasse 1: CEO-Schätzung 320.000 € — Herkunft: CEO, mündlich, 2026\". Die Abgrenzung als Angabe ist vorbildlich belegt (\"Ich trage die 320.000 € nicht als Wert ein. Eine Schätzung des Eigentümers ist eine Meinung über den eigenen Besitz\"), aber ein Datum fehlt: \"2026\" ist eine Jahresangabe, kein Datum der Auskunft. Zweiteiliges Kriterium, damit nicht bestanden."
+    },
+    {
+      "text": "Das Gold wird weder mit dem Einstand von 2021 als aktueller Wert geführt noch weggelassen noch mit Null angesetzt; die fehlende Quelle wird benannt.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Gold, 250 g | Kaufbeleg 2021, Menge geprüft | Kurs am 31.08.2026 (Quelle nicht erreichbar) | **fehlender Wert** — Menge steht, Wert nicht\"; die Größenordnung steht ausdrücklich nur \"Nachrichtlich … Platzhalter, keine Stichtagsquelle\"."
+    },
+    {
+      "text": "Für jede abgerufene Bewertung stehen Quelle und Stichtag dabei.",
+      "passed": true,
+      "evidence": "uebersicht.md: Tabellenkopf \"Kurs/Quelle | Wert 31.08.2026\" mit \"CoinGecko, Stichtag\", \"Börse Frankfurt, Stichtag\" (ETFs und Aktien getrennt), \"Kontostand 31.08.\"."
+    },
+    {
+      "text": "Es wird nicht behauptet, die Übersicht sei auf dem Stand von heute; der Stichtag 31.08.2026 wird durchgehalten.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Stichtag 31.08.2026, Erstellung 13 Tage später — die Übersicht ist eine Stichtagsaufnahme, kein Tageswert.\" und \"der Wert wird dann rückwirkend zum 31.08. gelesen, nicht zum Tag des Abrufs\"."
+    },
+    {
+      "text": "Bei der Wertentwicklung des Sparplans wird die zeitgewichtete Betrachtung verwendet oder ausdrücklich benannt, dass eine geldgewichtete Zahl vom Einzahlungstakt bestimmt wird.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Der ETF-Bestand ist zwischen zwei Stichtagen aus **zwei** Gründen gestiegen — Einzahlung und Kurs. Wer die Veränderung als Rendite liest, liest sein eigenes Geld als Gewinn.\""
+    },
+    {
+      "text": "Die Übersicht nennt eine Gesamtsumme und sagt zugleich, welche Unsicherheit in ihr steckt.",
+      "passed": false,
+      "evidence": "uebersicht.md: Genannt sind nur die Blöcke \"**Summe belegt** | **218.400 €**\" und \"Vermögen **nicht stichtagsbelegt** | 334.000 €\"; eine Gesamtsumme wird ausdrücklich verweigert: \"Eine Gesamtsumme über beide Blöcke hinweg würde ich nur mit diesem Hinweis daneben nennen, und in keiner Form, in der sie zitierbar ist.\" Kein Zitat für eine genannte Gesamtsumme."
+    },
+    {
+      "text": "Es wird keine Empfehlung und keine Bewertung der Zusammensetzung im Sinne von gut oder schlecht abgegeben.",
+      "passed": true,
+      "evidence": "uebersicht.md: \"Keine dieser vier Maßnahmen empfehle ich als Anlageentscheidung; alle vier betreffen die Datengrundlage, nicht das Vermögen.\" und \"Jede Aussage der Form „zu viel Krypto\" oder „Rücklage reicht\" wäre meine Meinung und nicht eine gemessene Abweichung.\""
+    }
+  ],
+  "summary": "Analytisch die schärfste Ausgabe: Kennzahl vor Bestand, Trennung belegt/nicht belegt als Gliederungsprinzip, ein eigener Soll-Ist-Abschnitt, der das Fehlen jeder Vorgabe als ersten Befund ausweist, und der beste Einzelsatz des Feldes — \"Zwei Zahlen für dieselbe Immobilie, die zufällig nah beieinander liegen, sind kein gegenseitiger Beleg.\" Zwei Kriterien fallen dennoch: die CEO-Angabe trägt nur die Jahreszahl 2026 statt eines Datums, und eine Gesamtsumme wird bewusst verweigert statt mit Vorbehalt genannt. Dazu ein Rechenfehler, den kein Kriterium abfragt: der unbelegte Block steht mit 334.000 € in der Kennzahltabelle, während die eigenen Posten 19.000 € + 320.000 € = 339.000 € ergeben; die 60 % hängen an der nicht ableitbaren Zahl. Auffällig außerdem die vielen Ist-Quoten (28 / 62 / 10 %), die auf der belegten Summe beruhen und damit eine andere Grundgesamtheit haben als die 60 %.",
+  "execution_metrics": {},
+  "timing": null,
+  "claims": [],
+  "user_notes_summary": "",
+  "eval_feedback": "Kriterium 8 bestraft hier genau die Vorsicht, die Kriterium 4 belohnt: Diese Ausgabe verweigert die Gesamtsumme aus demselben Grund, aus dem sie das Gold nicht bewertet, und fällt dafür durch. Der Satz sollte lauten \"nennt die summierten Werte und sagt, was darin fehlt\" oder die Verweigerung ausdrücklich zulassen. Kriterium 3 legt keine Genauigkeit für \"mit Datum\" fest; ob \"2026\", \"09/2026\" oder \"13.09.2026\" genügt, entscheidet der Bewerter und nicht das Kriterium. Kriterien 1 und 5 überlappen. Kein Kriterium prüft die innere Rechenkonsistenz, obwohl der Fall auf Zahlenehrlichkeit zielt — der 334.000/339.000-Widerspruch dieser Ausgabe wäre sonst unbemerkt geblieben. Ebenso fehlt ein Kriterium zur Bezugsgröße genannter Prozentsätze (belegte Summe vs. Gesamtbild) und zur Restschuld der Immobilie."
+}
