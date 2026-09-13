@@ -29,7 +29,8 @@ Was Karl weiß, ohne nachzusehen. Jeder Eintrag trägt Datum und Quelle. Eine sp
 | 2026-09-12 | Betriebsanleitung `BETRIEBSANLEITUNG.md` geschrieben (neun Abschnitte, Orte/Takt/Klassen/Prüffragen/Invarianten). Anastasia liest gegen. | `DEC-048` |
 | 2026-09-12 | **Code-Review: drei Befunde, alle meine, alle dieselbe Familie** — ein Wächter, der bei einem Fehlschlag grün meldet. ACL-Prüfung, Prüfung auf unerwartete Dateien, Lesefehler bei Kontextdateien. Behoben, Regel 74. Ich habe Regel 47 an einem Tag zweimal gebrochen. | `/code-review`, 2026-09-12 |
 | 2026-09-13 | An der NAS gemessen: `synoacltool` braucht den vollen Pfad, und seine ACL-Zeilen beginnen mit einem Tabulator — mein frisch gebauter Wächter war zweimal blind und hätte acht ACL-Einträge als null gemeldet. Korrigiert, gegen einen Pfad mit ACL gegengeprobt. `G-119`-Fehlerpfad gemessen. | `workforce/evidence/2026-09-13_acl_und_pruefsumme_gemessen.md` |
-| 2026-09-12 | Deploy auf **Montag** verschoben, nicht davor: der CEO hat erst Montag wieder Volumen. Gerds Freigabe deckt den Montagstermin noch ab. | Chat 2026-09-12 |
+| 2026-09-13 | **Montag 2026-09-14, auf Fable 5.1:** erst Gerds Nachcheck über alles seit `3b6cae3`, dann der Deploy. Heute nichts mehr, das Volumen kostet. Reihenfolge ausdrücklich: Nachcheck vor Deploy. | Chat 2026-09-13 |
+| ~~2026-09-12~~ | ~~Deploy auf Montag verschoben, nicht davor~~ — gilt weiter, jetzt mit Reihenfolge und Modell präzisiert. | Chat 2026-09-12 |
 | 2026-09-07 | Der nächtliche Tagesprozess aus Codex mit Berichten bis 01:45 ist Archiv. Ein fehlender Claude-Bericht dort ist kein Auftrag mehr; integriert wird auf Anfrage und ~~freitags~~ montags und donnerstags (seit 2026-09-08). | bis heute in `karl/SKILL.md`, Abschnitt „Was du weißt" |
 
 ## Tatsachen zur Lage
