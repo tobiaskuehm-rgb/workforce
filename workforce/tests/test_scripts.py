@@ -240,6 +240,36 @@ class ComposeTest(unittest.TestCase):
         self.assertIn('== "claude"', deploy)
 
 
+class WakeTest(ScriptHarness):
+    """Das Weckskript: Paketform und das Verhalten, wenn die NAS stumm bleibt."""
+
+    def run_wake(self, sekunden, ssh_exit="0", env=None):
+        (pathlib.Path(self.tmp) / "bin" / "ssh").write_text(
+            f'#!/bin/sh\nprintf "%s\\n" "$@" >> "$FAKE_SSH_LOG/tries"\nexit {ssh_exit}\n')
+        (pathlib.Path(self.tmp) / "bin" / "ssh").chmod(0o755)
+        return subprocess.run(["sh", "workforce/nas_wake.sh", str(sekunden)], cwd=REPO,
+                              env=dict(self.env, **(env or {})), capture_output=True, text=True)
+
+    def test_das_magic_packet_hat_die_richtige_form(self):
+        # Sechs Byte 0xFF, dann die MAC sechzehnmal: 6 + 96 = 102.
+        run = self.run_wake(30)
+        self.assertEqual(0, run.returncode, run.stderr)
+        self.assertIn("102 Byte", run.stdout)
+        self.assertIn("erreichbar nach 1 Versuchen", run.stdout)
+
+    def test_eine_stumme_nas_endet_als_fehlschlag_nicht_als_vielleicht(self):
+        run = self.run_wake(1, ssh_exit="255")
+        self.assertNotEqual(0, run.returncode)
+        self.assertIn("antwortet nach", run.stderr)
+        self.assertNotIn("RESULT:", run.stdout)
+
+    def test_das_ziel_ist_eine_konstante(self):
+        # G-091: eine gesetzte Ueberschreibung ist ein Abbruch, keine Steuerung.
+        run = self.run_wake(30, env={"NAS_WAKE_HOST": "fremd"})
+        self.assertNotEqual(0, run.returncode)
+        self.assertIn("Konstante", run.stderr)
+
+
 class BackupPullTest(ScriptHarness):
     def make_db(self, *, tamper=False) -> pathlib.Path:
         live = self.tmp / "live.db"

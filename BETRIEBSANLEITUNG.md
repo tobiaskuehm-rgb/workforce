@@ -104,6 +104,8 @@ Fünf Dinge, die gelten, auch wenn es unbequem ist. Sie stehen ausführlich in `
   und ob die Protokollkette heil ist.
 - **Etwas ist schiefgelaufen:** Karl anschreiben. Er holt Gerd.
 - **Alles anhalten:** `/stop`. Es gibt keinen Weg, bei dem etwas trotzdem rausgeht.
+- **NAS ist aus:** Karl kann sie wecken, wenn der Mac im Heimnetz ist (`workforce/nas_wake.sh`).
+  Unterwegs geht das nicht — das Weckpaket ist ein Broadcast und verlässt das Netz nicht.
 
 ## 9. Was du wissen solltest, ohne dass es dir jemand sagt
 
