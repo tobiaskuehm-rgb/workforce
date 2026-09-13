@@ -71,3 +71,9 @@ Jede Zeile hier war ein Fehler oder eine Beinahe. Lies sie vor dem nächsten Ski
 46. **JSON null ist nicht leer.** `str(daten.get("freigabe", ""))` ergibt bei `null` den Text `None`, und der ist nicht leer. Die eine Vorgangsdatei ohne Freigabe kam so durch. Richtig ist `str(x or "")`; die Gegenprobe speist `null` ein, nicht nur einen fehlenden Schluessel.
 47. **Ein Waechter, der immer rot ist, wird abgeschaltet.** Das Feld fuer den Versandvermerk gibt es in keiner der 23 Vorgangsdateien; je Sendung ein Fund waeren 23 gleiche Zeilen. Fehlt ein Verfahren ganz, ist das ein Befund ueber das Verfahren; sobald es gepflegt wird, wird jede Luecke einzeln gemeldet. Zwei Stufen statt einer Flut.
 48. **Eine Schwelle wird an beiden Seiten geprueft.** Sieben Tage heisst: bei sieben gruen, bei acht rot. Ohne die Gegenprobe an der Grenze steht dort ein Vergleichsoperator, den niemand gelesen hat.
+
+## Aus dem Vergleich der Messungen (2026-09-13)
+
+49. **Zahlen aus verschiedenen Formen stehen nebeneinander, als wären sie dasselbe Maß.** Drei Fälle gegen sechs, 32 Kriterien gegen 62, 26 Wörter Prompt gegen 141 — und im Register steht das Ergebnis in einer Spalte. Der CEO hat es gesehen, ich nicht. Eine Norm je Runde, und wo sie fehlt, steht sie als Vermerk dabei.
+50. **Der Prompt verrät, was der Skill leisten soll.** Je mehr Lage in der Aufgabe steht, desto kleiner der Abstand zur Fassung ohne Skill; die Reihenfolge ist fast monoton. Ein Prüffall sagt, was geschehen ist, nie, was daran fehlt — sonst misst man, wie gut man selbst die Aufgabe gestellt hat.
+51. **Der Abstand ist nicht die Güte.** Sieben Punkte Vorsprung bei Wolle und fünfundzwanzig bei Marlene sagen etwas über die Aufgabe, nicht über die Rolle. Das bessere Maß ist die eigene Punktzahl gegen die eigenen Kriterien; der Abstand gehört daneben, mit der Promptlänge.

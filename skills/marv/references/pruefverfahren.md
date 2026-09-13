@@ -8,6 +8,14 @@ Erfundene Fälle, die die schwersten Momente des Feldes enthalten: das Betrugsmu
 
 Ein Fall hat ein Datum. Ein Fall, dessen Zeitraum noch läuft (Abrechnung 2026 im September 2026), ist ein Fehler des Falls, und fremde Instanzen finden ihn.
 
+## Die Norm, damit zwei Messungen dasselbe messen
+
+Seit dem 13.09.2026 gilt für jede neue Runde dieselbe Form, weil die Ergebnisse sonst nebeneinander stehen, ohne vergleichbar zu sein: **vier Prüffälle, zehn Kriterien je Fall, vier Konfigurationen** (drei Fassungen und ohne Skill), oder zwei Konfigurationen, wenn es keine Fassungen gibt. Vier Fälle, weil sechs mal vier Läufe dreimal das Sitzungslimit gerissen haben; zehn Kriterien, weil die Bewerter darunter zu trennen aufhörten.
+
+**Der Prompt bleibt unter sechzig Wörtern und nennt nur die Lage.** Er sagt, was geschehen ist, nie, was daran fehlt. Ein Satz wie „Stand: keine Mindestrücklage gesetzt, kein Jahresrahmen" verrät der Vergleichsinstanz die halbe Lösung, und genau das hatte der Skill leisten sollen. Gemessen am 13.09.2026: Die Promptlänge korreliert fast monoton mit dem schrumpfenden Abstand zur Fassung ohne Skill — Karl 26 Wörter und 17 Punkte Abstand, Gerd 141 Wörter und 8, in Runde 2 noch 4.
+
+Ergebnisse aus der Zeit davor bleiben stehen, wie sie sind, und tragen den Vermerk, unter welcher Form sie entstanden. Umgerechnet wird nichts; eine nachträglich angepasste Zahl ist keine Messung mehr.
+
 ## Kriterien vor dem Bau
 
 Je Fall sechs bis dreizehn Kriterien, objektiv prüfbar aus den Ausgaben: Zahlen, Daten, Paragraphen, das Vorhandensein einer Kennzeichnung, das Fehlen einer IBAN. Jedes Kriterium ist eine Aussage, die ein fremder Bewerter mit einem Zitat belegen oder widerlegen kann. Gebündelte Kriterien („ist gekennzeichnet und wird eingeholt und nichts wird versendet") werden geteilt; ein Bewerter hat es dreimal angemahnt.
